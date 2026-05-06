@@ -1,66 +1,11 @@
 /* Modul: Kitchen Tabs Bar
- * Sticky Segment-Control für Mahlzeiten/Rezepte/Einkauf + Sub-Modul Layout-Fixes
+ * Layout-Fixes für Mahlzeiten/Rezepte/Einkauf bei aktiver Sub-Tab-Leiste.
+ * Tab-Styles kommen aus sub-tabs.css; hier nur Kitchen-spezifische Overrides.
  */
 
+/* Höhe auf --kitchen-tabs-height überschreiben (56px statt Standard 52px) */
 .kitchen-tabs-bar {
-  display: flex;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  height: var(--kitchen-tabs-height);
-  box-sizing: border-box;
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  background-color: var(--color-bg);
-  border-bottom: 1px solid var(--color-border-subtle);
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  flex-shrink: 0;
-}
-
-.kitchen-tabs-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.kitchen-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-3);
-  height: var(--target-base);
-  border-radius: var(--radius-full);
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.kitchen-tab:active {
-  transform: scale(0.96);
-  transition-duration: 0.06s;
-}
-
-.kitchen-tab--active {
-  background-color: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 14%, transparent);
-  color: var(--active-module-accent, var(--color-accent));
-}
-
-.kitchen-tab__icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.kitchen-tab__label {
-  line-height: 1;
+  --sub-tabs-height: var(--kitchen-tabs-height);
 }
 
 /* Mahlzeiten: sticky day-header unterhalb der Tab-Leiste */

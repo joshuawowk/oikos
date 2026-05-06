@@ -43,89 +43,12 @@
 }
 
 /* --------------------------------------------------------
-   Tab-Navigation
+   Sub-Tab-Navigation (via shared sub-tabs.css)
    -------------------------------------------------------- */
 
-.settings-tabs {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  border-bottom: 1px solid var(--color-border);
+/* Abstand zwischen Tab-Leiste und erstem Panel-Inhalt */
+.settings-page .sub-tabs-bar {
   margin-bottom: var(--space-6);
-  position: sticky;
-  top: 0;
-  background: var(--color-bg);
-  z-index: 10;
-  padding-top: var(--space-1);
-}
-
-.settings-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.settings-tab-btn {
-  flex-shrink: 0;
-  padding: var(--space-3) clamp(var(--space-2), 1.3vw, var(--space-4));
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-  min-height: 44px;
-  white-space: nowrap;
-  margin-bottom: -1px;
-}
-
-.settings-tab-btn:hover {
-  color: var(--color-text-primary);
-}
-
-.settings-tab-btn--active {
-  color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
-}
-
-/* --------------------------------------------------------
-   Visuelle Tab-Gruppierung (Vorschlag B)
-   -------------------------------------------------------- */
-
-/* Trennlinie vor Sync-Gruppe */
-.settings-tab-btn[data-group="sync"]::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 20%;
-  height: 60%;
-  width: 2px;
-  background: var(--color-border);
-}
-
-/* Trennlinie vor Personal-Gruppe */
-.settings-tab-btn[data-group="personal"]::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 20%;
-  height: 60%;
-  width: 2px;
-  background: var(--color-border);
-}
-
-/* Trennlinie vor Admin-Gruppe */
-.settings-tab-btn[data-group="admin"]::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 20%;
-  height: 60%;
-  width: 2px;
-  background: var(--color-border);
 }
 
 /* --------------------------------------------------------
