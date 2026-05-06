@@ -105,32 +105,32 @@
 
   /* --------------------------------------------------------
    * 2. Farben - Akzent (konfigurierbar)
-   *    Indigo mit leichtem Violett-Drall — charaktervoller als Default-Blau,
-   *    harmoniert mit --color-accent-secondary und --module-calendar.
+   *    Amber-800 — warm, zeitlos, raffiniert. Satt genug für tägliche Nutzung,
+   *    harmoniert mit den warmen Neutrals und --module-meals.
    * -------------------------------------------------------- */
-  --_color-accent:            #4F46E5;
-  --color-accent:             var(--_color-accent);   /* Indigo-600 — 4.93:1 auf weiß */
-  --_color-accent-hover:      #4338CA;
-  --color-accent-hover:       var(--_color-accent-hover);   /* Indigo-700 */
-  --_color-accent-active:     #3730A3;
-  --color-accent-active:      var(--_color-accent-active);  /* Indigo-800 */
-  --color-accent-deep:        #2E2D82;       /* Tiefer Akzent für Gradienten, Wetter-Widget */
+  --_color-accent:            #92400E;
+  --color-accent:             var(--_color-accent);   /* Amber-800 — 7.20:1 auf weiß */
+  --_color-accent-hover:      #78350F;
+  --color-accent-hover:       var(--_color-accent-hover);   /* Amber-900 */
+  --_color-accent-active:     #451A03;
+  --color-accent-active:      var(--_color-accent-active);  /* Amber-950 */
+  --color-accent-deep:        #451A03;       /* Tiefer Akzent für Gradienten, Wetter-Widget */
 
   /* Greeting-Gradienten: Tageszeit-Varianten */
   --greeting-morning-from: #C2410C;  /* Orange-700 — Morgensonne */
   --greeting-morning-to:   #D97706;  /* Amber-600 */
   --greeting-evening-from: #6D28D9;  /* Violet-700 */
   --greeting-evening-to:   #8250DF;  /* = --module-calendar */
-  --_color-accent-secondary:  #7C5CFC;
-  --color-accent-secondary:   var(--_color-accent-secondary);  /* Sekundärer Akzent für Logo-Gradient */
-  --_color-accent-light:      #EEF2FF;
-  --color-accent-light:       var(--_color-accent-light);   /* Indigo-50 */
-  --_color-accent-subtle:     #E0E7FF;
-  --color-accent-subtle:      var(--_color-accent-subtle);  /* Indigo-100 */
-  --_color-btn-primary:       #4338CA;
-  --color-btn-primary:        var(--_color-btn-primary);    /* Indigo-700 — WCAG AAA: 7.04:1 auf weiß */
-  --_color-btn-primary-hover: #3730A3;
-  --color-btn-primary-hover:  var(--_color-btn-primary-hover);  /* Indigo-800 */
+  --_color-accent-secondary:  #B45309;
+  --color-accent-secondary:   var(--_color-accent-secondary);  /* Amber-700 — Sekundärer Akzent für Logo-Gradient */
+  --_color-accent-light:      #FFFBEB;
+  --color-accent-light:       var(--_color-accent-light);   /* Amber-50 */
+  --_color-accent-subtle:     #FEF3C7;
+  --color-accent-subtle:      var(--_color-accent-subtle);  /* Amber-100 */
+  --_color-btn-primary:       #78350F;
+  --color-btn-primary:        var(--_color-btn-primary);    /* Amber-900 — WCAG AAA auf weiß */
+  --_color-btn-primary-hover: #451A03;
+  --color-btn-primary-hover:  var(--_color-btn-primary-hover);  /* Amber-950 */
 
   /* --------------------------------------------------------
    * 3. Farben - Semantisch
@@ -171,8 +171,8 @@
    *    Einsatz in Modul-Headern, Icons, aktiven States.
    *    Domain-Farben von Severity entkoppelt — siehe §2.5 des Redesign-Vorschlags.
    * -------------------------------------------------------- */
-  --_module-dashboard: #4F46E5;
-  --module-dashboard:  var(--_module-dashboard);  /* Indigo - Übersicht (= --color-accent, bewusster Share) */
+  --_module-dashboard: #92400E;
+  --module-dashboard:  var(--_module-dashboard);  /* Amber-800 - Übersicht (= --color-accent, bewusster Share) */
   --_module-tasks:     #15803D;
   --module-tasks:      var(--_module-tasks);       /* Grün - Erledigung (= --color-success, bewusster Share) */
   --_module-calendar:  #8250DF;
@@ -209,9 +209,9 @@
   --meal-lunch:            #2DA44E;
   --_meal-lunch-light:     #DAFBE1;
   --meal-lunch-light:      var(--_meal-lunch-light);
-  --_meal-dinner:          #4F46E5;
-  --meal-dinner:           var(--_meal-dinner);          /* Indigo - ruhiger Tag-Ausklang (= --color-accent) */
-  --_meal-dinner-light:    #EEF2FF;
+  --_meal-dinner:          #92400E;
+  --meal-dinner:           var(--_meal-dinner);          /* Amber-800 - Abendwärme (= --color-accent) */
+  --_meal-dinner-light:    #FFFBEB;
   --meal-dinner-light:     var(--_meal-dinner-light);
   --meal-snack:            #C2410C;                      /* = --module-meals — Snack ist Sub-Domain */
   --_meal-snack-light:     #FFECE3;
@@ -522,14 +522,14 @@
     --_sidebar-shadow-light: rgba(255, 255, 255, 0.04);
     --_sidebar-shadow-dark:  rgba(0, 0, 0, 0.4);
 
-    --_color-accent:            #818CF8;
-    --_color-accent-hover:      #6366F1;
-    --_color-accent-active:     #4F46E5;
-    --_color-accent-light:      #2E2D5B;
-    --_color-accent-subtle:     #252255;
-    --_color-btn-primary:       #6366F1;
-    --_color-btn-primary-hover: #4F46E5;
-    --_color-accent-secondary:  #A78BFA;
+    --_color-accent:            #FBBF24;
+    --_color-accent-hover:      #F59E0B;
+    --_color-accent-active:     #D97706;
+    --_color-accent-light:      #2C1E00;
+    --_color-accent-subtle:     #1F1500;
+    --_color-btn-primary:       #F59E0B;
+    --_color-btn-primary-hover: #D97706;
+    --_color-accent-secondary:  #FDE68A;
 
     --_color-success:       #4ADE80;
     --_color-warning:       #F59E0B;
@@ -545,7 +545,7 @@
     --_toast-warning-text: #291400;   /* 13.1:1 auf #F59E0B */
     --_toast-danger-text:  #330808;   /* 15.1:1 auf #FCA5A5 */
 
-    --_module-dashboard: #818CF8;
+    --_module-dashboard: #FBBF24;
     --_module-tasks:     #4ADE80;
     --_module-calendar:  #A78BFA;
     --_module-meals:     #FB923C;
@@ -560,8 +560,8 @@
     --_meal-breakfast:       #F59E0B;
     --_meal-breakfast-light: #332400;
     --_meal-lunch-light:     #1A3325;
-    --_meal-dinner:          #818CF8;
-    --_meal-dinner-light:    #2E2D5B;
+    --_meal-dinner:          #FBBF24;
+    --_meal-dinner-light:    #2C1E00;
     --_meal-snack-light:     #3D2010;
 
     --_color-priority-none-bg:   rgba(142, 141, 137, 0.12);
@@ -624,15 +624,15 @@
     --_sidebar-shadow-light: rgba(255, 255, 255, 0.04);
     --_sidebar-shadow-dark:  rgba(0, 0, 0, 0.4);
 
-    /* Akzent - Dark Mode (Indigo bleibt, nur Lightness/Saturation rücken) */
-    --_color-accent:            #818CF8;   /* Indigo-400 — 6.8:1 auf #2A2A28 */
-    --_color-accent-hover:      #6366F1;   /* Indigo-500 */
-    --_color-accent-active:     #4F46E5;   /* Indigo-600 (= Light-Primary, Mirroring) */
-    --_color-accent-light:      #2E2D5B;
-    --_color-accent-subtle:     #252255;
-    --_color-btn-primary:       #6366F1;   /* Indigo-500 — 5.5:1 auf Dark-Surface */
-    --_color-btn-primary-hover: #4F46E5;
-    --_color-accent-secondary:  #A78BFA;
+    /* Akzent - Dark Mode (Amber hellt auf für Kontrast auf dunklen Flächen) */
+    --_color-accent:            #FBBF24;   /* Amber-400 — 8.1:1 auf #222220 */
+    --_color-accent-hover:      #F59E0B;   /* Amber-500 */
+    --_color-accent-active:     #D97706;   /* Amber-600 */
+    --_color-accent-light:      #2C1E00;
+    --_color-accent-subtle:     #1F1500;
+    --_color-btn-primary:       #F59E0B;   /* Amber-500 — 5.9:1 auf Dark-Surface */
+    --_color-btn-primary-hover: #D97706;
+    --_color-accent-secondary:  #FDE68A;   /* Amber-200 */
 
     /* Semantische Farben */
     --_color-success:       #4ADE80;
@@ -650,7 +650,7 @@
     --_toast-danger-text:  #330808;   /* 15.1:1 auf #FCA5A5 */
 
     /* Modul-Akzente (Entflechtung Meals/Shopping spiegelt Light-Mode) */
-    --_module-dashboard: #818CF8;   /* Indigo-400 */
+    --_module-dashboard: #FBBF24;   /* Amber-400 */
     --_module-tasks:     #4ADE80;
     --_module-calendar:  #A78BFA;
     --_module-meals:     #FB923C;   /* Orange-400 */
@@ -666,8 +666,8 @@
     --_meal-breakfast:       #F59E0B;
     --_meal-breakfast-light: #332400;
     --_meal-lunch-light:     #1A3325;
-    --_meal-dinner:          #818CF8;   /* Indigo-400 */
-    --_meal-dinner-light:    #2E2D5B;
+    --_meal-dinner:          #FBBF24;   /* Amber-400 */
+    --_meal-dinner-light:    #2C1E00;
     --_meal-snack-light:     #3D2010;
 
     /* Priority-Badge Hintergründe */

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.48.2] - 2026-05-06
+
+### Changed
+- **Brand color**: migrated the entire app accent from Indigo (`#4F46E5`) to Amber-800 (`#92400E`) across design tokens, logo, and GitHub Pages. The new warm, dark amber better reflects the domestic and intimate nature of the app for couples.
+- **Logo**: updated gradient on `docs/logo.svg` and all inline SVG instances from blue to Amber (`#B45309` → `#92400E`).
+
 ## [0.48.1] - 2026-05-06
 
 ### Fixed
