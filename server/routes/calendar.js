@@ -94,10 +94,33 @@ function attachmentDataUrl(event) {
   return `data:${event.attachment_mime};base64,${event.attachment_data}`;
 }
 
+const ASSIGNED_USERS_SQL = `(
+  SELECT json_group_array(json_object(
+    'id', u.id, 'display_name', u.display_name, 'color', u.avatar_color
+  ))
+  FROM event_assignments ea JOIN users u ON u.id = ea.user_id
+  WHERE ea.event_id = e.id
+) AS assigned_users_json`;
+
+function parseAssignedTo(val) {
+  if (Array.isArray(val)) return val.map(Number).filter(Boolean);
+  if (val !== null && val !== undefined && val !== '') return [Number(val)].filter(Boolean);
+  return [];
+}
+
+function setEventAssignments(d, eventId, userIds) {
+  d.prepare('DELETE FROM event_assignments WHERE event_id = ?').run(eventId);
+  const ins = d.prepare('INSERT OR IGNORE INTO event_assignments (event_id, user_id) VALUES (?, ?)');
+  for (const uid of userIds) ins.run(eventId, uid);
+}
+
 function serializeEvent(event) {
   if (!event) return event;
+  const assigned_users = event.assigned_users_json ? JSON.parse(event.assigned_users_json) : [];
+  const { assigned_users_json, ...rest } = event;
   return {
-    ...event,
+    ...rest,
+    assigned_users,
     attachment_data: attachmentDataUrl(event),
   };
 }
@@ -207,7 +230,8 @@ router.get('/', (req, res) => {
              u_assigned.avatar_color AS assigned_color,
              u_created.display_name  AS creator_name,
              ec.name  AS cal_name,
-             ec.color AS cal_color
+             ec.color AS cal_color,
+             ${ASSIGNED_USERS_SQL}
       FROM calendar_events e
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by
@@ -229,7 +253,7 @@ router.get('/', (req, res) => {
     const params = [to, from, to, getUserId(req)];
 
     if (req.query.assigned_to) {
-      sql += ' AND e.assigned_to = ?';
+      sql += ' AND EXISTS (SELECT 1 FROM event_assignments ea WHERE ea.event_id = e.id AND ea.user_id = ?)';
       params.push(parseInt(req.query.assigned_to, 10));
     }
 
@@ -267,7 +291,8 @@ router.get('/upcoming', (req, res) => {
              u_assigned.display_name AS assigned_name,
              u_assigned.avatar_color AS assigned_color,
              ec.name  AS cal_name,
-             ec.color AS cal_color
+             ec.color AS cal_color,
+             ${ASSIGNED_USERS_SQL}
       FROM calendar_events e
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN external_calendars ec ON ec.id = e.calendar_ref_id
@@ -580,7 +605,8 @@ router.get('/:id', (req, res) => {
       SELECT e.*,
              u_assigned.display_name AS assigned_name,
              u_assigned.avatar_color AS assigned_color,
-             u_created.display_name  AS creator_name
+             u_created.display_name  AS creator_name,
+             ${ASSIGNED_USERS_SQL}
       FROM calendar_events e
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by
@@ -628,43 +654,45 @@ router.post('/', (req, res) => {
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
     if (!vIcon) return res.status(400).json({ error: 'icon: invalid calendar event icon.', code: 400 });
 
-    const { all_day = 0, assigned_to = null } = req.body;
-
-    if (assigned_to) {
-      const user = db.get().prepare('SELECT id FROM users WHERE id = ?').get(assigned_to);
-      if (!user) return res.status(400).json({ error: 'assigned_to: Benutzer nicht gefunden', code: 400 });
-    }
+    const { all_day = 0 } = req.body;
+    const userIds  = parseAssignedTo(req.body.assigned_to);
+    const firstUid = userIds[0] ?? null;
 
     const attachment = req.body.attachment_data ? parseAttachment(req.body.attachment_data) : { mime: null, size: null, data: null };
 
-    const result = db.get().prepare(`
-      INSERT INTO calendar_events
-        (title, description, start_datetime, end_datetime, all_day,
-         location, color, icon, assigned_to, created_by, recurrence_rule,
-         attachment_name, attachment_mime, attachment_size, attachment_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      vTitle.value, vDesc.value,
-      vStart.value, vEnd.value,
-      all_day ? 1 : 0, vLoc.value,
-      vColor.value, vIcon, assigned_to || null,
-      userId, vRrule.value,
-      req.body.attachment_name || null,
-      attachment.mime,
-      attachment.size,
-      attachment.data
-    );
+    const eventId = db.get().transaction(() => {
+      const result = db.get().prepare(`
+        INSERT INTO calendar_events
+          (title, description, start_datetime, end_datetime, all_day,
+           location, color, icon, assigned_to, created_by, recurrence_rule,
+           attachment_name, attachment_mime, attachment_size, attachment_data)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        vTitle.value, vDesc.value,
+        vStart.value, vEnd.value,
+        all_day ? 1 : 0, vLoc.value,
+        vColor.value, vIcon, firstUid,
+        userId, vRrule.value,
+        req.body.attachment_name || null,
+        attachment.mime,
+        attachment.size,
+        attachment.data
+      );
+      setEventAssignments(db.get(), result.lastInsertRowid, userIds);
+      return result.lastInsertRowid;
+    })();
 
     const event = db.get().prepare(`
       SELECT e.*,
              u_assigned.display_name AS assigned_name,
              u_assigned.avatar_color AS assigned_color,
-             u_created.display_name  AS creator_name
+             u_created.display_name  AS creator_name,
+             ${ASSIGNED_USERS_SQL}
       FROM calendar_events e
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by
       WHERE e.id = ?
-    `).get(result.lastInsertRowid);
+    `).get(eventId);
 
     res.status(201).json({ data: serializeEvent(event) });
   } catch (err) {
@@ -707,53 +735,63 @@ router.put('/:id', (req, res) => {
 
     const {
       title, description, start_datetime, end_datetime,
-      all_day, location, color: colorVal, assigned_to, recurrence_rule, attachment_name,
+      all_day, location, color: colorVal, recurrence_rule, attachment_name,
     } = req.body;
+
+    const userIds  = req.body.assigned_to !== undefined
+      ? parseAssignedTo(req.body.assigned_to)
+      : db.get().prepare('SELECT user_id FROM event_assignments WHERE event_id = ?')
+          .all(id).map((r) => r.user_id);
+    const firstUid = userIds[0] ?? null;
 
     const userModified = event.external_source !== 'local' ? 1 : event.user_modified;
 
-    db.get().prepare(`
-      UPDATE calendar_events
-      SET title           = COALESCE(?, title),
-          description     = ?,
-          start_datetime  = COALESCE(?, start_datetime),
-          end_datetime    = ?,
-          all_day         = COALESCE(?, all_day),
-          location        = ?,
-          color           = COALESCE(?, color),
-          icon            = COALESCE(?, icon),
-          assigned_to     = ?,
-          recurrence_rule = ?,
-          attachment_name = ?,
-          attachment_mime  = ?,
-          attachment_size  = ?,
-          attachment_data  = ?,
-          user_modified   = ?
-      WHERE id = ?
-    `).run(
-      title?.trim()  ?? null,
-      description !== undefined ? (description || null) : event.description,
-      start_datetime ?? null,
-      end_datetime !== undefined ? (end_datetime || null) : event.end_datetime,
-      all_day !== undefined ? (all_day ? 1 : 0) : null,
-      location !== undefined ? (location || null) : event.location,
-      colorVal ?? null,
-      req.body.icon !== undefined ? vIcon : null,
-      assigned_to !== undefined ? (assigned_to || null) : event.assigned_to,
-      recurrence_rule !== undefined ? (recurrence_rule || null) : event.recurrence_rule,
-      attachment_name !== undefined ? (attachment_name || null) : event.attachment_name,
-      attachment.mime,
-      attachment.size,
-      attachment.data,
-      userModified,
-      id
-    );
+    db.get().transaction(() => {
+      db.get().prepare(`
+        UPDATE calendar_events
+        SET title           = COALESCE(?, title),
+            description     = ?,
+            start_datetime  = COALESCE(?, start_datetime),
+            end_datetime    = ?,
+            all_day         = COALESCE(?, all_day),
+            location        = ?,
+            color           = COALESCE(?, color),
+            icon            = COALESCE(?, icon),
+            assigned_to     = ?,
+            recurrence_rule = ?,
+            attachment_name = ?,
+            attachment_mime  = ?,
+            attachment_size  = ?,
+            attachment_data  = ?,
+            user_modified   = ?
+        WHERE id = ?
+      `).run(
+        title?.trim()  ?? null,
+        description !== undefined ? (description || null) : event.description,
+        start_datetime ?? null,
+        end_datetime !== undefined ? (end_datetime || null) : event.end_datetime,
+        all_day !== undefined ? (all_day ? 1 : 0) : null,
+        location !== undefined ? (location || null) : event.location,
+        colorVal ?? null,
+        req.body.icon !== undefined ? vIcon : null,
+        firstUid !== undefined ? firstUid : event.assigned_to,
+        recurrence_rule !== undefined ? (recurrence_rule || null) : event.recurrence_rule,
+        attachment_name !== undefined ? (attachment_name || null) : event.attachment_name,
+        attachment.mime,
+        attachment.size,
+        attachment.data,
+        userModified,
+        id
+      );
+      setEventAssignments(db.get(), id, userIds);
+    })();
 
     const updated = db.get().prepare(`
       SELECT e.*,
              u_assigned.display_name AS assigned_name,
              u_assigned.avatar_color AS assigned_color,
-             u_created.display_name  AS creator_name
+             u_created.display_name  AS creator_name,
+             ${ASSIGNED_USERS_SQL}
       FROM calendar_events e
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by

@@ -27,15 +27,42 @@ const VALID_CATEGORIES = ['household', 'school', 'shopping', 'repair',
 // Hilfsfunktionen
 // --------------------------------------------------------
 
+const ASSIGNED_USERS_SQL = `(
+  SELECT json_group_array(json_object(
+    'id', u.id, 'display_name', u.display_name, 'color', u.avatar_color
+  ))
+  FROM task_assignments ta JOIN users u ON u.id = ta.user_id
+  WHERE ta.task_id = t.id
+) AS assigned_users_json`;
+
+function addAssignedUsers(task) {
+  task.assigned_users = task.assigned_users_json ? JSON.parse(task.assigned_users_json) : [];
+  delete task.assigned_users_json;
+  return task;
+}
+
+function parseAssignedTo(val) {
+  if (Array.isArray(val)) return val.map(Number).filter(Boolean);
+  if (val !== null && val !== undefined && val !== '') return [Number(val)].filter(Boolean);
+  return [];
+}
+
+function setAssignments(d, taskId, userIds) {
+  d.prepare('DELETE FROM task_assignments WHERE task_id = ?').run(taskId);
+  const ins = d.prepare('INSERT OR IGNORE INTO task_assignments (task_id, user_id) VALUES (?, ?)');
+  for (const uid of userIds) ins.run(taskId, uid);
+}
+
 /** Alle Subtasks einer Aufgabe laden (eine Ebene tief). */
 function loadSubtasks(taskId) {
   return db.get().prepare(`
-    SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color
+    SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
+      ${ASSIGNED_USERS_SQL}
     FROM tasks t
     LEFT JOIN users u ON t.assigned_to = u.id
     WHERE t.parent_task_id = ?
     ORDER BY t.created_at ASC
-  `).all(taskId);
+  `).all(taskId).map(addAssignedUsers);
 }
 
 /** Fortschritt der Subtasks berechnen (erledigte / gesamt). */
@@ -79,6 +106,7 @@ router.get('/', (req, res) => {
         t.*,
         u.display_name AS assigned_name,
         u.avatar_color AS assigned_color,
+        ${ASSIGNED_USERS_SQL},
         (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id)                           AS subtask_total,
         (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.status = 'done')     AS subtask_done
       FROM tasks t
@@ -89,7 +117,10 @@ router.get('/', (req, res) => {
 
     if (status)      { sql += ' AND t.status = ?';      params.push(status); }
     if (priority)    { sql += ' AND t.priority = ?';    params.push(priority); }
-    if (assigned_to) { sql += ' AND t.assigned_to = ?'; params.push(Number(assigned_to)); }
+    if (assigned_to) {
+      sql += ' AND EXISTS (SELECT 1 FROM task_assignments ta WHERE ta.task_id = t.id AND ta.user_id = ?)';
+      params.push(Number(assigned_to));
+    }
     if (category)    { sql += ' AND t.category = ?';    params.push(category); }
 
     sql += `
@@ -101,7 +132,7 @@ router.get('/', (req, res) => {
         t.created_at DESC
     `;
 
-    res.json({ data: db.get().prepare(sql).all(...params) });
+    res.json({ data: db.get().prepare(sql).all(...params).map(addAssignedUsers) });
   } catch (err) {
     log.error('GET / error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });
@@ -116,7 +147,8 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const task = db.get().prepare(`
-      SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color
+      SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
+        ${ASSIGNED_USERS_SQL}
       FROM tasks t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = ? AND t.parent_task_id IS NULL
@@ -124,6 +156,7 @@ router.get('/:id', (req, res) => {
 
     if (!task) return res.status(404).json({ error: 'Task not found.', code: 404 });
 
+    addAssignedUsers(task);
     task.subtasks = loadSubtasks(task.id);
     res.json({ data: task });
   } catch (err) {
@@ -151,11 +184,13 @@ router.post('/', (req, res) => {
       priority        = 'none',
       due_date        = null,
       due_time        = null,
-      assigned_to     = null,
       parent_task_id  = null,
       is_recurring    = 0,
       recurrence_rule = null,
     } = req.body;
+
+    const userIds  = parseAssignedTo(req.body.assigned_to);
+    const firstUid = userIds[0] ?? null;
 
     // Tiefe begrenzen: Subtasks dürfen keine eigenen Subtasks haben (max. 2 Ebenen)
     if (parent_task_id) {
@@ -166,24 +201,29 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'Maximal 2 Verschachtelungsebenen erlaubt.', code: 400 });
     }
 
-    const result = db.get().prepare(`
-      INSERT INTO tasks
-        (title, description, category, priority, due_date, due_time,
-         assigned_to, created_by, parent_task_id, is_recurring, recurrence_rule)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      title.trim(), description, category, priority,
-      due_date, due_time, assigned_to, req.session.userId, parent_task_id,
-      is_recurring ? 1 : 0, recurrence_rule
-    );
+    const taskId = db.get().transaction(() => {
+      const result = db.get().prepare(`
+        INSERT INTO tasks
+          (title, description, category, priority, due_date, due_time,
+           assigned_to, created_by, parent_task_id, is_recurring, recurrence_rule)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        title.trim(), description, category, priority,
+        due_date, due_time, firstUid, req.session.userId, parent_task_id,
+        is_recurring ? 1 : 0, recurrence_rule
+      );
+      setAssignments(db.get(), result.lastInsertRowid, userIds);
+      return result.lastInsertRowid;
+    })();
 
     const task = db.get().prepare(`
-      SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color
+      SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
+        ${ASSIGNED_USERS_SQL}
       FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = ?
-    `).get(result.lastInsertRowid);
+    `).get(taskId);
 
-    res.status(201).json({ data: task });
+    res.status(201).json({ data: addAssignedUsers(task) });
   } catch (err) {
     log.error('POST / error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });
@@ -213,26 +253,36 @@ router.put('/:id', (req, res) => {
       status          = task.status,
       due_date        = task.due_date,
       due_time        = task.due_time,
-      assigned_to     = task.assigned_to,
       is_recurring    = task.is_recurring,
       recurrence_rule = task.recurrence_rule,
     } = req.body;
 
-    db.get().prepare(`
-      UPDATE tasks SET
-        title = ?, description = ?, category = ?, priority = ?,
-        status = ?, due_date = ?, due_time = ?, assigned_to = ?,
-        is_recurring = ?, recurrence_rule = ?
-      WHERE id = ?
-    `).run(title.trim(), description, category, priority,
-           status, due_date, due_time, assigned_to,
-           is_recurring ? 1 : 0, recurrence_rule, req.params.id);
+    const userIds  = req.body.assigned_to !== undefined
+      ? parseAssignedTo(req.body.assigned_to)
+      : db.get().prepare('SELECT user_id FROM task_assignments WHERE task_id = ?')
+          .all(task.id).map((r) => r.user_id);
+    const firstUid = userIds[0] ?? null;
+
+    db.get().transaction(() => {
+      db.get().prepare(`
+        UPDATE tasks SET
+          title = ?, description = ?, category = ?, priority = ?,
+          status = ?, due_date = ?, due_time = ?, assigned_to = ?,
+          is_recurring = ?, recurrence_rule = ?
+        WHERE id = ?
+      `).run(title.trim(), description, category, priority,
+             status, due_date, due_time, firstUid,
+             is_recurring ? 1 : 0, recurrence_rule, req.params.id);
+      setAssignments(db.get(), task.id, userIds);
+    })();
 
     const updated = db.get().prepare(`
-      SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color
+      SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
+        ${ASSIGNED_USERS_SQL}
       FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = ?
     `).get(req.params.id);
+    addAssignedUsers(updated);
     updated.subtasks = loadSubtasks(updated.id);
 
     res.json({ data: updated });
@@ -266,15 +316,21 @@ router.patch('/:id/status', (req, res) => {
       if (task?.is_recurring && task.recurrence_rule && !task.parent_task_id) {
         const nextDate = nextOccurrence(task.due_date, task.recurrence_rule);
         if (nextDate) {
-          db.get().prepare(`
-            INSERT INTO tasks (title, description, category, priority, status,
-              due_date, due_time, assigned_to, created_by, is_recurring, recurrence_rule)
-            VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, 1, ?)
-          `).run(
-            task.title, task.description, task.category, task.priority,
-            nextDate, task.due_time, task.assigned_to, task.created_by,
-            task.recurrence_rule
-          );
+          const existingAssignments = db.get()
+            .prepare('SELECT user_id FROM task_assignments WHERE task_id = ?')
+            .all(task.id).map((r) => r.user_id);
+          db.get().transaction(() => {
+            const newTask = db.get().prepare(`
+              INSERT INTO tasks (title, description, category, priority, status,
+                due_date, due_time, assigned_to, created_by, is_recurring, recurrence_rule)
+              VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, 1, ?)
+            `).run(
+              task.title, task.description, task.category, task.priority,
+              nextDate, task.due_time, task.assigned_to, task.created_by,
+              task.recurrence_rule
+            );
+            setAssignments(db.get(), newTask.lastInsertRowid, existingAssignments);
+          })();
         }
       }
     }

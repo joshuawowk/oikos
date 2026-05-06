@@ -252,6 +252,17 @@ const MIGRATIONS_SQL = {
     CREATE INDEX IF NOT EXISTS idx_birthdays_calendar_ref ON birthdays(calendar_event_id);
     CREATE INDEX IF NOT EXISTS idx_api_tokens_hash      ON api_tokens(token_hash);
     CREATE INDEX IF NOT EXISTS idx_api_tokens_created_by ON api_tokens(created_by);
+
+    CREATE TABLE IF NOT EXISTS task_assignments (
+      task_id  INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (task_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS event_assignments (
+      event_id INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+      user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (event_id, user_id)
+    );
   `,
   2: `
     CREATE TABLE IF NOT EXISTS sync_config (

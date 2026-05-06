@@ -1293,5 +1293,9 @@
     "dropzoneTitle": "Datei hier ablegen oder klicken",
     "dropzoneHint": "Ziehe eine Datei in diesen Bereich oder nutze die Dateiauswahl.",
     "selectedFileLabel": "Ausgewählt: {{name}}"
+  },
+  "userMultiSelect": {
+    "nobody": "- Niemand -",
+    "moreUsers": "weitere"
   }
 }
