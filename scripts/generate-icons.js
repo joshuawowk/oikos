@@ -23,8 +23,8 @@ function createLogoSvg(size) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 160 160" fill="none">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0A84FF"/>
-      <stop offset="100%" stop-color="#006AE0"/>
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6c3aed"/>
     </linearGradient>
   </defs>
   <rect width="160" height="160" rx="36" fill="url(#bg)"/>
@@ -38,8 +38,8 @@ function createMaskableLogoSvg(size) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 160 160" fill="none">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0A84FF"/>
-      <stop offset="100%" stop-color="#006AE0"/>
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6c3aed"/>
     </linearGradient>
   </defs>
   <rect width="160" height="160" fill="url(#bg)"/>

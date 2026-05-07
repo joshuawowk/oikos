@@ -11,6 +11,7 @@ import { stagger } from '/utils/ux.js';
 import { t, formatDate as formatPreferredDate, formatTime, dateInputPlaceholder, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput, timeInputPlaceholder } from '/i18n.js';
 import { esc, fmtLocation } from '/utils/html.js';
 import { refresh as refreshReminders } from '/reminders.js';
+import { renderUserMultiSelect, getSelectedUserIds, bindUserMultiSelect, renderAvatarStack } from '/components/user-multi-select.js';
 
 // --------------------------------------------------------
 // Konstanten
@@ -1032,11 +1033,8 @@ function renderAgendaEvent(ev) {
     : formatTime(ev.start_datetime)
       + (ev.end_datetime ? ` – ${formatTime(ev.end_datetime)} ${t('calendar.timeSuffix')}`.trimEnd() : ` ${t('calendar.timeSuffix')}`.trimEnd());
 
-  const initials = ev.assigned_name
-    ? ev.assigned_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-    : '';
-
   const displayColor = ev.cal_color || ev.color;
+  const assignedUsers = ev.assigned_users ?? [];
   return `
     <div class="agenda-event" data-id="${ev.id}">
       <div class="agenda-event__color" style="background-color:${esc(displayColor)};"></div>
@@ -1046,11 +1044,7 @@ function renderAgendaEvent(ev) {
           <span>${timeStr}</span>
           ${ev.location ? `<span>📍 ${esc(fmtLocation(ev.location))}</span>` : ''}
           ${ev.cal_name ? `<span class="event-cal-label" style="--cal-color:${esc(displayColor)}">${esc(ev.cal_name)}</span>` : ''}
-          ${ev.assigned_name ? `
-            <span class="agenda-event__assigned">
-              <span class="agenda-event__avatar" style="background-color:${esc(ev.assigned_color || '#8E8E93')}">${initials}</span>
-              ${esc(ev.assigned_name)}
-            </span>` : ''}
+          ${assignedUsers.length ? `<span class="agenda-event__assigned">${renderAvatarStack(assignedUsers, { size: 20, maxVisible: 3 })}</span>` : ''}
         </div>
       </div>
     </div>
@@ -1328,6 +1322,7 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
     onSave(panel) {
       // RRULE-Events binden
       bindRRuleEvents(panel, 'event');
+      bindUserMultiSelect(panel, 'cal_assigned');
 
       const selectedColor = isEdit ? (event?.color || EVENT_COLORS[0]) : EVENT_COLORS[0];
 
@@ -1573,12 +1568,9 @@ function buildEventModalContent({ mode, event, date, reminder = null }) {
       </div>
     </div>`).join('');
 
-  const userOpts = [
-    `<option value="">${t('calendar.assignedNobody')}</option>`,
-    ...state.users.map((u) =>
-      `<option value="${u.id}" ${isEdit && event.assigned_to === u.id ? 'selected' : ''}>${esc(u.display_name)}</option>`
-    ),
-  ].join('');
+  const selectedUserIds = isEdit
+    ? (event.assigned_users?.map((u) => u.id) ?? (event.assigned_to ? [event.assigned_to] : []))
+    : [];
 
   return `
     <div class="event-title-picker">
@@ -1660,8 +1652,7 @@ function buildEventModalContent({ mode, event, date, reminder = null }) {
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="modal-assigned">${t('calendar.assignedLabel')}</label>
-      <select class="form-input" id="modal-assigned">${userOpts}</select>
+      ${renderUserMultiSelect(state.users, selectedUserIds, 'cal_assigned', 'calendar.assignedLabel')}
     </div>
 
     <div class="form-group">
@@ -1738,7 +1729,7 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
   const color   = overlay.querySelector('.color-swatch--active')?.dataset.color || EVENT_COLORS[0];
   const icon    = eventIconName(overlay.querySelector('#modal-icon')?.value);
   const location    = overlay.querySelector('#modal-location').value.trim() || null;
-  const assigned_to = overlay.querySelector('#modal-assigned').value || null;
+  const assigned_to = getSelectedUserIds(overlay, 'cal_assigned');
   const description = overlay.querySelector('#modal-description').value.trim() || null;
 
   let start_datetime, end_datetime;
@@ -1815,7 +1806,7 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
     const body = {
       title, description, start_datetime, end_datetime,
       all_day: allday ? 1 : 0,
-      location, color, icon, assigned_to: assigned_to ? parseInt(assigned_to, 10) : null,
+      location, color, icon, assigned_to,
       recurrence_rule: rrule.recurrence_rule,
       attachment_name: attachmentPayload.name,
       attachment_mime: attachmentPayload.mime,

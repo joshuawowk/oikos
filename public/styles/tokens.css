@@ -105,32 +105,32 @@
 
   /* --------------------------------------------------------
    * 2. Farben - Akzent (konfigurierbar)
-   *    Indigo mit leichtem Violett-Drall — charaktervoller als Default-Blau,
-   *    harmoniert mit --color-accent-secondary und --module-calendar.
+   *    Violet — lebendig, modern, unverwechselbar.
+   *    Harmoniert mit --module-calendar und dem Abend-Gradienten.
    * -------------------------------------------------------- */
-  --_color-accent:            #4F46E5;
-  --color-accent:             var(--_color-accent);   /* Indigo-600 — 4.93:1 auf weiß */
-  --_color-accent-hover:      #4338CA;
-  --color-accent-hover:       var(--_color-accent-hover);   /* Indigo-700 */
-  --_color-accent-active:     #3730A3;
-  --color-accent-active:      var(--_color-accent-active);  /* Indigo-800 */
-  --color-accent-deep:        #2E2D82;       /* Tiefer Akzent für Gradienten, Wetter-Widget */
+  --_color-accent:            #6c3aed;
+  --color-accent:             var(--_color-accent);   /* Violet — 5.63:1 auf weiß */
+  --_color-accent-hover:      #5b2fd4;
+  --color-accent-hover:       var(--_color-accent-hover);   /* Violet darker */
+  --_color-accent-active:     #4a26bb;
+  --color-accent-active:      var(--_color-accent-active);  /* Violet-800 */
+  --color-accent-deep:        #3d1f9e;       /* Tiefer Akzent für Gradienten, Wetter-Widget */
 
   /* Greeting-Gradienten: Tageszeit-Varianten */
   --greeting-morning-from: #C2410C;  /* Orange-700 — Morgensonne */
   --greeting-morning-to:   #D97706;  /* Amber-600 */
   --greeting-evening-from: #6D28D9;  /* Violet-700 */
   --greeting-evening-to:   #8250DF;  /* = --module-calendar */
-  --_color-accent-secondary:  #7C5CFC;
-  --color-accent-secondary:   var(--_color-accent-secondary);  /* Sekundärer Akzent für Logo-Gradient */
-  --_color-accent-light:      #EEF2FF;
-  --color-accent-light:       var(--_color-accent-light);   /* Indigo-50 */
-  --_color-accent-subtle:     #E0E7FF;
-  --color-accent-subtle:      var(--_color-accent-subtle);  /* Indigo-100 */
-  --_color-btn-primary:       #4338CA;
-  --color-btn-primary:        var(--_color-btn-primary);    /* Indigo-700 — WCAG AAA: 7.04:1 auf weiß */
-  --_color-btn-primary-hover: #3730A3;
-  --color-btn-primary-hover:  var(--_color-btn-primary-hover);  /* Indigo-800 */
+  --_color-accent-secondary:  #8b5cf6;
+  --color-accent-secondary:   var(--_color-accent-secondary);  /* Violet-500 — Sekundärer Akzent für Logo-Gradient */
+  --_color-accent-light:      #f5f3ff;
+  --color-accent-light:       var(--_color-accent-light);   /* Violet-50 */
+  --_color-accent-subtle:     #ede9fe;
+  --color-accent-subtle:      var(--_color-accent-subtle);  /* Violet-100 */
+  --_color-btn-primary:       #5b2fd4;
+  --color-btn-primary:        var(--_color-btn-primary);    /* Violet — WCAG AAA auf weiß */
+  --_color-btn-primary-hover: #4a26bb;
+  --color-btn-primary-hover:  var(--_color-btn-primary-hover);  /* Violet-800 */
 
   /* --------------------------------------------------------
    * 3. Farben - Semantisch
@@ -171,8 +171,8 @@
    *    Einsatz in Modul-Headern, Icons, aktiven States.
    *    Domain-Farben von Severity entkoppelt — siehe §2.5 des Redesign-Vorschlags.
    * -------------------------------------------------------- */
-  --_module-dashboard: #4F46E5;
-  --module-dashboard:  var(--_module-dashboard);  /* Indigo - Übersicht (= --color-accent, bewusster Share) */
+  --_module-dashboard: #6c3aed;
+  --module-dashboard:  var(--_module-dashboard);  /* Violet — Übersicht (= --color-accent, bewusster Share) */
   --_module-tasks:     #15803D;
   --module-tasks:      var(--_module-tasks);       /* Grün - Erledigung (= --color-success, bewusster Share) */
   --_module-calendar:  #8250DF;
@@ -209,9 +209,9 @@
   --meal-lunch:            #2DA44E;
   --_meal-lunch-light:     #DAFBE1;
   --meal-lunch-light:      var(--_meal-lunch-light);
-  --_meal-dinner:          #4F46E5;
-  --meal-dinner:           var(--_meal-dinner);          /* Indigo - ruhiger Tag-Ausklang (= --color-accent) */
-  --_meal-dinner-light:    #EEF2FF;
+  --_meal-dinner:          #6c3aed;
+  --meal-dinner:           var(--_meal-dinner);          /* Violet — Abend (= --color-accent) */
+  --_meal-dinner-light:    #f5f3ff;
   --meal-dinner-light:     var(--_meal-dinner-light);
   --meal-snack:            #C2410C;                      /* = --module-meals — Snack ist Sub-Domain */
   --_meal-snack-light:     #FFECE3;
@@ -351,6 +351,7 @@
   --content-max-width: 1280px;
   --content-max-width-narrow: 720px;
   --cal-hour-height: 56px;
+  --sub-tabs-height: 52px;
   --kitchen-tabs-height: 56px;
 
   /* --------------------------------------------------------
@@ -521,14 +522,14 @@
     --_sidebar-shadow-light: rgba(255, 255, 255, 0.04);
     --_sidebar-shadow-dark:  rgba(0, 0, 0, 0.4);
 
-    --_color-accent:            #818CF8;
-    --_color-accent-hover:      #6366F1;
-    --_color-accent-active:     #4F46E5;
-    --_color-accent-light:      #2E2D5B;
-    --_color-accent-subtle:     #252255;
-    --_color-btn-primary:       #6366F1;
-    --_color-btn-primary-hover: #4F46E5;
-    --_color-accent-secondary:  #A78BFA;
+    --_color-accent:            #a78bfa;
+    --_color-accent-hover:      #9066f5;
+    --_color-accent-active:     #7c3aed;
+    --_color-accent-light:      #1e1040;
+    --_color-accent-subtle:     #160b30;
+    --_color-btn-primary:       #9066f5;
+    --_color-btn-primary-hover: #7c3aed;
+    --_color-accent-secondary:  #c4b5fd;
 
     --_color-success:       #4ADE80;
     --_color-warning:       #F59E0B;
@@ -544,7 +545,7 @@
     --_toast-warning-text: #291400;   /* 13.1:1 auf #F59E0B */
     --_toast-danger-text:  #330808;   /* 15.1:1 auf #FCA5A5 */
 
-    --_module-dashboard: #818CF8;
+    --_module-dashboard: #a78bfa;
     --_module-tasks:     #4ADE80;
     --_module-calendar:  #A78BFA;
     --_module-meals:     #FB923C;
@@ -559,8 +560,8 @@
     --_meal-breakfast:       #F59E0B;
     --_meal-breakfast-light: #332400;
     --_meal-lunch-light:     #1A3325;
-    --_meal-dinner:          #818CF8;
-    --_meal-dinner-light:    #2E2D5B;
+    --_meal-dinner:          #a78bfa;
+    --_meal-dinner-light:    #1e1040;
     --_meal-snack-light:     #3D2010;
 
     --_color-priority-none-bg:   rgba(142, 141, 137, 0.12);
@@ -623,15 +624,15 @@
     --_sidebar-shadow-light: rgba(255, 255, 255, 0.04);
     --_sidebar-shadow-dark:  rgba(0, 0, 0, 0.4);
 
-    /* Akzent - Dark Mode (Indigo bleibt, nur Lightness/Saturation rücken) */
-    --_color-accent:            #818CF8;   /* Indigo-400 — 6.8:1 auf #2A2A28 */
-    --_color-accent-hover:      #6366F1;   /* Indigo-500 */
-    --_color-accent-active:     #4F46E5;   /* Indigo-600 (= Light-Primary, Mirroring) */
-    --_color-accent-light:      #2E2D5B;
-    --_color-accent-subtle:     #252255;
-    --_color-btn-primary:       #6366F1;   /* Indigo-500 — 5.5:1 auf Dark-Surface */
-    --_color-btn-primary-hover: #4F46E5;
-    --_color-accent-secondary:  #A78BFA;
+    /* Akzent - Dark Mode (Violet hellt auf für Kontrast auf dunklen Flächen) */
+    --_color-accent:            #a78bfa;   /* Violet-400 — 6.05:1 auf #222220 */
+    --_color-accent-hover:      #9066f5;   /* Violet-500 */
+    --_color-accent-active:     #7c3aed;   /* Violet-600 */
+    --_color-accent-light:      #1e1040;
+    --_color-accent-subtle:     #160b30;
+    --_color-btn-primary:       #9066f5;   /* Violet-500 — guter Kontrast auf Dark-Surface */
+    --_color-btn-primary-hover: #7c3aed;
+    --_color-accent-secondary:  #c4b5fd;   /* Violet-300 */
 
     /* Semantische Farben */
     --_color-success:       #4ADE80;
@@ -649,7 +650,7 @@
     --_toast-danger-text:  #330808;   /* 15.1:1 auf #FCA5A5 */
 
     /* Modul-Akzente (Entflechtung Meals/Shopping spiegelt Light-Mode) */
-    --_module-dashboard: #818CF8;   /* Indigo-400 */
+    --_module-dashboard: #a78bfa;   /* Violet-400 */
     --_module-tasks:     #4ADE80;
     --_module-calendar:  #A78BFA;
     --_module-meals:     #FB923C;   /* Orange-400 */
@@ -665,8 +666,8 @@
     --_meal-breakfast:       #F59E0B;
     --_meal-breakfast-light: #332400;
     --_meal-lunch-light:     #1A3325;
-    --_meal-dinner:          #818CF8;   /* Indigo-400 */
-    --_meal-dinner-light:    #2E2D5B;
+    --_meal-dinner:          #a78bfa;   /* Violet-400 */
+    --_meal-dinner-light:    #1e1040;
     --_meal-snack-light:     #3D2010;
 
     /* Priority-Badge Hintergründe */

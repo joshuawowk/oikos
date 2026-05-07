@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.48.3] - 2026-05-06
+
+### Changed
+
+- **Brand color**: reverted the primary accent color from Amber back to Violet. The accent is now `#6c3aed` in light mode and `#a78bfa` in dark mode, applied consistently across all design tokens, the logo, all PWA icons (favicon, app icons, maskable icons, Apple touch icon), and the GitHub Pages documentation site. Semantic colors (warnings, notes module, meal-breakfast) remain unchanged.
+
+## [0.48.2] - 2026-05-06
+
+### Changed
+
+- **Brand color refresh**: The primary accent color has been updated from cool indigo (`#4F46E5`) to a rich, warm amber (`#92400E` in light mode, `#FBBF24` in dark mode) across all design tokens, the logo, and the GitHub Pages documentation site.
+
+  **Why this change?** Indigo carried the aesthetic of a productivity tool — focused, corporate, digital. As Oikos has grown into a home for thousands of families, we wanted the visual identity to better reflect what the app actually is: a warm, shared space for everyday life together. Amber — deep and earthy in light environments, bright and inviting in dark ones — communicates exactly that. It evokes warmth, reliability, and the kind of unhurried intimacy that family life deserves.
+
+  From an accessibility standpoint, Amber-800 (`#92400E`) achieves a contrast ratio of 7.20:1 against white, exceeding the WCAG AA threshold and meeting WCAG AAA. The dark mode value (`#FBBF24`) maintains the same readability standard. The transition is purely cosmetic — no data, settings, or behavior has changed.
+
+- **Logo**: updated the gradient on `docs/logo.svg` and all inline SVG instances from violet (`#8B5CF6` to `#6C3AED`) to amber (`#B45309` to `#92400E`).
+
+## [0.48.1] - 2026-05-06
+
+### Fixed
+- **Settings**: CalDAV and CardDAV "Add Account" modals now correctly display Cancel and Save buttons. Previously, the `onSave` callback ran immediately on modal open, triggering a required-fields validation error against empty fields and leaving the form with no way to submit.
+
+## [0.48.0] - 2026-05-06
+
+### Added
+- **Multi-person assignment**: tasks and calendar events can now be assigned to multiple family members simultaneously. A new `task_assignments` / `event_assignments` join table (migration v32) stores the assignments; existing single-user data is migrated automatically.
+- **Avatar stack**: task cards, Kanban cards, and the calendar agenda view display stacked avatars for all assigned users (up to 3 visible, then a `+N` overflow badge).
+- **Shared UserMultiSelect component** (`public/components/user-multi-select.js`): checkbox-based dropdown used in both the task modal and the calendar event modal; replaces the previous single-user `<select>`.
+- **`assigned_to` filter extended**: `GET /api/v1/tasks?assigned_to=<id>` and `GET /api/v1/calendar?assigned_to=<id>` now match any task/event where the user appears in the assignments list.
+
+### Changed
+- API response for tasks and calendar events now includes `assigned_users: [{id, display_name, color}]` array alongside the legacy `assigned_to` / `assigned_name` / `assigned_color` fields.
+- Recurring task completion copies all multi-person assignments to the new recurring instance.
+
+## [0.47.5] - 2026-05-06
+
+### Changed
+- **Settings — Sync tab**: open standards (CalDAV, CardDAV, ICS subscriptions) are now grouped first under a dedicated "CalDAV & CardDAV" section; cloud services (Google Calendar, Apple Calendar) move to a secondary "Cloud Services" section. Fixes a raw `<h2>` heading inside the CalDAV card (now uses `settings-card__title` like all other cards).
+- **Navigation — shared sub-tabs component**: extracted `renderSubTabs()` (`public/utils/sub-tabs.js` + `public/styles/sub-tabs.css`) as the single implementation for all sub-module navigation. Settings tabs and kitchen tabs now share the same pill-style bar (icon + label, sticky, horizontally scrollable, group separators). Removes ~120 lines of duplicated CSS from `kitchen-tabs.css` and `settings.css`.
+- **Test loader**: `test-browser-loader.mjs` now resolves browser-absolute `/utils/*.js` imports to the `public/` directory automatically, eliminating the need for per-module stubs.
+
+## [0.47.4] - 2026-05-06
+
+### Fixed
+- **Modal**: add `onClose` callback to `openModal()` so promise-based modals (`confirmModal`, `promptModal`, `selectModal`) resolve correctly on Escape and overlay-click without duplicate event listeners.
+- **Modal**: fix `_initialFormTimeout` leak — timeout is now tracked and cancelled on re-open or close, preventing stale dirty-check snapshots.
+- **Calendar**: replace `popup.innerHTML` with `insertAdjacentHTML` in the event popup (project constraint); add `truncateDescription()` to cap long event descriptions at 500 characters.
+- **Validation**: extend `DATETIME_RE` to accept ISO 8601 datetimes with milliseconds and timezone offsets; normalise datetime inputs to `YYYY-MM-DDTHH:MM` before storing.
+
+### Changed
+- **Docker**: switch from named Docker volume to host-mounted bind mounts; `DATA_DIR` (default `./data`) and `BACKUP_DIR` (default `./backups`) can be set in `.env` to control storage locations.
+- **Startup log**: include app version in the server start message.
+
 ## [0.47.3] - 2026-05-06
 
 ### Changed

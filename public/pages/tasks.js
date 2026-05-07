@@ -11,6 +11,7 @@ import { stagger, vibrate } from '/utils/ux.js';
 import { t, formatDate, formatTime, dateInputPlaceholder, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput, timeInputPlaceholder } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { refresh as refreshReminders } from '/reminders.js';
+import { renderUserMultiSelect, getSelectedUserIds, bindUserMultiSelect, renderAvatarStack } from '/components/user-multi-select.js';
 
 // --------------------------------------------------------
 // Konstanten
@@ -203,11 +204,7 @@ function renderTaskCard(task, opts = {}) {
           </div>
         </div>
 
-        ${task.assigned_color ? `
-          <div class="task-avatar" style="background-color:${esc(task.assigned_color)}"
-               title="${esc(task.assigned_name)}">
-            ${esc(initials(task.assigned_name ?? ''))}
-          </div>` : ''}
+        ${renderAvatarStack(task.assigned_users ?? [], { size: 28 })}
 
         <button class="btn btn--ghost btn--icon btn--icon-sm" data-action="edit-task" data-id="${task.id}"
                 aria-label="${t('tasks.editButton')}">
@@ -305,9 +302,7 @@ function renderTaskGroups(tasks, groupMode) {
 function renderModalContent({ task = null, users = [], reminder = null } = {}) {
   const isEdit = !!task;
 
-  const userOptions = users.map((u) =>
-    `<option value="${u.id}" ${task?.assigned_to === u.id ? 'selected' : ''}>${esc(u.display_name)}</option>`
-  ).join('');
+  const selectedIds = task?.assigned_users?.map((u) => u.id) ?? (task?.assigned_to ? [task.assigned_to] : []);
 
   const catLabels = CATEGORY_LABELS();
   const categoryOptions = CATEGORIES.map((c) =>
@@ -374,11 +369,7 @@ function renderModalContent({ task = null, users = [], reminder = null } = {}) {
       </div>
 
       <div class="form-group" style="margin-top:var(--space-4)">
-        <label class="label" for="task-assigned">${t('tasks.assignedLabel')}</label>
-        <select class="input" id="task-assigned" name="assigned_to">
-          <option value="">${t('tasks.assignedNobody')}</option>
-          ${userOptions}
-        </select>
+        ${renderUserMultiSelect(users, selectedIds, 'task_assigned', 'tasks.assignedLabel')}
       </div>
 
       ${isEdit ? `
@@ -553,6 +544,7 @@ function openTaskModal({ task = null, users = [], reminder = null } = {}, contai
       panel.querySelector('.modal-panel__body')?.classList.add('modal-panel__body--tasks-fit');
       // RRULE-Events binden
       bindRRuleEvents(document, 'task');
+      bindUserMultiSelect(panel, 'task_assigned');
 
       // Blur-Validierung für required-Felder aktivieren
       wireBlurValidation(panel);
@@ -629,7 +621,7 @@ async function handleFormSubmit(e, container) {
     priority:        form.priority.value,
     category:        form.category.value,
     due_date:        dueDate || null,
-    assigned_to:     form.assigned_to.value ? Number(form.assigned_to.value) : null,
+    assigned_to:     getSelectedUserIds(form, 'task_assigned'),
     is_recurring:    rrule.is_recurring ? 1 : 0,
     recurrence_rule: rrule.recurrence_rule,
   };
@@ -773,11 +765,7 @@ function renderKanbanCard(task) {
         ${due ? `<span class="due-date ${due.cls}"><i data-lucide="clock" class="icon-xs" aria-hidden="true"></i> ${due.label}</span>` : ''}
       </div>
       <div class="kanban-card__footer">
-        ${task.assigned_color ? `
-          <div class="task-avatar" style="background-color:${task.assigned_color};width:22px;height:22px;font-size:9px"
-               title="${esc(task.assigned_name ?? '')}">
-            ${initials(task.assigned_name ?? '')}
-          </div>` : '<span></span>'}
+        ${renderAvatarStack(task.assigned_users ?? [], { size: 22 }) || '<span></span>'}
         <button class="kanban-card__status-btn" type="button"
                 data-next-status="${next}" title="${nextLabel}" aria-label="${nextLabel}">
           <i data-lucide="${icon}" aria-hidden="true"></i>
