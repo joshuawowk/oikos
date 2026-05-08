@@ -1218,6 +1218,148 @@ const MIGRATIONS = [
         SELECT id, assigned_to FROM calendar_events WHERE assigned_to IS NOT NULL;
     `,
   },
+  {
+    version: 33,
+    description: 'Housekeeping work sessions, decay tasks, supply requests, and maintenance log',
+    up: `
+      CREATE TABLE IF NOT EXISTS housekeeping_work_sessions (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        check_in   TEXT    NOT NULL,
+        check_out  TEXT,
+        daily_rate REAL    NOT NULL DEFAULT 0 CHECK(daily_rate >= 0),
+        extras     REAL    NOT NULL DEFAULT 0 CHECK(extras >= 0),
+        created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        updated_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS housekeeping_decay_tasks (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        name           TEXT    NOT NULL,
+        area           TEXT    NOT NULL,
+        frequency_days INTEGER NOT NULL CHECK(frequency_days > 0),
+        last_completed TEXT,
+        created_by     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at     TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        updated_at     TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS housekeeping_supply_requests (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        name             TEXT    NOT NULL,
+        quantity         TEXT,
+        shopping_item_id INTEGER REFERENCES shopping_items(id) ON DELETE SET NULL,
+        created_by       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS housekeeping_maintenance_log (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        description TEXT    NOT NULL,
+        photo_url   TEXT,
+        created_by  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        updated_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      );
+
+      CREATE TRIGGER IF NOT EXISTS trg_housekeeping_work_sessions_updated_at
+        AFTER UPDATE ON housekeeping_work_sessions FOR EACH ROW
+        BEGIN UPDATE housekeeping_work_sessions SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+
+      CREATE TRIGGER IF NOT EXISTS trg_housekeeping_decay_tasks_updated_at
+        AFTER UPDATE ON housekeeping_decay_tasks FOR EACH ROW
+        BEGIN UPDATE housekeeping_decay_tasks SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+
+      CREATE TRIGGER IF NOT EXISTS trg_housekeeping_maintenance_log_updated_at
+        AFTER UPDATE ON housekeeping_maintenance_log FOR EACH ROW
+        BEGIN UPDATE housekeeping_maintenance_log SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_sessions_check_in ON housekeeping_work_sessions(check_in);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_sessions_open ON housekeeping_work_sessions(check_out);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_decay_area ON housekeeping_decay_tasks(area);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_decay_completed ON housekeeping_decay_tasks(last_completed);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_supply_created ON housekeeping_supply_requests(created_at);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_maintenance_created ON housekeeping_maintenance_log(created_at);
+    `,
+  },
+  {
+    version: 34,
+    description: 'Housekeeping worker profile and payment tracking',
+    up: `
+      CREATE TABLE IF NOT EXISTS housekeeping_workers (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id          INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        daily_rate       REAL    NOT NULL DEFAULT 0 CHECK(daily_rate >= 0),
+        payment_schedule TEXT    NOT NULL DEFAULT 'monthly'
+                                  CHECK(payment_schedule IN ('daily', 'twice_monthly', 'monthly')),
+        notes            TEXT,
+        created_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        updated_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      );
+
+      ALTER TABLE housekeeping_work_sessions ADD COLUMN paid_at TEXT;
+
+      CREATE TRIGGER IF NOT EXISTS trg_housekeeping_workers_updated_at
+        AFTER UPDATE ON housekeeping_workers FOR EACH ROW
+        BEGIN UPDATE housekeeping_workers SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_workers_user ON housekeeping_workers(user_id);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_sessions_paid ON housekeeping_work_sessions(paid_at);
+    `,
+  },
+  {
+    version: 35,
+    description: 'Housekeeping per-worker sessions and calendar linkage',
+    up: `
+      ALTER TABLE housekeeping_workers ADD COLUMN calendar_color TEXT NOT NULL DEFAULT '#7C3AED';
+      ALTER TABLE housekeeping_work_sessions ADD COLUMN worker_id INTEGER REFERENCES housekeeping_workers(id) ON DELETE SET NULL;
+      ALTER TABLE housekeeping_work_sessions ADD COLUMN calendar_event_id INTEGER REFERENCES calendar_events(id) ON DELETE SET NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_sessions_worker ON housekeeping_work_sessions(worker_id);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_sessions_calendar ON housekeeping_work_sessions(calendar_event_id);
+    `,
+  },
+  {
+    version: 36,
+    description: 'Housekeeping payment task linkage',
+    up: `
+      ALTER TABLE housekeeping_work_sessions ADD COLUMN payment_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_sessions_payment_task ON housekeeping_work_sessions(payment_task_id);
+    `,
+  },
+  {
+    version: 37,
+    description: 'Document folders and housekeeping receipt linkage',
+    up: `
+      CREATE TABLE IF NOT EXISTS family_document_folders (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT    NOT NULL UNIQUE,
+        created_by  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        updated_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      );
+
+      CREATE TRIGGER IF NOT EXISTS trg_family_document_folders_updated_at
+        AFTER UPDATE ON family_document_folders FOR EACH ROW
+        BEGIN UPDATE family_document_folders SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+
+      ALTER TABLE family_documents ADD COLUMN folder_id INTEGER REFERENCES family_document_folders(id) ON DELETE SET NULL;
+      ALTER TABLE housekeeping_work_sessions ADD COLUMN receipt_document_id INTEGER REFERENCES family_documents(id) ON DELETE SET NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_family_documents_folder ON family_documents(folder_id);
+      CREATE INDEX IF NOT EXISTS idx_housekeeping_sessions_receipt ON housekeeping_work_sessions(receipt_document_id);
+    `,
+  },
+  {
+    version: 38,
+    description: 'Calendar attachment document linkage',
+    up: `
+      ALTER TABLE calendar_events ADD COLUMN attachment_document_id INTEGER REFERENCES family_documents(id) ON DELETE SET NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_calendar_attachment_document ON calendar_events(attachment_document_id);
+    `,
+  },
 ];
 
 /**

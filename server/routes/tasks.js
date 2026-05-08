@@ -53,6 +53,19 @@ function setAssignments(d, taskId, userIds) {
   for (const uid of userIds) ins.run(taskId, uid);
 }
 
+function syncHousekeepingPaymentStatus(d, taskId, status) {
+  const table = d.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'housekeeping_work_sessions'").get();
+  if (!table) return;
+  d.prepare(`
+    UPDATE housekeeping_work_sessions
+    SET paid_at = CASE
+      WHEN ? = 'done' THEN COALESCE(paid_at, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      ELSE NULL
+    END
+    WHERE payment_task_id = ?
+  `).run(status, taskId);
+}
+
 /** Alle Subtasks einer Aufgabe laden (eine Ebene tief). */
 function loadSubtasks(taskId) {
   return db.get().prepare(`
@@ -274,6 +287,7 @@ router.put('/:id', (req, res) => {
              status, due_date, due_time, firstUid,
              is_recurring ? 1 : 0, recurrence_rule, req.params.id);
       setAssignments(db.get(), task.id, userIds);
+      syncHousekeepingPaymentStatus(db.get(), req.params.id, status);
     })();
 
     const updated = db.get().prepare(`
@@ -309,6 +323,8 @@ router.patch('/:id/status', (req, res) => {
 
     if (result.changes === 0)
       return res.status(404).json({ error: 'Task not found.', code: 404 });
+
+    syncHousekeepingPaymentStatus(db.get(), req.params.id, status);
 
     // Wiederkehrende Aufgabe: nächste Instanz erstellen wenn erledigt
     if (status === 'done') {

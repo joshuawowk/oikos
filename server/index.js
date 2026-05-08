@@ -36,6 +36,7 @@ import remindersRouter from './routes/reminders.js';
 import searchRouter from './routes/search.js';
 import familyRouter from './routes/family.js';
 import backupRouter from './routes/backup.js';
+import housekeepingRouter from './routes/housekeeping.js';
 
 const log     = createLogger('Server');
 const logSync = createLogger('Sync');
@@ -175,6 +176,41 @@ app.get('/api/v1/version', (req, res) => {
   res.json({ version: APP_VERSION, app_name: appName });
 });
 
+app.get('/manifest.webmanifest', (req, res) => {
+  let appName = DEFAULT_APP_NAME;
+  try {
+    const row = db.get().prepare('SELECT value FROM sync_config WHERE key = ?').get('app_name');
+    if (row?.value) appName = row.value;
+  } catch {
+    // fall back to default
+  }
+
+  res.type('application/manifest+json');
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  res.json({
+    name: `${appName} Familienplaner`,
+    short_name: appName,
+    description: 'Selbstgehosteter Familienplaner',
+    id: '/',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    display_override: ['standalone', 'minimal-ui'],
+    orientation: 'portrait-primary',
+    theme_color: '#007AFF',
+    background_color: '#F5F5F7',
+    lang: 'de-DE',
+    categories: ['productivity', 'lifestyle'],
+    icons: [
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+    screenshots: [],
+  });
+});
+
 function sendOpenApi(req, res) {
   if (req.query.download === '1') {
     res.setHeader('Content-Disposition', 'attachment; filename="openapi.json"');
@@ -206,6 +242,7 @@ app.use('/api/v1/reminders', remindersRouter);
 app.use('/api/v1/search', searchRouter);
 app.use('/api/v1/family', familyRouter);
 app.use('/api/v1/backup', backupRouter);
+app.use('/api/v1/housekeeping', housekeepingRouter);
 
 // --------------------------------------------------------
 // Health-Check (für Docker)

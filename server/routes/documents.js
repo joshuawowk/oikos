@@ -7,7 +7,7 @@
 import express from 'express';
 import * as db from '../db.js';
 import { createLogger } from '../logger.js';
-import { str, collectErrors, MAX_TEXT, MAX_TITLE } from '../middleware/validate.js';
+import { str, collectErrors, id as validateId, MAX_TEXT, MAX_TITLE } from '../middleware/validate.js';
 
 const log = createLogger('Documents');
 const router = express.Router();
@@ -70,10 +70,12 @@ function documentSelect() {
   return `
     SELECT d.id, d.name, d.description, d.category, d.status, d.visibility,
            d.original_name, d.mime_type, d.file_size, d.storage_provider,
-           d.storage_key, d.created_by, d.created_at, d.updated_at,
+           d.storage_key, d.folder_id, d.created_by, d.created_at, d.updated_at,
+           f.name AS folder_name,
            u.display_name AS creator_name, u.avatar_color AS creator_color,
            GROUP_CONCAT(a.user_id) AS allowed_member_ids
     FROM family_documents d
+    LEFT JOIN family_document_folders f ON f.id = d.folder_id
     LEFT JOIN users u ON u.id = d.created_by
     LEFT JOIN family_document_access a ON a.document_id = d.id
   `;
@@ -90,7 +92,7 @@ function normalizeDocument(row) {
 }
 
 function getVisibleDocument(id, req, includeContent = false) {
-  const columns = includeContent ? 'd.*' : 'd.id, d.created_by, d.visibility, d.description';
+  const columns = includeContent ? 'd.*' : 'd.id, d.created_by, d.visibility, d.description, d.folder_id';
   return db.get().prepare(`
     SELECT ${columns}
     FROM family_documents d
@@ -103,6 +105,15 @@ function replaceAccess(documentId, memberIds) {
   database.prepare('DELETE FROM family_document_access WHERE document_id = ?').run(documentId);
   const insert = database.prepare('INSERT OR IGNORE INTO family_document_access (document_id, user_id) VALUES (?, ?)');
   for (const memberId of memberIds) insert.run(documentId, memberId);
+}
+
+function ensureFolder(name, actorId) {
+  const folderName = typeof name === 'string' ? name.trim() : '';
+  if (!folderName) return null;
+  const existing = db.get().prepare('SELECT id FROM family_document_folders WHERE name = ? COLLATE NOCASE').get(folderName);
+  if (existing) return existing.id;
+  const result = db.get().prepare('INSERT INTO family_document_folders (name, created_by) VALUES (?, ?)').run(folderName, actorId);
+  return result.lastInsertRowid;
 }
 
 router.get('/meta/options', (_req, res) => {
@@ -118,16 +129,52 @@ router.get('/meta/options', (_req, res) => {
   });
 });
 
+router.get('/folders', (_req, res) => {
+  try {
+    const rows = db.get().prepare(`
+      SELECT id, name, created_by, created_at, updated_at
+      FROM family_document_folders
+      ORDER BY name COLLATE NOCASE ASC
+    `).all();
+    res.json({ data: rows });
+  } catch (err) {
+    log.error('GET /folders error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+router.post('/folders', (req, res) => {
+  try {
+    const vName = str(req.body.name, 'Name', { max: MAX_TITLE });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+    const result = db.get().prepare('INSERT INTO family_document_folders (name, created_by) VALUES (?, ?)')
+      .run(vName.value, userId(req));
+    const row = db.get().prepare('SELECT id, name, created_by, created_at, updated_at FROM family_document_folders WHERE id = ?')
+      .get(result.lastInsertRowid);
+    res.status(201).json({ data: row });
+  } catch (err) {
+    if (err.message?.includes('UNIQUE constraint')) {
+      return res.status(409).json({ error: 'Folder already exists.', code: 409 });
+    }
+    log.error('POST /folders error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
 router.get('/', (req, res) => {
   try {
     const status = STATUSES.includes(req.query.status) ? req.query.status : 'active';
     const category = CATEGORIES.includes(req.query.category) ? req.query.category : null;
-    const params = { userId: userId(req), status, category };
+    const folderId = req.query.folder_id !== undefined && req.query.folder_id !== ''
+      ? Number(req.query.folder_id)
+      : null;
+    const params = { userId: userId(req), status, category, folderId };
     const rows = db.get().prepare(`
       ${documentSelect()}
       WHERE ${canSeeSql('d')}
         AND d.status = @status
         AND (@category IS NULL OR d.category = @category)
+        AND (@folderId IS NULL OR d.folder_id = @folderId)
       GROUP BY d.id
       ORDER BY d.updated_at DESC
     `).all(params);
@@ -143,21 +190,27 @@ router.post('/', (req, res) => {
     const vName = str(req.body.name, 'Name', { max: MAX_TITLE });
     const vDescription = str(req.body.description, 'Description', { max: MAX_TEXT, required: false });
     const vOriginalName = str(req.body.original_name, 'Original filename', { max: MAX_TITLE });
-    const errors = collectErrors([vName, vDescription, vOriginalName]);
+    const vFolderName = str(req.body.folder_name, 'Folder name', { max: MAX_TITLE, required: false });
+    const errors = collectErrors([vName, vDescription, vOriginalName, vFolderName]);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
 
     const category = CATEGORIES.includes(req.body.category) ? req.body.category : 'other';
     const visibility = VISIBILITIES.includes(req.body.visibility) ? req.body.visibility : 'family';
+    const vFolderId = req.body.folder_id !== undefined && req.body.folder_id !== null && req.body.folder_id !== ''
+      ? validateId(req.body.folder_id, 'folder_id')
+      : { value: null, error: null };
+    if (vFolderId.error) return res.status(400).json({ error: vFolderId.error, code: 400 });
     const parsed = parseDataUrl(req.body.content_data);
     if (parsed.error) return res.status(400).json({ error: parsed.error, code: 400 });
 
     const allowedIds = visibility === 'restricted' ? parseMemberIds(req.body.allowed_member_ids) : [];
+    const folderId = vFolderId.value ?? ensureFolder(vFolderName.value, userId(req));
     const database = db.get();
     const result = database.prepare(`
       INSERT INTO family_documents
-        (name, description, category, visibility, original_name, mime_type, file_size, content_data, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(vName.value, vDescription.value, category, visibility, vOriginalName.value, parsed.mime, parsed.size, parsed.base64, userId(req));
+        (name, description, category, visibility, folder_id, original_name, mime_type, file_size, content_data, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(vName.value, vDescription.value, category, visibility, folderId, vOriginalName.value, parsed.mime, parsed.size, parsed.base64, userId(req));
     if (visibility === 'restricted') replaceAccess(result.lastInsertRowid, allowedIds);
 
     const row = database.prepare(`
@@ -187,13 +240,18 @@ router.put('/:id', (req, res) => {
     const category = req.body.category !== undefined && CATEGORIES.includes(req.body.category) ? req.body.category : null;
     const visibility = req.body.visibility !== undefined && VISIBILITIES.includes(req.body.visibility) ? req.body.visibility : null;
     const status = req.body.status !== undefined && STATUSES.includes(req.body.status) ? req.body.status : null;
+    const vFolderId = req.body.folder_id !== undefined && req.body.folder_id !== null && req.body.folder_id !== ''
+      ? validateId(req.body.folder_id, 'folder_id')
+      : { value: null, error: null };
+    if (vFolderId.error) return res.status(400).json({ error: vFolderId.error, code: 400 });
     db.get().prepare(`
       UPDATE family_documents
       SET name = COALESCE(?, name),
           description = ?,
           category = COALESCE(?, category),
           visibility = COALESCE(?, visibility),
-          status = COALESCE(?, status)
+          status = COALESCE(?, status),
+          folder_id = ?
       WHERE id = ?
     `).run(
       req.body.name !== undefined ? vName.value : null,
@@ -201,6 +259,7 @@ router.put('/:id', (req, res) => {
       category,
       visibility,
       status,
+      req.body.folder_id !== undefined ? vFolderId.value : existing.folder_id,
       id
     );
     if ((visibility || existing.visibility) === 'restricted') replaceAccess(id, parseMemberIds(req.body.allowed_member_ids));

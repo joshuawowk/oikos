@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-05-08
+
+### Added
+- **Housekeeping module**: new dedicated module for managing household staff workflows. Features include staff profiles (with avatar, daily rate, calendar color, payment schedule), work session check-in/check-out (with automatic local calendar event creation), recurring chore tracking with urgency decay indicators, supply requests (linked to shopping lists), and a monthly visit log with payment summaries.
+- **Document folders**: documents can now be organized into custom folders. A "Hausreinigung" folder is auto-created when a housekeeping worker is first added.
+- **Calendar icon picker**: calendar events now support a custom icon selected from a curated set of Lucide icons.
+- **Payment task integration**: each housekeeping check-in can optionally create a payment task; completing the task marks the visit as paid. Toggle in Settings → Haushaltshilfe.
+
+### Changed
+- **Documents page**: added a folder browser sidebar and folder filter; existing documents without a folder remain accessible under "Alle Ordner".
+- **Dashboard**: housekeeping widgets show today's open sessions and upcoming chores.
+- **Settings**: new "Haushaltshilfe" section for the payment task toggle.
+- **Navigation**: housekeeping module appears in the main nav with Violet accent theming.
+
 ## [0.48.3] - 2026-05-06
 
 ### Changed

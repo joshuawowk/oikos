@@ -572,7 +572,11 @@ router.get('/me', requireAuth, (req, res) => {
 router.get('/users', requireAuth, requireAdmin, (req, res) => {
   try {
     const users = db.get()
-      .prepare(`SELECT ${USER_PUBLIC_COLUMNS} FROM users ORDER BY display_name`)
+      .prepare(`
+        SELECT ${USER_PUBLIC_COLUMNS}
+        FROM users
+        ORDER BY display_name
+      `)
       .all();
     res.json({ data: users.map(publicUser) });
   } catch (err) {
@@ -952,4 +956,4 @@ router.delete('/users/:id', requireAuth, requireAdmin, csrfMiddleware, (req, res
   }
 });
 
-export { router, sessionMiddleware, requireAuth, requireAdmin };
+export { router, sessionMiddleware, requireAuth, requireAdmin, syncFamilyMemberArtifacts, normalizeAvatarData };

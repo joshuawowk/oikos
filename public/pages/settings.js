@@ -201,7 +201,7 @@ export async function render(container, { user }) {
   let users           = [];
   let googleStatus    = { configured: false, connected: false, lastSync: null };
   let appleStatus     = { configured: false, lastSync: null };
-  let prefs           = { visible_meal_types: ['breakfast', 'lunch', 'dinner', 'snack'], currency: 'EUR', date_format: 'mdy', time_format: '24h', app_name: DEFAULT_APP_NAME, disabled_modules: [] };
+  let prefs           = { visible_meal_types: ['breakfast', 'lunch', 'dinner', 'snack'], currency: 'EUR', date_format: 'mdy', time_format: '24h', app_name: DEFAULT_APP_NAME, disabled_modules: [], housekeeping_payment_tasks: false };
   let categories      = [];
   let icsSubscriptions = [];
   let apiTokens       = [];
@@ -373,6 +373,20 @@ export async function render(container, { user }) {
                 </label>
               `).join('')}
             </div>
+          </div>
+        </section>
+        ` : ''}
+
+        ${user?.role === 'admin' ? `
+        <section class="settings-section">
+          <h2 class="settings-section__title">${t('settings.sectionHousekeeping')}</h2>
+          <div class="settings-card">
+            <h3 class="settings-card__title">${t('settings.housekeepingPaymentsTitle')}</h3>
+            <p class="form-hint" style="margin-bottom:var(--space-3)">${t('settings.housekeepingPaymentTasksHint')}</p>
+            <label class="toggle-row">
+              <input type="checkbox" id="housekeeping-payment-tasks" ${prefs.housekeeping_payment_tasks ? 'checked' : ''}>
+              <span>${t('settings.housekeepingPaymentTasksLabel')}</span>
+            </label>
           </div>
         </section>
         ` : ''}
@@ -1280,6 +1294,19 @@ function bindEvents(container, user, users, categories, icsSubscriptions, apiTok
         window.oikos?.showToast(t('settings.timeFormatSavedToast'), 'success');
       } catch (err) {
         window.oikos?.showToast(err.message ?? t('common.errorGeneric'), 'danger');
+      }
+    });
+  }
+
+  const housekeepingPaymentTasks = container.querySelector('#housekeeping-payment-tasks');
+  if (housekeepingPaymentTasks) {
+    housekeepingPaymentTasks.addEventListener('change', async () => {
+      try {
+        await api.put('/preferences', { housekeeping_payment_tasks: housekeepingPaymentTasks.checked });
+        window.oikos?.showToast(t('settings.housekeepingPaymentTasksSaved'), 'success');
+      } catch (err) {
+        window.oikos?.showToast(err.message ?? t('common.errorGeneric'), 'danger');
+        housekeepingPaymentTasks.checked = !housekeepingPaymentTasks.checked;
       }
     });
   }

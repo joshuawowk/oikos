@@ -144,6 +144,7 @@ router.get('/', (req, res) => {
         app_name: appName,
         dashboard_widgets: dashboardWidgets,
         disabled_modules: disabledModules,
+        housekeeping_payment_tasks: cfgGet('housekeeping_payment_tasks') === '1',
       },
     });
   } catch (err) {
@@ -161,7 +162,7 @@ router.get('/', (req, res) => {
 
 router.put('/', (req, res) => {
   try {
-    const { visible_meal_types, currency, date_format, time_format, app_name, dashboard_widgets, disabled_modules } = req.body;
+    const { visible_meal_types, currency, date_format, time_format, app_name, dashboard_widgets, disabled_modules, housekeeping_payment_tasks } = req.body;
 
     if (visible_meal_types !== undefined) {
       if (!Array.isArray(visible_meal_types)) {
@@ -220,6 +221,13 @@ router.put('/', (req, res) => {
       cfgSet('disabled_modules', JSON.stringify(unique));
     }
 
+    if (housekeeping_payment_tasks !== undefined) {
+      if (typeof housekeeping_payment_tasks !== 'boolean') {
+        return res.status(400).json({ error: 'housekeeping_payment_tasks must be a boolean', code: 400 });
+      }
+      cfgSet('housekeeping_payment_tasks', housekeeping_payment_tasks ? '1' : '0');
+    }
+
     const rawMealTypes = cfgGet('visible_meal_types') ?? DEFAULT_MEAL_TYPES;
     const savedMealTypes = rawMealTypes.split(',').filter((t) => VALID_MEAL_TYPES.includes(t));
     const savedCurrency = cfgGet('currency') ?? DEFAULT_CURRENCY;
@@ -228,6 +236,7 @@ router.put('/', (req, res) => {
     const savedAppName = cfgGet('app_name') ?? DEFAULT_APP_NAME;
     const savedWidgets = parseWidgetConfig(cfgGet('dashboard_widgets'));
     const savedDisabledModules = parseDisabledModules(cfgGet('disabled_modules'));
+    const savedHousekeepingPaymentTasks = cfgGet('housekeeping_payment_tasks') === '1';
 
     res.json({
       data: {
@@ -238,6 +247,7 @@ router.put('/', (req, res) => {
         app_name: savedAppName,
         dashboard_widgets: savedWidgets,
         disabled_modules: savedDisabledModules,
+        housekeeping_payment_tasks: savedHousekeepingPaymentTasks,
       },
     });
   } catch (err) {
