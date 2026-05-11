@@ -1573,6 +1573,12 @@
       "percentage": "Gib für jedes ausgewählte Mitglied einen Prozentsatz ein. Die Summe muss 100 % sein.",
       "exact": "Gib für jedes ausgewählte Mitglied den exakten Betrag ein. Die Summe muss der Ausgabe entsprechen.",
       "shares": "Gib ganzzahlige Anteile für jedes ausgewählte Mitglied ein."
-    }
+    },
+    "editGroup": "Gruppe bearbeiten",
+    "archiveGroup": "Gruppe archivieren",
+    "deleteGroup": "Gruppe löschen",
+    "archiveGroupConfirm": "Diese Gruppe archivieren?",
+    "deleteGroupConfirm": "Diese leere Gruppe löschen? Gruppen mit Ausgaben müssen archiviert werden.",
+    "splitCurrentTotal": "Aktuelle Summe: {{total}}"
   }
 }

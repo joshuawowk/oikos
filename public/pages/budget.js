@@ -133,6 +133,7 @@ let state = {
   meta:        { expenseCategories: [], incomeCategories: [], expenseSubcategories: {} },
 };
 let _container = null;
+let _user = null;
 
 // --------------------------------------------------------
 // Formatierung
@@ -208,16 +209,20 @@ async function loadBudgetMeta() {
 
 export async function render(container, { user }) {
   _container = container;
+  _user = user;
   const today = new Date();
   state.month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  if (user?.access_scope === 'split_guest') state.activeTab = 'split-expenses';
 
-  try {
-    const [prefsRes] = await Promise.all([
-      api.get('/preferences'),
-      loadBudgetMeta(),
-    ]);
-    state.currency = prefsRes.data?.currency ?? 'EUR';
-  } catch (_) { /* Fallback auf EUR */ }
+  if (user?.access_scope !== 'split_guest') {
+    try {
+      const [prefsRes] = await Promise.all([
+        api.get('/preferences'),
+        loadBudgetMeta(),
+      ]);
+      state.currency = prefsRes.data?.currency ?? 'EUR';
+    } catch (_) { /* Fallback auf EUR */ }
+  }
 
   setHtml(container, `
     <div class="budget-page">
@@ -229,12 +234,13 @@ export async function render(container, { user }) {
         <button class="budget-nav__today" id="budget-today">${t('budget.currentMonth')}</button>
         <span class="budget-nav__label" id="budget-label"></span>
         <div class="budget-tabs" role="tablist" aria-label="${t('budget.tabsLabel')}">
+          ${user?.access_scope === 'split_guest' ? '' : `
           <button class="budget-tab" id="budget-tab-budget" type="button" role="tab" aria-selected="true" data-tab="budget">
             ${t('budget.budgetTab')}
           </button>
           <button class="budget-tab" id="budget-tab-loans" type="button" role="tab" aria-selected="false" data-tab="loans">
             ${t('budget.loansTab')}
-          </button>
+          </button>`}
           <button class="budget-tab" id="budget-tab-split-expenses" type="button" role="tab" aria-selected="false" data-tab="split-expenses">
             ${t('splitExpenses.tabLabel')}
           </button>
@@ -257,7 +263,13 @@ export async function render(container, { user }) {
 
   if (window.lucide) lucide.createIcons();
 
-  await loadMonth(state.month);
+  if (user?.access_scope !== 'split_guest') {
+    await loadMonth(state.month);
+  } else {
+    state.summary = { income: 0, expenses: 0, balance: 0, byCategory: [] };
+    state.prevSummary = null;
+    state.entries = [];
+  }
   renderBody();
   wireNav();
 }
@@ -323,7 +335,7 @@ function renderBody() {
   if (state.activeTab === 'split-expenses') {
     setHtml(body, '<div class="budget-tab-panel budget-tab-panel--split-expenses" id="budget-split-expenses-panel"></div>');
     const panel = body.querySelector('#budget-split-expenses-panel');
-    renderSplitExpenses(panel, { embedded: true }).catch((err) => {
+    renderSplitExpenses(panel, { embedded: true, user: _user }).catch((err) => {
       console.error('[Budget] split expenses render error:', err);
       setHtml(panel, `<div class="empty-state"><div class="empty-state__title">${t('splitExpenses.title')}</div><div class="empty-state__description">${t('budget.loadError')}</div></div>`);
     });
@@ -408,7 +420,7 @@ function updateTabs() {
     tab.classList.toggle('budget-tab--active', active);
     tab.setAttribute('aria-selected', String(active));
   });
-  const splitActive = state.activeTab === 'split-expenses';
+  const splitActive = state.activeTab === 'split-expenses' || _user?.access_scope === 'split_guest';
   ['#budget-prev', '#budget-next', '#budget-today', '#budget-label', '#budget-add', '#fab-new-budget'].forEach((selector) => {
     const el = _container.querySelector(selector);
     if (el) el.hidden = splitActive;

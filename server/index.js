@@ -225,6 +225,20 @@ app.get('/openapi.json', sendOpenApi);
 
 // Alle weiteren API-Routen erfordern Authentifizierung + CSRF-Schutz
 app.use('/api/v1', requireAuth);
+app.use('/api/v1', (req, res, next) => {
+  try {
+    const guest = db.get().prepare('SELECT 1 FROM split_expense_guest_users WHERE user_id = ?').get(req.authUserId);
+    if (!guest) return next();
+    const allowed = req.path.startsWith('/split-expenses')
+      || req.path === '/auth/me'
+      || req.path === '/auth/logout'
+      || req.path === '/version';
+    if (allowed) return next();
+    return res.status(403).json({ error: 'This account can only access Split expenses.', code: 403 });
+  } catch {
+    return res.status(403).json({ error: 'This account can only access Split expenses.', code: 403 });
+  }
+});
 app.use('/api/v1', csrfMiddleware);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/tasks', tasksRouter);

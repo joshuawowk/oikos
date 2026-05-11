@@ -26,6 +26,14 @@ function userId(req) {
   return req.authUserId || req.session.userId;
 }
 
+function isSplitGuest(req) {
+  return Boolean(db.get().prepare('SELECT 1 FROM split_expense_guest_users WHERE user_id = ?').get(userId(req)));
+}
+
+function splitGuestGroupId(req) {
+  return db.get().prepare('SELECT group_id FROM split_expense_guest_users WHERE user_id = ?').get(userId(req))?.group_id || null;
+}
+
 function isSystemAdmin(req) {
   return req.authRole === 'admin' || req.session?.role === 'admin';
 }
@@ -39,11 +47,14 @@ function memberRole(groupId, uid) {
 }
 
 function canManageGroup(groupId, req) {
+  if (isSplitGuest(req)) return false;
   const role = memberRole(groupId, userId(req));
   return isSystemAdmin(req) || role === 'owner' || role === 'admin';
 }
 
 function requireGroupAccess(groupId, req) {
+  const restrictedGroupId = splitGuestGroupId(req);
+  if (restrictedGroupId && Number(restrictedGroupId) !== Number(groupId)) return null;
   const group = db.get().prepare(`
     SELECT g.*, m.role AS member_role
     FROM expense_groups g
@@ -247,7 +258,11 @@ router.get('/dashboard', (req, res) => {
     const mine = balances.filter((row) => row.user_id === uid);
     const totalOwed = mine.filter((row) => row.net_minor > 0).map(normalizeLedgerRow);
     const totalOwing = mine.filter((row) => row.net_minor < 0).map((row) => normalizeLedgerRow({ ...row, amount_minor: -row.net_minor }));
-    const groups = db.get().prepare(`${groupSelectWhere("visible.user_id = @userId AND g.status = 'active'")} ORDER BY g.updated_at DESC LIMIT 6`).all({ userId: uid });
+    const groupWhere = isSplitGuest(req)
+      ? "visible.user_id = @userId AND g.status = 'active' AND g.id = @restrictedGroupId"
+      : "visible.user_id = @userId AND g.status = 'active'";
+    const groups = db.get().prepare(`${groupSelectWhere(groupWhere)} ORDER BY g.updated_at DESC LIMIT 6`)
+      .all({ userId: uid, restrictedGroupId: splitGuestGroupId(req) });
     const recent = db.get().prepare(`
       SELECT e.*, g.name AS group_name, u.display_name AS payer_name
       FROM expenses e
@@ -269,10 +284,11 @@ router.get('/groups', (req, res) => {
   try {
     const status = req.query.status === 'archived' ? 'archived' : 'active';
     const query = String(req.query.q || '').trim();
+    const guest = isSplitGuest(req);
     const rows = db.get().prepare(`
-      ${groupSelectWhere("visible.user_id = @userId AND g.status = @status AND (@query = '' OR g.name LIKE '%' || @query || '%')")}
+      ${groupSelectWhere(`visible.user_id = @userId AND g.status = @status AND (@query = '' OR g.name LIKE '%' || @query || '%')${guest ? ' AND g.id = @restrictedGroupId' : ''}`)}
       ORDER BY g.updated_at DESC
-    `).all({ userId: userId(req), status, query });
+    `).all({ userId: userId(req), status, query, restrictedGroupId: splitGuestGroupId(req) });
     res.json({ data: rows });
   } catch (err) {
     log.error('GET /groups error:', err);
@@ -282,6 +298,7 @@ router.get('/groups', (req, res) => {
 
 router.post('/groups', (req, res) => {
   try {
+    if (isSplitGuest(req)) return res.status(403).json({ error: 'Not authorized.', code: 403 });
     const vName = str(req.body.name, 'Name', { max: MAX_TITLE });
     const vDescription = str(req.body.description, 'Description', { max: MAX_TEXT, required: false });
     const errors = collectErrors([vName, vDescription]);
@@ -340,6 +357,27 @@ router.post('/groups/:id/archive', (req, res) => {
     res.json({ data: { ok: true } });
   } catch (err) {
     log.error('POST /groups/:id/archive error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+router.delete('/groups/:id', (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!requireGroupAccess(id, req)) return res.status(404).json({ error: 'Group not found.', code: 404 });
+    if (!canManageGroup(id, req)) return res.status(403).json({ error: 'Not authorized.', code: 403 });
+    const usage = db.get().prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM expenses WHERE group_id = ?) AS expenses,
+        (SELECT COUNT(*) FROM settlements WHERE group_id = ?) AS settlements
+    `).get(id, id);
+    if ((usage.expenses || 0) > 0 || (usage.settlements || 0) > 0) {
+      return res.status(409).json({ error: 'Groups with financial history must be archived instead of deleted.', code: 409 });
+    }
+    db.get().prepare('DELETE FROM expense_groups WHERE id = ?').run(id);
+    res.json({ data: { ok: true } });
+  } catch (err) {
+    log.error('DELETE /groups/:id error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });
   }
 });
@@ -421,6 +459,8 @@ router.post('/groups/:id/guests', async (req, res) => {
       });
       db.get().prepare('INSERT INTO expense_group_members (group_id, user_id, role, invited_by) VALUES (?, ?, ?, ?)')
         .run(groupId, created.lastInsertRowid, 'guest', userId(req));
+      db.get().prepare('INSERT OR IGNORE INTO split_expense_guest_users (user_id, group_id, created_by) VALUES (?, ?, ?)')
+        .run(created.lastInsertRowid, groupId, userId(req));
       activity(groupId, userId(req), 'guest_created', 'member', created.lastInsertRowid, { display_name: vDisplayName.value });
       return created.lastInsertRowid;
     });
@@ -710,10 +750,11 @@ router.get('/search', (req, res) => {
   try {
     const q = String(req.query.q || '').trim();
     const uid = userId(req);
+    const restrictedGroupId = splitGuestGroupId(req);
     const groups = db.get().prepare(`
-      ${groupSelectWhere("visible.user_id = @userId AND g.status = 'active' AND (@q = '' OR g.name LIKE '%' || @q || '%')")}
+      ${groupSelectWhere(`visible.user_id = @userId AND g.status = 'active' AND (@q = '' OR g.name LIKE '%' || @q || '%')${restrictedGroupId ? ' AND g.id = @restrictedGroupId' : ''}`)}
       ORDER BY g.updated_at DESC LIMIT 10
-    `).all({ userId: uid, q });
+    `).all({ userId: uid, q, restrictedGroupId });
     const expenses = db.get().prepare(`
       SELECT e.*, g.name AS group_name, u.display_name AS payer_name
       FROM expenses e
@@ -721,16 +762,18 @@ router.get('/search', (req, res) => {
       JOIN expense_group_members gm ON gm.group_id = g.id AND gm.user_id = @uid
       LEFT JOIN users u ON u.id = e.payer_id
       WHERE e.status = 'active' AND (@q = '' OR e.title LIKE '%' || @q || '%' OR e.description LIKE '%' || @q || '%')
+        AND (@restrictedGroupId IS NULL OR g.id = @restrictedGroupId)
       ORDER BY e.expense_date DESC LIMIT 10
-    `).all({ uid, q }).map(serializeExpense);
+    `).all({ uid, q, restrictedGroupId }).map(serializeExpense);
     const people = db.get().prepare(`
       SELECT DISTINCT u.id, u.display_name, u.username, u.avatar_color
       FROM users u
       JOIN expense_group_members gm ON gm.user_id = u.id
       JOIN expense_group_members mine ON mine.group_id = gm.group_id AND mine.user_id = @uid
-      WHERE @q = '' OR u.display_name LIKE '%' || @q || '%' OR u.username LIKE '%' || @q || '%'
+      WHERE (@q = '' OR u.display_name LIKE '%' || @q || '%' OR u.username LIKE '%' || @q || '%')
+        AND (@restrictedGroupId IS NULL OR gm.group_id = @restrictedGroupId)
       ORDER BY u.display_name COLLATE NOCASE ASC LIMIT 10
-    `).all({ uid, q });
+    `).all({ uid, q, restrictedGroupId });
     res.json({ data: { groups, expenses, people } });
   } catch (err) {
     log.error('GET /search error:', err);

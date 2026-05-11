@@ -1573,6 +1573,12 @@
       "percentage": "Enter each selected member percentage. Total must be 100%.",
       "exact": "Enter the exact amount for each selected member. Total must match the expense.",
       "shares": "Enter whole-number shares for each selected member."
-    }
+    },
+    "editGroup": "Edit group",
+    "archiveGroup": "Archive group",
+    "deleteGroup": "Delete group",
+    "archiveGroupConfirm": "Archive this group?",
+    "deleteGroupConfirm": "Delete this empty group? Groups with expenses must be archived.",
+    "splitCurrentTotal": "Current total: {{total}}"
   }
 }

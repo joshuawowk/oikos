@@ -21,9 +21,9 @@ function testSplitAllocation() {
   assert.deepEqual(
     service.buildSplits({ method: 'equal', amountMinor: 100, currency: 'EUR', participants: [1, 2, 3] }),
     [
-      { user_id: 1, amount_minor: 34 },
-      { user_id: 2, amount_minor: 33 },
-      { user_id: 3, amount_minor: 33 },
+      { user_id: 1, amount_minor: 34, currency: 'EUR' },
+      { user_id: 2, amount_minor: 33, currency: 'EUR' },
+      { user_id: 3, amount_minor: 33, currency: 'EUR' },
     ],
   );
 
@@ -36,8 +36,8 @@ function testSplitAllocation() {
       splits: [{ user_id: 1, percentage: '33.33' }, { user_id: 2, percentage: '66.67' }],
     }),
     [
-      { user_id: 1, amount_minor: 333 },
-      { user_id: 2, amount_minor: 666 },
+      { user_id: 1, amount_minor: 333, currency: 'EUR' },
+      { user_id: 2, amount_minor: 666, currency: 'EUR' },
     ],
   );
 
@@ -50,8 +50,8 @@ function testSplitAllocation() {
       splits: [{ user_id: 1, amount: '100.00' }, { user_id: 2, amount: '200.00' }],
     }),
     [
-      { user_id: 1, amount_minor: 10000 },
-      { user_id: 2, amount_minor: 20000 },
+      { user_id: 1, amount_minor: 10000, currency: 'EUR' },
+      { user_id: 2, amount_minor: 20000, currency: 'EUR' },
     ],
   );
 
@@ -64,9 +64,9 @@ function testSplitAllocation() {
       splits: [{ user_id: 1, shares: 1 }, { user_id: 2, shares: 1 }, { user_id: 3, shares: 2 }],
     }),
     [
-      { user_id: 1, amount_minor: 250 },
-      { user_id: 2, amount_minor: 250 },
-      { user_id: 3, amount_minor: 500 },
+      { user_id: 1, amount_minor: 250, currency: 'EUR' },
+      { user_id: 2, amount_minor: 250, currency: 'EUR' },
+      { user_id: 3, amount_minor: 500, currency: 'EUR' },
     ],
   );
 }

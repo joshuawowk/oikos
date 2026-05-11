@@ -1573,6 +1573,12 @@
       "percentage": "Informe o percentual de cada participante selecionado. O total deve ser 100%.",
       "exact": "Informe o valor exato de cada participante selecionado. O total deve bater com a despesa.",
       "shares": "Informe cotas inteiras para cada participante selecionado."
-    }
+    },
+    "editGroup": "Editar grupo",
+    "archiveGroup": "Arquivar grupo",
+    "deleteGroup": "Excluir grupo",
+    "archiveGroupConfirm": "Arquivar este grupo?",
+    "deleteGroupConfirm": "Excluir este grupo vazio? Grupos com despesas devem ser arquivados.",
+    "splitCurrentTotal": "Total atual: {{total}}"
   }
 }

@@ -65,13 +65,17 @@ function allocateRemainder(totalMinor, baseRows) {
   return rows;
 }
 
+function withCurrency(rows, currency) {
+  return rows.map((row) => ({ ...row, currency }));
+}
+
 function buildSplits({ method, amountMinor, currency, participants, splits = [] }) {
   const participantIds = assertIntegerIds(participants, 'participants');
   const splitMap = new Map((Array.isArray(splits) ? splits : []).map((s) => [Number(s.user_id), s]));
 
   if (method === 'equal') {
     const base = Math.trunc(amountMinor / participantIds.length);
-    return allocateRemainder(amountMinor, participantIds.map((userId) => ({ user_id: userId, amount_minor: base })));
+    return withCurrency(allocateRemainder(amountMinor, participantIds.map((userId) => ({ user_id: userId, amount_minor: base }))), currency);
   }
 
   if (method === 'exact') {
@@ -82,7 +86,7 @@ function buildSplits({ method, amountMinor, currency, participants, splits = [] 
     });
     const sum = rows.reduce((acc, row) => acc + row.amount_minor, 0);
     if (sum !== amountMinor) throw new Error('Exact splits must add up to the expense amount.');
-    return rows;
+    return withCurrency(rows, currency);
   }
 
   if (method === 'percentage') {
@@ -96,10 +100,10 @@ function buildSplits({ method, amountMinor, currency, participants, splits = [] 
     });
     const totalBps = rows.reduce((acc, row) => acc + row.bps, 0);
     if (totalBps !== 10000) throw new Error('Percentages must add up to 100.');
-    return allocateRemainder(amountMinor, rows.map((row) => ({
+    return withCurrency(allocateRemainder(amountMinor, rows.map((row) => ({
       user_id: row.user_id,
       amount_minor: Math.trunc((amountMinor * row.bps) / 10000),
-    })));
+    }))), currency);
   }
 
   if (method === 'shares') {
@@ -109,10 +113,10 @@ function buildSplits({ method, amountMinor, currency, participants, splits = [] 
       return { user_id: userId, shares };
     });
     const totalShares = rows.reduce((acc, row) => acc + row.shares, 0);
-    return allocateRemainder(amountMinor, rows.map((row) => ({
+    return withCurrency(allocateRemainder(amountMinor, rows.map((row) => ({
       user_id: row.user_id,
       amount_minor: Math.trunc((amountMinor * row.shares) / totalShares),
-    })));
+    }))), currency);
   }
 
   throw new Error('Unsupported split method.');

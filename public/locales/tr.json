@@ -1573,6 +1573,12 @@
       "percentage": "Seçilen her üye için yüzde girin. Toplam 100 olmalı.",
       "exact": "Seçilen her üye için kesin tutarı girin. Toplam giderle aynı olmalı.",
       "shares": "Seçilen her üye için tam sayı pay girin."
-    }
+    },
+    "editGroup": "Grubu düzenle",
+    "archiveGroup": "Grubu arşivle",
+    "deleteGroup": "Grubu sil",
+    "archiveGroupConfirm": "Bu grup arşivlensin mi?",
+    "deleteGroupConfirm": "Bu boş grup silinsin mi? Gideri olan gruplar arşivlenmelidir.",
+    "splitCurrentTotal": "Geçerli toplam: {{total}}"
   }
 }

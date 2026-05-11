@@ -1573,6 +1573,12 @@
       "percentage": "Inserisci la percentuale per ogni membro selezionato. Il totale deve essere 100%.",
       "exact": "Inserisci l’importo esatto per ogni membro selezionato. Il totale deve corrispondere alla spesa.",
       "shares": "Inserisci quote intere per ogni membro selezionato."
-    }
+    },
+    "editGroup": "Modifica gruppo",
+    "archiveGroup": "Archivia gruppo",
+    "deleteGroup": "Elimina gruppo",
+    "archiveGroupConfirm": "Archiviare questo gruppo?",
+    "deleteGroupConfirm": "Eliminare questo gruppo vuoto? I gruppi con spese devono essere archiviati.",
+    "splitCurrentTotal": "Totale attuale: {{total}}"
   }
 }

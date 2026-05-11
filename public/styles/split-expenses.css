@@ -214,32 +214,6 @@
   justify-content: flex-end;
 }
 
-.split-quick-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.split-quick {
-  min-height: 76px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.split-quick:hover {
-  border-color: var(--module-split-expenses);
-  color: var(--module-split-expenses);
-}
-
 .split-content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
@@ -258,10 +232,6 @@
 .split-card-head {
   justify-content: space-between;
   margin-bottom: var(--space-3);
-}
-
-.split-category-filter {
-  max-width: 190px;
 }
 
 .split-debt,
@@ -384,8 +354,7 @@
     display: none;
   }
 
-  .split-summary,
-  .split-quick-actions {
+  .split-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

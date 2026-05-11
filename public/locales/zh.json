@@ -1573,6 +1573,12 @@
       "percentage": "为每个选中的成员输入百分比，总计必须为100%。",
       "exact": "为每个选中的成员输入固定金额，总计必须等于支出金额。",
       "shares": "为每个选中的成员输入整数份额。"
-    }
+    },
+    "editGroup": "编辑群组",
+    "archiveGroup": "归档群组",
+    "deleteGroup": "删除群组",
+    "archiveGroupConfirm": "归档此群组？",
+    "deleteGroupConfirm": "删除这个空群组？有支出的群组必须归档。",
+    "splitCurrentTotal": "当前合计：{{total}}"
   }
 }

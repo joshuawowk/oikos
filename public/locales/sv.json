@@ -1573,6 +1573,12 @@
       "percentage": "Ange procent för varje vald medlem. Summan måste vara 100 %.",
       "exact": "Ange exakt belopp för varje vald medlem. Summan måste matcha utgiften.",
       "shares": "Ange heltalsandelar för varje vald medlem."
-    }
+    },
+    "editGroup": "Redigera grupp",
+    "archiveGroup": "Arkivera grupp",
+    "deleteGroup": "Ta bort grupp",
+    "archiveGroupConfirm": "Arkivera den här gruppen?",
+    "deleteGroupConfirm": "Ta bort den här tomma gruppen? Grupper med utgifter måste arkiveras.",
+    "splitCurrentTotal": "Aktuell summa: {{total}}"
   }
 }
