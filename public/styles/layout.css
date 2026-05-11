@@ -686,6 +686,7 @@ html.fab-anim-done .page-fab {
 
   /* ── Nav-Item: Sidebar-Basis ── */
   .nav-sidebar .nav-item {
+    flex: 0 0 auto;
     flex-direction: row;
     justify-content: center;
     align-items: center;
@@ -747,8 +748,12 @@ html.fab-anim-done .page-fab {
   }
 
   /* ── Einstellungen ans Ende ── */
-  .nav-sidebar__items > a:last-child {
+  .nav-sidebar__items > a:last-child:not(:only-child) {
     margin-top: auto;
+  }
+
+  .nav-sidebar__items > a:only-child {
+    margin-top: 0;
   }
 }
 

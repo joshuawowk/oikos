@@ -4,6 +4,8 @@
  * Abhängigkeiten: tokens.css, layout.css
  */
 
+@import url('/styles/split-expenses.css');
+
 /* --------------------------------------------------------
  * Modul-Akzent
  * -------------------------------------------------------- */
@@ -19,6 +21,19 @@
   max-width: var(--content-max-width);
   margin: 0 auto;
   overflow: hidden;
+}
+
+.budget-tab-panel--split-expenses {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.budget-page--split-active #budget-prev,
+.budget-page--split-active #budget-next,
+.budget-page--loans-active #budget-prev,
+.budget-page--loans-active #budget-next {
+  display: none;
 }
 
 @media (min-width: 1024px) {
@@ -77,6 +92,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  margin-left: auto;
   padding: 2px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -105,6 +121,10 @@
 
 .budget-tab[data-tab="loans"].budget-tab--active {
   background: var(--color-info);
+}
+
+.budget-tab[data-tab="split-expenses"].budget-tab--active {
+  background: var(--module-split-expenses);
 }
 
 .budget-tab-panel {

@@ -28,6 +28,9 @@ const USER_PUBLIC_COLUMNS = `
   avatar_data,
   role,
   family_role,
+  CASE WHEN EXISTS (
+    SELECT 1 FROM split_expense_guest_users sg WHERE sg.user_id = users.id
+  ) THEN 'split_guest' ELSE 'family' END AS access_scope,
   created_at,
   (SELECT phone FROM contacts WHERE contacts.family_user_id = users.id LIMIT 1) AS phone,
   (SELECT email FROM contacts WHERE contacts.family_user_id = users.id LIMIT 1) AS email,
@@ -176,6 +179,7 @@ function publicUser(row) {
     avatar_data: row.avatar_data ?? null,
     role: row.role,
     family_role: row.family_role,
+    access_scope: row.access_scope ?? 'family',
     phone: row.phone ?? null,
     email: row.email ?? null,
     birth_date: row.birth_date ?? null,
@@ -437,6 +441,7 @@ router.post('/login', loginLimiter, async (req, res) => {
           avatar_data: user.avatar_data,
           role: user.role,
           family_role: user.family_role,
+          access_scope: db.get().prepare('SELECT 1 FROM split_expense_guest_users WHERE user_id = ?').get(user.id) ? 'split_guest' : 'family',
         },
         csrfToken: req.session.csrfToken,
       });

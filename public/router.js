@@ -231,8 +231,10 @@ async function navigate(path, userOrPushState = true, pushState = true) {
     if (typeof userOrPushState === 'object' && userOrPushState !== null) {
       currentUser = userOrPushState;
       await syncPreferencesOnce();
-      loadReminderStyles();
-      initReminders();
+      if (currentUser.access_scope !== 'split_guest') {
+        loadReminderStyles();
+        initReminders();
+      }
     } else {
       pushState = userOrPushState;
     }
@@ -243,6 +245,13 @@ async function navigate(path, userOrPushState = true, pushState = true) {
     currentPath = basePath;
 
     let route = ROUTES.find((r) => r.path === basePath) ?? ROUTES.find((r) => r.path === '/');
+
+    if (currentUser?.access_scope === 'split_guest' && route.path !== '/budget') {
+      currentPath = null;
+      isNavigating = false;
+      navigate('/budget');
+      return;
+    }
 
     // Modul-Guard: deaktivierte Module leiten auf Dashboard um.
     if (route.module && _disabledModules.has(route.module) && route.path !== '/') {
@@ -258,8 +267,10 @@ async function navigate(path, userOrPushState = true, pushState = true) {
         const result = await auth.me();
         currentUser = result.user;
         await syncPreferencesOnce();
-        loadReminderStyles();
-        initReminders();
+        if (currentUser.access_scope !== 'split_guest') {
+          loadReminderStyles();
+          initReminders();
+        }
       } catch {
         currentPath = null; // Reset damit navigate('/login') nicht geblockt wird
         isNavigating = false;
@@ -995,6 +1006,11 @@ function renderSearchResults(container, data, onClose) {
 }
 
 function navItems() {
+  if (currentUser?.access_scope === 'split_guest') {
+    return [
+      { path: '/budget', label: t('splitExpenses.tabLabel'), icon: 'receipt-text', module: 'budget' },
+    ];
+  }
   const all = [
     { path: '/',          label: t('nav.dashboard'), icon: 'layout-dashboard', module: 'dashboard' },
     { path: '/calendar',  label: t('nav.calendar'),  icon: 'calendar',         module: 'calendar'  },

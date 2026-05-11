@@ -18,6 +18,7 @@ import * as googleCalendar from './services/google-calendar.js';
 import * as appleCalendar from './services/apple-calendar.js';
 import * as icsSubscription from './services/ics-subscription.js';
 import { startScheduler as startBackupScheduler } from './services/backup-scheduler.js';
+import { startScheduler as startSplitExpenseScheduler } from './services/split-expenses-scheduler.js';
 import dashboardRouter from './routes/dashboard.js';
 import tasksRouter from './routes/tasks.js';
 import shoppingRouter from './routes/shopping.js';
@@ -30,6 +31,7 @@ import cardavRouter from './routes/cardav.js';
 import birthdaysRouter from './routes/birthdays.js';
 import budgetRouter from './routes/budget.js';
 import documentsRouter from './routes/documents.js';
+import splitExpensesRouter from './routes/split-expenses.js';
 import weatherRouter from './routes/weather.js';
 import preferencesRouter from './routes/preferences.js';
 import remindersRouter from './routes/reminders.js';
@@ -223,6 +225,20 @@ app.get('/openapi.json', sendOpenApi);
 
 // Alle weiteren API-Routen erfordern Authentifizierung + CSRF-Schutz
 app.use('/api/v1', requireAuth);
+app.use('/api/v1', (req, res, next) => {
+  try {
+    const guest = db.get().prepare('SELECT 1 FROM split_expense_guest_users WHERE user_id = ?').get(req.authUserId);
+    if (!guest) return next();
+    const allowed = req.path.startsWith('/split-expenses')
+      || req.path === '/auth/me'
+      || req.path === '/auth/logout'
+      || req.path === '/version';
+    if (allowed) return next();
+    return res.status(403).json({ error: 'This account can only access Split expenses.', code: 403 });
+  } catch {
+    return res.status(403).json({ error: 'This account can only access Split expenses.', code: 403 });
+  }
+});
 app.use('/api/v1', csrfMiddleware);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/tasks', tasksRouter);
@@ -236,6 +252,7 @@ app.use('/api/v1/contacts', contactsRouter);
 app.use('/api/v1/birthdays', birthdaysRouter);
 app.use('/api/v1/budget', budgetRouter);
 app.use('/api/v1/documents', documentsRouter);
+app.use('/api/v1/split-expenses', splitExpensesRouter);
 app.use('/api/v1/weather', weatherRouter);
 app.use('/api/v1/preferences', preferencesRouter);
 app.use('/api/v1/reminders', remindersRouter);
@@ -317,6 +334,7 @@ app.listen(PORT, () => {
 
   // Backup-Scheduler starten
   startBackupScheduler();
+  startSplitExpenseScheduler();
 });
 
 export default app;
