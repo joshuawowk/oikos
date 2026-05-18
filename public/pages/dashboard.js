@@ -6,7 +6,7 @@
 
 import { api } from '/api.js';
 import { t, formatDate, formatTime, getLocale } from '/i18n.js';
-import { esc, fmtLocation } from '/utils/html.js';
+import { esc, fmtLocation, renderMarkdownLight } from '/utils/html.js';
 import { openModal, closeModal } from '/components/modal.js';
 
 // Hält den AbortController des aktuellen FAB-Listeners - wird bei jedem render() erneuert.
@@ -502,7 +502,7 @@ function renderPinnedNotes(notes) {
     <div class="note-item" data-route="/notes" role="button" tabindex="0"
          style="--note-color:${esc(n.color)};">
       ${n.title ? `<div class="note-item__title">${esc(n.title)}</div>` : ''}
-      <div class="note-item__content">${esc(n.content)}</div>
+      <div class="note-item__content">${renderMarkdownLight(n.content)}</div>
     </div>
   `).join('');
 

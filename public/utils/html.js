@@ -34,6 +34,22 @@ export function esc(str) {
  * @param {string|null|undefined} raw
  * @returns {string}
  */
+/**
+ * Renders a lightweight Markdown subset to safe HTML.
+ * Supports **bold**, *italic*, unordered list items (- …), and line breaks.
+ *
+ * @param {string|null|undefined} text
+ * @returns {string} HTML string
+ */
+export function renderMarkdownLight(text) {
+  if (!text) return '';
+  return esc(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/^- (.+)$/gm,     '• $1')
+    .replace(/\n/g,            '<br>');
+}
+
 export function fmtLocation(raw) {
   if (!raw) return '';
   return raw
