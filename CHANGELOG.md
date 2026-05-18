@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.8] - 2026-05-18
+
+### Fixed
+- Pinned notes on the dashboard now render Markdown formatting (bold, italic, lists) instead of displaying raw Markdown syntax
+
 ## [0.52.7] - 2026-05-16
 
 ### Fixed
