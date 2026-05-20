@@ -5,8 +5,7 @@
  *
  * Navigation:
  *   Mobile (<1024px):  Bottom-Nav-Bar, 5 Haupt-Module
- *   Desktop (1024–1279px): Collapsed Sidebar, nur Icons (56px)
- *   Wide Desktop (>1280px): Expanded Sidebar mit Labels (220px)
+ *   Desktop (≥1024px): Expanded Sidebar mit Labels (220px)
  *
  * Referenz: Apple HIG Sidebar-Pattern
  */
@@ -611,6 +610,10 @@ html.fab-anim-done .page-fab {
  * Hover: Subtile Hintergrundfarbe, kein Shadow.
  * ================================================================ */
 @media (min-width: 1024px) {
+  :root {
+    --sidebar-width: var(--sidebar-width-expanded);
+  }
+
   .app-shell {
     flex-direction: row;
   }
@@ -644,20 +647,20 @@ html.fab-anim-done .page-fab {
     overflow: hidden;
   }
 
-  /* ── Logo: Icon-only bei collapsed ── */
   .nav-sidebar__logo {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-    padding: var(--space-2) 0 var(--space-4);
+    padding: var(--space-2) var(--space-5) var(--space-4);
     margin-bottom: var(--space-1);
     flex-shrink: 0;
+    gap: var(--space-3);
   }
 
   /* SVG-Logomark (via DOM API in router.js injiziert, Gradient im SVG selbst) */
   .nav-sidebar__logomark {
-    width: var(--target-sm);
-    height: var(--target-sm);
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
   }
 
@@ -667,9 +670,29 @@ html.fab-anim-done .page-fab {
     display: block;
   }
 
-  /* Logo-Text verstecken im collapsed-Modus */
   .nav-sidebar__brand-text {
-    display: none;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.1;
+  }
+
+  .nav-sidebar__brand-name {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.6px;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-sidebar__version {
+    margin-top: var(--space-0h);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.04em;
+    color: var(--color-text-tertiary);
   }
 
   /* ── Nav-Items Container ── */
@@ -684,15 +707,15 @@ html.fab-anim-done .page-fab {
   }
   .nav-sidebar__items::-webkit-scrollbar { display: none; }
 
-  /* ── Nav-Item: Sidebar-Basis ── */
+  /* ── Nav-Item: Sidebar ── */
   .nav-sidebar .nav-item {
     flex: 0 0 auto;
     flex-direction: row;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     border-radius: var(--radius-sm);
-    padding: var(--space-2) var(--space-2);
-    gap: 0;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-3);
     min-height: var(--target-lg);
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
@@ -704,13 +727,13 @@ html.fab-anim-done .page-fab {
   }
 
   .nav-sidebar .nav-item__icon {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
   }
 
   .nav-sidebar .nav-item__label {
-    display: none;
+    display: block;
     font-size: var(--text-sm);
     font-weight: var(--font-weight-medium);
     white-space: nowrap;
@@ -757,106 +780,6 @@ html.fab-anim-done .page-fab {
   }
 }
 
-/* Tooltip für collapsed Sidebar (nur Icons sichtbar bei 1024–1439px) */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .nav-sidebar .nav-item {
-    overflow: visible;
-  }
-
-  .nav-sidebar .nav-item::after {
-    content: attr(title);
-    position: absolute;
-    left: calc(var(--sidebar-width) + var(--space-2));
-    top: 50%;
-    transform: translateY(-50%);
-    background: var(--color-surface);
-    color: var(--color-text-primary);
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--color-border-subtle);
-    white-space: nowrap;
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-medium);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-    z-index: calc(var(--z-nav) + 10);
-  }
-
-  .nav-sidebar .nav-item:hover::after {
-    opacity: 1;
-  }
-}
-
-/* ================================================================
- * Sidebar Expanded (≥ 1280px) - Labels sichtbar
- * ================================================================ */
-@media (min-width: 1280px) {
-  :root {
-    --sidebar-width: var(--sidebar-width-expanded);
-  }
-
-  /* Logo: Text-Variante */
-  .nav-sidebar__logo {
-    justify-content: flex-start;
-    padding: var(--space-2) var(--space-5) var(--space-4);
-    gap: var(--space-3);
-  }
-
-  .nav-sidebar__logomark {
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-  }
-
-  .nav-sidebar__brand-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    line-height: 1.1;
-  }
-
-  .nav-sidebar__brand-name {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: -0.6px;
-    color: var(--color-text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .nav-sidebar__version {
-    margin-top: var(--space-0h);
-    font-size: 10px;
-    font-weight: var(--font-weight-medium);
-    letter-spacing: 0.04em;
-    color: var(--color-text-tertiary);
-  }
-
-  .nav-sidebar__items {
-    padding: 0 var(--space-2);
-    gap: var(--space-0h);
-  }
-
-  /* Nav-Items: horizontal mit Label */
-  .nav-sidebar .nav-item {
-    justify-content: flex-start;
-    padding: var(--space-2) var(--space-3);
-    gap: var(--space-3);
-  }
-
-  .nav-sidebar .nav-item__icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .nav-sidebar .nav-item__label {
-    display: block;
-    font-weight: inherit;
-  }
-}
 
 /* --------------------------------------------------------
  * Seiten-Container

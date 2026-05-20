@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.17] - 2026-05-20
+
+### Changed
+- Desktop sidebar now shows labels and the app name at 1024 px and wider (previously icon-only between 1024–1279 px); the collapsed icon-only range has been removed
+
 ## [0.52.16] - 2026-05-20
 
 ### Changed
