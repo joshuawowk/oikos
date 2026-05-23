@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.26] - 2026-05-23
+
+### Fixed
+- Scrolling on any page no longer causes a blank/white screen on iOS (Safari, WebKit) and Android (Chrome, Blink). The previous partial fix (v0.52.22) only removed `backdrop-filter` from sticky toolbars; the root cause was broader — `glass.css` applied `backdrop-filter` to task cards, note items, dashboard widgets, form inputs, meal slots, group-toggles, and skeleton loaders inside the `overflow:auto` scroll container, each becoming a separate GPU compositor layer that overwhelmed the mobile compositor on scroll. A single permanent CSS rule now disables `backdrop-filter` for all scroll-container children; the bottom navigation bar, modals, and toasts retain their blur effect as they sit outside the scroll container. Closes #166.
+
 ## [0.52.25] - 2026-05-23
 
 ### Added
