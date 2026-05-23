@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.32] - 2026-05-23
+
+### Fixed
+- Blank screen on scroll — sixth attempt, this time targeting the actual root cause. The radial `color-mix()` gradient on `.app-content` introduced in Liquid Glass Phase 4 was painted directly on the scroll container; WebKit (iOS Safari/PWA) and Blink (Android Chrome) both unreliably rasterize complex `color-mix()` gradients on `overflow:auto` elements during scroll, producing the empty-screen symptom on every page. Moved the gradient to `.app-shell` (viewport container, `height: 100dvh`, never scrolls); `.app-content` now has a transparent background so the gradient shows through unchanged. Visually identical, but no scrolling element carries a complex background. Why the five previous fixes (v0.52.22, v0.52.25, v0.52.27, v0.52.29, v0.52.30) failed: each targeted a different downstream symptom (sticky `backdrop-filter`, all `backdrop-filter` inside `.app-content`, `overflow: clip` on `.dashboard`, internal scroll container on the dashboard, `filter: saturate/drop-shadow` on widgets) under the assumption that many GPU compositor layers were the cause — but the bug reproduced on every page including pages without those triggers, and on Android, where the iOS-WebKit-compositor theory cannot apply.
+
 ## [0.52.31] - 2026-05-23
 
 ### Fixed

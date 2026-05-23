@@ -724,8 +724,17 @@ html.navigating .app-content *::after {
  *
  * Subtiler Gradient im Seitenhintergrund damit Glass-
  * Elemente darauf lebendiger wirken.
+ *
+ * WICHTIG: Der Gradient liegt auf .app-shell (Viewport-Container,
+ * scrollt nicht), NICHT auf .app-content (Scroll-Container).
+ * Grund: ein radialer color-mix()-Gradient auf einem overflow:auto-
+ * Element wird in WebKit (iOS Safari/PWA) und Blink (Android Chrome)
+ * beim Scrollen unzuverlässig rasterisiert — Symptom: leerer
+ * Bildschirminhalt nach kurzem Scrollen (Issue #166).
+ * .app-content trägt darum nur die opake Basisfarbe; der Gradient
+ * scheint vom darunterliegenden .app-shell-Hintergrund durch.
  * ================================================================ */
-.app-content {
+.app-shell {
   background:
     radial-gradient(
       ellipse at 20% 0%,
@@ -733,6 +742,10 @@ html.navigating .app-content *::after {
       transparent 60%
     ),
     var(--color-bg);
+}
+
+.app-content {
+  background-color: transparent;
 }
 
 /* ================================================================
@@ -767,8 +780,12 @@ html.navigating .app-content *::after {
     display: none;
   }
 
-  .app-content {
+  .app-shell {
     background: var(--color-bg);
+  }
+
+  .app-content {
+    background-color: transparent;
   }
 
   .group-toggle,
