@@ -520,7 +520,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - i18n: `nav.kitchen`, `nav.search` and `shortcuts.goKitchen` keys added to all 15 locale files
 
 ### Changed
-- Navigation: bottom bar reorganised — Dashboard, Calendar, Küche, Suche, Mehr (5 items)
+- Navigation: bottom bar reorganised — Dashboard, Calendar, Kitchen, Search, More (5 items)
 - Navigation: Meals, Recipes and Shopping removed from the More sheet; they are accessible via the Kitchen tab bar and the sidebar on desktop
 - More sheet: reduced from 3-column to 2-column grid for larger touch targets; search trigger removed
 - More sheet: drag-handle added at the top; swipe-down gesture closes the sheet
@@ -1230,8 +1230,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.20.18] - 2026-04-20
 
 ### Changed
-- Meals: Zutaten-Kategorien im Mahlzeiten-Dialog auf lebensmittelrelevante Kategorien beschränkt (Haushalt und Drogerie ausgeblendet)
-- Refactoring: Kategorie-Übersetzungslogik (`categoryLabel`) und `DEFAULT_CATEGORY_NAME` in neues geteiltes Utility `public/utils/shopping-categories.js` ausgelagert; Shopping- und Meals-Seiten nutzen nun die gemeinsame Implementierung
+- Meals: ingredient category list in the meal dialog restricted to food-relevant categories; Household and Personal Care categories are now hidden
+- Refactoring: category translation logic (`categoryLabel`) and `DEFAULT_CATEGORY_NAME` extracted into a new shared utility `public/utils/shopping-categories.js`; Shopping and Meals pages now use the common implementation
 
 ## [0.20.17] - 2026-04-20
 
