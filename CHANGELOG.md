@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.46] - 2026-05-24
+
+### Added
+- Frontend audit coverage now guards Phase 6 touch target sizing and localized bottom navigation label overflow regressions.
+
+### Changed
+- Contact action buttons and shopping quick-add controls now use shared target-size tokens for consistent mobile touch sizing.
+
+### Fixed
+- Long localized bottom navigation labels no longer create horizontal overflow on narrow mobile screens.
+
 ## [0.52.45] - 2026-05-24
 
 ### Changed
