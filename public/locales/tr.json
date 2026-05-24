@@ -56,7 +56,8 @@
     "kitchen": "Mutfak",
     "search": "Ara",
     "housekeeping": "Housekeeping",
-    "splitExpenses": "Böl"
+    "splitExpenses": "Böl",
+    "kitchenActiveLabel": "Mutfak, {{section}} aktif"
   },
   "dashboard": {
     "title": "Genel Bakış",

@@ -56,7 +56,8 @@
     "kitchen": "Кухня",
     "search": "Пошук",
     "housekeeping": "Прибирання",
-    "splitExpenses": "Поділ"
+    "splitExpenses": "Поділ",
+    "kitchenActiveLabel": "Кухня, {{section}} активно"
   },
   "dashboard": {
     "title": "Огляд",

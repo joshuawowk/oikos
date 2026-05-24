@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.44] - 2026-05-24
+
+### Changed
+- Kitchen navigation now keeps a stable Kitchen label and utensils icon while announcing the active subpage through localized accessibility labels and the Kitchen tab bar.
+- More sheet search now hands off directly to global search with focus in the search input, avoiding a two-step-feeling transition.
+
 ## [0.52.43] - 2026-05-24
 
 ### Changed

@@ -56,7 +56,8 @@
     "kitchen": "キッチン",
     "search": "検索",
     "housekeeping": "Housekeeping",
-    "splitExpenses": "分割"
+    "splitExpenses": "分割",
+    "kitchenActiveLabel": "キッチン、{{section}} がアクティブ"
   },
   "dashboard": {
     "title": "ダッシュボード",

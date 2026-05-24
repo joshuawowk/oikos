@@ -948,8 +948,10 @@ function initMoreSheet(container, openSearch) {
       // Sheet sofort (ohne Slide-Animation) schließen, damit nur eine Animation abläuft
       sheet.style.transition = 'none';
       closeSheet({ restoreFocus: false });
-      requestAnimationFrame(() => { sheet.style.transition = ''; });
-      openSearch();
+      requestAnimationFrame(() => {
+        openSearch();
+        sheet.style.transition = '';
+      });
     };
     moreSearchBar.addEventListener('click', triggerSearch);
     moreSearchBar.addEventListener('keydown', (e) => {
@@ -1182,6 +1184,17 @@ function moreItemEl({ path, label, icon }) {
   return a;
 }
 
+function kitchenSectionLabel(path) {
+  const kitchenItems = navItems().filter((i) => i.kitchenGroup);
+  const targetRoute = isKitchenRoute(path) ? path : getLastKitchenRoute();
+  return kitchenItems.find((i) => i.path === targetRoute)?.label ?? t('nav.meals');
+}
+
+function kitchenNavAriaLabel(path) {
+  if (!isKitchenRoute(path)) return t('nav.kitchen');
+  return t('nav.kitchenActiveLabel', { section: kitchenSectionLabel(path) });
+}
+
 /**
  * Aktiven Nav-Link hervorheben und More-Button als aktiv markieren
  * wenn die aktive Route im More-Sheet liegt.
@@ -1198,19 +1211,18 @@ function updateNav(path) {
   if (kitchenNavBtn) {
     const isKitchen = isKitchenRoute(path);
     kitchenNavBtn.classList.toggle('nav-item--active', isKitchen);
-    kitchenNavBtn.toggleAttribute('aria-current', isKitchen);
-
-    const kitchenItems = navItems().filter((i) => i.kitchenGroup);
-    const targetRoute = isKitchen ? path : getLastKitchenRoute();
-    const kitchenTarget = kitchenItems.find((i) => i.path === targetRoute) ?? kitchenItems[0];
-    if (kitchenTarget) {
-      const kitchenBtnLabel = kitchenNavBtn.querySelector('.nav-item__label');
-      const kitchenBtnIcon  = kitchenNavBtn.querySelector('.nav-item__icon');
-      if (kitchenBtnLabel) kitchenBtnLabel.textContent = kitchenTarget.label;
-      if (kitchenBtnIcon)  kitchenBtnIcon.dataset.lucide = kitchenTarget.icon;
-      kitchenNavBtn.setAttribute('aria-label', kitchenTarget.label);
-      kitchenNavBtn.setAttribute('title', kitchenTarget.label);
+    if (isKitchen) {
+      kitchenNavBtn.setAttribute('aria-current', 'page');
+    } else {
+      kitchenNavBtn.removeAttribute('aria-current');
     }
+
+    const kitchenBtnLabel = kitchenNavBtn.querySelector('.nav-item__label');
+    const kitchenBtnIcon  = kitchenNavBtn.querySelector('.nav-item__icon');
+    if (kitchenBtnLabel) kitchenBtnLabel.textContent = t('nav.kitchen');
+    if (kitchenBtnIcon) kitchenBtnIcon.dataset.lucide = 'utensils';
+    kitchenNavBtn.setAttribute('aria-label', kitchenNavAriaLabel(path));
+    kitchenNavBtn.setAttribute('title', t('nav.kitchen'));
   }
 
   const sidebarKitchenNav = document.querySelector('#sidebar-kitchen-nav');
@@ -1222,17 +1234,12 @@ function updateNav(path) {
       sidebarKitchenNav.removeAttribute('aria-current');
     }
 
-    const kitchenItems = navItems().filter((i) => i.kitchenGroup);
-    const targetRoute = isKitchen ? path : getLastKitchenRoute();
-    const kitchenTarget = kitchenItems.find((i) => i.path === targetRoute) ?? kitchenItems[0];
-    if (kitchenTarget) {
-      const sidebarLabel = sidebarKitchenNav.querySelector('.nav-item__label');
-      const sidebarIcon  = sidebarKitchenNav.querySelector('.nav-item__icon');
-      if (sidebarLabel) sidebarLabel.textContent = kitchenTarget.label;
-      if (sidebarIcon)  sidebarIcon.dataset.lucide = kitchenTarget.icon;
-      sidebarKitchenNav.setAttribute('aria-label', kitchenTarget.label);
-      sidebarKitchenNav.setAttribute('title', kitchenTarget.label);
-    }
+    const sidebarLabel = sidebarKitchenNav.querySelector('.nav-item__label');
+    const sidebarIcon  = sidebarKitchenNav.querySelector('.nav-item__icon');
+    if (sidebarLabel) sidebarLabel.textContent = t('nav.kitchen');
+    if (sidebarIcon) sidebarIcon.dataset.lucide = 'utensils';
+    sidebarKitchenNav.setAttribute('aria-label', kitchenNavAriaLabel(path));
+    sidebarKitchenNav.setAttribute('title', t('nav.kitchen'));
   }
 
   const moreBtn = document.querySelector('#more-btn');

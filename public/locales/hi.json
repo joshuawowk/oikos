@@ -56,7 +56,8 @@
     "kitchen": "रसोई",
     "search": "खोज",
     "housekeeping": "Housekeeping",
-    "splitExpenses": "बांटें"
+    "splitExpenses": "बांटें",
+    "kitchenActiveLabel": "रसोई, {{section}} सक्रिय"
   },
   "dashboard": {
     "title": "डैशबोर्ड",

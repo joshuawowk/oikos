@@ -56,7 +56,8 @@
     "kitchen": "المطبخ",
     "search": "بحث",
     "housekeeping": "Housekeeping",
-    "splitExpenses": "تقسيم"
+    "splitExpenses": "تقسيم",
+    "kitchenActiveLabel": "المطبخ، {{section}} نشط"
   },
   "dashboard": {
     "title": "لوحة التحكم",

@@ -56,7 +56,8 @@
     "kitchen": "Kök",
     "search": "Sök",
     "housekeeping": "Städning",
-    "splitExpenses": "Dela"
+    "splitExpenses": "Dela",
+    "kitchenActiveLabel": "Kök, {{section}} aktivt"
   },
   "dashboard": {
     "title": "Översikt",

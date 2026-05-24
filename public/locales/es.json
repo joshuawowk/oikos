@@ -56,7 +56,8 @@
     "kitchen": "Cocina",
     "search": "Buscar",
     "housekeeping": "Limpieza",
-    "splitExpenses": "Dividir"
+    "splitExpenses": "Dividir",
+    "kitchenActiveLabel": "Cocina, {{section}} activo"
   },
   "dashboard": {
     "title": "Inicio",

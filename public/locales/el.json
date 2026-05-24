@@ -56,7 +56,8 @@
     "kitchen": "Κουζίνα",
     "search": "Αναζήτηση",
     "housekeeping": "Housekeeping",
-    "splitExpenses": "Μοίρασμα"
+    "splitExpenses": "Μοίρασμα",
+    "kitchenActiveLabel": "Κουζίνα, {{section}} ενεργό"
   },
   "dashboard": {
     "title": "Επισκόπηση",

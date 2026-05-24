@@ -62,3 +62,21 @@ test('phase 3 high-frequency controls use tokenized touch targets', () => {
   assert.match(notes, /\.note-card__pin[\s\S]*width:\s*var\(--target-base\)/);
   assert.match(notes, /\.note-card__delete[\s\S]*width:\s*var\(--target-base\)/);
 });
+
+test('phase 4 keeps Kitchen navigation identity stable', () => {
+  const routerSource = read('./public/router.js');
+
+  assert.match(routerSource, /t\('nav\.kitchen'\)/);
+  assert.match(routerSource, /t\('nav\.kitchenActiveLabel',\s*\{\s*section/);
+  assert.doesNotMatch(routerSource, /kitchenBtnLabel\.textContent\s*=\s*kitchenTarget\.label/);
+  assert.doesNotMatch(routerSource, /kitchenBtnIcon\)\s*kitchenBtnIcon\.dataset\.lucide\s*=\s*kitchenTarget\.icon/);
+  assert.doesNotMatch(routerSource, /sidebarLabel\)\s*sidebarLabel\.textContent\s*=\s*kitchenTarget\.label/);
+  assert.doesNotMatch(routerSource, /sidebarIcon\)\s*sidebarIcon\.dataset\.lucide\s*=\s*kitchenTarget\.icon/);
+});
+
+test('phase 4 opens search from More sheet in a single handoff', () => {
+  const routerSource = read('./public/router.js');
+
+  assert.match(routerSource, /closeSheet\(\{\s*restoreFocus:\s*false\s*\}\)/);
+  assert.match(routerSource, /requestAnimationFrame\(\(\) => \{\s*openSearch\(\);/);
+});

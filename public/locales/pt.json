@@ -56,7 +56,8 @@
     "kitchen": "Cozinha",
     "search": "Pesquisar",
     "housekeeping": "Faxina",
-    "splitExpenses": "Dividir"
+    "splitExpenses": "Dividir",
+    "kitchenActiveLabel": "Cozinha, {{section}} ativo"
   },
   "dashboard": {
     "title": "Painel",
