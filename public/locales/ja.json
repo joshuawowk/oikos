@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "今日",
+    "nextDaysSection": "次の日"
   },
   "calendar": {
     "title": "カレンダー",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "カレンダー予定「{{title}}」にアップロードされた添付ファイル。"
+    "attachmentDocumentDescription": "カレンダー予定「{{title}}」にアップロードされた添付ファイル。",
+    "agendaEmpty": "選択した期間に予定はありません"
   },
   "notes": {
     "title": "メモボード",

@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "Bugün",
+    "nextDaysSection": "Sonraki günler"
   },
   "calendar": {
     "title": "Takvim",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "\"{{title}}\" takvim etkinliği için ek yüklendi."
+    "attachmentDocumentDescription": "\"{{title}}\" takvim etkinliği için ek yüklendi.",
+    "agendaEmpty": "Seçilen aralıkta etkinlik yok"
   },
   "notes": {
     "title": "Notlar",

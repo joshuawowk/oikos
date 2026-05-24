@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "Oggi",
+    "nextDaysSection": "Prossimi giorni"
   },
   "calendar": {
     "title": "Calendario",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "Allegato caricato per l’evento calendario \"{{title}}\"."
+    "attachmentDocumentDescription": "Allegato caricato per l’evento calendario \"{{title}}\".",
+    "agendaEmpty": "Nessun evento nell'intervallo selezionato"
   },
   "notes": {
     "title": "Bacheca",

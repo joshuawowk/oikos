@@ -332,7 +332,9 @@
     "savedRecipePlaceholder": "Wybierz przepis",
     "saveAsRecipe": "Zapisz jako przepis",
     "recipeScaleLabel": "Skaluj składniki",
-    "deletedToast": "Posiłek usunięty"
+    "deletedToast": "Posiłek usunięty",
+    "todaySection": "Dzisiaj",
+    "nextDaysSection": "Następne dni"
   },
   "calendar": {
     "title": "Kalendarz",
@@ -517,7 +519,8 @@
     "attachmentTooLarge": "Załącznik może mieć maksymalnie 5 MB.",
     "iconCleaning": "Sprzątanie",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "Załącznik do wpisu kalendarza \"{{title}}\" przesłany."
+    "attachmentDocumentDescription": "Załącznik do wpisu kalendarza \"{{title}}\" przesłany.",
+    "agendaEmpty": "Brak wydarzeń w wybranym zakresie"
   },
   "notes": {
     "title": "Notatki",

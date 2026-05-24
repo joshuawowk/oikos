@@ -207,7 +207,8 @@ const EVENT_ICONS = EVENT_ICON_CATEGORIES().flatMap((cat) => cat.icons);
 const CUSTOM_EVENT_ICONS = new Set(['tooth']);
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const ATTACHMENT_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
-const CALENDAR_VIEW_STORAGE_KEY = 'oikos-calendar-view';
+const CALENDAR_VIEW_STORAGE_KEY = 'oikos:calendar:view';
+const LEGACY_CALENDAR_VIEW_STORAGE_KEY = 'oikos-calendar-view';
 
 const HOUR_HEIGHT = 56; // px pro Stunde in Wochen-/Tagesansicht
 
@@ -341,12 +342,22 @@ let _container = null;
 function pad(n) { return String(n).padStart(2, '0'); }
 function isoDate(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 
-function getSavedCalendarView() {
+function normalizeCalendarView(view, fallback = 'month') {
+  return VIEWS.includes(view) ? view : fallback;
+}
+
+function defaultCalendarViewFromState({ savedView = null, isMobile = false } = {}) {
+  return normalizeCalendarView(savedView, isMobile ? 'agenda' : 'month');
+}
+
+function defaultCalendarView() {
   try {
-    const saved = localStorage.getItem(CALENDAR_VIEW_STORAGE_KEY);
-    return VIEWS.includes(saved) ? saved : 'month';
+    const saved = localStorage.getItem(CALENDAR_VIEW_STORAGE_KEY)
+      ?? localStorage.getItem(LEGACY_CALENDAR_VIEW_STORAGE_KEY);
+    const isMobile = window.matchMedia?.('(max-width: 767px)').matches ?? false;
+    return defaultCalendarViewFromState({ savedView: saved, isMobile });
   } catch {
-    return 'month';
+    return defaultCalendarViewFromState();
   }
 }
 
@@ -355,6 +366,14 @@ function setSavedCalendarView(view) {
   try {
     localStorage.setItem(CALENDAR_VIEW_STORAGE_KEY, view);
   } catch {}
+}
+
+function getRangeForView(view, cursor) {
+  if (view === 'month') return getMonthRange(cursor);
+  if (view === 'week') return getWeekRange(cursor);
+  if (view === 'day') return { from: cursor, to: cursor };
+  if (view === 'agenda') return getAgendaRange(cursor);
+  return getMonthRange(cursor);
 }
 
 // Extract YYYY-MM-DD in the browser's local timezone from any datetime string.
@@ -590,7 +609,7 @@ export async function render(container, { user }) {
   _container = container;
   state.today  = isoDate(new Date());
   state.cursor = state.today;
-  state.view   = getSavedCalendarView();
+  state.view   = defaultCalendarView();
 
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
@@ -603,7 +622,7 @@ export async function render(container, { user }) {
     </div>
   `);
 
-  const { from, to } = getMonthRange(state.cursor);
+  const { from, to } = getRangeForView(state.view, state.cursor);
   await Promise.all([loadRange(from, to), loadUsers()]);
 
   renderToolbar();
@@ -725,11 +744,7 @@ async function goToday() {
 }
 
 async function reloadForView() {
-  let from, to;
-  if (state.view === 'month')  ({ from, to } = getMonthRange(state.cursor));
-  if (state.view === 'week')   ({ from, to } = getWeekRange(state.cursor));
-  if (state.view === 'day')    { from = state.cursor; to = state.cursor; }
-  if (state.view === 'agenda') ({ from, to } = getAgendaRange(state.cursor));
+  const { from, to } = getRangeForView(state.view, state.cursor);
 
   if (from !== state.rangeFrom || to !== state.rangeTo) {
     await loadRange(from, to);
@@ -1113,7 +1128,7 @@ function renderAgendaView(container) {
   container.insertAdjacentHTML('beforeend', `
     <div class="agenda-view" id="agenda-view">
       ${groups.length === 0
-        ? `<div class="agenda-empty">${t('calendar.noEvents')}</div>`
+        ? `<div class="agenda-empty">${t('calendar.agendaEmpty')}</div>`
         : groups.map(({ date, events }) => `
           <div class="agenda-day">
             <div class="agenda-day__header ${date === state.today ? 'agenda-day__header--today' : ''}">
@@ -1137,6 +1152,8 @@ function renderAgendaView(container) {
     }
   });
 }
+
+export const __test = { normalizeCalendarView, defaultCalendarViewFromState };
 
 function renderAgendaEvent(ev) {
   const timeStr = ev.all_day

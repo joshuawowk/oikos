@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "Today",
+    "nextDaysSection": "Next days"
   },
   "calendar": {
     "title": "Calendar",
@@ -511,7 +513,8 @@
     "colorYellow": "Yellow",
     "iconCleaning": "Cleaning",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "Attachment uploaded for calendar event \"{{title}}\"."
+    "attachmentDocumentDescription": "Attachment uploaded for calendar event \"{{title}}\".",
+    "agendaEmpty": "No events in the selected range"
   },
   "notes": {
     "title": "Board",

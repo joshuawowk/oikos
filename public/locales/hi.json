@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "आज",
+    "nextDaysSection": "अगले दिन"
   },
   "calendar": {
     "title": "कैलेंडर",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "कैलेंडर इवेंट \"{{title}}\" के लिए अपलोड किया गया अटैचमेंट।"
+    "attachmentDocumentDescription": "कैलेंडर इवेंट \"{{title}}\" के लिए अपलोड किया गया अटैचमेंट।",
+    "agendaEmpty": "चुनी गई अवधि में कोई कार्यक्रम नहीं"
   },
   "notes": {
     "title": "नोट बोर्ड",

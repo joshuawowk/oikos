@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "Hoy",
+    "nextDaysSection": "Próximos días"
   },
   "calendar": {
     "title": "Calendario",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "Archivo adjunto subido para el evento de calendario \"{{title}}\"."
+    "attachmentDocumentDescription": "Archivo adjunto subido para el evento de calendario \"{{title}}\".",
+    "agendaEmpty": "No hay eventos en el período seleccionado"
   },
   "notes": {
     "title": "Notas",

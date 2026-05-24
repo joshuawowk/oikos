@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Välj recept",
     "saveAsRecipe": "Spara som recept",
     "recipeScaleLabel": "Skala ingredienser",
-    "deletedToast": "Måltid borttagen"
+    "deletedToast": "Måltid borttagen",
+    "todaySection": "Idag",
+    "nextDaysSection": "Kommande dagar"
   },
   "calendar": {
     "title": "Kalender",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "Bilaga uppladdad för kalenderhändelsen \"{{title}}\"."
+    "attachmentDocumentDescription": "Bilaga uppladdad för kalenderhändelsen \"{{title}}\".",
+    "agendaEmpty": "Inga händelser under vald period"
   },
   "notes": {
     "title": "Anteckningar",

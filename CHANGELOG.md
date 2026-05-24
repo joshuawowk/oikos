@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.42] - 2026-05-24
+
+### Changed
+- Calendar now opens in Agenda view on first mobile load while preserving the user's selected calendar view after they change it.
+- Meals now presents a mobile-focused Today and next-days layout while keeping the full desktop week grid unchanged.
+
 ## [0.52.41] - 2026-05-24
 
 ### Added

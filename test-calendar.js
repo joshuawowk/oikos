@@ -7,6 +7,7 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import { MIGRATIONS_SQL } from './server/db-schema-test.js';
+const { __test: calendarHelpers } = await import('./public/pages/calendar.js');
 
 let passed = 0;
 let failed = 0;
@@ -37,6 +38,16 @@ const uid2 = u2.lastInsertRowid;
 console.log('\n[Calendar-Test] Termine, Datumsbereich, CRUD, Constraints\n');
 
 let ev1, ev2, ev3, ev4;
+
+test('Kalender-Ansicht: gültige gespeicherte Werte bleiben erhalten', () => {
+  assert(calendarHelpers.normalizeCalendarView('week', 'agenda') === 'week', 'week bleibt erhalten');
+  assert(calendarHelpers.normalizeCalendarView('agenda', 'month') === 'agenda', 'agenda bleibt erhalten');
+});
+
+test('Kalender-Ansicht: ungültige gespeicherte Werte fallen auf Geräte-Default zurück', () => {
+  assert(calendarHelpers.defaultCalendarViewFromState({ savedView: 'bogus', isMobile: true }) === 'agenda', 'Mobil fällt auf Agenda zurück');
+  assert(calendarHelpers.defaultCalendarViewFromState({ savedView: null, isMobile: false }) === 'month', 'Desktop fällt auf Monat zurück');
+});
 
 // --------------------------------------------------------
 // Termin-CRUD

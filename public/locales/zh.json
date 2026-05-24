@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "今天",
+    "nextDaysSection": "接下来几天"
   },
   "calendar": {
     "title": "日历",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "为日历事件“{{title}}”上传的附件。"
+    "attachmentDocumentDescription": "为日历事件“{{title}}”上传的附件。",
+    "agendaEmpty": "所选时间范围内没有日程"
   },
   "notes": {
     "title": "便签板",

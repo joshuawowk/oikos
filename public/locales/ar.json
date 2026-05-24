@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Select recipe",
     "saveAsRecipe": "Save as recipe",
     "recipeScaleLabel": "Scale ingredients",
-    "deletedToast": "Meal deleted"
+    "deletedToast": "Meal deleted",
+    "todaySection": "اليوم",
+    "nextDaysSection": "الأيام القادمة"
   },
   "calendar": {
     "title": "التقويم",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Sync to CalDAV",
     "caldavTargetLocal": "Store locally only",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "مرفق تم رفعه لحدث التقويم \"{{title}}\"."
+    "attachmentDocumentDescription": "مرفق تم رفعه لحدث التقويم \"{{title}}\".",
+    "agendaEmpty": "لا توجد مواعيد في الفترة المحددة"
   },
   "notes": {
     "title": "لوحة الملاحظات",

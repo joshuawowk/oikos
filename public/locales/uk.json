@@ -326,7 +326,9 @@
     "savedRecipePlaceholder": "Виберіть рецепт",
     "saveAsRecipe": "Зберегти як рецепт",
     "recipeScaleLabel": "Кількість інгредієнтів",
-    "deletedToast": "Харчування видалено"
+    "deletedToast": "Харчування видалено",
+    "todaySection": "Сьогодні",
+    "nextDaysSection": "Найближчі дні"
   },
   "calendar": {
     "title": "Календар",
@@ -511,7 +513,8 @@
     "caldavTargetLabel": "Синхронізація з CalDAV",
     "caldavTargetLocal": "Зберігати тільки локально",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "Вкладення завантажено для події календаря «{{title}}»."
+    "attachmentDocumentDescription": "Вкладення завантажено для події календаря «{{title}}».",
+    "agendaEmpty": "Немає подій у вибраному періоді"
   },
   "notes": {
     "title": "Нотатки",

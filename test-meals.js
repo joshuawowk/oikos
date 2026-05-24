@@ -7,6 +7,7 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import { MIGRATIONS_SQL } from './server/db-schema-test.js';
+const { __test: mealsHelpers } = await import('./public/pages/meals.js');
 
 let passed = 0;
 let failed = 0;
@@ -37,6 +38,28 @@ const listId = sl.lastInsertRowid;
 console.log('\n[Meals-Test] Wochenplan, Zutaten, Einkaufslisten-Integration\n');
 
 let mealId1, mealId2, mealId3, ingId1, ingId2;
+
+test('Mobile Mahlzeiten: aktuelle Woche zeigt heute zuerst und danach zwei Tage', () => {
+  const days = mealsHelpers.buildMobileMealDays('2026-03-23', '2026-03-24');
+  assert(days.primary === '2026-03-24', `Heute zuerst: ${days.primary}`);
+  assert(days.nextDays.length === 2, `Zwei Folgetage erwartet, erhalten ${days.nextDays.length}`);
+  assert(days.nextDays[0] === '2026-03-25', 'Erster Folgetag korrekt');
+  assert(days.nextDays[1] === '2026-03-26', 'Zweiter Folgetag korrekt');
+});
+
+test('Mobile Mahlzeiten: fremde Woche beginnt mit Wochenanfang', () => {
+  const days = mealsHelpers.buildMobileMealDays('2026-03-30', '2026-03-24');
+  assert(days.primary === '2026-03-30', `Wochenanfang erwartet, erhalten ${days.primary}`);
+  assert(days.nextDays[0] === '2026-03-31', 'Erster Tag nach Wochenanfang korrekt');
+  assert(days.nextDays[1] === '2026-04-01', 'Zweiter Tag nach Wochenanfang korrekt');
+});
+
+test('Mobile Mahlzeiten: Sonntag zeigt die zwei folgenden Tage aus der nächsten Woche', () => {
+  const days = mealsHelpers.buildMobileMealDays('2026-05-18', '2026-05-24');
+  assert(days.primary === '2026-05-24', `Sonntag erwartet, erhalten ${days.primary}`);
+  assert(days.nextDays[0] === '2026-05-25', 'Montag der Folgewoche sichtbar');
+  assert(days.nextDays[1] === '2026-05-26', 'Dienstag der Folgewoche sichtbar');
+});
 
 // --------------------------------------------------------
 // Mahlzeit CRUD

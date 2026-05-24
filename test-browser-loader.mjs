@@ -7,14 +7,90 @@
  */
 
 const STUBS = {
+  '/api.js': `
+    export const api = {
+      get: async () => ({ data: null }),
+      post: async () => ({ data: null }),
+      put: async () => ({ data: null }),
+      delete: async () => ({ data: null }),
+    };
+  `,
   '/i18n.js': `
-    export const t = (key) => key;
+    export const t = (key, values = {}) => {
+      if (!values || Object.keys(values).length === 0) return key;
+      return key + JSON.stringify(values);
+    };
     export const initI18n = async () => {};
     export const setLocale = async () => {};
     export const getLocale = () => 'de';
     export const getSupportedLocales = () => ['de', 'en'];
     export const formatDate = (d) => String(d);
     export const formatTime = (d) => String(d);
+    export const dateInputPlaceholder = () => 'YYYY-MM-DD';
+    export const formatDateInput = (d) => String(d ?? '');
+    export const parseDateInput = (d) => String(d ?? '');
+    export const isDateInputValid = () => true;
+    export const formatTimeInput = (d) => String(d ?? '');
+    export const parseTimeInput = (d) => String(d ?? '');
+    export const timeInputPlaceholder = () => 'HH:MM';
+  `,
+  '/rrule-ui.js': `
+    export const renderRRuleFields = () => '';
+    export const bindRRuleEvents = () => {};
+    export const getRRuleValues = () => ({});
+  `,
+  '/components/modal.js': `
+    export const openModal = () => {};
+    export const closeModal = () => {};
+    export const selectModal = async () => null;
+  `,
+  '/utils/ux.js': `
+    export const stagger = () => {};
+  `,
+  '/utils/html.js': `
+    export const esc = (value) => String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+    export const fmtLocation = (value) => String(value ?? '');
+    export const renderMarkdownLight = (value) => String(value ?? '');
+  `,
+  '/reminders.js': `
+    export const refresh = async () => {};
+  `,
+  '/components/user-multi-select.js': `
+    export const renderUserMultiSelect = () => '';
+    export const getSelectedUserIds = () => [];
+    export const bindUserMultiSelect = () => {};
+    export const renderAvatarStack = () => '';
+  `,
+  '/utils/shopping-categories.js': `
+    export const DEFAULT_CATEGORY_NAME = 'Sonstiges';
+    export const categoryLabel = (category) => category?.name ?? String(category ?? '');
+  `,
+  '/utils/kitchen-tabs.js': `
+    export const renderKitchenTabsBar = () => {};
+  `,
+  '/utils/date.js': `
+    const pad = (n) => String(n).padStart(2, '0');
+    export const toLocalDateKey = (date) => {
+      const d = date instanceof Date ? date : new Date(String(date) + 'T00:00:00');
+      return \`\${d.getFullYear()}-\${pad(d.getMonth() + 1)}-\${pad(d.getDate())}\`;
+    };
+    export const addLocalDays = (dateStr, days) => {
+      const d = new Date(String(dateStr) + 'T00:00:00');
+      d.setDate(d.getDate() + days);
+      return toLocalDateKey(d);
+    };
+    export const startOfLocalWeekKey = (dateStr, firstDay = 1) => {
+      const d = new Date(String(dateStr) + 'T00:00:00');
+      const day = d.getDay();
+      const diff = (day < firstDay ? day + 7 : day) - firstDay;
+      d.setDate(d.getDate() - diff);
+      return toLocalDateKey(d);
+    };
   `,
 };
 

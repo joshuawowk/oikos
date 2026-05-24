@@ -108,28 +108,44 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* ── Schmale Viewports (< 580px): Views in zweite Zeile ── */
-@media (max-width: 579px) {
+/* ── Mobile: kompakte Toolbar mit scrollbaren Ansichten ── */
+@media (max-width: 767px) {
   .cal-toolbar {
     flex-wrap: wrap;
     row-gap: var(--space-2);
     padding-bottom: var(--space-2);
   }
 
-  /* Nächste-Nav ans Ende der ersten Zeile bringen */
+  .cal-toolbar__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .cal-toolbar > .cal-toolbar__nav:last-child {
     order: 4;
   }
 
-  /* Views in volle zweite Zeile */
+  #cal-add {
+    display: none;
+  }
+
   .cal-toolbar__views {
     order: 10;
     flex-basis: 100%;
-    justify-content: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .cal-toolbar__views::-webkit-scrollbar {
+    display: none;
   }
 
   .cal-toolbar__view-btn {
-    flex: 1;
+    flex: 0 0 auto;
+    min-height: var(--target-base);
   }
 }
 
@@ -774,6 +790,34 @@
   align-items: center;
   gap: var(--space-2);
   margin-top: 2px;
+}
+
+@media (max-width: 767px) {
+  .agenda-view {
+    padding-inline: var(--space-3);
+  }
+
+  .agenda-day {
+    margin-bottom: var(--space-3);
+  }
+
+  .agenda-day__header {
+    margin-bottom: var(--space-1);
+  }
+
+  .agenda-event {
+    min-height: var(--target-lg);
+    padding: var(--space-2);
+  }
+
+  .agenda-event__title {
+    white-space: normal;
+  }
+
+  .agenda-event__meta {
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+  }
 }
 
 .agenda-event__assigned {

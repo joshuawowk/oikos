@@ -332,7 +332,9 @@
     "savedRecipePlaceholder": "Rezept auswählen",
     "saveAsRecipe": "Als Rezept speichern",
     "recipeScaleLabel": "Zutaten skalieren",
-    "deletedToast": "Mahlzeit gelöscht"
+    "deletedToast": "Mahlzeit gelöscht",
+    "todaySection": "Heute",
+    "nextDaysSection": "Nächste Tage"
   },
   "calendar": {
     "title": "Kalender",
@@ -517,7 +519,8 @@
     "attachmentTooLarge": "Der Anhang darf höchstens 5 MB groß sein.",
     "iconCleaning": "Reinigung",
     "attachmentDocumentName": "{{title}} - {{name}}",
-    "attachmentDocumentDescription": "Anhang für Kalendereintrag \"{{title}}\" hochgeladen."
+    "attachmentDocumentDescription": "Anhang für Kalendereintrag \"{{title}}\" hochgeladen.",
+    "agendaEmpty": "Keine Termine im ausgewählten Zeitraum"
   },
   "notes": {
     "title": "Notizen",
