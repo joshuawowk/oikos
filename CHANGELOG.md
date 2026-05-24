@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.40] - 2026-05-24
+
+### Added
+- Dashboard now starts with a compact Today cockpit that highlights the next urgent task, upcoming event, open shopping count, and planned dinner before the broader widget grid.
+
+### Changed
+- First-run onboarding can now be skipped immediately from the first step, can be dismissed with Escape, and sits lower on mobile so the dashboard remains partially visible.
+
 ## [0.52.39] - 2026-05-24
 
 ### Added

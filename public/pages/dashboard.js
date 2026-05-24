@@ -39,6 +39,11 @@ function showOnboarding(appContainer) {
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
 
+  const closeOnEscape = (event) => {
+    if (event.key === 'Escape') finish();
+  };
+  document.addEventListener('keydown', closeOnEscape);
+
   function renderStep() {
     const step = steps[current];
     const isLast = current === steps.length - 1;
@@ -87,7 +92,7 @@ function showOnboarding(appContainer) {
       nextBtn.focus();
     });
 
-    if (current > 0 && !isLast) actions.appendChild(skipBtn);
+    if (!isLast) actions.appendChild(skipBtn);
     actions.appendChild(nextBtn);
     card.appendChild(icon);
     card.appendChild(title);
@@ -101,6 +106,7 @@ function showOnboarding(appContainer) {
   }
 
   function finish() {
+    document.removeEventListener('keydown', closeOnEscape);
     localStorage.setItem(ONBOARDING_KEY, '1');
     overlay.classList.add('onboarding-overlay--out');
     overlay.addEventListener('animationend', () => overlay.remove(), { once: true });
@@ -334,6 +340,43 @@ function widgetHeader(icon, title, count, linkHref, linkLabel) {
       </button>
     </div>
   `;
+}
+
+function buildTodayHighlights(data) {
+  const tasks = Array.isArray(data?.tasks)
+    ? data.tasks
+    : Array.isArray(data?.urgentTasks)
+      ? data.urgentTasks
+      : [];
+  const events = Array.isArray(data?.events)
+    ? data.events
+    : Array.isArray(data?.upcomingEvents)
+      ? data.upcomingEvents
+      : [];
+  const shoppingItems = Array.isArray(data?.shopping?.items) ? data.shopping.items : [];
+  const shoppingLists = Array.isArray(data?.shoppingLists) ? data.shoppingLists : [];
+  const meals = data?.meals ?? data?.todayMeals ?? null;
+
+  const urgentTask = tasks.find((task) => task.priority === 'urgent') ?? tasks[0] ?? null;
+  const nextEvent = events[0] ?? null;
+  const openShoppingCount = shoppingItems.length
+    ? shoppingItems.filter((item) => !item.is_checked).length
+    : shoppingLists.reduce((sum, list) => {
+        if (Number.isFinite(Number(list.open_count))) return sum + Number(list.open_count);
+        if (Number.isFinite(Number(list.openCount))) return sum + Number(list.openCount);
+        const items = Array.isArray(list.items) ? list.items : [];
+        return sum + items.filter((item) => !item.is_checked).length;
+      }, 0);
+  const dinner = Array.isArray(meals)
+    ? meals.find((meal) => meal.meal_type === 'dinner') ?? null
+    : meals?.dinner ?? null;
+
+  return {
+    urgentTask,
+    nextEvent,
+    openShoppingCount,
+    dinner,
+  };
 }
 
 // --------------------------------------------------------
@@ -578,6 +621,38 @@ function renderQuickAction({ route, label, icon, tone = '' }) {
       <span class="dashboard-action__icon"><i data-lucide="${icon}" aria-hidden="true"></i></span>
       <span class="dashboard-action__label">${label}</span>
     </button>
+  `;
+}
+
+function renderTodayCard(icon, label, value, route, tone) {
+  return `
+    <button type="button" class="today-cockpit-card today-cockpit-card--${tone}" data-route="${route}">
+      <span class="today-cockpit-card__icon"><i data-lucide="${icon}" aria-hidden="true"></i></span>
+      <span class="today-cockpit-card__label">${esc(label)}</span>
+      <strong class="today-cockpit-card__value">${esc(value)}</strong>
+    </button>
+  `;
+}
+
+function renderTodayCockpit(data) {
+  const highlights = buildTodayHighlights(data);
+  const taskTitle = highlights.urgentTask?.title ?? t('dashboard.todayNoTasks');
+  const eventTitle = highlights.nextEvent?.title ?? t('dashboard.todayNoEvents');
+  const dinnerTitle = highlights.dinner?.title ?? t('dashboard.todayNoDinner');
+
+  return `
+    <section class="today-cockpit" aria-labelledby="today-cockpit-title">
+      <div class="today-cockpit__header">
+        <h2 id="today-cockpit-title">${esc(t('dashboard.todayTitle'))}</h2>
+        <span class="today-cockpit__date">${esc(formatDate(new Date()))}</span>
+      </div>
+      <div class="today-cockpit__grid">
+        ${renderTodayCard('check-square', t('dashboard.todayTask'), taskTitle, '/tasks', 'task')}
+        ${renderTodayCard('calendar', t('dashboard.todayEvent'), eventTitle, '/calendar', 'event')}
+        ${renderTodayCard('shopping-cart', t('dashboard.todayShopping'), t('dashboard.todayShoppingCount', { count: highlights.openShoppingCount }), '/shopping', 'shopping')}
+        ${renderTodayCard('utensils', t('dashboard.todayDinner'), dinnerTitle, '/meals', 'dinner')}
+      </div>
+    </section>
   `;
 }
 
@@ -1319,6 +1394,7 @@ export async function render(container, { user }) {
     if (!shell) return;
     setHtml(shell, `
       ${renderDashboardOverview(user, isCustomizing)}
+      ${renderTodayCockpit(data)}
       ${renderDashboardLayout(cfg, data, weather, currency, { editing: isCustomizing })}
     `);
     wireLinks(container, rerender, { editing: isCustomizing });
@@ -1382,6 +1458,8 @@ export async function render(container, { user }) {
     setTimeout(() => showOnboarding(container), 400);
   }
 }
+
+export const __test = { buildTodayHighlights };
 
 function wireWeatherRefresh(container, onUpdated = null) {
   const refreshBtn = container.querySelector('#weather-refresh-btn');

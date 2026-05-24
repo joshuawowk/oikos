@@ -5,21 +5,27 @@
  */
 
 import { DatabaseSync } from 'node:sqlite';
+import { register } from 'node:module';
 import { MIGRATIONS_SQL } from './server/db-schema-test.js';
 import { hydrateBirthday } from './server/services/birthdays.js';
 
+register('./test-browser-loader.mjs', import.meta.url);
+
 let passed = 0;
 let failed = 0;
+const pendingTests = [];
 
 function test(name, fn) {
-  try {
-    fn();
-    console.log(`  ✓ ${name}`);
-    passed++;
-  } catch (err) {
-    console.error(`  ✗ ${name}: ${err.message}`);
-    failed++;
-  }
+  pendingTests.push(Promise.resolve()
+    .then(fn)
+    .then(() => {
+      console.log(`  ✓ ${name}`);
+      passed++;
+    })
+    .catch((err) => {
+      console.error(`  ✗ ${name}: ${err.message}`);
+      failed++;
+    }));
 }
 
 function assert(condition, msg) {
@@ -102,6 +108,24 @@ db.prepare(`INSERT INTO budget_entries (title, amount, category, subcategory, da
   VALUES ('Groceries', -450, 'food', 'supermarket', ?, ?)`).run(`${currentMonth}-07`, uid1);
 
 console.log('\n[Dashboard-Test] API-Abfragen\n');
+
+test('Today-Highlights priorisieren dringende Aufgaben und nächsten Termin', async () => {
+  const { __test } = await import('./public/pages/dashboard.js');
+  const result = __test.buildTodayHighlights({
+    tasks: [
+      { id: 1, title: 'Low task', priority: 'low' },
+      { id: 2, title: 'Pay bill', priority: 'urgent' },
+    ],
+    events: [{ id: 3, title: 'Dentist' }],
+    shopping: { items: [{ is_checked: false }, { is_checked: true }] },
+    meals: { dinner: { title: 'Soup' } },
+  });
+
+  assert(result.urgentTask.title === 'Pay bill', 'Urgent Task sollte priorisiert werden');
+  assert(result.nextEvent.title === 'Dentist', 'Nächster Termin sollte übernommen werden');
+  assert(result.openShoppingCount === 1, 'Offene Einkaufsartikel sollten gezählt werden');
+  assert(result.dinner.title === 'Soup', 'Abendessen sollte übernommen werden');
+});
 
 // --------------------------------------------------------
 // Tests: Dringende Aufgaben
@@ -259,5 +283,7 @@ test('Budget: Monatswerte für Einnahmen, Ausgaben, Saldo und Top-Ausgabe', () =
 // --------------------------------------------------------
 // Ergebnis
 // --------------------------------------------------------
+await Promise.all(pendingTests);
+
 console.log(`\n[Dashboard-Test] Ergebnis: ${passed} bestanden, ${failed} fehlgeschlagen\n`);
 if (failed > 0) process.exit(1);
