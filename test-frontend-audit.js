@@ -65,6 +65,16 @@ test('router hides inactive overlays from keyboard focus', () => {
   assert.match(source, /returnFocus/);
 });
 
+test('mobile More sheet trigger controls its dialog and traps keyboard focus', () => {
+  const source = read('./public/router.js');
+
+  assert.match(source, /moreBtn\.setAttribute\('aria-controls',\s*'more-sheet'\)/);
+  assert.match(source, /function\s+createFocusTrap/);
+  assert.match(source, /moreSheetTrap/);
+  assert.match(source, /addEventListener\('keydown',\s*moreSheetTrap/);
+  assert.match(source, /removeEventListener\('keydown',\s*moreSheetTrap/);
+});
+
 test('bottom navigation labels are constrained against localized overflow', () => {
   const layout = read('./public/styles/layout.css');
   const labelRule = cssRuleBody(layout, '.nav-item__label');

@@ -227,6 +227,41 @@ function returnFocus(target) {
   }
 }
 
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+function visibleFocusable(container) {
+  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR))
+    .filter((el) => !el.hidden && !el.closest('[hidden]') && !el.inert);
+}
+
+function createFocusTrap(container) {
+  return (e) => {
+    if (e.key !== 'Tab') return;
+    const focusable = visibleFocusable(container);
+    if (!focusable.length) {
+      e.preventDefault();
+      container.focus?.();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+}
+
 /**
  * Navigiert zu einem Pfad und rendert die entsprechende Seite.
  * @param {string} path
@@ -572,6 +607,7 @@ function renderAppShell(container) {
     moreBtn.type = 'button';
     moreBtn.setAttribute('aria-label', t('nav.more'));
     moreBtn.setAttribute('aria-expanded', 'false');
+    moreBtn.setAttribute('aria-controls', 'more-sheet');
     const moreBtnWrap = document.createElement('div');
     moreBtnWrap.className = 'nav-item__icon-wrap';
     const moreBtnWell = document.createElement('div');
@@ -913,10 +949,12 @@ function initMoreSheet(container, openSearch) {
   const sheet    = container.querySelector('#more-sheet');
   if (!moreBtn || !backdrop || !sheet) return;
   let lastFocusedBeforeSheet = null;
+  const moreSheetTrap = createFocusTrap(sheet);
 
   function openSheet() {
     lastFocusedBeforeSheet = document.activeElement;
     setOverlayInteractive(sheet, true);
+    sheet.addEventListener('keydown', moreSheetTrap);
     backdrop.classList.add('more-backdrop--visible');
     moreBtn.setAttribute('aria-expanded', 'true');
     setTimeout(() => sheet.querySelector('#more-sheet-search, [data-route]')?.focus(), 0);
@@ -925,6 +963,7 @@ function initMoreSheet(container, openSearch) {
 
   function closeSheet({ restoreFocus = true } = {}) {
     setOverlayInteractive(sheet, false);
+    sheet.removeEventListener('keydown', moreSheetTrap);
     backdrop.classList.remove('more-backdrop--visible');
     moreBtn.setAttribute('aria-expanded', 'false');
     if (restoreFocus) returnFocus(lastFocusedBeforeSheet || moreBtn);
@@ -998,19 +1037,7 @@ function initSearch(container) {
     setTimeout(() => input.focus(), 50);
     if (window.lucide) window.lucide.createIcons();
 
-    const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])';
-    _searchTrapHandler = (e) => {
-      if (e.key !== 'Tab') return;
-      const focusable = Array.from(overlay.querySelectorAll(FOCUSABLE));
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last  = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault(); last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault(); first.focus();
-      }
-    };
+    _searchTrapHandler = createFocusTrap(overlay);
     overlay.addEventListener('keydown', _searchTrapHandler);
   }
 
