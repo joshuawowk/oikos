@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.56] - 2026-05-26
+
+### Security
+- Updated helmet from 8.1.0 to 8.2.0 (adds `noopener-allow-popups` support for Cross-Origin-Opener-Policy).
+- Updated googleapis from 171.4.0 to 172.0.0 (optional dependency for Google Calendar sync; Calendar API v3 unaffected by breaking changes).
+
 ## [0.52.55] - 2026-05-25
 
 ### Fixed
