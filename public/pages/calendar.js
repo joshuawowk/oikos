@@ -842,6 +842,12 @@ function renderMonthView(container) {
   `);
 
   container.querySelector('#month-grid').addEventListener('click', (e) => {
+    const taskChip = e.target.closest('.cal-task-chip');
+    if (taskChip) {
+      e.stopPropagation();
+      window.oikos.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
+      return;
+    }
     const evEl = e.target.closest('.month-day__event');
     if (evEl) {
       e.stopPropagation();
@@ -858,6 +864,7 @@ function renderMonthView(container) {
 
 function renderMonthDay(date, inMonth) {
   const evs      = eventsOnDay(date);
+  const dayTasks = tasksOnDay(date);
   const isToday  = date === state.today;
   const classes  = [
     'month-day',
@@ -881,11 +888,15 @@ function renderMonthDay(date, inMonth) {
   `;
   }).join('');
 
+  const MAX_TASK_SHOW = 2;
+  const taskHtml = dayTasks.slice(0, MAX_TASK_SHOW).map(renderTaskChip).join('');
+
   return `
     <div class="${classes}" data-date="${date}">
       <div class="month-day__number">${new Date(date + 'T00:00:00').getDate()}</div>
       ${evHtml}
       ${extra > 0 ? `<div class="month-day__more">${t('calendar.moreEvents', { count: extra })}</div>` : ''}
+      ${taskHtml}
     </div>
   `;
 }
