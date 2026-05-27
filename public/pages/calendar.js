@@ -948,6 +948,7 @@ function renderWeekView(container) {
                    style="${ev.cal_color || ev.color ? `background-color:${esc(ev.cal_color || ev.color)};` : ''}${getContrastColor(ev.cal_color || ev.color) ? `color:${getContrastColor(ev.cal_color || ev.color)};` : ''}"
                    title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span></div>
             `).join('')}
+            ${tasksOnDay(d).map(renderTaskChip).join('')}
           </div>
         `).join('')}
       </div>
@@ -990,6 +991,11 @@ function renderWeekView(container) {
   });
 
   container.querySelector('.allday-row').addEventListener('click', (e) => {
+    const taskChip = e.target.closest('.cal-task-chip');
+    if (taskChip) {
+      window.oikos.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
+      return;
+    }
     const evEl = e.target.closest('.allday-event');
     if (evEl) {
       const ev = state.events.find((ev) => ev.id === parseInt(evEl.dataset.id, 10));
@@ -1112,7 +1118,7 @@ function renderDayView(container) {
       <div class="day-view__header">
         <div class="day-view__date-label">${formatDate(state.cursor, { weekday: true, long: true })}</div>
       </div>
-      ${allday.length ? `
+      ${(allday.length || tasksOnDay(state.cursor).length) ? `
       <div class="allday-row" style="display:grid;grid-template-columns:48px 1fr;">
         <div style="padding:2px 4px 2px 0;font-size:10px;color:var(--color-text-disabled);text-align:right;line-height:24px;">${t('calendar.allDayShort')}</div>
         <div class="allday-cell">
@@ -1120,6 +1126,7 @@ function renderDayView(container) {
             <div class="allday-event" data-id="${ev.id}"
                  style="${ev.cal_color || ev.color ? `background-color:${esc(ev.cal_color || ev.color)};` : ''}${getContrastColor(ev.cal_color || ev.color) ? `color:${getContrastColor(ev.cal_color || ev.color)};` : ''}"
                  title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span></div>`).join('')}
+          ${tasksOnDay(state.cursor).map(renderTaskChip).join('')}
         </div>
       </div>` : ''}
       <div class="day-view__scroll" id="day-scroll">
@@ -1142,6 +1149,19 @@ function renderDayView(container) {
       </div>
     </div>
   `);
+
+  container.querySelector('.allday-row')?.addEventListener('click', (e) => {
+    const taskChip = e.target.closest('.cal-task-chip');
+    if (taskChip) {
+      window.oikos.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
+      return;
+    }
+    const evEl = e.target.closest('.allday-event');
+    if (evEl) {
+      const ev = state.events.find((ev) => ev.id === parseInt(evEl.dataset.id, 10));
+      if (ev) showEventPopup(ev, evEl);
+    }
+  });
 
   container.querySelector('#day-col').addEventListener('click', (e) => {
     const evEl = e.target.closest('.week-event');
