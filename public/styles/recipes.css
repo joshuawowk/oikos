@@ -45,13 +45,19 @@
 }
 
 .recipe-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--radius-glass-card);
+  background-color: var(--glass-bg-card);
+  box-shadow: var(--glass-shadow-sm);
   padding: var(--space-4);
   display: grid;
   gap: var(--space-2);
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.recipe-card:hover {
+  background-color: var(--glass-bg-card-hover);
+  box-shadow: var(--glass-shadow-md);
 }
 
 .recipe-card__title {
@@ -95,6 +101,7 @@
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  border-radius: var(--radius-glass-inner);
 }
 
 .recipe-ingredient-row__name {
