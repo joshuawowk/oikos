@@ -941,7 +941,7 @@ Authentication options for external integrations:
 
 ### Colors (CSS Custom Properties)
 
-Source of truth: `public/styles/tokens.css`. Key values (as of v0.53.0):
+Source of truth: `public/styles/tokens.css`. Key values (as of v0.54.0):
 
 **Palette rationale:** Warm-tinted neutral scale (`#F5F4F1 → #1C1C1A`) anchored by a **Violet primary** (`#6c3aed`) that unifies the brand identity and the Calendar module color. Module colors are semantically separated from severity colors — no hue is shared without explicit documentation in `tokens.css`.
 
@@ -1071,15 +1071,28 @@ Additive CSS file loaded globally after `layout.css`. Implements a Liquid Glass 
 
 **Mobile compositor safety (v0.52.26):** a single permanent CSS rule disables `backdrop-filter` for all children of the `.app-content` scroll container. Bottom navigation, modals, and toasts sit outside the scroll container and retain their blur. This prevents mobile WebKit/Blink from creating excessive GPU compositor layers during scroll that would trigger blank-screen rendering bugs on iOS Safari and Android Chrome.
 
+**Phase 5 — Navigation Liquid Glass (v0.54.0):**
+- **Sliding glass pill indicator:** The sidebar (desktop) and mobile bottom bar now display an animated pill that slides to the active navigation entry using spring easing (`--ease-glass`). Hover over an inactive sidebar entry shows the destination indicator at 50 % opacity as a preview before navigation.
+- **Custom monoline SVG icons:** `public/nav-icons.js` provides a full icon set for all navigation entries, built with the DOM API (`createElementNS`) — no `innerHTML`. A Lucide icon is used as fallback for entries without a custom SVG.
+- **"Haushalt" section heading:** A sidebar section label appears between the four primary entries (Dashboard, Calendar, Tasks, Notes) and the module entries (Meals, Recipes, Shopping, etc.), matching the visual grouping already present in the mobile More-sheet. Locale key `nav.section.household` is defined in all 16 locale files.
+- **Accessibility:** Navigation animations are suppressed when `prefers-reduced-motion` is active; glass pill and blur effects are disabled when `prefers-reduced-transparency` is active.
+
+**Phase 6 — Module CSS Migration (v0.54.1–v0.54.5):** The Liquid Glass design language has been extended to all remaining core modules via targeted CSS-only changes to each module's stylesheet. All `--shadow-*`, `--radius-md/lg`, and `--color-surface` values on card containers have been replaced with the Glass tokens (`--glass-bg-card`, `--glass-border-subtle`, `--radius-glass-card/inner/chip`, `--glass-shadow-sm/md/lg`). Modules completed:
+- **Budget** (`budget.css`, v0.54.1) — summary cards, loan cards, list sections, transaction rows; summary cards include module-accent tint via `::after`; overlay backdrop uses `--color-overlay-glass`
+- **Settings** (`settings.css`, `settings-nav.css`, v0.54.2) — settings cards, CalDAV/CardDAV account items, module rows, toggle/cat rows, sidebar navigation items
+- **Housekeeping** (`housekeeping.css`, v0.54.3) — main cards, inner elements (worker strip, metrics, tasks, photos), staff rows with hover accent tint
+- **Meals & Recipes** (`meals.css`, `recipes.css`, v0.54.4) — autocomplete dropdown, drag-ghost card, ingredient rows, recipe cards with hover state; `.meal-slot` unchanged (already in `glass.css` §30)
+- **Documents & Split Expenses** (`documents.css`, `split-expenses.css`, v0.54.5) — folder browser, document cards/rows, drop zone, member picker, view toggle; split summary card with module-accent tint via `::after`; split cards, group panels, group headers, participant rows
+
 **Accessibility:** `prefers-reduced-transparency`, `prefers-reduced-motion`, and `prefers-contrast: more` blocks deactivate blur/animation and restore solid fallbacks across all phases.
 
 ### Components
-- **Cards:** `var(--color-surface)` base, glass vibrancy via `var(--glass-bg-card)` + `backdrop-filter: blur(8px) saturate(180%)` when supported. `var(--radius-md)`, `var(--shadow-sm)`. Module tint overlay via `::after`. Consistent padding `var(--space-4)` (16px) across all modules.
+- **Cards:** Glass tokens applied app-wide — `var(--glass-bg-card)` background, `var(--glass-border-subtle)` border, `var(--radius-glass-card)` (20 px) for containers, `var(--radius-glass-inner)` (14 px) for inner rows, `var(--glass-shadow-sm/md/lg)` for elevation. Module tint overlay via `::after` pseudo-element using `color-mix(in srgb, var(--module-accent) var(--glass-tint-strength), transparent)`. Consistent padding `var(--space-4)` (16 px) across all modules. `backdrop-filter` is disabled for all elements inside `.app-content` (see Mobile compositor safety above); glass appearance inside scrolling content is achieved through the semi-transparent background + border + shadow alone.
 - **Buttons:** Primary = accent + white. Secondary = outline. Min-height 44px. Capsule shape via `--radius-glass-button`. Submit buttons show success (checkmark, 700ms green via `.btn--success`) and error (shake via `.btn--shaking`).
 - **Inputs:** `var(--radius-sm)`, 1.5px border, padding 12px 16px. Search inputs use `--radius-glass-button` and `--glass-border-subtle`. `[required]` fields receive validation status on blur (`.form-field--error` / `.form-field--valid`). Enter moves focus to the next field; Enter on the last field triggers submit.
 - **FAB (Floating Action Button):** Color follows the module accent token (`--module-accent`) - each module defines its own accent color. Specular inner highlight + attention ring pulse. Hidden when the virtual keyboard is open (`visualViewport.resize`, threshold 75% of window height).
 - **Module accent colors:** `--module-accent` is applied on three visual layers - (1) active nav tab (bottom bar + sidebar stripe), (2) toolbar `border-top: 3px`, (3) cards/rows `border-left: 3px`. The active accent is written to `--active-module-accent` on `:root` on every navigation change. Falls back to `--color-accent` for pages without a module context.
-- **Navigation:** Bottom tab bar on mobile (Dashboard, Calendar, Tasks, Notes + Kitchen button + More button), auto-hides on scroll-down. Sidebar on desktop. Both use glass blur surface. The Kitchen button dynamically shows the icon and label of the last visited kitchen section (Meals / Recipes / Shopping).
+- **Navigation:** Bottom tab bar on mobile (Dashboard, Calendar, Tasks, Notes + Kitchen button + More button), auto-hides on scroll-down. Sidebar on desktop. Both use glass blur surfaces with a **sliding glass pill indicator** that animates to the active entry using spring easing. Hovering an inactive sidebar entry shows the indicator at 50 % opacity as a destination preview. Custom monoline SVG icons are served from `public/nav-icons.js` (DOM API, no `innerHTML`); Lucide is used as fallback. The sidebar displays a **"Haushalt" section heading** between the four primary entries (Dashboard, Calendar, Tasks, Notes) and the module entries. The Kitchen button dynamically shows the icon and label of the last visited kitchen section (Meals / Recipes / Shopping).
 - **Transitions:** Directional slide-X animation on page change (forward = from right, back = from left, 200ms) with spring easing. Respects `prefers-reduced-motion`.
 - **Empty states:** Consistent `.empty-state` class across all modules (icon + title + description, centered). Compact variant `.empty-state--compact` for meal slots.
 - **Modals:** Centered panel on desktop with glass overlay. On mobile (< 768px) bottom sheet - spring slide-in from below, sheet handle visible, swipe-to-close (> 80px downward). `focusin` scrolls inputs into view when the virtual keyboard is open.
