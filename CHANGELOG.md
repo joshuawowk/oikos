@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.54.3] - 2026-05-28
+
+### Changed
+- **Liquid Glass – Housekeeping module:** Migrated `housekeeping.css` to Glass design tokens. Main cards (`.housekeeping-card`) use `--radius-glass-card`, `--glass-bg-card`, `--glass-border-subtle`, and `--glass-shadow-sm`. Inner elements (`.housekeeping-worker-strip`, `.housekeeping-metric`, `.housekeeping-task`, `.housekeeping-report-item`, `.housekeeping-staff-row`, `.housekeeping-staff-log-row`, `.housekeeping-template`, `.housekeeping-photo`, `.housekeeping-photo-preview`) use `--radius-glass-inner`. Interactive staff rows use `--glass-bg-card-hover` with module-accent tint on hover. The document-dropzone icon inside modals uses `--glass-shadow-sm`.
+
 ## [0.54.2] - 2026-05-28
 
 ### Changed
