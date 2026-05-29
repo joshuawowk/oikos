@@ -1004,7 +1004,7 @@ function renderWeekView(container) {
       return;
     }
     const col = e.target.closest('[data-date]');
-    if (col) switchToDayView(col.dataset.date);
+    if (col) openEventModal({ mode: 'create', date: col.dataset.date });
   });
 
   container.querySelector('.allday-row').addEventListener('click', (e) => {
