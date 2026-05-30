@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.55.5] - 2026-05-30
+
+### Changed
+- **GitHub Pages landing page redesigned as a narrative marketing page:** Restructured `docs/index.html` from a feature-list into a problem→trust→solution flow targeting privacy-conscious families. Added Social Proof Bar (live GitHub star count, module count, language count, version), new "The Problem" section with three pain-point cards, and moved the Philosophy section up and renamed it "Why Oikos" with reordered cards (Privacy First → Self-Hosted → Open Source → Zero Build Step). Rewrote Hero copy ("Your family. Your data. Your home."), Feature-Showcase titles as benefit statements, and Feature-Grid trimmed to five priority cards. Simplified Setup section with a three-step visual overview and collapsible Docker command block. Updated CTA to three differentiated buttons (Get started, See all screenshots, View on GitHub). Added version, star count, and Install link to Footer. Both EN and DE locales updated throughout.
+
 ## [0.55.4] - 2026-05-30
 
 ### Changed
