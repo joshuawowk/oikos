@@ -271,6 +271,7 @@ All configuration happens in the `.env` file. The container reads these values o
 |----------|-------------|---------|----------|
 | `PORT` | Port the Express server listens on | `3000` | No |
 | `NODE_ENV` | Runtime environment | `production` | No |
+| `TRUST_PROXY` | Number of reverse-proxy hops to trust, or a subnet string (e.g. `1`, `172.16.0.0/12`, `loopback`). Set to `1` when running behind a single Traefik/Nginx hop so `req.ip` returns the real client IP. Numeric values are treated as a hop count; subnet strings and named values (`loopback`, `linklocal`, `uniquelocal`) work as expected. | `false` | No |
 
 ### Security
 
@@ -288,12 +289,14 @@ Generate a secure `SESSION_SECRET`:
 openssl rand -hex 32
 ```
 
-### Database
+### Database & Storage
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `DB_PATH` | Path to the SQLite database file inside the container | `/data/oikos.db` | No |
 | `DB_ENCRYPTION_KEY` | Encryption key for SQLCipher AES-256. **Change this!** | - | **Yes** |
+| `DATA_DIR` | Host directory mounted at `/data` inside the container (set in `.env` or `docker-compose.yml`). | `./data` | No |
+| `BACKUP_DIR` | Host directory mounted at `/backups` for scheduled backup files. | `./backups` | No |
 
 Generate a secure `DB_ENCRYPTION_KEY`:
 
@@ -320,7 +323,9 @@ openssl rand -hex 32
 | `GOOGLE_CLIENT_SECRET` | OAuth 2.0 Client Secret | - | No |
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL | `https://<YOUR-DOMAIN>/api/v1/calendar/google/callback` | No |
 
-### Apple Calendar Sync (Optional)
+### Apple Calendar Sync — Legacy Single-Account (Optional)
+
+> **Note:** Since v0.44.0, multi-account CalDAV (iCloud, Nextcloud, Radicale, Baikal) is managed through **Settings → Synchronization** in the UI. These env vars configure a single Apple CalDAV account at startup and remain supported for backwards compatibility.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -333,6 +338,30 @@ openssl rand -hex 32
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `SYNC_INTERVAL_MINUTES` | Calendar sync interval in minutes | `15` | No |
+
+### SSO / OpenID Connect (Optional)
+
+Enable single sign-on via any OpenID Connect provider (Authentik, Keycloak, Google, Microsoft Entra, etc.).
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `OIDC_ISSUER` | OIDC provider issuer URL (e.g. `https://authentik.example.com/application/o/oikos/`) | - | No |
+| `OIDC_CLIENT_ID` | Client ID registered with your OIDC provider | - | No |
+| `OIDC_CLIENT_SECRET` | Client secret for the registered application | - | No |
+| `OIDC_REDIRECT_URI` | OAuth callback URL — must be registered with the provider (e.g. `https://oikos.example.com/api/v1/auth/oidc/callback`) | - | No |
+
+When all four variables are set, a **"Sign in with SSO"** button appears on the login page. The flow uses Authorization Code + PKCE (S256) with a nonce. A matching Oikos user account (same `oidc_sub`) must already exist — automatic provisioning is not supported.
+
+### Automated Backups (Optional)
+
+Built-in cron-based database backup (default: 2 AM daily, keep last 7 copies). Status and manual trigger available in **Settings → Backup Management**.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `BACKUP_ENABLED` | Enable scheduled backups (`true`/`false`) | `false` | No |
+| `BACKUP_SCHEDULE` | Cron expression for backup schedule | `0 2 * * *` | No |
+| `BACKUP_DIR` | Directory (inside container) where backup files are written | `/backups` | No |
+| `BACKUP_KEEP` | Number of most-recent backup files to retain | `7` | No |
 
 ---
 

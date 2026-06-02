@@ -847,14 +847,18 @@ cd oikos</div>
           <p data-t="opt_weather_desc">Show the local weather on the dashboard. Set <code>OPENWEATHER_API_KEY</code> and <code>OPENWEATHER_CITY</code> — free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener">openweathermap.org</a>.</p>
         </div>
         <div class="optional-card reveal reveal-delay-2">
-          <h3 data-t="opt_cal_title">Calendar Sync</h3>
-          <p data-t="opt_cal_desc">Two-way sync with Google Calendar (OAuth) and Apple iCloud (CalDAV). Set the relevant <code>GOOGLE_*</code> or <code>APPLE_*</code> variables. <a href="https://github.com/ulsklyc/oikos/blob/main/docs/installation.md#environment-variables" target="_blank" rel="noopener" data-t="opt_guide">Guide →</a></p>
+          <h3 data-t="opt_cal_title">Calendar &amp; Contact Sync</h3>
+          <p data-t="opt_cal_desc">Two-way sync with Google Calendar (OAuth) and multi-account CalDAV (iCloud, Nextcloud, Radicale, Baikal). Manage CalDAV and CardDAV accounts directly in Settings → Synchronization. Google Calendar uses <code>GOOGLE_*</code> env vars. <a href="https://github.com/ulsklyc/oikos/blob/main/docs/installation.md#environment-variables" target="_blank" rel="noopener" data-t="opt_guide">Guide →</a></p>
         </div>
         <div class="optional-card reveal reveal-delay-1">
-          <h3 data-t="opt_backup_title">Automated Backups</h3>
-          <p data-t="opt_backup_desc">Add a daily cron job to back up your database. All data lives in the <code>oikos_data</code> Docker volume. <a href="https://github.com/ulsklyc/oikos/blob/main/docs/installation.md#backup--restore" target="_blank" rel="noopener" data-t="opt_guide">Guide →</a></p>
+          <h3 data-t="opt_sso_title">SSO / OpenID Connect</h3>
+          <p data-t="opt_sso_desc">Enable single sign-on via any OIDC provider (Authentik, Keycloak, Google, Microsoft Entra). Set <code>OIDC_ISSUER</code>, <code>OIDC_CLIENT_ID</code>, <code>OIDC_CLIENT_SECRET</code>, and <code>OIDC_REDIRECT_URI</code> — a "Sign in with SSO" button appears on the login page automatically. <a href="https://github.com/ulsklyc/oikos/blob/main/docs/installation.md#sso--openid-connect-optional" target="_blank" rel="noopener" data-t="opt_guide">Guide →</a></p>
         </div>
         <div class="optional-card reveal reveal-delay-2">
+          <h3 data-t="opt_backup_title">Automated Backups</h3>
+          <p data-t="opt_backup_desc">Enable built-in scheduled backups via <code>BACKUP_ENABLED=true</code>. Backups run at 2 AM daily by default and are retained for 7 days. Manage and restore backups from Settings → Backup Management. <a href="https://github.com/ulsklyc/oikos/blob/main/docs/installation.md#backup--restore" target="_blank" rel="noopener" data-t="opt_guide">Guide →</a></p>
+        </div>
+        <div class="optional-card reveal">
           <h3 data-t="opt_update_title">Updates</h3>
           <p data-t="opt_update_desc">Pull the latest image and restart: <code>docker compose pull &amp;&amp; docker compose up -d</code>. Your data persists across updates.</p>
         </div>
@@ -1010,10 +1014,12 @@ docker compose logs | grep "Server läuft"</div>
           opt_guide: 'Guide \u2192',
           opt_weather_title: 'Weather Widget',
           opt_weather_desc: 'Show the local weather on the dashboard. Set OPENWEATHER_API_KEY and OPENWEATHER_CITY \u2014 free API key from openweathermap.org.',
-          opt_cal_title: 'Calendar Sync',
-          opt_cal_desc: 'Two-way sync with Google Calendar (OAuth) and Apple iCloud (CalDAV). Set the relevant GOOGLE_* or APPLE_* variables.',
+          opt_cal_title: 'Calendar & Contact Sync',
+          opt_cal_desc: 'Two-way sync with Google Calendar (OAuth) and multi-account CalDAV (iCloud, Nextcloud, Radicale, Baikal). Manage CalDAV/CardDAV accounts in Settings → Synchronization. Google Calendar uses GOOGLE_* env vars.',
+          opt_sso_title: 'SSO / OpenID Connect',
+          opt_sso_desc: 'Enable single sign-on via any OIDC provider (Authentik, Keycloak, Google, Microsoft Entra). Set OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, and OIDC_REDIRECT_URI — a “Sign in with SSO” button appears on the login page automatically.',
           opt_backup_title: 'Automated Backups',
-          opt_backup_desc: 'Add a daily cron job to back up your database. All data lives in the oikos_data Docker volume.',
+          opt_backup_desc: 'Enable built-in scheduled backups via BACKUP_ENABLED=true. Runs at 2 AM daily, keeps 7 copies. Manage and restore backups from Settings → Backup Management.',
           opt_update_title: 'Updates',
           opt_update_desc: 'Pull the latest image and restart: docker compose pull && docker compose up -d. Your data persists across updates.',
           trouble_label: 'Troubleshooting',
@@ -1104,10 +1110,12 @@ docker compose logs | grep "Server läuft"</div>
           opt_guide: 'Anleitung \u2192',
           opt_weather_title: 'Wetter-Widget',
           opt_weather_desc: 'Lokales Wetter auf dem Dashboard anzeigen. OPENWEATHER_API_KEY und OPENWEATHER_CITY setzen \u2014 kostenloser API-Key von openweathermap.org.',
-          opt_cal_title: 'Kalender-Sync',
-          opt_cal_desc: 'Zwei-Wege-Sync mit Google Calendar (OAuth) und Apple iCloud (CalDAV). Die entsprechenden GOOGLE_*- oder APPLE_*-Variablen setzen.',
+          opt_cal_title: 'Kalender- und Kontakt-Sync',
+          opt_cal_desc: 'Zwei-Wege-Sync mit Google Calendar (OAuth) und Multi-Account-CalDAV (iCloud, Nextcloud, Radicale, Baikal). CalDAV/CardDAV-Konten direkt in Einstellungen \u2192 Synchronisierung verwalten. Google Calendar erfordert GOOGLE_*-Variablen.',
+          opt_sso_title: 'SSO / OpenID Connect',
+          opt_sso_desc: 'Single Sign-On \u00fcber einen beliebigen OIDC-Provider aktivieren (Authentik, Keycloak, Google, Microsoft Entra). OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET und OIDC_REDIRECT_URI setzen \u2014 auf der Anmeldeseite erscheint automatisch ein \u201eAnmelden mit SSO\u201c-Button.',
           opt_backup_title: 'Automatische Backups',
-          opt_backup_desc: 'Einen t\u00e4glichen Cron-Job einrichten, um die Datenbank zu sichern. Alle Daten liegen im oikos_data Docker-Volume.',
+          opt_backup_desc: 'Eingebaute Backup-Funktion \u00fcber BACKUP_ENABLED=true aktivieren. L\u00e4uft standardm\u00e4\u00dfig um 2:00 Uhr, beh\u00e4lt die letzten 7 Kopien. Backups in Einstellungen \u2192 Datensicherung verwalten und wiederherstellen.',
           opt_update_title: 'Updates',
           opt_update_desc: 'Neuestes Image holen und neu starten: docker compose pull && docker compose up -d. Eure Daten bleiben bei Updates erhalten.',
           trouble_label: 'Probleml\u00f6sung',

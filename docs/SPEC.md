@@ -18,6 +18,8 @@ Every table: `id INTEGER PRIMARY KEY`, `created_at TEXT`, `updated_at TEXT` (ISO
 | avatar_data | TEXT | Base64 data URL of profile picture (nullable) |
 | role | TEXT | 'admin' or 'member' |
 | family_role | TEXT | 'dad', 'mom', 'parent', 'child', 'grandparent', 'relative', 'other' (default 'other') |
+| oidc_sub | TEXT | OIDC subject identifier from the provider, nullable. Populated on first SSO login. |
+| oidc_provider | TEXT | OIDC issuer URL of the provider that set `oidc_sub`, nullable. Partial UNIQUE index on `(oidc_sub, oidc_provider)` WHERE NOT NULL. |
 
 ### Tasks
 | Column | Type | Constraint |
@@ -822,6 +824,8 @@ Unauthenticated users are redirected here. No public registration form - admin c
 - Error display for wrong credentials
 - Rate limiting: 5 attempts/min/IP, 15-min lockout
 - Password visibility toggle (eye/eye-off icon) to verify input before submitting
+- **SSO / OpenID Connect (v0.55.14):** When OIDC is configured (`OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`), a "Sign in with SSO" button appears below the divider. Clicking it initiates an Authorization Code flow with PKCE (S256) and a nonce; state, nonce, and code verifier are stored in the session and consumed once. On successful callback, the user's `oidc_sub` is matched to a local user account — a matching Oikos account must already exist (provisioning is not automatic). SSO errors display a localized message.
+- **Failed-login logging (v0.55.15):** Failed attempts are logged as warnings with IP, username, and failure reason (`user_not_found` / `invalid_password`), enabling fail2ban / CrowdSec integration.
 - After successful login: redirect to dashboard
 
 ### Settings (`/settings`)

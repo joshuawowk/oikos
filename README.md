@@ -63,6 +63,7 @@ Each module is independent. Use what fits, skip what doesn't.
 - **Disciplined Liquid Glass UI** — readable work surfaces, subtle translucent navigation, spring animations, and module-tinted overlays — built in pure CSS
 - **PWA** — installable on any device, works offline, responsive from phone to desktop, with tuned mobile navigation, touch targets, and dark mode
 - **Privacy First** — fully self-hosted, SQLCipher AES-256 encrypted database, zero telemetry
+- **SSO / OpenID Connect** — optional single sign-on via any OIDC provider (Authentik, Keycloak, Google, Microsoft Entra). Configure with four env vars; Authorization Code + PKCE flow.
 - **Zero Build Step** — pure ES modules, no bundler, no transpiler, no framework
 - **Multilingual** — 16 languages with automatic locale detection (de, en, es, fr, it, sv, el, ru, tr, zh, ja, ar, hi, pt, uk, pl)
 
