@@ -80,12 +80,17 @@ app.use(helmet({
   } : false,
 }));
 
-// Trust Proxy: Default 1 = ersten Proxy-Hop vertrauen (korrekt für Caddy/nginx in Docker).
-// Wird auf 'loopback' gesetzt wenn der Server direkt ohne Reverse-Proxy betrieben wird.
-// Hintergrund: Bei Docker + Caddy/nginx kommt der Request von einer Bridge-IP (z.B. 172.x.x.x),
-// nicht von loopback. Mit 'loopback' ignoriert Express das X-Forwarded-Proto-Header von Caddy,
-// req.secure bleibt false, und express-session setzt keinen Session-Cookie (Login schlägt fehl).
-app.set('trust proxy', process.env.TRUST_PROXY !== undefined ? process.env.TRUST_PROXY : 1);
+// Trust Proxy: Default 1 = trust one proxy hop (correct for Caddy/nginx/Traefik in Docker).
+// Env vars are always strings, so numeric values like "1" must be parsed as integers —
+// Express treats a numeric hop count differently from an IP/subnet string.
+// TRUST_PROXY=1            → trust 1 hop (default; reads X-Forwarded-For correctly)
+// TRUST_PROXY=172.16.0.0/12 → trust only requests from that subnet
+// TRUST_PROXY=loopback     → trust loopback only (direct, no proxy)
+const _rawTrustProxy = process.env.TRUST_PROXY;
+const _trustProxy = _rawTrustProxy === undefined
+  ? 1
+  : /^\d+$/.test(_rawTrustProxy) ? parseInt(_rawTrustProxy, 10) : _rawTrustProxy;
+app.set('trust proxy', _trustProxy);
 
 // --------------------------------------------------------
 // Request-Parsing
