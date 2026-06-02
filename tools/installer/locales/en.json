@@ -17,7 +17,8 @@
     "portLabel": "Port",
     "tzLabel": "Timezone",
     "errHost": "Invalid hostname. Use only letters, digits, hyphens and dots.",
-    "errPort": "Invalid port. Must be a number between 1 and 65535."
+    "errPort": "Invalid port. Must be a number between 1 and 65535.",
+    "prereqMissing": "Missing prerequisites: {{list}}. Please install them and reload this page."
   },
   "secrets": {
     "tag": "Step 2 of 7",
@@ -57,7 +58,10 @@
     "appleHint": "Create an app-specific password at {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple ID (email)",
-    "applePassLabel": "App-Specific Password"
+    "applePassLabel": "App-Specific Password",
+    "appleUrlLabel": "CalDAV URL",
+    "appleUrlOpt": "(optional)",
+    "appleUrlHint": "Leave empty unless your provider uses a different CalDAV endpoint."
   },
   "review": {
     "tag": "Step 5 of 7",
@@ -109,5 +113,26 @@
     "title": "Oikos is ready!",
     "subtitle": "Your family planner is running and your admin account is set up.",
     "open": "Open Oikos →"
+  },
+  "advanced": {
+    "tag": "Advanced · optional",
+    "title": "Advanced Settings",
+    "subtitle": "Reverse proxy, single sign-on and automatic backups. All optional — skipping is safe.",
+    "proxyLabel": "How is Oikos exposed?",
+    "proxyBehindHttps": "Behind a reverse proxy with HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Direct access over localhost / HTTP",
+    "proxyHint": "Direct access disables secure-only cookies so login works without HTTPS.",
+    "oidc": "Single Sign-On (OIDC)",
+    "oidcHint": "Fill in all four fields to enable SSO, or leave them empty.",
+    "oidcIssuerLabel": "Issuer URL",
+    "oidcClientIdLabel": "Client ID",
+    "oidcClientSecretLabel": "Client Secret",
+    "oidcRedirectLabel": "Redirect URI",
+    "errOidc": "OIDC requires all four fields or none.",
+    "backup": "Automatic Backups",
+    "backupEnable": "Enable automatic backups",
+    "backupScheduleLabel": "Schedule (cron)",
+    "backupScheduleHint": "When to run backups. Default: daily at 2 AM.",
+    "backupKeepLabel": "Backups to keep"
   }
 }

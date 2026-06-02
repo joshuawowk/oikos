@@ -17,7 +17,8 @@
     "portLabel": "Puerto",
     "tzLabel": "Zona horaria",
     "errHost": "Nombre de host no válido. Usa solo letras, dígitos, guiones y puntos.",
-    "errPort": "Puerto no válido. Debe ser un número entre 1 y 65535."
+    "errPort": "Puerto no válido. Debe ser un número entre 1 y 65535.",
+    "prereqMissing": "Faltan requisitos: {{list}}. Instálalos y vuelve a cargar esta página."
   },
   "secrets": {
     "tag": "Paso 2 de 7",
@@ -57,7 +58,10 @@
     "appleHint": "Crea una contraseña específica de la aplicación en {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple ID (correo)",
-    "applePassLabel": "Contraseña específica de la aplicación"
+    "applePassLabel": "Contraseña específica de la aplicación",
+    "appleUrlLabel": "URL de CalDAV",
+    "appleUrlOpt": "(opcional)",
+    "appleUrlHint": "Déjalo vacío salvo que tu proveedor use un punto de enlace CalDAV diferente."
   },
   "review": {
     "tag": "Paso 5 de 7",
@@ -109,5 +113,26 @@
     "title": "¡Oikos está listo!",
     "subtitle": "Tu organizador familiar está en marcha y tu cuenta de administrador está configurada.",
     "open": "Abrir Oikos →"
+  },
+  "advanced": {
+    "tag": "Avanzado · opcional",
+    "title": "Ajustes avanzados",
+    "subtitle": "Proxy inverso, inicio de sesión único y copias de seguridad automáticas. Todo opcional: omitirlo es seguro.",
+    "proxyLabel": "¿Cómo se expone Oikos?",
+    "proxyBehindHttps": "Detrás de un proxy inverso con HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Acceso directo por localhost / HTTP",
+    "proxyHint": "El acceso directo desactiva las cookies solo seguras para que el inicio de sesión funcione sin HTTPS.",
+    "oidc": "Inicio de sesión único (OIDC)",
+    "oidcHint": "Rellena los cuatro campos para activar el SSO, o déjalos vacíos.",
+    "oidcIssuerLabel": "URL del emisor",
+    "oidcClientIdLabel": "ID de cliente",
+    "oidcClientSecretLabel": "Secreto de cliente",
+    "oidcRedirectLabel": "URI de redirección",
+    "errOidc": "OIDC requiere los cuatro campos o ninguno.",
+    "backup": "Copias de seguridad automáticas",
+    "backupEnable": "Activar copias de seguridad automáticas",
+    "backupScheduleLabel": "Programación (cron)",
+    "backupScheduleHint": "Cuándo ejecutar las copias. Predeterminado: cada día a las 2:00.",
+    "backupKeepLabel": "Copias a conservar"
   }
 }

@@ -17,7 +17,8 @@
     "portLabel": "Port",
     "tzLabel": "Fuseau horaire",
     "errHost": "Nom d'hôte non valide. Utilisez uniquement des lettres, des chiffres, des tirets et des points.",
-    "errPort": "Port non valide. Doit être un nombre compris entre 1 et 65535."
+    "errPort": "Port non valide. Doit être un nombre compris entre 1 et 65535.",
+    "prereqMissing": "Prérequis manquants : {{list}}. Veuillez les installer et recharger cette page."
   },
   "secrets": {
     "tag": "Étape 2 sur 7",
@@ -57,7 +58,10 @@
     "appleHint": "Créez un mot de passe spécifique à l'application sur {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Identifiant Apple (e-mail)",
-    "applePassLabel": "Mot de passe spécifique à l'application"
+    "applePassLabel": "Mot de passe spécifique à l'application",
+    "appleUrlLabel": "URL CalDAV",
+    "appleUrlOpt": "(facultatif)",
+    "appleUrlHint": "Laissez vide sauf si votre fournisseur utilise un autre point d'accès CalDAV."
   },
   "review": {
     "tag": "Étape 5 sur 7",
@@ -109,5 +113,26 @@
     "title": "Oikos est prêt !",
     "subtitle": "Votre organiseur familial est en marche et votre compte administrateur est configuré.",
     "open": "Ouvrir Oikos →"
+  },
+  "advanced": {
+    "tag": "Avancé · facultatif",
+    "title": "Paramètres avancés",
+    "subtitle": "Proxy inverse, authentification unique et sauvegardes automatiques. Tout est facultatif — vous pouvez ignorer cette étape.",
+    "proxyLabel": "Comment Oikos est-il exposé ?",
+    "proxyBehindHttps": "Derrière un proxy inverse avec HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Accès direct via localhost / HTTP",
+    "proxyHint": "L'accès direct désactive les cookies sécurisés uniquement afin que la connexion fonctionne sans HTTPS.",
+    "oidc": "Authentification unique (OIDC)",
+    "oidcHint": "Renseignez les quatre champs pour activer le SSO, ou laissez-les vides.",
+    "oidcIssuerLabel": "URL de l'émetteur",
+    "oidcClientIdLabel": "ID client",
+    "oidcClientSecretLabel": "Secret client",
+    "oidcRedirectLabel": "URI de redirection",
+    "errOidc": "OIDC requiert les quatre champs ou aucun.",
+    "backup": "Sauvegardes automatiques",
+    "backupEnable": "Activer les sauvegardes automatiques",
+    "backupScheduleLabel": "Planification (cron)",
+    "backupScheduleHint": "Quand exécuter les sauvegardes. Par défaut : tous les jours à 2 h.",
+    "backupKeepLabel": "Sauvegardes à conserver"
   }
 }

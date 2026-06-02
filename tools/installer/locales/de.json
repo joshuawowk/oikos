@@ -17,7 +17,8 @@
     "portLabel": "Port",
     "tzLabel": "Zeitzone",
     "errHost": "Ungültiger Hostname. Verwende nur Buchstaben, Ziffern, Bindestriche und Punkte.",
-    "errPort": "Ungültiger Port. Muss eine Zahl zwischen 1 und 65535 sein."
+    "errPort": "Ungültiger Port. Muss eine Zahl zwischen 1 und 65535 sein.",
+    "prereqMissing": "Fehlende Voraussetzungen: {{list}}. Bitte installiere sie und lade die Seite neu."
   },
   "secrets": {
     "tag": "Schritt 2 von 7",
@@ -57,7 +58,31 @@
     "appleHint": "Erstelle ein app-spezifisches Passwort unter {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple-ID (E-Mail)",
-    "applePassLabel": "App-spezifisches Passwort"
+    "applePassLabel": "App-spezifisches Passwort",
+    "appleUrlLabel": "CalDAV-URL",
+    "appleUrlOpt": "(optional)",
+    "appleUrlHint": "Leer lassen, sofern dein Anbieter keinen anderen CalDAV-Endpunkt verwendet."
+  },
+  "advanced": {
+    "tag": "Erweitert · optional",
+    "title": "Erweiterte Einstellungen",
+    "subtitle": "Reverse-Proxy, Single Sign-On und automatische Backups. Alles optional — Überspringen ist unbedenklich.",
+    "proxyLabel": "Wie wird Oikos bereitgestellt?",
+    "proxyBehindHttps": "Hinter einem Reverse-Proxy mit HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Direkter Zugriff über localhost / HTTP",
+    "proxyHint": "Direkter Zugriff deaktiviert reine Secure-Cookies, damit der Login ohne HTTPS funktioniert.",
+    "oidc": "Single Sign-On (OIDC)",
+    "oidcHint": "Fülle alle vier Felder aus, um SSO zu aktivieren, oder lass sie leer.",
+    "oidcIssuerLabel": "Issuer-URL",
+    "oidcClientIdLabel": "Client-ID",
+    "oidcClientSecretLabel": "Client-Secret",
+    "oidcRedirectLabel": "Redirect-URI",
+    "errOidc": "OIDC erfordert alle vier Felder oder keines.",
+    "backup": "Automatische Backups",
+    "backupEnable": "Automatische Backups aktivieren",
+    "backupScheduleLabel": "Zeitplan (Cron)",
+    "backupScheduleHint": "Wann Backups laufen. Standard: täglich um 2 Uhr.",
+    "backupKeepLabel": "Aufzubewahrende Backups"
   },
   "review": {
     "tag": "Schritt 5 von 7",

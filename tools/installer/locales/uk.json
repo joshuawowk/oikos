@@ -17,7 +17,8 @@
     "portLabel": "Порт",
     "tzLabel": "Часовий пояс",
     "errHost": "Недійсне ім'я хоста. Використовуйте лише літери, цифри, дефіси та крапки.",
-    "errPort": "Недійсний порт. Має бути числом від 1 до 65535."
+    "errPort": "Недійсний порт. Має бути числом від 1 до 65535.",
+    "prereqMissing": "Відсутні необхідні компоненти: {{list}}. Установіть їх і перезавантажте сторінку."
   },
   "secrets": {
     "tag": "Крок 2 із 7",
@@ -57,7 +58,10 @@
     "appleHint": "Створіть пароль для застосунку на {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple ID (електронна пошта)",
-    "applePassLabel": "Пароль для застосунку"
+    "applePassLabel": "Пароль для застосунку",
+    "appleUrlLabel": "URL CalDAV",
+    "appleUrlOpt": "(необов'язково)",
+    "appleUrlHint": "Залиште порожнім, якщо ваш провайдер не використовує інший CalDAV-ендпоінт."
   },
   "review": {
     "tag": "Крок 5 із 7",
@@ -109,5 +113,26 @@
     "title": "Oikos готовий!",
     "subtitle": "Ваш сімейний планувальник працює, а обліковий запис адміністратора налаштовано.",
     "open": "Відкрити Oikos →"
+  },
+  "advanced": {
+    "tag": "Додатково · необов'язково",
+    "title": "Розширені налаштування",
+    "subtitle": "Зворотний проксі, єдиний вхід і автоматичні резервні копії. Усе необов'язкове — пропустити безпечно.",
+    "proxyLabel": "Як надається доступ до Oikos?",
+    "proxyBehindHttps": "За зворотним проксі з HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Прямий доступ через localhost / HTTP",
+    "proxyHint": "Прямий доступ вимикає лише захищені cookie, щоб вхід працював без HTTPS.",
+    "oidc": "Єдиний вхід (OIDC)",
+    "oidcHint": "Заповніть усі чотири поля, щоб увімкнути SSO, або залиште їх порожніми.",
+    "oidcIssuerLabel": "URL видавця",
+    "oidcClientIdLabel": "Client ID",
+    "oidcClientSecretLabel": "Client Secret",
+    "oidcRedirectLabel": "Redirect URI",
+    "errOidc": "OIDC потребує всіх чотирьох полів або жодного.",
+    "backup": "Автоматичні резервні копії",
+    "backupEnable": "Увімкнути автоматичні резервні копії",
+    "backupScheduleLabel": "Розклад (cron)",
+    "backupScheduleHint": "Коли виконувати резервне копіювання. Типово: щодня о 2:00.",
+    "backupKeepLabel": "Скільки копій зберігати"
   }
 }

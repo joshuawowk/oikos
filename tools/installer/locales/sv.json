@@ -17,7 +17,8 @@
     "portLabel": "Port",
     "tzLabel": "Tidszon",
     "errHost": "Ogiltigt värdnamn. Använd endast bokstäver, siffror, bindestreck och punkter.",
-    "errPort": "Ogiltig port. Måste vara ett tal mellan 1 och 65535."
+    "errPort": "Ogiltig port. Måste vara ett tal mellan 1 och 65535.",
+    "prereqMissing": "Saknade förutsättningar: {{list}}. Installera dem och ladda om sidan."
   },
   "secrets": {
     "tag": "Steg 2 av 7",
@@ -57,7 +58,10 @@
     "appleHint": "Skapa ett appspecifikt lösenord på {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple-ID (e-post)",
-    "applePassLabel": "Appspecifikt lösenord"
+    "applePassLabel": "Appspecifikt lösenord",
+    "appleUrlLabel": "CalDAV-URL",
+    "appleUrlOpt": "(valfritt)",
+    "appleUrlHint": "Lämna tomt om inte din leverantör använder en annan CalDAV-slutpunkt."
   },
   "review": {
     "tag": "Steg 5 av 7",
@@ -109,5 +113,26 @@
     "title": "Oikos är klart!",
     "subtitle": "Din familjeplanerare körs och ditt administratörskonto är konfigurerat.",
     "open": "Öppna Oikos →"
+  },
+  "advanced": {
+    "tag": "Avancerat · valfritt",
+    "title": "Avancerade inställningar",
+    "subtitle": "Omvänd proxy, enkel inloggning och automatiska säkerhetskopior. Allt valfritt — det är säkert att hoppa över.",
+    "proxyLabel": "Hur exponeras Oikos?",
+    "proxyBehindHttps": "Bakom en omvänd proxy med HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Direkt åtkomst via localhost / HTTP",
+    "proxyHint": "Direkt åtkomst inaktiverar cookies som endast är säkra så att inloggning fungerar utan HTTPS.",
+    "oidc": "Enkel inloggning (OIDC)",
+    "oidcHint": "Fyll i alla fyra fält för att aktivera SSO, eller lämna dem tomma.",
+    "oidcIssuerLabel": "Issuer-URL",
+    "oidcClientIdLabel": "Klient-ID",
+    "oidcClientSecretLabel": "Klienthemlighet",
+    "oidcRedirectLabel": "Redirect-URI",
+    "errOidc": "OIDC kräver alla fyra fält eller inga.",
+    "backup": "Automatiska säkerhetskopior",
+    "backupEnable": "Aktivera automatiska säkerhetskopior",
+    "backupScheduleLabel": "Schema (cron)",
+    "backupScheduleHint": "När säkerhetskopior ska köras. Standard: varje dag kl. 02.",
+    "backupKeepLabel": "Antal säkerhetskopior att behålla"
   }
 }

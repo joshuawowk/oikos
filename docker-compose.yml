@@ -18,11 +18,12 @@ services:
       - NODE_ENV=production
       - DB_PATH=${DB_PATH:-/data/oikos.db}
       - BACKUP_DIR=${BACKUP_DIR:-/backups}
-      # Reverse proxy setup (Caddy, nginx, Traefik):
-      #   - Remove SESSION_SECURE=false (default is true)
-      #   - TRUST_PROXY is automatically set to 1 (trust one proxy hop)
-      # Direct HTTP access (no reverse proxy):
-      - SESSION_SECURE=false
+      # Secure cookies come from .env (the installer sets them):
+      #   - Reverse proxy + HTTPS → SESSION_SECURE=true, TRUST_PROXY=1
+      #   - Direct HTTP access     → SESSION_SECURE=false, TRUST_PROXY=loopback
+      # Default when unset (e.g. bare `docker compose up` without .env): false,
+      # so direct HTTP login keeps working out of the box.
+      - SESSION_SECURE=${SESSION_SECURE:-false}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s

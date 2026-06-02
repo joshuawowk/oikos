@@ -64,6 +64,60 @@ export function renderEnvFile(env) {
 }
 
 /**
+ * Resolve true/false for whether a command can be spawned successfully.
+ * Spawn errors (ENOENT) and non-zero exit codes both count as unavailable.
+ */
+export function commandAvailable(cmd, args = ['--version']) {
+  return new Promise(resolvePromise => {
+    let settled = false;
+    const done = ok => { if (!settled) { settled = true; resolvePromise(ok); } };
+    let child;
+    try {
+      child = spawn(cmd, args, { stdio: 'ignore' });
+    } catch {
+      return done(false);
+    }
+    child.on('error', () => done(false));
+    child.on('close', code => done(code === 0));
+  });
+}
+
+/**
+ * Verify the installer's prerequisites (docker + docker compose v2).
+ * `check` is injectable so the result is deterministically testable.
+ * Returns { ok, missing } where missing lists the absent prerequisites.
+ */
+export async function checkPrereqs(check = commandAvailable) {
+  const docker = await check('docker', ['--version']);
+  const compose = docker ? await check('docker', ['compose', 'version']) : false;
+  const missing = [];
+  if (!docker) missing.push('docker');
+  if (!compose) missing.push('docker compose');
+  return { ok: missing.length === 0, missing };
+}
+
+/**
+ * Spawn a detached process and resolve as soon as it has started (or failed
+ * to start). Used for `docker compose up -d`: the 'spawn' event confirms the
+ * launch without waiting for compose to finish; 'error' (e.g. ENOENT when
+ * docker is missing) surfaces the failure to the caller instead of swallowing it.
+ */
+export function spawnStart(cmd, args, opts = {}) {
+  return new Promise(resolvePromise => {
+    let settled = false;
+    const done = v => { if (!settled) { settled = true; resolvePromise(v); } };
+    let child;
+    try {
+      child = spawn(cmd, args, { stdio: 'ignore', ...opts });
+    } catch (err) {
+      return done({ ok: false, error: err.message });
+    }
+    child.on('error', err => done({ ok: false, error: err.message }));
+    child.on('spawn', () => done({ ok: true }));
+  });
+}
+
+/**
  * Copy an existing .env to .env.bak-<ISO timestamp> before it is overwritten.
  * Returns the backup path, or null when there was nothing to back up.
  * Throws on copy failure so the caller can refuse to overwrite.
@@ -160,6 +214,14 @@ async function route(req, res, server) {
     return json(res, 200, { secret: randomBytes(32).toString('hex') });
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/prereqs') {
+    try {
+      return json(res, 200, await checkPrereqs());
+    } catch (err) {
+      return json(res, 500, { ok: false, error: err.message });
+    }
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/preflight') {
     try {
       const envExists = existsSync(resolve(projectRoot(), '.env'));
@@ -204,9 +266,13 @@ async function route(req, res, server) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/start') {
-    const child = spawn('docker', ['compose', 'up', '-d'], { cwd: projectRoot(), stdio: 'pipe' });
-    child.on('error', err => console.error('docker compose error:', err.message));
-    return json(res, 200, { ok: true });
+    try {
+      const result = await spawnStart('docker', ['compose', 'up', '-d'], { cwd: projectRoot() });
+      if (!result.ok) console.error('docker compose error:', result.error);
+      return json(res, result.ok ? 200 : 500, result);
+    } catch (err) {
+      return json(res, 500, { ok: false, error: err.message });
+    }
   }
 
   if (req.method === 'GET' && url.pathname === '/api/status') {

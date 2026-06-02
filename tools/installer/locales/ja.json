@@ -17,7 +17,8 @@
     "portLabel": "ポート",
     "tzLabel": "タイムゾーン",
     "errHost": "ホスト名が無効です。英字、数字、ハイフン、ピリオドのみを使用してください。",
-    "errPort": "ポートが無効です。1 から 65535 までの数値である必要があります。"
+    "errPort": "ポートが無効です。1 から 65535 までの数値である必要があります。",
+    "prereqMissing": "前提条件が不足しています: {{list}}。インストールしてからページを再読み込みしてください。"
   },
   "secrets": {
     "tag": "ステップ 2 / 7",
@@ -57,7 +58,10 @@
     "appleHint": "{{link}} で App 用パスワードを作成します。",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple ID（メール）",
-    "applePassLabel": "App 用パスワード"
+    "applePassLabel": "App 用パスワード",
+    "appleUrlLabel": "CalDAV URL",
+    "appleUrlOpt": "（任意）",
+    "appleUrlHint": "プロバイダーが別の CalDAV エンドポイントを使用していない限り、空のままにしてください。"
   },
   "review": {
     "tag": "ステップ 5 / 7",
@@ -109,5 +113,26 @@
     "title": "Oikos の準備が整いました！",
     "subtitle": "ファミリープランナーが稼働し、管理者アカウントの設定が完了しました。",
     "open": "Oikos を開く →"
+  },
+  "advanced": {
+    "tag": "詳細設定 · 任意",
+    "title": "詳細設定",
+    "subtitle": "リバースプロキシ、シングルサインオン、自動バックアップ。すべて任意です — スキップしても問題ありません。",
+    "proxyLabel": "Oikos はどのように公開されますか？",
+    "proxyBehindHttps": "HTTPS 付きのリバースプロキシの背後（Caddy、nginx、Traefik）",
+    "proxyDirect": "localhost / HTTP による直接アクセス",
+    "proxyHint": "直接アクセスでは secure 限定の Cookie を無効にし、HTTPS なしでもログインできるようにします。",
+    "oidc": "シングルサインオン (OIDC)",
+    "oidcHint": "SSO を有効にするには 4 つすべての項目を入力するか、すべて空のままにしてください。",
+    "oidcIssuerLabel": "Issuer URL",
+    "oidcClientIdLabel": "クライアント ID",
+    "oidcClientSecretLabel": "クライアントシークレット",
+    "oidcRedirectLabel": "リダイレクト URI",
+    "errOidc": "OIDC には 4 つすべての項目が必要です（またはすべて空）。",
+    "backup": "自動バックアップ",
+    "backupEnable": "自動バックアップを有効にする",
+    "backupScheduleLabel": "スケジュール（cron）",
+    "backupScheduleHint": "バックアップを実行するタイミング。既定: 毎日午前 2 時。",
+    "backupKeepLabel": "保持するバックアップ数"
   }
 }

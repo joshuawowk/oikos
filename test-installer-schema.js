@@ -10,14 +10,26 @@ const ORIGINAL_KEYS = [
   'APPLE_USERNAME', 'APPLE_APP_SPECIFIC_PASSWORD', 'SYNC_INTERVAL_MINUTES',
 ];
 
-test('ENV_SCHEMA enthält alle 12 Original-Keys plus TZ und OIKOS_HTTP_PORT (14 gesamt)', () => {
-  assert.equal(ENV_SCHEMA.length, 14);
+// Phase 5 ergänzt Reverse-Proxy-, OIDC- und Backup-Settings sowie APPLE_CALDAV_URL.
+const P5_KEYS = [
+  'APPLE_CALDAV_URL', 'SESSION_SECURE', 'TRUST_PROXY',
+  'OIDC_ISSUER', 'OIDC_CLIENT_ID', 'OIDC_CLIENT_SECRET', 'OIDC_REDIRECT_URI',
+  'BACKUP_ENABLED', 'BACKUP_SCHEDULE', 'BACKUP_KEEP',
+];
+
+const TOTAL_KEYS = ORIGINAL_KEYS.length + 2 + P5_KEYS.length; // + TZ + OIKOS_HTTP_PORT
+
+test('ENV_SCHEMA enthält alle Original-Keys, TZ, OIKOS_HTTP_PORT und die P5-Settings', () => {
+  assert.equal(ENV_SCHEMA.length, TOTAL_KEYS);
   const keys = ENV_SCHEMA.map(e => e.key);
   for (const k of ORIGINAL_KEYS) {
     assert.ok(keys.includes(k), `Key fehlt: ${k}`);
   }
   assert.ok(keys.includes('TZ'), 'Key fehlt: TZ');
   assert.ok(keys.includes('OIKOS_HTTP_PORT'), 'Key fehlt: OIKOS_HTTP_PORT');
+  for (const k of P5_KEYS) {
+    assert.ok(keys.includes(k), `P5-Key fehlt: ${k}`);
+  }
 });
 
 test('TZ und OIKOS_HTTP_PORT haben writeToEnv: true', () => {
@@ -38,10 +50,10 @@ test('Alle Schema-Einträge haben die Pflichtfelder key, type, label, group, wri
   }
 });
 
-test('Schema-Datei enthält genau 14 key-Felder (grep-Parität)', () => {
+test('Schema-Datei enthält genau so viele key-Felder wie Schema-Einträge (grep-Parität)', () => {
   const src = readFileSync(new URL('./tools/installer/env-schema.js', import.meta.url), 'utf8');
   const matches = src.match(/\bkey:/g);
-  assert.equal(matches?.length ?? 0, 14, 'Anzahl "key:"-Vorkommen in env-schema.js stimmt nicht mit 14 überein');
+  assert.equal(matches?.length ?? 0, TOTAL_KEYS, `Anzahl "key:"-Vorkommen in env-schema.js stimmt nicht mit ${TOTAL_KEYS} überein`);
 });
 
 test('/api/defaults-Route in install-server.js liefert ENV_SCHEMA (Snapshot)', () => {

@@ -17,7 +17,8 @@
     "portLabel": "Porta",
     "tzLabel": "Fuso horário",
     "errHost": "Nome de host inválido. Use apenas letras, dígitos, hifens e pontos.",
-    "errPort": "Porta inválida. Deve ser um número entre 1 e 65535."
+    "errPort": "Porta inválida. Deve ser um número entre 1 e 65535.",
+    "prereqMissing": "Pré-requisitos ausentes: {{list}}. Instale-os e recarregue esta página."
   },
   "secrets": {
     "tag": "Passo 2 de 7",
@@ -57,7 +58,10 @@
     "appleHint": "Crie uma senha específica do app em {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple ID (e-mail)",
-    "applePassLabel": "Senha específica do app"
+    "applePassLabel": "Senha específica do app",
+    "appleUrlLabel": "URL do CalDAV",
+    "appleUrlOpt": "(opcional)",
+    "appleUrlHint": "Deixe vazio, a menos que o seu provedor use um endpoint CalDAV diferente."
   },
   "review": {
     "tag": "Passo 5 de 7",
@@ -109,5 +113,26 @@
     "title": "O Oikos está pronto!",
     "subtitle": "Seu organizador familiar está em execução e sua conta de administrador está configurada.",
     "open": "Abrir o Oikos →"
+  },
+  "advanced": {
+    "tag": "Avançado · opcional",
+    "title": "Configurações avançadas",
+    "subtitle": "Proxy reverso, início de sessão único e backups automáticos. Tudo opcional — ignorar é seguro.",
+    "proxyLabel": "Como o Oikos é exposto?",
+    "proxyBehindHttps": "Atrás de um proxy reverso com HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Acesso direto por localhost / HTTP",
+    "proxyHint": "O acesso direto desativa os cookies apenas seguros para que o login funcione sem HTTPS.",
+    "oidc": "Início de sessão único (OIDC)",
+    "oidcHint": "Preencha os quatro campos para ativar o SSO ou deixe-os vazios.",
+    "oidcIssuerLabel": "URL do emissor",
+    "oidcClientIdLabel": "ID do cliente",
+    "oidcClientSecretLabel": "Segredo do cliente",
+    "oidcRedirectLabel": "URI de redirecionamento",
+    "errOidc": "O OIDC exige os quatro campos ou nenhum.",
+    "backup": "Backups automáticos",
+    "backupEnable": "Ativar backups automáticos",
+    "backupScheduleLabel": "Agendamento (cron)",
+    "backupScheduleHint": "Quando executar os backups. Padrão: todos os dias às 2h.",
+    "backupKeepLabel": "Backups a manter"
   }
 }

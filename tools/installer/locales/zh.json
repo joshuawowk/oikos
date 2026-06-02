@@ -17,7 +17,8 @@
     "portLabel": "端口",
     "tzLabel": "时区",
     "errHost": "主机名无效。只能使用字母、数字、连字符和点。",
-    "errPort": "端口无效。必须是 1 到 65535 之间的数字。"
+    "errPort": "端口无效。必须是 1 到 65535 之间的数字。",
+    "prereqMissing": "缺少必要组件：{{list}}。请先安装它们并重新加载此页面。"
   },
   "secrets": {
     "tag": "第 2 步，共 7 步",
@@ -57,7 +58,10 @@
     "appleHint": "在 {{link}} 创建 App 专用密码。",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple ID（电子邮件）",
-    "applePassLabel": "App 专用密码"
+    "applePassLabel": "App 专用密码",
+    "appleUrlLabel": "CalDAV 网址",
+    "appleUrlOpt": "（可选）",
+    "appleUrlHint": "除非你的服务商使用不同的 CalDAV 端点，否则留空即可。"
   },
   "review": {
     "tag": "第 5 步，共 7 步",
@@ -109,5 +113,26 @@
     "title": "Oikos 已就绪！",
     "subtitle": "您的家庭规划器正在运行，管理员账户已设置完成。",
     "open": "打开 Oikos →"
+  },
+  "advanced": {
+    "tag": "高级 · 可选",
+    "title": "高级设置",
+    "subtitle": "反向代理、单点登录和自动备份。全部可选——跳过也很安全。",
+    "proxyLabel": "Oikos 如何对外提供服务？",
+    "proxyBehindHttps": "位于带 HTTPS 的反向代理之后（Caddy、nginx、Traefik）",
+    "proxyDirect": "通过 localhost / HTTP 直接访问",
+    "proxyHint": "直接访问会禁用“仅安全”Cookie，使登录在没有 HTTPS 时也能工作。",
+    "oidc": "单点登录 (OIDC)",
+    "oidcHint": "填写全部四个字段以启用 SSO，或全部留空。",
+    "oidcIssuerLabel": "Issuer 网址",
+    "oidcClientIdLabel": "客户端 ID",
+    "oidcClientSecretLabel": "客户端密钥",
+    "oidcRedirectLabel": "重定向 URI",
+    "errOidc": "OIDC 需要填写全部四个字段或全部留空。",
+    "backup": "自动备份",
+    "backupEnable": "启用自动备份",
+    "backupScheduleLabel": "计划（cron）",
+    "backupScheduleHint": "何时运行备份。默认：每天凌晨 2 点。",
+    "backupKeepLabel": "保留的备份数量"
   }
 }

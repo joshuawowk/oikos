@@ -121,6 +121,9 @@
         <div class="info-banner" id="cfg-existing" style="display:none" data-i18n="config.existing">
           Existing configuration detected — your current .env file will be backed up before saving.
         </div>
+        <div class="error-banner" id="cfg-prereq" data-i18n="config.prereqMissing">
+          Missing prerequisites. Please install them and reload this page.
+        </div>
         <div class="field">
           <label for="cfg-host" data-i18n="config.hostLabel">Domain or IP address</label>
           <input type="text" id="cfg-host" value="localhost" placeholder="localhost or 192.168.1.x">
@@ -257,12 +260,89 @@
               <label for="apple-pass" data-i18n="calendar.applePassLabel">App-Specific Password</label>
               <input type="password" id="apple-pass">
             </div>
+            <div class="field">
+              <label for="apple-url"><span data-i18n="calendar.appleUrlLabel">CalDAV URL</span> <span class="opt" data-i18n="calendar.appleUrlOpt">(optional)</span></label>
+              <input type="text" id="apple-url" placeholder="https://caldav.icloud.com">
+              <div class="hint" data-i18n="calendar.appleUrlHint">Leave empty unless your provider uses a different CalDAV endpoint.</div>
+            </div>
           </div>
         </div>
       </div>
       <div class="card-foot">
         <button class="btn btn-ghost" data-back data-i18n="common.back">Back</button>
         <button class="btn btn-primary" id="cal-next" data-i18n="common.continue">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step: Advanced (optional) -->
+    <div class="step" id="step-advanced">
+      <div class="card-head">
+        <div class="step-tag" data-i18n="advanced.tag">Advanced · optional</div>
+        <h1 data-i18n="advanced.title">Advanced Settings</h1>
+        <p data-i18n="advanced.subtitle">Reverse proxy, single sign-on and automatic backups. All optional — skipping is safe.</p>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label for="adv-proxy" data-i18n="advanced.proxyLabel">How is Oikos exposed?</label>
+          <select id="adv-proxy">
+            <option value="proxy" data-i18n="advanced.proxyBehindHttps">Behind a reverse proxy with HTTPS (Caddy, nginx, Traefik)</option>
+            <option value="direct" data-i18n="advanced.proxyDirect">Direct access over localhost / HTTP</option>
+          </select>
+          <div class="hint" data-i18n="advanced.proxyHint">Direct access disables secure-only cookies so login works without HTTPS.</div>
+        </div>
+
+        <div class="toggle-card">
+          <div class="toggle-head" data-toggle="oidc-body">
+            <span data-i18n="advanced.oidc">Single Sign-On (OIDC)</span>
+            <span class="toggle-badge" data-i18n="common.optional">Optional</span>
+          </div>
+          <div class="toggle-body" id="oidc-body">
+            <p class="hint" style="margin-bottom:12px" data-i18n="advanced.oidcHint">Fill in all four fields to enable SSO, or leave them empty.</p>
+            <div class="field">
+              <label for="oidc-issuer" data-i18n="advanced.oidcIssuerLabel">Issuer URL</label>
+              <input type="text" id="oidc-issuer" placeholder="https://auth.example.com/application/o/oikos/">
+            </div>
+            <div class="field">
+              <label for="oidc-client-id" data-i18n="advanced.oidcClientIdLabel">Client ID</label>
+              <input type="text" id="oidc-client-id">
+            </div>
+            <div class="field">
+              <label for="oidc-client-secret" data-i18n="advanced.oidcClientSecretLabel">Client Secret</label>
+              <input type="password" id="oidc-client-secret">
+            </div>
+            <div class="field">
+              <label for="oidc-redirect" data-i18n="advanced.oidcRedirectLabel">Redirect URI</label>
+              <input type="text" id="oidc-redirect">
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-card">
+          <div class="toggle-head" data-toggle="backup-body">
+            <span data-i18n="advanced.backup">Automatic Backups</span>
+            <span class="toggle-badge" data-i18n="common.optional">Optional</span>
+          </div>
+          <div class="toggle-body" id="backup-body">
+            <div class="field">
+              <label><input type="checkbox" id="adv-backup-enable" checked> <span data-i18n="advanced.backupEnable">Enable automatic backups</span></label>
+            </div>
+            <div class="field">
+              <label for="adv-backup-schedule" data-i18n="advanced.backupScheduleLabel">Schedule (cron)</label>
+              <input type="text" id="adv-backup-schedule" placeholder="0 2 * * *">
+              <div class="hint" data-i18n="advanced.backupScheduleHint">When to run backups. Default: daily at 2 AM.</div>
+            </div>
+            <div class="field">
+              <label for="adv-backup-keep" data-i18n="advanced.backupKeepLabel">Backups to keep</label>
+              <input type="text" id="adv-backup-keep" placeholder="7">
+            </div>
+          </div>
+        </div>
+
+        <div class="error-banner" id="adv-err"></div>
+      </div>
+      <div class="card-foot">
+        <button class="btn btn-ghost" data-back data-i18n="common.back">Back</button>
+        <button class="btn btn-primary" id="adv-next" data-i18n="common.continue">Continue</button>
       </div>
     </div>
 
@@ -398,7 +478,7 @@ appleLink.target = '_blank'; appleLink.rel = 'noopener';
 appleLink.textContent = t('calendar.appleLink');
 applyRich($('apple-hint'), 'calendar.appleHint', { link: appleLink });
 
-const STEPS = ['config','secrets','weather','calendar','review','docker','admin','done'];
+const STEPS = ['config','secrets','weather','calendar','advanced','review','docker','admin','done'];
 let currentStep = 0;
 
 const S = {
@@ -407,7 +487,10 @@ const S = {
   OPENWEATHER_API_KEY: '', OPENWEATHER_CITY: 'Berlin',
   OPENWEATHER_UNITS: 'metric', OPENWEATHER_LANG: 'de',
   GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '', GOOGLE_REDIRECT_URI: '',
-  APPLE_USERNAME: '', APPLE_APP_SPECIFIC_PASSWORD: '',
+  APPLE_USERNAME: '', APPLE_APP_SPECIFIC_PASSWORD: '', APPLE_CALDAV_URL: '',
+  SESSION_SECURE: '', TRUST_PROXY: '',
+  OIDC_ISSUER: '', OIDC_CLIENT_ID: '', OIDC_CLIENT_SECRET: '', OIDC_REDIRECT_URI: '',
+  BACKUP_ENABLED: '', BACKUP_SCHEDULE: '', BACKUP_KEEP: '',
 };
 
 S.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -421,6 +504,21 @@ $('cfg-tz').value = S.tz;
     const d = await r.json();
     if (d.envExists) $('cfg-existing').style.display = 'block';
   } catch { /* preflight is best-effort */ }
+})();
+
+// Verify Docker prerequisites before the wizard can proceed. Missing tools
+// block the first step rather than failing silently when the container starts.
+(async () => {
+  try {
+    const r = await fetch('/api/prereqs');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.ok) {
+      $('cfg-prereq').textContent = t('config.prereqMissing', { list: d.missing.join(', ') });
+      $('cfg-prereq').style.display = 'block';
+      $('cfg-next').disabled = true;
+    }
+  } catch { /* prereq check is best-effort */ }
 })();
 
 function setProgress(n) {
@@ -530,6 +628,43 @@ $('cal-next').addEventListener('click', () => {
     ? `http://${S.host}:${S.port}/api/v1/calendar/google/callback` : '';
   S.APPLE_USERNAME = $('apple-user').value.trim();
   S.APPLE_APP_SPECIFIC_PASSWORD = $('apple-pass').value.trim();
+  S.APPLE_CALDAV_URL = $('apple-url').value.trim();
+
+  // Prefill the OIDC redirect URI from the chosen host/port as a starting point.
+  if (!$('oidc-redirect').value.trim()) {
+    $('oidc-redirect').value = `http://${S.host}:${S.port}/api/v1/auth/oidc/callback`;
+  }
+
+  showStep(4);
+});
+
+$('adv-next').addEventListener('click', () => {
+  // Reverse proxy vs. direct access drives the secure-cookie / trust-proxy pair.
+  if ($('adv-proxy').value === 'direct') {
+    S.SESSION_SECURE = 'false';     // allow login cookies over plain HTTP
+    S.TRUST_PROXY = 'loopback';
+  } else {
+    S.SESSION_SECURE = 'true';      // enforce secure cookies behind the proxy
+    S.TRUST_PROXY = '1';            // trust one proxy hop (Caddy/nginx/Traefik)
+  }
+
+  // OIDC: the server requires all four values or none — enforce that here.
+  const oidc = {
+    OIDC_ISSUER: $('oidc-issuer').value.trim(),
+    OIDC_CLIENT_ID: $('oidc-client-id').value.trim(),
+    OIDC_CLIENT_SECRET: $('oidc-client-secret').value.trim(),
+    OIDC_REDIRECT_URI: $('oidc-redirect').value.trim(),
+  };
+  const filled = Object.values(oidc).filter(Boolean).length;
+  if (filled > 0 && filled < 4) { showErr('adv-err', t('advanced.errOidc')); return; }
+  if (filled === 0) { oidc.OIDC_REDIRECT_URI = ''; }   // don't persist the prefill alone
+  Object.assign(S, oidc);
+  showErr('adv-err', '');
+
+  // Backups: only persist BACKUP_ENABLED=false when explicitly disabled.
+  S.BACKUP_ENABLED = $('adv-backup-enable').checked ? '' : 'false';
+  S.BACKUP_SCHEDULE = $('adv-backup-enable').checked ? $('adv-backup-schedule').value.trim() : '';
+  S.BACKUP_KEEP = $('adv-backup-enable').checked ? $('adv-backup-keep').value.trim() : '';
 
   $('rv-host').textContent    = S.host;
   $('rv-port').textContent    = S.port;
@@ -538,7 +673,7 @@ $('cal-next').addEventListener('click', () => {
   $('rv-google').textContent  = S.GOOGLE_CLIENT_ID ? t('review.configured') : '-';
   $('rv-apple').textContent   = S.APPLE_USERNAME || '-';
 
-  showStep(4);
+  showStep(5);
 });
 
 $('rev-next').addEventListener('click', async () => {
@@ -551,6 +686,11 @@ $('rev-next').addEventListener('click', async () => {
     GOOGLE_CLIENT_ID: S.GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: S.GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI: S.GOOGLE_REDIRECT_URI,
     APPLE_USERNAME: S.APPLE_USERNAME, APPLE_APP_SPECIFIC_PASSWORD: S.APPLE_APP_SPECIFIC_PASSWORD,
+    APPLE_CALDAV_URL: S.APPLE_CALDAV_URL,
+    SESSION_SECURE: S.SESSION_SECURE, TRUST_PROXY: S.TRUST_PROXY,
+    OIDC_ISSUER: S.OIDC_ISSUER, OIDC_CLIENT_ID: S.OIDC_CLIENT_ID,
+    OIDC_CLIENT_SECRET: S.OIDC_CLIENT_SECRET, OIDC_REDIRECT_URI: S.OIDC_REDIRECT_URI,
+    BACKUP_ENABLED: S.BACKUP_ENABLED, BACKUP_SCHEDULE: S.BACKUP_SCHEDULE, BACKUP_KEEP: S.BACKUP_KEEP,
     SYNC_INTERVAL_MINUTES: '15',
     TZ: S.tz, OIKOS_HTTP_PORT: S.port,
   };
@@ -561,7 +701,7 @@ $('rev-next').addEventListener('click', async () => {
       body: JSON.stringify({ env }),
     });
     if (!r.ok) throw new Error(t('review.errSave'));
-    showStep(5);
+    showStep(6);
     startDocker();
   } catch (e) {
     btn.disabled = false; btn.textContent = t('review.save');
@@ -576,7 +716,9 @@ async function startDocker() {
   dockerStart = Date.now();
   tickElapsed();
   try {
-    await fetch('/api/start', { method: 'POST' });
+    const r = await fetch('/api/start', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.ok === false) { dockerFailed(d.error || t('docker.unknownError')); return; }
   } catch (e) {
     dockerFailed(e.message);
     return;
@@ -586,7 +728,7 @@ async function startDocker() {
 
 function tickElapsed() {
   const el = $('dkr-elapsed');
-  if (!el || currentStep !== 5) return;
+  if (!el || currentStep !== 6) return;
   el.textContent = t('docker.elapsed', { n: Math.floor((Date.now() - dockerStart) / 1000) });
   setTimeout(tickElapsed, 1000);
 }
@@ -601,7 +743,7 @@ async function pollDocker() {
       $('dkr-icon').textContent = '✓';
       $('dkr-text').textContent = t('docker.running');
       $('dkr-foot').style.display = 'flex';
-      $('dkr-next').addEventListener('click', () => showStep(6));
+      $('dkr-next').addEventListener('click', () => showStep(7));
     } else if (d.status === 'error') {
       clearInterval(pollInterval);
       dockerFailed(d.logs || t('docker.unknownError'));
@@ -618,7 +760,7 @@ function dockerFailed(logs) {
   logEl.textContent = logs;
   $('dkr-foot').style.display = 'flex';
   $('dkr-next').textContent = t('docker.retry');
-  $('dkr-next').addEventListener('click', () => { showStep(5); startDocker(); }, { once: true });
+  $('dkr-next').addEventListener('click', () => { showStep(6); startDocker(); }, { once: true });
 }
 
 $('adm-next').addEventListener('click', createAdmin);
@@ -647,7 +789,7 @@ async function createAdmin() {
       appUrl.hostname = S.host;
       appUrl.port = S.port;
       $('done-link').href = appUrl.href;
-      showStep(7);
+      showStep(8);
     } else {
       btn.disabled = false; btn.textContent = t('admin.create');
       showErr('adm-err', d.error || t('admin.errCreate'));

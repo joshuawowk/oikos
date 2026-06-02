@@ -17,7 +17,8 @@
     "portLabel": "Port",
     "tzLabel": "Strefa czasowa",
     "errHost": "Nieprawidłowa nazwa hosta. Używaj tylko liter, cyfr, myślników i kropek.",
-    "errPort": "Nieprawidłowy port. Musi być liczbą od 1 do 65535."
+    "errPort": "Nieprawidłowy port. Musi być liczbą od 1 do 65535.",
+    "prereqMissing": "Brak wymaganych składników: {{list}}. Zainstaluj je i odśwież tę stronę."
   },
   "secrets": {
     "tag": "Krok 2 z 7",
@@ -57,7 +58,10 @@
     "appleHint": "Utwórz hasło specyficzne dla aplikacji na {{link}}.",
     "appleLink": "appleid.apple.com",
     "appleUserLabel": "Apple ID (e-mail)",
-    "applePassLabel": "Hasło specyficzne dla aplikacji"
+    "applePassLabel": "Hasło specyficzne dla aplikacji",
+    "appleUrlLabel": "Adres URL CalDAV",
+    "appleUrlOpt": "(opcjonalnie)",
+    "appleUrlHint": "Pozostaw puste, chyba że Twój dostawca używa innego punktu końcowego CalDAV."
   },
   "review": {
     "tag": "Krok 5 z 7",
@@ -109,5 +113,26 @@
     "title": "Oikos jest gotowy!",
     "subtitle": "Twój planer rodzinny działa, a konto administratora jest skonfigurowane.",
     "open": "Otwórz Oikos →"
+  },
+  "advanced": {
+    "tag": "Zaawansowane · opcjonalne",
+    "title": "Ustawienia zaawansowane",
+    "subtitle": "Reverse proxy, logowanie jednokrotne i automatyczne kopie zapasowe. Wszystko opcjonalne — pominięcie jest bezpieczne.",
+    "proxyLabel": "Jak udostępniany jest Oikos?",
+    "proxyBehindHttps": "Za reverse proxy z HTTPS (Caddy, nginx, Traefik)",
+    "proxyDirect": "Bezpośredni dostęp przez localhost / HTTP",
+    "proxyHint": "Dostęp bezpośredni wyłącza pliki cookie tylko-bezpieczne, aby logowanie działało bez HTTPS.",
+    "oidc": "Logowanie jednokrotne (OIDC)",
+    "oidcHint": "Wypełnij wszystkie cztery pola, aby włączyć SSO, albo pozostaw je puste.",
+    "oidcIssuerLabel": "Adres URL wystawcy",
+    "oidcClientIdLabel": "Identyfikator klienta",
+    "oidcClientSecretLabel": "Sekret klienta",
+    "oidcRedirectLabel": "Identyfikator URI przekierowania",
+    "errOidc": "OIDC wymaga wszystkich czterech pól albo żadnego.",
+    "backup": "Automatyczne kopie zapasowe",
+    "backupEnable": "Włącz automatyczne kopie zapasowe",
+    "backupScheduleLabel": "Harmonogram (cron)",
+    "backupScheduleHint": "Kiedy wykonywać kopie zapasowe. Domyślnie: codziennie o 2:00.",
+    "backupKeepLabel": "Liczba kopii do zachowania"
   }
 }
