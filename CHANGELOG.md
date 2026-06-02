@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.55.16] - 2026-06-02
+
+### Fixed
+- `TRUST_PROXY` environment variable is now parsed correctly: numeric values like `1` are treated as a hop count (not an IP address), so `req.ip` returns the real client IP when running behind a reverse proxy such as Traefik or nginx. Subnet strings (e.g. `172.16.0.0/12`) and named values (`loopback`) continue to work as before.
+- `.env.example` documents `TRUST_PROXY` with examples for Traefik/Docker setups.
+
 ## [0.55.15] - 2026-06-01
 
 ### Fixed
