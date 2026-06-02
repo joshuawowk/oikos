@@ -32,7 +32,7 @@ function mockResponse(status, body = {}, headers = {}) {
   });
 }
 
-const { api, auth, ApiError } = await import('./public/api.js');
+const { api, auth, ApiError } = await import('../public/api.js');
 
 function setup() {
   dispatchedEvents = [];

@@ -6,7 +6,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import Database from 'better-sqlite3';
-import { MIGRATIONS } from './server/db.js';
+import { MIGRATIONS } from '../server/db.js';
 
 const TEST_DB = ':memory:';
 
@@ -494,7 +494,7 @@ describe('CardDAV Sync Service', () => {
     testDb.exec(migration30.up);
 
     // Import parseVCard helper for testing
-    const cardavSync = await import('./server/services/cardav-sync.js');
+    const cardavSync = await import('../server/services/cardav-sync.js');
     parseVCard = cardavSync.parseVCard;
   });
 
@@ -1236,7 +1236,7 @@ describe('Multi-Value Validators', () => {
   let validatePhones, validateEmails, validateAddresses;
 
   before(async () => {
-    const validators = await import('./server/routes/contacts.js');
+    const validators = await import('../server/routes/contacts.js');
     validatePhones = validators.validatePhones;
     validateEmails = validators.validateEmails;
     validateAddresses = validators.validateAddresses;
@@ -1511,11 +1511,11 @@ describe('CardDAV API Routes', () => {
     apiTestDb.exec(migration30.up);
 
     // Override db.get() to use our test database
-    const dbModule = await import('./server/db.js');
+    const dbModule = await import('../server/db.js');
     dbModule._setTestDatabase(apiTestDb);
 
     // Mock testConnection for API route tests
-    const cardavSync = await import('./server/services/cardav-sync.js');
+    const cardavSync = await import('../server/services/cardav-sync.js');
     cardavSync._mockTestConnection(async () => ({
       ok: true,
       addressbooks: [
@@ -1534,11 +1534,11 @@ describe('CardDAV API Routes', () => {
 
   after(async () => {
     // Restore original database
-    const dbModule = await import('./server/db.js');
+    const dbModule = await import('../server/db.js');
     dbModule._resetTestDatabase();
 
     // Reset testConnection mock
-    const cardavSync = await import('./server/services/cardav-sync.js');
+    const cardavSync = await import('../server/services/cardav-sync.js');
     cardavSync._mockTestConnection(null);
 
     // Reset syncAccount mock
@@ -1547,7 +1547,7 @@ describe('CardDAV API Routes', () => {
 
   describe('Account Management', () => {
     it('GET /accounts - should return empty array when no accounts', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       const req = { params: {}, query: {}, body: {} };
       const res = {
@@ -1575,7 +1575,7 @@ describe('CardDAV API Routes', () => {
         VALUES (?, ?, ?, ?, ?)
       `).run('Test iCloud', 'https://contacts.icloud.com', 'test@icloud.com', 'secret', '2026-05-01T10:00:00Z');
 
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
       const req = { params: {}, query: {}, body: {} };
       const res = {
         statusCode: 200,
@@ -1602,7 +1602,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('POST /accounts - should create account and discover addressbooks', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       const req = {
         params: {},
@@ -1635,7 +1635,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('POST /accounts - should return 400 for missing name', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       const req = {
         params: {},
@@ -1663,7 +1663,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('DELETE /accounts/:id - should delete account and cascade addressbooks', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       // First create an account to delete
       const createReq = {
@@ -1713,7 +1713,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('DELETE /accounts/:id - should return 400 for invalid ID', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       const req = {
         params: { id: 'invalid' },
@@ -1747,7 +1747,7 @@ describe('CardDAV API Routes', () => {
 
       const accountId = result.lastInsertRowid;
 
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       // Test connection
       const req = {
@@ -1774,7 +1774,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('GET /accounts/:id/addressbooks - should list addressbooks', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       // Create account first
       const createReq = {
@@ -1831,7 +1831,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('GET /accounts/:id/addressbooks - should return empty array when none', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       const req = {
         params: { id: '99999' },
@@ -1856,7 +1856,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('POST /accounts/:id/addressbooks/refresh - should refresh addressbooks', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       // Create account first
       const createReq = {
@@ -1908,7 +1908,7 @@ describe('CardDAV API Routes', () => {
 
   describe('Addressbook Management', () => {
     it('PUT /addressbooks/:id - should toggle addressbook enabled/disabled', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       // First create an account (which creates addressbooks)
       const createReq = {
@@ -1983,7 +1983,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('PUT /addressbooks/:id - should return 400 for invalid enabled value', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       const req = {
         params: { id: '1' },
@@ -2009,7 +2009,7 @@ describe('CardDAV API Routes', () => {
 
   describe('Sync', () => {
     it('POST /accounts/:id/sync - should sync all enabled addressbooks', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       // Create account (which creates addressbooks)
       const createReq = {
@@ -2061,7 +2061,7 @@ describe('CardDAV API Routes', () => {
     });
 
     it('POST /accounts/:id/sync - should return 404 for non-existent account', async () => {
-      const cardavRouter = await import('./server/routes/cardav.js');
+      const cardavRouter = await import('../server/routes/cardav.js');
 
       const req = {
         params: { id: '99999' },
@@ -2129,13 +2129,13 @@ describe('Contacts API - Multi-Value Fields', () => {
     contactsApiDb.exec(migration30.up);
 
     // Override db.get() to use our test database
-    const dbModule = await import('./server/db.js');
+    const dbModule = await import('../server/db.js');
     dbModule._setTestDatabase(contactsApiDb);
   });
 
   after(async () => {
     // Restore original database
-    const dbModule = await import('./server/db.js');
+    const dbModule = await import('../server/db.js');
     dbModule._resetTestDatabase();
   });
 
@@ -2183,7 +2183,7 @@ describe('Contacts API - Multi-Value Fields', () => {
       `).run(contactId, 'Arbeit', 'Arbeitsweg 10', 'München', '80331', 'Deutschland', 0);
 
       // Call GET /contacts/:id
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       const req = {
         params: { id: String(contactId) },
@@ -2266,7 +2266,7 @@ describe('Contacts API - Multi-Value Fields', () => {
       const contactId = result.lastInsertRowid;
 
       // Call GET /contacts/:id
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       const req = {
         params: { id: String(contactId) },
@@ -2300,7 +2300,7 @@ describe('Contacts API - Multi-Value Fields', () => {
 
   describe('POST /contacts', () => {
     it('should create contact with multi-value fields', async () => {
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       const req = {
         params: {},
@@ -2380,7 +2380,7 @@ describe('Contacts API - Multi-Value Fields', () => {
     });
 
     it('should validate phones array and return 400 on invalid data', async () => {
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       const req = {
         params: {},
@@ -2410,7 +2410,7 @@ describe('Contacts API - Multi-Value Fields', () => {
     });
 
     it('should create contact without multi-value fields (backwards compatible)', async () => {
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       const req = {
         params: {},
@@ -2448,7 +2448,7 @@ describe('Contacts API - Multi-Value Fields', () => {
 
   describe('PUT /contacts/:id', () => {
     it('should update contact with multi-value fields (replacement semantics)', async () => {
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       // First create a contact with multi-value fields
       const createReq = {
@@ -2535,7 +2535,7 @@ describe('Contacts API - Multi-Value Fields', () => {
     });
 
     it('should return 400 for invalid multi-value data', async () => {
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       // Create a contact first
       const createReq = {
@@ -2584,7 +2584,7 @@ describe('Contacts API - Multi-Value Fields', () => {
     });
 
     it('should update contact without multi-value fields (backwards compatible)', async () => {
-      const contactsRouter = await import('./server/routes/contacts.js');
+      const contactsRouter = await import('../server/routes/contacts.js');
 
       // Create contact with multi-value fields
       const createReq = {

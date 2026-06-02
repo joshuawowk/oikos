@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 
-import { SUPPORTED_LOCALES } from './tools/installer/i18n-mini.js';
+import { SUPPORTED_LOCALES } from '../tools/installer/i18n-mini.js';
 
-const CLI_LOCALES_DIR = new URL('./tools/installer/locales/cli/', import.meta.url);
-const INSTALL_SH = new URL('./install.sh', import.meta.url);
+const CLI_LOCALES_DIR = new URL('../tools/installer/locales/cli/', import.meta.url);
+const INSTALL_SH = new URL('../install.sh', import.meta.url);
 const REFERENCE = 'en'; // Fallback-/Schlüssel-Referenz; de muss schlüsselidentisch sein.
 
 /** Variablennamen (MSG_…) aus einer gesourcten Locale-Datei extrahieren. */

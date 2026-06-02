@@ -6,8 +6,8 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import nodeAssert from 'node:assert/strict';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
-import { budgetCategoryLabelKey } from './public/utils/category-labels.js';
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
+import { budgetCategoryLabelKey } from '../public/utils/category-labels.js';
 
 let passed = 0;
 let failed = 0;

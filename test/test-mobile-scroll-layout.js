@@ -8,10 +8,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const routerJs = readFileSync(new URL('./public/router.js', import.meta.url), 'utf8');
-const layoutCss = readFileSync(new URL('./public/styles/layout.css', import.meta.url), 'utf8');
-const glassCss = readFileSync(new URL('./public/styles/glass.css', import.meta.url), 'utf8');
-const tokensCss = readFileSync(new URL('./public/styles/tokens.css', import.meta.url), 'utf8');
+const routerJs = readFileSync(new URL('../public/router.js', import.meta.url), 'utf8');
+const layoutCss = readFileSync(new URL('../public/styles/layout.css', import.meta.url), 'utf8');
+const glassCss = readFileSync(new URL('../public/styles/glass.css', import.meta.url), 'utf8');
+const tokensCss = readFileSync(new URL('../public/styles/tokens.css', import.meta.url), 'utf8');
 
 function cssRuleBody(css, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

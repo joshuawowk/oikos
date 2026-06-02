@@ -18,7 +18,7 @@ const { stagger, vibrate, deleteWithUndo } = await (async () => {
     writable: true,
     configurable: true,
   });
-  return import('./public/utils/ux.js');
+  return import('../public/utils/ux.js');
 })();
 
 const dateStore = new Map();
@@ -28,7 +28,7 @@ global.localStorage = {
   removeItem: (key) => dateStore.delete(key),
 };
 
-const { parseDateInput, isDateInputValid } = await import('./public/i18n.js');
+const { parseDateInput, isDateInputValid } = await import('../public/i18n.js');
 
 test('stagger: setzt opacity:0 auf alle Elemente', () => {
   const els = [{ style: {} }, { style: {} }, { style: {} }];
@@ -54,8 +54,8 @@ test('date inputs: accept hyphen separators for YMD dates', () => {
 });
 
 test('task create date fields use a keyboard that allows separators', () => {
-  const tasksSource = readFileSync(new URL('./public/pages/tasks.js', import.meta.url), 'utf8');
-  const rruleSource = readFileSync(new URL('./public/rrule-ui.js', import.meta.url), 'utf8');
+  const tasksSource = readFileSync(new URL('../public/pages/tasks.js', import.meta.url), 'utf8');
+  const rruleSource = readFileSync(new URL('../public/rrule-ui.js', import.meta.url), 'utf8');
   assert.match(tasksSource, /name="start_date"[\s\S]*?inputmode="text"/);
   assert.match(tasksSource, /name="due_date"[\s\S]*?inputmode="text"/);
   assert.match(rruleSource, /id="\$\{prefix\}-rrule-until"[\s\S]*?inputmode="text"/);

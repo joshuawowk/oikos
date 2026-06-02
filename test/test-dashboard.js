@@ -6,8 +6,8 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import { register } from 'node:module';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
-import { hydrateBirthday } from './server/services/birthdays.js';
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
+import { hydrateBirthday } from '../server/services/birthdays.js';
 
 register('./test-browser-loader.mjs', import.meta.url);
 
@@ -110,7 +110,7 @@ db.prepare(`INSERT INTO budget_entries (title, amount, category, subcategory, da
 console.log('\n[Dashboard-Test] API-Abfragen\n');
 
 test('Today-Highlights priorisieren dringende Aufgaben und nächsten Termin', async () => {
-  const { __test } = await import('./public/pages/dashboard.js');
+  const { __test } = await import('../public/pages/dashboard.js');
   const result = __test.buildTodayHighlights({
     tasks: [
       { id: 1, title: 'Low task', priority: 'low' },

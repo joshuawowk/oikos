@@ -31,11 +31,11 @@ function resolveLocaleKey(obj, key) {
 }
 
 function assertKeysExistInEveryLocale(keys) {
-  const localeFiles = readdirSync(new URL('./public/locales/', import.meta.url))
+  const localeFiles = readdirSync(new URL('../public/locales/', import.meta.url))
     .filter((file) => file.endsWith('.json'));
   const locales = localeFiles.map((file) => ({
     file,
-    data: JSON.parse(read(`./public/locales/${file}`)),
+    data: JSON.parse(read(`../public/locales/${file}`)),
   }));
   const missing = [];
 
@@ -63,12 +63,12 @@ function assertRuleUsesToken(css, selector, property, token, file) {
 
 test('audited frontend files do not assign innerHTML', () => {
   const files = [
-    './public/components/oikos-install-prompt.js',
-    './public/pages/notes.js',
-    './public/pages/meals.js',
-    './public/pages/contacts.js',
-    './public/pages/documents.js',
-    './public/pages/housekeeping.js',
+    '../public/components/oikos-install-prompt.js',
+    '../public/pages/notes.js',
+    '../public/pages/meals.js',
+    '../public/pages/contacts.js',
+    '../public/pages/documents.js',
+    '../public/pages/housekeeping.js',
   ];
 
   for (const file of files) {
@@ -79,13 +79,13 @@ test('audited frontend files do not assign innerHTML', () => {
 test('static frontend translation keys exist in every locale', () => {
   const keys = new Set();
 
-  for (const file of walkJsFiles('./public/')) {
+  for (const file of walkJsFiles('../public/')) {
     const source = read(file);
     [...source.matchAll(/\bt\(\s*(['"])([^'"]+)\1/g)].forEach((match) => keys.add(match[2]));
     [...source.matchAll(/labelKey:\s*['"]([^'"]+)['"]/g)].forEach((match) => keys.add(match[1]));
   }
 
-  for (const file of walkFrontendFiles('./public/')) {
+  for (const file of walkFrontendFiles('../public/')) {
     const source = read(file);
     [...source.matchAll(/data-i18n=["']([^"']+)["']/g)].forEach((match) => keys.add(match[1]));
   }
@@ -116,10 +116,10 @@ test('dynamic frontend translation key domains exist in every locale', () => {
 });
 
 test('service worker precaches every supported locale file', () => {
-  const i18n = read('./public/i18n.js');
-  const sw = read('./public/sw.js');
+  const i18n = read('../public/i18n.js');
+  const sw = read('../public/sw.js');
   const supportedLocales = [...i18n.match(/SUPPORTED_LOCALES\s*=\s*\[([^\]]+)\]/)?.[1].matchAll(/'([^']+)'/g)].map((match) => match[1]);
-  const localeFiles = readdirSync(new URL('./public/locales/', import.meta.url))
+  const localeFiles = readdirSync(new URL('../public/locales/', import.meta.url))
     .filter((file) => file.endsWith('.json'))
     .map((file) => file.replace(/\.json$/, ''))
     .sort();
@@ -130,8 +130,8 @@ test('service worker precaches every supported locale file', () => {
 });
 
 test('install prompt waits for initial translations before rendering text', () => {
-  const i18n = read('./public/i18n.js');
-  const prompt = read('./public/components/oikos-install-prompt.js');
+  const i18n = read('../public/i18n.js');
+  const prompt = read('../public/components/oikos-install-prompt.js');
 
   assert.match(i18n, /export function whenI18nReady/);
   assert.match(prompt, /import \{ t,\s*whenI18nReady \} from '\/i18n\.js';/);
@@ -139,38 +139,38 @@ test('install prompt waits for initial translations before rendering text', () =
 });
 
 test('date helpers produce local YYYY-MM-DD keys without toISOString slicing', async () => {
-  const { toLocalDateKey } = await import('./public/utils/date.js');
+  const { toLocalDateKey } = await import('../public/utils/date.js');
   const date = new Date(2026, 4, 24, 2, 30, 0);
   assert.equal(toLocalDateKey(date), '2026-05-24');
 });
 
 test('meals and budget pages do not slice toISOString for date keys', () => {
-  for (const file of ['./public/pages/meals.js', './public/pages/budget.js']) {
+  for (const file of ['../public/pages/meals.js', '../public/pages/budget.js']) {
     assert.doesNotMatch(read(file), /toISOString\(\)\.slice\(0,\s*10\)/, `${file} must use local date keys`);
   }
 });
 
 test('shared sub-tabs wire tabs to panels with aria-controls and aria-labelledby support', () => {
-  const source = read('./public/utils/sub-tabs.js');
+  const source = read('../public/utils/sub-tabs.js');
   assert.match(source, /btn\.id\s*=/);
   assert.match(source, /aria-controls/);
   assert.match(source, /aria-labelledby/);
 });
 
 test('settings theme toggle exposes pressed state', () => {
-  const source = read('./public/pages/settings.js');
+  const source = read('../public/pages/settings.js');
   assert.match(source, /aria-pressed/);
   assert.match(source, /setAttribute\('aria-pressed'/);
 });
 
 test('router hides inactive overlays from keyboard focus', () => {
-  const source = read('./public/router.js');
+  const source = read('../public/router.js');
   assert.match(source, /\.inert\s*=/);
   assert.match(source, /returnFocus/);
 });
 
 test('mobile More sheet trigger controls its dialog and traps keyboard focus', () => {
-  const source = read('./public/router.js');
+  const source = read('../public/router.js');
 
   assert.match(source, /moreBtn\.setAttribute\('aria-controls',\s*'more-sheet'\)/);
   assert.match(source, /const currentMoreBtn = \(\) => container\.querySelector\('#more-btn'\) \|\| moreBtn/);
@@ -183,7 +183,7 @@ test('mobile More sheet trigger controls its dialog and traps keyboard focus', (
 });
 
 test('More button active state keeps visible More identity and accessible active context', () => {
-  const source = read('./public/router.js');
+  const source = read('../public/router.js');
 
   assert.match(source, /function\s+setMoreButtonState/);
   assert.match(source, /moreBtn\.setAttribute\('aria-current',\s*'page'\)/);
@@ -193,7 +193,7 @@ test('More button active state keeps visible More identity and accessible active
 });
 
 test('mobile Kitchen and More nav buttons keep colored icon wells while inactive', () => {
-  const source = read('./public/router.js');
+  const source = read('../public/router.js');
 
   assert.match(source, /kitchenBtn\.style\.setProperty\('--item-module-accent',\s*'var\(--module-meals\)'\)/);
   assert.match(source, /moreBtn\.style\.setProperty\('--item-module-accent',\s*'var\(--color-accent\)'\)/);
@@ -202,7 +202,7 @@ test('mobile Kitchen and More nav buttons keep colored icon wells while inactive
 });
 
 test('More sheet closes route clicks through delegated handler after rebuilds', () => {
-  const source = read('./public/router.js');
+  const source = read('../public/router.js');
 
   assert.match(source, /sheet\.addEventListener\('click',\s*\(e\) =>/);
   assert.match(source, /e\.target\.closest\('\[data-route\]'\)/);
@@ -210,8 +210,8 @@ test('More sheet closes route clicks through delegated handler after rebuilds', 
 });
 
 test('More sheet search trigger is a native button with visible focus styling', () => {
-  const router = read('./public/router.js');
-  const layout = read('./public/styles/layout.css');
+  const router = read('../public/router.js');
+  const layout = read('../public/styles/layout.css');
   const focusRule = cssRuleBody(layout, '.more-sheet__search:focus-visible');
 
   assert.match(router, /const moreSearchBar = document\.createElement\('button'\)/);
@@ -222,7 +222,7 @@ test('More sheet search trigger is a native button with visible focus styling', 
 });
 
 test('SPA navigation can move focus to main content after route changes', () => {
-  const source = read('./public/router.js');
+  const source = read('../public/router.js');
 
   assert.match(source, /main\.tabIndex\s*=\s*-1/);
   assert.match(source, /function\s+focusMainContentAfterNavigation/);
@@ -230,7 +230,7 @@ test('SPA navigation can move focus to main content after route changes', () => 
 });
 
 test('bottom navigation labels are constrained against localized overflow', () => {
-  const layout = read('./public/styles/layout.css');
+  const layout = read('../public/styles/layout.css');
   const labelRule = cssRuleBody(layout, '.nav-item__label');
 
   assert.match(labelRule, /max-width:\s*100%/);
@@ -240,7 +240,7 @@ test('bottom navigation labels are constrained against localized overflow', () =
 });
 
 test('mobile bottom navigation avoids clipped Android labels and sparse icon spacing', () => {
-  const layout = read('./public/styles/layout.css');
+  const layout = read('../public/styles/layout.css');
   const navItemRule = cssRuleBody(layout, '.nav-bottom .nav-item');
   const iconWellRule = cssRuleBody(layout, '.nav-bottom .nav-item__icon-well');
   const labelRule = cssRuleBody(layout, '.nav-bottom .nav-item__label');
@@ -253,9 +253,9 @@ test('mobile bottom navigation avoids clipped Android labels and sparse icon spa
 });
 
 test('phase 3 high-frequency controls use tokenized touch targets', () => {
-  const tasks = read('./public/styles/tasks.css');
-  const shopping = read('./public/styles/shopping.css');
-  const notes = read('./public/styles/notes.css');
+  const tasks = read('../public/styles/tasks.css');
+  const shopping = read('../public/styles/shopping.css');
+  const notes = read('../public/styles/notes.css');
 
   assert.match(tasks, /\.task-status-btn::before[\s\S]*var\(--target-base\)/);
   assert.match(tasks, /\.task-bulk-checkbox[\s\S]*(?:min-width|width):\s*var\(--target-base\)/);
@@ -271,8 +271,8 @@ test('phase 3 high-frequency controls use tokenized touch targets', () => {
 });
 
 test('phase 3 mobile Tasks toolbar collapses secondary controls into one overflow trigger', () => {
-  const tasksPage = read('./public/pages/tasks.js');
-  const tasksCss = read('./public/styles/tasks.css');
+  const tasksPage = read('../public/pages/tasks.js');
+  const tasksCss = read('../public/styles/tasks.css');
 
   assert.match(tasksPage, /<details class="tasks-toolbar__secondary"/);
   assert.match(tasksPage, /class="btn btn--ghost btn--icon tasks-toolbar__secondary-trigger"/);
@@ -288,8 +288,8 @@ test('phase 3 mobile Tasks toolbar collapses secondary controls into one overflo
 });
 
 test('phase 3 Tasks bulk actions stay de-emphasized until tasks are selected', () => {
-  const tasksPage = read('./public/pages/tasks.js');
-  const tasksCss = read('./public/styles/tasks.css');
+  const tasksPage = read('../public/pages/tasks.js');
+  const tasksCss = read('../public/styles/tasks.css');
 
   assert.match(tasksPage, /bar\.hidden\s*=\s*!\(state\.bulkSelectMode && selected > 0\)/);
   assert.match(tasksPage, /bar\.classList\.toggle\('bulk-actions-bar--active',\s*selected > 0\)/);
@@ -299,8 +299,8 @@ test('phase 3 Tasks bulk actions stay de-emphasized until tasks are selected', (
 });
 
 test('phase 3 mobile Shopping quick-add separates name, quantity, category, and add controls', () => {
-  const shoppingPage = read('./public/pages/shopping.js');
-  const shoppingCss = read('./public/styles/shopping.css');
+  const shoppingPage = read('../public/pages/shopping.js');
+  const shoppingCss = read('../public/styles/shopping.css');
 
   assert.match(shoppingPage, /<div class="quick-add__input-wrap">[\s\S]*id="item-name-input"[\s\S]*id="autocomplete-dropdown" hidden[\s\S]*<\/div>\s*<input class="quick-add__qty"/);
   assert.match(
@@ -313,17 +313,17 @@ test('phase 3 mobile Shopping quick-add separates name, quantity, category, and 
 });
 
 test('phase 6 touched UI files continue using design tokens for target sizes', () => {
-  const tasks = read('./public/styles/tasks.css');
-  const shopping = read('./public/styles/shopping.css');
-  const notes = read('./public/styles/notes.css');
-  const contacts = read('./public/styles/contacts.css');
+  const tasks = read('../public/styles/tasks.css');
+  const shopping = read('../public/styles/shopping.css');
+  const notes = read('../public/styles/notes.css');
+  const contacts = read('../public/styles/contacts.css');
   const targetRules = [
-    ['./public/styles/tasks.css', tasks, '.task-status-btn'],
-    ['./public/styles/shopping.css', shopping, '.quick-add__btn'],
-    ['./public/styles/shopping.css', shopping, '.item-check'],
-    ['./public/styles/notes.css', notes, '.note-card__pin'],
-    ['./public/styles/notes.css', notes, '.note-card__delete'],
-    ['./public/styles/contacts.css', contacts, '.contact-action-btn'],
+    ['../public/styles/tasks.css', tasks, '.task-status-btn'],
+    ['../public/styles/shopping.css', shopping, '.quick-add__btn'],
+    ['../public/styles/shopping.css', shopping, '.item-check'],
+    ['../public/styles/notes.css', notes, '.note-card__pin'],
+    ['../public/styles/notes.css', notes, '.note-card__delete'],
+    ['../public/styles/contacts.css', contacts, '.contact-action-btn'],
   ];
 
   for (const [file, source, selector] of targetRules) {
@@ -336,20 +336,20 @@ test('phase 6 touched UI files continue using design tokens for target sizes', (
   }
 
   for (const property of ['width', 'height']) {
-    assertRuleUsesToken(tasks, '.task-status-btn', property, '--target-base', './public/styles/tasks.css');
-    assertRuleUsesToken(shopping, '.quick-add__btn', property, '--target-base', './public/styles/shopping.css');
-    assertRuleUsesToken(shopping, '.item-check', property, '--target-base', './public/styles/shopping.css');
-    assertRuleUsesToken(notes, '.note-card__pin', property, '--target-base', './public/styles/notes.css');
-    assertRuleUsesToken(notes, '.note-card__delete', property, '--target-base', './public/styles/notes.css');
-    assertRuleUsesToken(contacts, '.contact-action-btn', property, '--target-lg', './public/styles/contacts.css');
+    assertRuleUsesToken(tasks, '.task-status-btn', property, '--target-base', '../public/styles/tasks.css');
+    assertRuleUsesToken(shopping, '.quick-add__btn', property, '--target-base', '../public/styles/shopping.css');
+    assertRuleUsesToken(shopping, '.item-check', property, '--target-base', '../public/styles/shopping.css');
+    assertRuleUsesToken(notes, '.note-card__pin', property, '--target-base', '../public/styles/notes.css');
+    assertRuleUsesToken(notes, '.note-card__delete', property, '--target-base', '../public/styles/notes.css');
+    assertRuleUsesToken(contacts, '.contact-action-btn', property, '--target-lg', '../public/styles/contacts.css');
   }
 
-  assertRuleUsesToken(contacts, '.contact-action-btn', 'min-height', '--target-lg', './public/styles/contacts.css');
-  assertRuleUsesToken(contacts, '.contact-action-btn', 'min-width', '--target-lg', './public/styles/contacts.css');
+  assertRuleUsesToken(contacts, '.contact-action-btn', 'min-height', '--target-lg', '../public/styles/contacts.css');
+  assertRuleUsesToken(contacts, '.contact-action-btn', 'min-width', '--target-lg', '../public/styles/contacts.css');
 });
 
 test('phase 4 keeps Kitchen navigation identity stable', () => {
-  const routerSource = read('./public/router.js');
+  const routerSource = read('../public/router.js');
 
   assert.match(routerSource, /t\('nav\.kitchen'\)/);
   assert.match(routerSource, /t\('nav\.kitchenActiveLabel',\s*\{\s*section/);
@@ -360,7 +360,7 @@ test('phase 4 keeps Kitchen navigation identity stable', () => {
 });
 
 test('phase 4 keeps More bottom-nav identity stable while exposing active section accessibly', () => {
-  const routerSource = read('./public/router.js');
+  const routerSource = read('../public/router.js');
 
   assert.match(routerSource, /t\('nav\.moreActiveLabel',\s*\{\s*section:\s*activeSecondary\.label\s*\}\)/);
   assert.match(routerSource, /moreBtnLabel\.textContent\s*=\s*t\('nav\.more'\)/);
@@ -370,7 +370,7 @@ test('phase 4 keeps More bottom-nav identity stable while exposing active sectio
 });
 
 test('phase 4 locales include More active accessible label', () => {
-  const localesDir = new URL('./public/locales/', import.meta.url);
+  const localesDir = new URL('../public/locales/', import.meta.url);
   const files = readdirSync(localesDir).filter((f) => f.endsWith('.json'));
 
   assert.ok(files.length >= 16, 'expected at least 16 locale files');
@@ -383,11 +383,11 @@ test('phase 4 locales include More active accessible label', () => {
 
 test('phase 4 touched icon markup uses icon classes instead of inline icon sizing', () => {
   const files = [
-    './public/router.js',
-    './public/pages/settings.js',
-    './public/pages/meals.js',
-    './public/pages/recipes.js',
-    './public/pages/shopping.js',
+    '../public/router.js',
+    '../public/pages/settings.js',
+    '../public/pages/meals.js',
+    '../public/pages/recipes.js',
+    '../public/pages/shopping.js',
   ];
 
   for (const file of files) {
@@ -398,7 +398,7 @@ test('phase 4 touched icon markup uses icon classes instead of inline icon sizin
 });
 
 test('phase 4 settings theme toggle uses Lucide placeholders instead of inline SVG icons', () => {
-  const settings = read('./public/pages/settings.js');
+  const settings = read('../public/pages/settings.js');
 
   assert.doesNotMatch(settings, /<svg\s+width="18"\s+height="18"[\s\S]*?data-theme-value=/);
   assert.match(settings, /data-lucide="monitor"/);
@@ -407,15 +407,15 @@ test('phase 4 settings theme toggle uses Lucide placeholders instead of inline S
 });
 
 test('phase 4 opens search from More sheet in a single handoff', () => {
-  const routerSource = read('./public/router.js');
+  const routerSource = read('../public/router.js');
 
   assert.match(routerSource, /closeSheet\(\{\s*restoreFocus:\s*false\s*\}\)/);
   assert.match(routerSource, /requestAnimationFrame\(\(\) => \{\s*openSearch\(\);/);
 });
 
 test('phase 6 Settings tabs become a desktop sticky local navigation', () => {
-  const settingsPage = read('./public/pages/settings.js');
-  const settingsCss = read('./public/styles/settings.css');
+  const settingsPage = read('../public/pages/settings.js');
+  const settingsCss = read('../public/styles/settings.css');
 
   assert.match(settingsPage, /extraClass:\s*'settings-tabs'/);
   assert.match(
@@ -430,7 +430,7 @@ test('phase 6 Settings tabs become a desktop sticky local navigation', () => {
 });
 
 test('phase 6 Settings mobile tabs expose horizontal scroll affordance', () => {
-  const settingsCss = read('./public/styles/settings.css');
+  const settingsCss = read('../public/styles/settings.css');
 
   assert.match(
     settingsCss,
@@ -447,8 +447,8 @@ test('phase 6 Settings mobile tabs expose horizontal scroll affordance', () => {
 });
 
 test('phase 6 Settings cards carry IA modifiers for scannable admin groups', () => {
-  const settingsPage = read('./public/pages/settings.js');
-  const settingsCss = read('./public/styles/settings.css');
+  const settingsPage = read('../public/pages/settings.js');
+  const settingsCss = read('../public/styles/settings.css');
   const cardModifiers = [
     'appearance',
     'app-name',
@@ -467,7 +467,7 @@ test('phase 6 Settings cards carry IA modifiers for scannable admin groups', () 
 });
 
 test('phase 6 shared sub-tabs support keyboard tab navigation', () => {
-  const source = read('./public/utils/sub-tabs.js');
+  const source = read('../public/utils/sub-tabs.js');
 
   assert.match(source, /bar\.addEventListener\('keydown'/);
   assert.match(source, /e\.key === 'ArrowRight'/);
@@ -482,7 +482,7 @@ test('phase 6 shared sub-tabs support keyboard tab navigation', () => {
 // --------------------------------------------------------
 
 test('calendar week-view time labels use a readable text token, not the disabled token', () => {
-  const calendar = read('./public/styles/calendar.css');
+  const calendar = read('../public/styles/calendar.css');
   const body = cssRuleBody(calendar, '.week-view__time-label');
 
   assert.match(body, /color:\s*var\(--color-text-tertiary\)/, 'time labels must use --color-text-tertiary for WCAG AA contrast');
@@ -490,7 +490,7 @@ test('calendar week-view time labels use a readable text token, not the disabled
 });
 
 test('calendar month view uses solid work surfaces and explicit chip boundaries', () => {
-  const calendar = read('./public/styles/calendar.css');
+  const calendar = read('../public/styles/calendar.css');
   const gridBody = cssRuleBody(calendar, '.month-grid');
   const dayBody = cssRuleBody(calendar, '.month-day');
   const eventBody = cssRuleBody(calendar, '.month-day__event');
@@ -503,7 +503,7 @@ test('calendar month view uses solid work surfaces and explicit chip boundaries'
 });
 
 test('calendar agenda events and task chips keep readable contrast in mobile agenda', () => {
-  const calendar = read('./public/styles/calendar.css');
+  const calendar = read('../public/styles/calendar.css');
   const eventBody = cssRuleBody(calendar, '.agenda-event');
   const colorBody = cssRuleBody(calendar, '.agenda-event__color');
   const taskBody = cssRuleBody(calendar, '.cal-task-chip');
@@ -518,7 +518,7 @@ test('calendar agenda events and task chips keep readable contrast in mobile age
 });
 
 test('calendar metadata uses lucide icon markup instead of visible emoji', () => {
-  const source = read('./public/pages/calendar.js');
+  const source = read('../public/pages/calendar.js');
 
   assert.doesNotMatch(source, /📍|🗓|📅|🎂|👤/, 'calendar metadata must not render visible emoji icons');
   assert.match(source, /calendarMetaIconHtml\('map-pin'\)/, 'location metadata should use the shared metadata icon helper');
@@ -526,8 +526,8 @@ test('calendar metadata uses lucide icon markup instead of visible emoji', () =>
 });
 
 test('phase 7 calendar inline polish keeps icons and all-day labels tokenized', () => {
-  const source = read('./public/pages/calendar.js');
-  const calendar = read('./public/styles/calendar.css');
+  const source = read('../public/pages/calendar.js');
+  const calendar = read('../public/styles/calendar.css');
   const allDayLabel = cssRuleBody(calendar, '.calendar-all-day-label');
 
   assert.doesNotMatch(source, /data-lucide="(?:x|plus|trash-2|repeat)"\s+style=/, 'Lucide icons should use icon utility classes, not inline sizing');
@@ -540,8 +540,8 @@ test('phase 7 calendar inline polish keeps icons and all-day labels tokenized', 
 });
 
 test('phase 7 Budget row actions stay touch-safe on mobile', () => {
-  const source = read('./public/pages/budget.js');
-  const budget = read('./public/styles/budget.css');
+  const source = read('../public/pages/budget.js');
+  const budget = read('../public/styles/budget.css');
   const deleteRule = cssRuleBody(budget, '.budget-entry__delete');
 
   assert.match(deleteRule, /width:\s*var\(--target-base\)/, 'Budget delete buttons should use the base touch target width');
@@ -556,9 +556,9 @@ test('phase 7 Budget row actions stay touch-safe on mobile', () => {
 
 test('sticky section headers stack above glass cards via --z-sticky', () => {
   const stickyHeaders = [
-    ['./public/styles/meals.css', '.day-header'],
-    ['./public/styles/calendar.css', '.agenda-day__header'],
-    ['./public/styles/contacts.css', '.contact-group__header'],
+    ['../public/styles/meals.css', '.day-header'],
+    ['../public/styles/calendar.css', '.agenda-day__header'],
+    ['../public/styles/contacts.css', '.contact-group__header'],
   ];
 
   for (const [file, selector] of stickyHeaders) {
@@ -570,7 +570,7 @@ test('sticky section headers stack above glass cards via --z-sticky', () => {
 });
 
 test('every locale resolves nav.section.household as a nested key', () => {
-  const localesDir = new URL('./public/locales/', import.meta.url);
+  const localesDir = new URL('../public/locales/', import.meta.url);
   const files = readdirSync(localesDir).filter((f) => f.endsWith('.json'));
 
   assert.ok(files.length >= 16, 'expected at least 16 locale files');
@@ -599,7 +599,7 @@ test('phase 7 locale files keep the de reference key set complete', () => {
 });
 
 test('dark-mode token blocks stay in sync between @media and [data-theme="dark"]', () => {
-  const tokens = read('./public/styles/tokens.css');
+  const tokens = read('../public/styles/tokens.css');
 
   const mediaBlock = tokens.match(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([\s\S]*?)\n {2}\}\n\}/);
   const attrBlock = tokens.match(/\n\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/);
@@ -625,7 +625,7 @@ test('dark-mode token blocks stay in sync between @media and [data-theme="dark"]
 });
 
 test('phase 1 defines synchronized surface roles for readable work areas', () => {
-  const tokens = read('./public/styles/tokens.css');
+  const tokens = read('../public/styles/tokens.css');
   const rootBlock = tokens.match(/:root\s*\{([\s\S]*?)\n\}/);
   const mediaBlock = tokens.match(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([\s\S]*?)\n {2}\}\n\}/);
   const attrBlock = tokens.match(/\n\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/);
@@ -666,7 +666,7 @@ test('phase 1 defines synchronized surface roles for readable work areas', () =>
 });
 
 test('phase 1 keeps productive list surfaces opaque instead of high-transparency glass', () => {
-  const glass = read('./public/styles/glass.css');
+  const glass = read('../public/styles/glass.css');
   const productiveRules = [
     ['.tasks-page .task-card', '--color-surface-work'],
     ['.tasks-page .task-card:hover', '--color-surface-raised'],
@@ -683,8 +683,8 @@ test('phase 1 keeps productive list surfaces opaque instead of high-transparency
 });
 
 test('phase 1 app backdrop uses subtle tokenized tint and opaque scroll content', () => {
-  const glass = read('./public/styles/glass.css');
-  const layout = read('./public/styles/layout.css');
+  const glass = read('../public/styles/glass.css');
+  const layout = read('../public/styles/layout.css');
   const shellRule = cssRuleBody(glass, '.app-shell');
   const glassContentRule = cssRuleBody(glass, '.app-content');
   const layoutContentRule = cssRuleBody(layout, '.app-content');
@@ -696,7 +696,7 @@ test('phase 1 app backdrop uses subtle tokenized tint and opaque scroll content'
 });
 
 test('phase 2 dashboard primary titles do not split words mid-token', () => {
-  const dashboard = read('./public/styles/dashboard.css');
+  const dashboard = read('../public/styles/dashboard.css');
   const selectors = [
     '.dashboard-overview__title',
     '.today-cockpit-card__value',
@@ -711,7 +711,7 @@ test('phase 2 dashboard primary titles do not split words mid-token', () => {
 });
 
 test('phase 2 mobile dashboard cockpit uses wider important cards with tokenized stable sizing', () => {
-  const dashboard = read('./public/styles/dashboard.css');
+  const dashboard = read('../public/styles/dashboard.css');
 
   assert.match(
     dashboard,
@@ -731,7 +731,7 @@ test('phase 2 mobile dashboard cockpit uses wider important cards with tokenized
 });
 
 test('phase 2 dashboard FAB uses tokenized position and reserved mobile scroll room', () => {
-  const dashboard = read('./public/styles/dashboard.css');
+  const dashboard = read('../public/styles/dashboard.css');
   const fabRule = cssRuleBody(dashboard, '.fab-container');
 
   assert.match(fabRule, /bottom:\s*calc\(var\(--nav-bottom-height\)\s*\+\s*var\(--space-6\)\)/);
@@ -744,7 +744,7 @@ test('phase 2 dashboard FAB uses tokenized position and reserved mobile scroll r
 });
 
 test('phase 2 mobile dashboard quick actions keep accessible names when labels are visually compact', () => {
-  const dashboardPage = read('./public/pages/dashboard.js');
+  const dashboardPage = read('../public/pages/dashboard.js');
 
   assert.match(dashboardPage, /class="dashboard-action \$\{tone \? `dashboard-action--\$\{tone\}` : ''\}" data-route="\$\{route\}" aria-label="\$\{esc\(label\)\}"/);
 });
@@ -753,7 +753,7 @@ test('phase 2 mobile dashboard quick actions keep accessible names when labels a
 // UX-Audit Mai 2026 — P2/P3 (docs/UI-UX-AUDIT-2026-05.md)
 // ============================================================
 
-const LOCALE_DIR = new URL('./public/locales/', import.meta.url);
+const LOCALE_DIR = new URL('../public/locales/', import.meta.url);
 const LOCALES = readdirSync(LOCALE_DIR).filter((f) => f.endsWith('.json'));
 
 function flattenLocaleKeys(obj, prefix = '') {
@@ -805,7 +805,7 @@ function contrastRatio(a, b) {
 }
 
 test('text/surface token pairs meet WCAG AA 4.5:1 in both themes', () => {
-  const tokens = read('./public/styles/tokens.css');
+  const tokens = read('../public/styles/tokens.css');
   const rootBlock = tokens.match(/:root\s*\{([\s\S]*?)\n\}/);
   const darkBlock = tokens.match(/\n\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/);
   assert.ok(rootBlock, 'expected a :root token block');
@@ -839,7 +839,7 @@ test('text/surface token pairs meet WCAG AA 4.5:1 in both themes', () => {
 });
 
 test('modal Enter submits the form instead of advancing to the next field (audit 1.4)', () => {
-  const src = read('./public/components/modal.js');
+  const src = read('../public/components/modal.js');
   const enterBlock = src.match(/if \(e\.key === 'Enter'\) \{[\s\S]*?\n {4}\}/);
   assert.ok(enterBlock, 'expected an Enter keydown handler');
   assert.match(enterBlock[0], /submitBtn\.click\(\)/, 'Enter must trigger the submit button');
@@ -847,26 +847,26 @@ test('modal Enter submits the form instead of advancing to the next field (audit
 });
 
 test('shared modal centrally escapes title and select labels (audit 1.8)', () => {
-  const src = read('./public/components/modal.js');
+  const src = read('../public/components/modal.js');
   assert.match(src, /id="shared-modal-title">\$\{esc\(title\)\}/, 'modal title must be escaped');
   assert.match(src, /<option value="\$\{esc\(o\.value\)\}">\$\{esc\(o\.label\)\}/, 'select options must be escaped');
   assert.match(src, /import \{ esc \} from '\/utils\/html\.js'/, 'modal must import esc');
 });
 
 test('modal lifecycle uses an explicit state machine, not the old _isClosing flag (audit 1.5)', () => {
-  const src = read('./public/components/modal.js');
+  const src = read('../public/components/modal.js');
   assert.match(src, /let modalState = 'idle';/, 'expected an explicit modalState variable');
   assert.match(src, /modalState === 'closing'/, 'close guard must key off modalState');
   assert.doesNotMatch(src, /_isClosing/, 'legacy _isClosing flag must be removed');
 });
 
 test('budget chart exposes a screen-reader summary (audit 1.7)', () => {
-  const src = read('./public/pages/budget.js');
+  const src = read('../public/pages/budget.js');
   assert.match(src, /<p class="sr-only">\$\{esc\(chartSummary\(/, 'chart must render an .sr-only summary');
   assert.match(src, /function chartSummary\(byCategory\)/, 'expected a chartSummary helper');
 
   for (const file of LOCALES) {
-    const json = JSON.parse(read(`./public/locales/${file}`));
+    const json = JSON.parse(read(`../public/locales/${file}`));
     assert.ok(json.budget?.chartSummary, `${file} must define budget.chartSummary`);
     assert.match(json.budget.chartSummary, /\{\{count\}\}/, `${file} chartSummary must interpolate count`);
     assert.match(json.budget.chartSummary, /\{\{top\}\}/, `${file} chartSummary must interpolate top`);
@@ -875,16 +875,16 @@ test('budget chart exposes a screen-reader summary (audit 1.7)', () => {
 });
 
 test('toolbar "new" buttons are hidden via a shared class, not an ID list (audit 1.9)', () => {
-  const layout = read('./public/styles/layout.css');
+  const layout = read('../public/styles/layout.css');
   assert.match(layout, /\.toolbar-new-btn\s*\{\s*display:\s*none\s*!important;/, 'expected .toolbar-new-btn rule');
   assert.doesNotMatch(layout, /#btn-new-task,\s*\n\s*#notes-add-btn/, 'legacy ID-list selector must be gone');
 
   const pages = {
-    './public/pages/tasks.js': 'btn-new-task',
-    './public/pages/notes.js': 'notes-add-btn',
-    './public/pages/contacts.js': 'contacts-add-btn',
-    './public/pages/budget.js': 'budget-add',
-    './public/pages/calendar.js': 'cal-add',
+    '../public/pages/tasks.js': 'btn-new-task',
+    '../public/pages/notes.js': 'notes-add-btn',
+    '../public/pages/contacts.js': 'contacts-add-btn',
+    '../public/pages/budget.js': 'budget-add',
+    '../public/pages/calendar.js': 'cal-add',
   };
   for (const [file, id] of Object.entries(pages)) {
     const src = read(file);
@@ -895,7 +895,7 @@ test('toolbar "new" buttons are hidden via a shared class, not an ID list (audit
 });
 
 test('login keeps username-style input hints, not email (audit 1.6 — login is by username)', () => {
-  const src = read('./public/pages/login.js');
+  const src = read('../public/pages/login.js');
   const input = src.match(/<input[\s\S]*?id="username"[\s\S]*?\/>/);
   assert.ok(input, 'expected a username input');
   assert.match(input[0], /type="text"/, 'username field stays type=text (login is by username, not email)');

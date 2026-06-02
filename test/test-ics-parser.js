@@ -1,4 +1,4 @@
-import { unfoldLines, unescapeICSText, parseICS, expandRRULE } from './server/services/ics-parser.js';
+import { unfoldLines, unescapeICSText, parseICS, expandRRULE } from '../server/services/ics-parser.js';
 
 let passed = 0, failed = 0;
 function test(name, fn) {

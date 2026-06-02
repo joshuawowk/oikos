@@ -3,7 +3,7 @@
  * Ausführen: node --experimental-sqlite test-oidc.js
  */
 import { DatabaseSync } from 'node:sqlite';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 
 let passed = 0;
 let failed = 0;
@@ -108,7 +108,7 @@ console.log('\n[OIDC-Test] isOidcEnabled\n');
   process.env.OIDC_CLIENT_SECRET  = 'secret';
   process.env.OIDC_REDIRECT_URI   = 'https://app.example.com/callback';
 
-  const { isOidcEnabled } = await import('./server/services/oidc.js');
+  const { isOidcEnabled } = await import('../server/services/oidc.js');
 
   test('isOidcEnabled() → true wenn alle vier Vars gesetzt', () => {
     assert(isOidcEnabled() === true, 'Erwartet true');
@@ -133,11 +133,11 @@ console.log('\n[OIDC-Test] findOrCreateOidcUser\n');
 process.env.SESSION_SECRET = 'test-oidc-secret-minimum-32-chars-xx';
 process.env.SESSION_SECURE = 'false';
 
-const { _setTestDatabase } = await import('./server/db.js');
+const { _setTestDatabase } = await import('../server/db.js');
 const sessionDb = buildSchemaDb(); // schema_migrations + alle Migrationen; die sessions-Tabelle legt der BetterSQLiteStore-Konstruktor selbst per CREATE TABLE IF NOT EXISTS an
 _setTestDatabase(sessionDb);
 
-const { findOrCreateOidcUser } = await import('./server/auth.js');
+const { findOrCreateOidcUser } = await import('../server/auth.js');
 
 function buildOidcTestDb() {
   const db = new DatabaseSync(':memory:');

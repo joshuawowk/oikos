@@ -5,7 +5,7 @@
  */
 
 import { DatabaseSync } from 'node:sqlite';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 
 let passed = 0;
 let failed = 0;

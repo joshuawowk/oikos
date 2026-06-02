@@ -23,7 +23,7 @@ const { KITCHEN_ROUTES, KITCHEN_STORAGE_KEY, getLastKitchenRoute, isKitchenRoute
   };
   global.sessionStorage = storage;
   global.t = (k) => k;
-  return import('./public/utils/kitchen-tabs.js');
+  return import('../public/utils/kitchen-tabs.js');
 })();
 
 test('KITCHEN_ROUTES enthält alle drei Sub-Routen', () => {

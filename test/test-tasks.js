@@ -6,7 +6,7 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 
 let passed = 0;
 let failed = 0;
@@ -40,7 +40,7 @@ const in3days  = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
 console.log('\n[Tasks-Test] CRUD + Filter + Subtasks\n');
 
 test('Bulk-Aktionsleiste ist standardmäßig verborgen und zeigt Nullauswahl nur im Bulk-Modus', () => {
-  const source = readFileSync(new URL('./public/pages/tasks.js', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../public/pages/tasks.js', import.meta.url), 'utf8');
   assert(source.includes('id="bulk-actions-bar" hidden'), 'Bulk-Leiste muss initial hidden gerendert werden');
   assert(/bar\.hidden\s*=\s*!\(state\.bulkSelectMode && selected > 0\)/.test(source), 'Bulk-Leiste darf erst bei aktiver Auswahl sichtbar werden');
   assert(/button\.disabled\s*=\s*selected\s*===\s*0/.test(source), 'Bulk-Buttons müssen bei 0 Auswahl deaktiviert sein');

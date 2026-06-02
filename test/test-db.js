@@ -13,7 +13,7 @@ import { DatabaseSync } from 'node:sqlite';
 // Migrations-SQL direkt aus db.js extrahieren
 // (Nur für Tests - in Produktion läuft db.js mit better-sqlite3)
 // --------------------------------------------------------
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 
 let passed = 0;
 let failed = 0;

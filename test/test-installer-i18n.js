@@ -3,12 +3,12 @@ import test from 'node:test';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { createInstallerServer } from './tools/installer/install-server.js';
-import { SUPPORTED_LOCALES } from './tools/installer/i18n-mini.js';
+import { createInstallerServer } from '../tools/installer/install-server.js';
+import { SUPPORTED_LOCALES } from '../tools/installer/i18n-mini.js';
 
-const REPO_ROOT = fileURLToPath(new URL('.', import.meta.url));
-const LOCALES_DIR = new URL('./tools/installer/locales/', import.meta.url);
-const HTML_PATH = new URL('./tools/installer/install.html', import.meta.url);
+const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url));
+const LOCALES_DIR = new URL('../tools/installer/locales/', import.meta.url);
+const HTML_PATH = new URL('../tools/installer/install.html', import.meta.url);
 const REFERENCE = 'de';
 
 function loadLocale(locale) {

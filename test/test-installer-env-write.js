@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 import {
   sanitizeEnv, renderEnvFile, backupEnvFile, createInstallerServer,
-} from './tools/installer/install-server.js';
+} from '../tools/installer/install-server.js';
 
 // ── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -152,13 +152,13 @@ test('GET /api/preflight liefert envExists und containerRunning', async () => {
 // ── Static parity checks ─────────────────────────────────────────────────────
 
 test('install.html prüft Preflight und zeigt ein Hinweis-Banner', () => {
-  const src = readFileSync(new URL('./tools/installer/install.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../tools/installer/install.html', import.meta.url), 'utf8');
   assert.match(src, /\/api\/preflight/, 'install.html ruft /api/preflight nicht auf');
   assert.match(src, /id="cfg-existing"/, 'install.html hat kein Hinweis-Banner cfg-existing');
 });
 
 test('install.sh sichert bestehende .env vor cat > .env', () => {
-  const src = readFileSync(new URL('./install.sh', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../install.sh', import.meta.url), 'utf8');
   const backupIdx = src.indexOf('.env.bak-');
   const catIdx = src.indexOf('cat > .env');
   assert.ok(backupIdx !== -1, 'install.sh legt kein .env.bak-* an');

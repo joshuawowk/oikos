@@ -99,7 +99,7 @@ public/
   pages/               # Page modules - each exports a render() function
   sw.js                # Service worker
   offline.html         # Offline fallback page (served by service worker)
-test-[module].js       # One test file per module (project root)
+test/                  # One test file per module (test-[module].js)
 docs/                  # Product spec, screenshots
 ```
 
@@ -224,7 +224,7 @@ PRs are reviewed by the maintainer. Expect feedback within a few days. Once appr
 
 ### Testing
 
-- One test file per module in the project root (`test-[module].js`)
+- One test file per module in the `test/` directory (`test/test-[module].js`)
 - Tests use in-memory SQLite via `--experimental-sqlite`
 - Import route handlers directly - no HTTP calls, no running server
 

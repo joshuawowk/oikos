@@ -12,7 +12,7 @@ process.env.SESSION_SECURE = 'false';
 process.env.PORT = '13099';
 
 // Dynamic import so env vars are set before module initialization
-const { default: app } = await import('./server/index.js');
+const { default: app } = await import('../server/index.js');
 await new Promise(r => setTimeout(r, 400));
 
 const BASE = 'http://localhost:13099';

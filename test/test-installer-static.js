@@ -3,11 +3,11 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { createInstallerServer } from './tools/installer/install-server.js';
+import { createInstallerServer } from '../tools/installer/install-server.js';
 
 // Repo-Root = Verzeichnis dieser Testdatei. Die statischen Routen liefern aus
 // public/ relativ zu PROJECT_ROOT, daher zeigt OIKOS_INSTALLER_ROOT dorthin.
-const REPO_ROOT = fileURLToPath(new URL('.', import.meta.url));
+const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 async function withServer(fn) {
   const prev = process.env.OIKOS_INSTALLER_ROOT;
@@ -58,14 +58,14 @@ test('GET /fonts/* lehnt Nicht-woff2 und Path-Traversal mit 404 ab', async () =>
 // ── Token-Parität: install.html nutzt App-Tokens, keine eigenen Hardcodes ─────
 
 test('install.html bindet tokens.css ein und verwendet App-Tokens', () => {
-  const src = readFileSync(new URL('./tools/installer/install.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../tools/installer/install.html', import.meta.url), 'utf8');
   assert.match(src, /<link[^>]+href="\/tokens\.css"/, 'install.html bindet /tokens.css nicht ein');
   assert.match(src, /var\(--color-accent\)/, 'install.html nutzt nicht --color-accent');
   assert.match(src, /var\(--font-sans\)/, 'install.html nutzt nicht --font-sans');
 });
 
 test('install.html enthält keine alten Hardcode-Tokens mehr', () => {
-  const src = readFileSync(new URL('./tools/installer/install.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../tools/installer/install.html', import.meta.url), 'utf8');
   for (const needle of ['#2563eb', '#f0f2f5', '--r-sm']) {
     assert.ok(!src.includes(needle), `Alter Token "${needle}" noch in install.html vorhanden`);
   }

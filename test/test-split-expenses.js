@@ -5,8 +5,8 @@ import path from 'node:path';
 
 process.env.DB_PATH = path.join(os.tmpdir(), `oikos-split-expenses-${process.pid}.db`);
 
-const service = await import('./server/services/split-expenses.js');
-const db = await import('./server/db.js');
+const service = await import('../server/services/split-expenses.js');
+const db = await import('../server/db.js');
 
 function testMoneyParsing() {
   assert.equal(service.parseMoneyToMinor('12.34', 'EUR'), 1234);

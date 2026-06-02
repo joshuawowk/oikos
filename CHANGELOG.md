@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.57.2] - 2026-06-02
+
+### Changed
+- Moved all `test-*.js` suites from the project root into a dedicated `test/` directory and updated every reference (npm `test:*` scripts, the browser test loader, and test imports of app and root files). No runtime or user-facing behaviour changes; `npm test` is unchanged.
+
 ## [0.57.1] - 2026-06-02
 
 ### Changed

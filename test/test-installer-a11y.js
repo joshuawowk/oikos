@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync, readdirSync } from 'node:fs';
 
-import { SUPPORTED_LOCALES } from './tools/installer/i18n-mini.js';
+import { SUPPORTED_LOCALES } from '../tools/installer/i18n-mini.js';
 
-const HTML_PATH = new URL('./tools/installer/install.html', import.meta.url);
-const LOCALES_DIR = new URL('./tools/installer/locales/', import.meta.url);
+const HTML_PATH = new URL('../tools/installer/install.html', import.meta.url);
+const LOCALES_DIR = new URL('../tools/installer/locales/', import.meta.url);
 const html = readFileSync(HTML_PATH, 'utf8');
 
 function loadLocale(locale) {

@@ -6,7 +6,7 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 
 let passed = 0;
 let failed = 0;
@@ -32,7 +32,7 @@ const uid = u1.lastInsertRowid;
 console.log('\n[Shopping-Test] Listen, Artikel, Sortierung\n');
 
 test('Einkaufslisten-Zeilen toggeln nur außerhalb interaktiver Controls', () => {
-  const source = readFileSync(new URL('./public/pages/shopping.js', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../public/pages/shopping.js', import.meta.url), 'utf8');
   assert(/function shouldIgnoreShoppingRowToggle/.test(source), 'Row-Toggle-Guard muss als Helper existieren');
   assert(/button, a, input, select, textarea, \[data-no-row-toggle\]/.test(source), 'Interaktive Controls müssen ignoriert werden');
   assert(/closest\('\.shopping-item'\)/.test(source), 'Klicks müssen auf Einkaufszeilen begrenzt sein');

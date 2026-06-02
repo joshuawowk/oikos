@@ -6,8 +6,8 @@
  */
 
 import { DatabaseSync } from 'node:sqlite';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
-const { __test: mealsHelpers } = await import('./public/pages/meals.js');
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
+const { __test: mealsHelpers } = await import('../public/pages/meals.js');
 
 let passed = 0;
 let failed = 0;

@@ -25,7 +25,7 @@ Check every changed file against the Hard Constraints in `CLAUDE.md`:
 - `server/db.js` migrations array is append-only. Flag any edit to an existing entry as Blocking.
 - Design values come from `public/styles/tokens.css`. Flag raw hex, px, rem values in CSS.
 - Every route handler wrapped in try/catch. Response shape `{ data }` on success, `{ error, code }` on failure.
-- Tests: `test-<module>.js` at project root, registered as `test:<module>` in `package.json`, `--experimental-sqlite` flag in the script.
+- Tests: `test/test-<module>.js`, registered as `test:<module>` in `package.json`, `--experimental-sqlite` flag in the script.
 - `CHANGELOG.md` has a new bullet under `## [Unreleased]`.
 
 ## Output format

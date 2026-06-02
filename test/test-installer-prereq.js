@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 import {
   commandAvailable, checkPrereqs, spawnStart, createInstallerServer,
   detectEngine, composeCommand, inspectCommand,
-} from './tools/installer/install-server.js';
+} from '../tools/installer/install-server.js';
 
-const REPO_ROOT = fileURLToPath(new URL('.', import.meta.url));
+const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 // ── commandAvailable ──────────────────────────────────────────────────────────
 
@@ -131,14 +131,14 @@ test('checkPrereqs gibt engine-Deskriptor zurück (podman-Fallback)', async () =
 // ── Statische Artefakte: podman-compose.yml, Quadlet, install.sh ────────────────
 
 test('podman-compose.yml trägt :Z-Labels, OIKOS_HTTP_BIND und SESSION_SECURE-Default', () => {
-  const src = readFileSync(new URL('./podman-compose.yml', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../podman-compose.yml', import.meta.url), 'utf8');
   assert.match(src, /\/data:Z/, 'kein :Z-Label auf dem /data-Mount');
   assert.match(src, /\$\{OIKOS_HTTP_BIND:-0\.0\.0\.0\}/, 'kein konfigurierbares Host-Binding');
   assert.match(src, /SESSION_SECURE=\$\{SESSION_SECURE:-false\}/, 'kein SESSION_SECURE-Default');
 });
 
 test('Quadlet-Unit existiert mit :Z-Volume und EnvironmentFile', () => {
-  const src = readFileSync(new URL('./tools/quadlet/oikos.container', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../tools/quadlet/oikos.container', import.meta.url), 'utf8');
   assert.match(src, /\[Container\]/, 'keine [Container]-Sektion');
   assert.match(src, /EnvironmentFile=/, 'kein EnvironmentFile');
   assert.match(src, /:Z\b/, 'kein :Z-SELinux-Label');
@@ -146,7 +146,7 @@ test('Quadlet-Unit existiert mit :Z-Volume und EnvironmentFile', () => {
 });
 
 test('install.sh enthält den Podman-Fallback', () => {
-  const src = readFileSync(new URL('./install.sh', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../install.sh', import.meta.url), 'utf8');
   assert.match(src, /podman compose/, 'install.sh kennt "podman compose" nicht');
   assert.match(src, /podman-compose/, 'install.sh kennt "podman-compose" nicht');
 });
@@ -181,13 +181,13 @@ test('GET /api/prereqs liefert 200 mit ok-Flag und missing-Array', async () => {
 // ── Statische Prüfungen: UI verdrahtet Prereq-Check und Start-Fehler ───────────
 
 test('install.html ruft /api/prereqs auf und behandelt Start-Fehler', () => {
-  const src = readFileSync(new URL('./tools/installer/install.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../tools/installer/install.html', import.meta.url), 'utf8');
   assert.match(src, /\/api\/prereqs/, 'install.html ruft /api/prereqs nicht auf');
   assert.match(src, /id="cfg-prereq"/, 'install.html hat kein Prereq-Banner cfg-prereq');
 });
 
 test('install.html enthält den Erweitert-Step mit Reverse-Proxy-, OIDC- und Backup-Feldern', () => {
-  const src = readFileSync(new URL('./tools/installer/install.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../tools/installer/install.html', import.meta.url), 'utf8');
   assert.match(src, /id="step-advanced"/, 'kein Erweitert-Step (step-advanced)');
   assert.match(src, /id="adv-proxy"/, 'keine Reverse-Proxy-Auswahl (adv-proxy)');
   assert.match(src, /id="oidc-issuer"/, 'kein OIDC-Issuer-Feld');
@@ -197,7 +197,7 @@ test('install.html enthält den Erweitert-Step mit Reverse-Proxy-, OIDC- und Bac
 // ── Reverse-Proxy: SESSION_SECURE wirkt zur Laufzeit ───────────────────────────
 
 test('docker-compose.yml leitet SESSION_SECURE aus der .env ab (Default false)', () => {
-  const src = readFileSync(new URL('./docker-compose.yml', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../docker-compose.yml', import.meta.url), 'utf8');
   assert.match(src, /SESSION_SECURE=\$\{SESSION_SECURE:-false\}/,
     'compose nutzt nicht ${SESSION_SECURE:-false} (env_file darf nicht hart überstimmt werden)');
   assert.doesNotMatch(src, /^\s*-\s*SESSION_SECURE=false\s*$/m,
@@ -205,7 +205,7 @@ test('docker-compose.yml leitet SESSION_SECURE aus der .env ab (Default false)',
 });
 
 test('install.html setzt im Reverse-Proxy-Pfad SESSION_SECURE=true', () => {
-  const src = readFileSync(new URL('./tools/installer/install.html', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../tools/installer/install.html', import.meta.url), 'utf8');
   assert.match(src, /S\.SESSION_SECURE\s*=\s*'true'/,
     'Proxy-Pfad schreibt SESSION_SECURE nicht auf true');
 });
@@ -213,7 +213,7 @@ test('install.html setzt im Reverse-Proxy-Pfad SESSION_SECURE=true', () => {
 // ── env-schema deckt die neuen Settings ab ─────────────────────────────────────
 
 test('env-schema enthält die neuen P5-Settings als writeToEnv', async () => {
-  const { ENV_SCHEMA } = await import('./tools/installer/env-schema.js');
+  const { ENV_SCHEMA } = await import('../tools/installer/env-schema.js');
   const writable = new Set(ENV_SCHEMA.filter(e => e.writeToEnv).map(e => e.key));
   for (const key of [
     'SESSION_SECURE', 'TRUST_PROXY', 'APPLE_CALDAV_URL',

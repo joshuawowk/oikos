@@ -20,7 +20,7 @@ describe('Backup Scheduler', () => {
   let backupScheduler;
 
   it('should load the backup scheduler module', async () => {
-    backupScheduler = await import('./server/services/backup-scheduler.js');
+    backupScheduler = await import('../server/services/backup-scheduler.js');
     assert.ok(backupScheduler.getStatus, 'getStatus function should exist');
     assert.ok(backupScheduler.triggerBackup, 'triggerBackup function should exist');
   });

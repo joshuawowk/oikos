@@ -102,8 +102,9 @@ export async function resolve(specifier, context, nextResolve) {
     };
   }
   // Browser-absolute paths (/foo.js, /utils/bar.js) → public/foo.js, public/utils/bar.js
+  // Loader liegt in test/, daher eine Ebene hoch ins Projekt-Root.
   if (specifier.startsWith('/') && !specifier.startsWith('//')) {
-    const resolved = new URL('public' + specifier, import.meta.url).href;
+    const resolved = new URL('../public' + specifier, import.meta.url).href;
     return nextResolve(resolved, context);
   }
   return nextResolve(specifier, context);

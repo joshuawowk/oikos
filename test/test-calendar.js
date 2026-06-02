@@ -6,8 +6,8 @@
  */
 
 import { DatabaseSync } from 'node:sqlite';
-import { MIGRATIONS_SQL } from './server/db-schema-test.js';
-const { __test: calendarHelpers } = await import('./public/pages/calendar.js');
+import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
+const { __test: calendarHelpers } = await import('../public/pages/calendar.js');
 
 let passed = 0;
 let failed = 0;
@@ -265,7 +265,7 @@ test('Monatsbereich: 42 Tage für Kalenderraster', () => {
 // --------------------------------------------------------
 // nextOccurrence: INTERVAL-Korrektheit mit BYDAY
 // --------------------------------------------------------
-import { nextOccurrence } from './server/services/recurrence.js';
+import { nextOccurrence } from '../server/services/recurrence.js';
 
 test('nextOccurrence: WEEKLY BYDAY=MO,TU,WE,TH,FR INTERVAL=2 — kein täglicher Übergang', () => {
   const rule = 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;INTERVAL=2';
