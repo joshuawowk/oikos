@@ -87,7 +87,6 @@ curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/.env.example
 cp .env.example .env          # set SESSION_SECRET and DB_ENCRYPTION_KEY
 docker compose up -d
-docker compose exec oikos node setup.js
 ```
 
 **Option C — Build from source**
@@ -96,10 +95,9 @@ docker compose exec oikos node setup.js
 git clone https://github.com/ulsklyc/oikos.git && cd oikos
 cp .env.example .env          # set SESSION_SECRET and DB_ENCRYPTION_KEY
 docker compose up -d --build
-docker compose exec oikos node setup.js
 ```
 
-Open `http://localhost:3000` and sign in with the admin credentials you created above.
+Open `http://localhost:3000` — the first visit guides you through creating your admin account in the browser, then signs you in. (For headless setups you can instead run `docker compose exec oikos node setup.js`.)
 
 > **Using Podman (RHEL / Fedora / CentOS Stream)?** Both installers above auto-detect
 > Podman and use `podman-compose.yml` (SELinux `:Z` labels, configurable host bind).

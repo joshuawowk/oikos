@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-06-03
+
+### Added
+- Web-based first-run setup: create the first admin account directly in the browser on a fresh install. The first visit detects that no account exists, walks you through a setup form (username, display name, password with confirmation), creates the admin, and signs you in automatically — localized in all 16 interface languages. The `node setup.js` CLI remains available as a headless fallback.
+
+### Changed
+- The public version endpoint now reports whether first-run setup is still required, so the app routes new installations to the setup page automatically and back to login once an admin exists.
+- Hardened the first-run setup endpoint against concurrent requests: the user-count check and the admin insert now run in a single transaction, so two simultaneous first-run submissions can no longer create two admin accounts.
+
 ## [0.57.7] - 2026-06-03
 
 ### Fixed

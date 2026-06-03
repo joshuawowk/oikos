@@ -40,7 +40,6 @@ curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/.env.example
 cp .env.example .env  # set SESSION_SECRET and DB_ENCRYPTION_KEY
 docker compose up -d
-docker compose exec oikos node setup.js
 ```
 
 **Podman (RHEL / Fedora / CentOS Stream):** grab `podman-compose.yml` instead — it
@@ -51,8 +50,11 @@ curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/podman-compose.yml
 curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/.env.example
 cp .env.example .env  # set SESSION_SECRET and DB_ENCRYPTION_KEY
 podman compose -f podman-compose.yml up -d   # or: podman-compose -f podman-compose.yml up -d
-podman compose -f podman-compose.yml exec oikos node setup.js
 ```
+
+Then open the WebUI — the first visit guides you through creating your admin account in
+the browser. Headless deployments can instead create it from the container console with
+`docker compose exec oikos node setup.js` (or the matching `podman compose … exec`).
 
 ---
 
@@ -270,18 +272,23 @@ oikos  | [Sync] Auto-Sync alle 15 Minuten aktiv.
 
 Press `Ctrl+C` to stop following the logs (the container keeps running).
 
-### 5. Run the Initial Setup
+### 5. Create the First Admin Account
 
-Create the first admin account:
+On the first visit, Oikos detects that no account exists yet and guides you through
+creating your admin account directly in the browser (see step 6). The form asks for:
+- **Username** (3–64 characters; letters, numbers, dots, hyphens, underscores)
+- **Display name** (e.g. "Jane Doe")
+- **Password** (minimum 8 characters, with a confirmation field)
+
+After you submit, Oikos creates the admin, signs you in automatically, and the setup
+form is no longer reachable.
+
+**Headless alternative (CLI):** if you prefer not to use the browser — or are scripting
+a provisioning step — create the admin from the container console instead:
 
 ```bash
 docker compose exec oikos node setup.js
 ```
-
-The interactive setup asks you for:
-- **Username** (minimum 3 characters)
-- **Display name** (e.g. "Jane Doe")
-- **Password** (minimum 8 characters, entered with masked input)
 
 ### 6. Open Oikos
 

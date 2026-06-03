@@ -816,9 +816,19 @@ Module for managing household staff workflows. Navigation uses violet accent the
 - **Dashboard integration:** housekeeping widgets show today's open sessions and upcoming chores
 - **Document folder:** a "Hausreinigung" folder in Documents is auto-created on first worker creation; receipts can be linked to individual work sessions
 
+### First-run setup (`/setup`) (v0.58.0)
+
+On a fresh install with no users, the first admin can be created directly in the web UI.
+
+- The public `GET /api/v1/version` endpoint returns `setup_required: true` while the `users` table is empty (fail-safe `false` on any DB error, so setup is never forced erroneously).
+- The router reads this flag at boot. When `setup_required` is true and nobody is signed in, every route is redirected to `/setup`; once setup is complete, `/setup` is no longer reachable and redirects to `/login`.
+- The `/setup` page reuses the login layout and collects username, display name, password, and a password confirmation (client validation mirrors the server rules). On submit it calls `POST /api/v1/auth/setup`, then signs in automatically and lands on the dashboard.
+- `POST /api/v1/auth/setup` creates the first admin only while no user exists; the user-count re-check and the `INSERT` run inside a single transaction, so concurrent first-run requests cannot create two admins. Returns `403` once any user exists.
+- **CLI fallback:** `node setup.js` still creates the admin from the container console for headless deployments and recovery; both paths share the same database.
+
 ### Login (`/login`)
 
-Unauthenticated users are redirected here. No public registration form - admin creates users via setup wizard (`setup.js`) or Settings.
+Unauthenticated users are redirected here. No public registration form - the first admin is created via the web first-run setup (`/setup`) or the `setup.js` CLI; further users are created by an admin in Settings.
 
 - Username + password form
 - Error display for wrong credentials
