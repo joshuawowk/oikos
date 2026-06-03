@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.58.1] - 2026-06-03
+
+### Fixed
+- Fix Google Calendar outbound sync failing for timed and recurring events. Oikos stores timed events without seconds (`YYYY-MM-DDTHH:MM`), but the Google Calendar API requires RFC 3339 datetimes with seconds — timed events were rejected with "Bad Request" and recurring events surfaced the malformed start as "Invalid recurrence rule". Outbound events now emit seconds, and recurrence `UNTIL` values are coerced to the type Google requires: a plain DATE for all-day events and a UTC date-time for timed events.
+
 ## [0.58.0] - 2026-06-03
 
 ### Added
