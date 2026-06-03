@@ -15,7 +15,7 @@
 
 const SHELL_CACHE   = 'oikos-shell-v72';
 const PAGES_CACHE   = 'oikos-pages-v67';
-const LOCALES_CACHE = 'oikos-locales-v17';
+const LOCALES_CACHE = 'oikos-locales-v18';
 const ASSETS_CACHE  = 'oikos-assets-v67';
 const BYPASS_CACHE  = 'oikos-bypass-flag';
 const ALL_CACHES    = [SHELL_CACHE, PAGES_CACHE, LOCALES_CACHE, ASSETS_CACHE];
@@ -64,6 +64,7 @@ const APP_SHELL = [
 
 const APP_LOCALES = [
   '/locales/ar.json',
+  '/locales/cs.json',
   '/locales/de.json',
   '/locales/el.json',
   '/locales/en.json',

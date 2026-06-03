@@ -25,6 +25,7 @@ const LOCALE_LABELS = {
   uk: 'Українська',
   pl: 'Polski',
   nl: 'Nederlands',
+  cs: 'Čeština',
 };
 
 class OikosLocalePicker extends HTMLElement {
