@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.57.6] - 2026-06-03
+
+### Fixed
+- Unraid Community Apps template: the Overview section incorrectly told new users to "open the WebUI and create your admin account." Oikos has no web-based first-run signup — the first admin is created via `node setup.js` in the container Console, as documented in the README and installation guide. The template now matches the actual bootstrap flow.
+
 ## [0.57.5] - 2026-06-03
 
 ### Fixed
