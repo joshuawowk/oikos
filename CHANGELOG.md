@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.57.5] - 2026-06-03
+
+### Fixed
+- Google Calendar sync: all-day events imported from Google no longer show an extra day. Google Calendar stores exclusive end dates per RFC 5545 (a 2-day event Jan 1–2 has `end.date = "2026-01-03"`); Oikos was storing this value as-is, making every multi-day event appear one day longer than it actually is.
+- Google Calendar sync: recurring events with an end date no longer fail to sync to Google with "Invalid recurrence rule." The outbound mapping was sending the recurrence rule without the required `RRULE:` prefix, which Google's API rejects. Both the missing prefix and the incorrect (non-exclusive) all-day end date in the outbound payload are now fixed.
+
 ## [0.57.4] - 2026-06-02
 
 ### Changed
