@@ -408,6 +408,8 @@
     "dayLongThursday": "Πέμπτη",
     "dayLongFriday": "Παρασκευή",
     "dayLongSaturday": "Σάββατο",
+    "spanFrom": "από {{time}}",
+    "spanUntil": "έως {{time}}",
     "timeSuffix": "",
     "ics": {
       "reset": "Επαναφορά στο αρχικό",

@@ -331,6 +331,58 @@ test('filterTasksForCalendar: leeres Array gibt leeres Array zurück', () => {
 });
 
 // --------------------------------------------------------
+// Mehrtägige Events (#225)
+// --------------------------------------------------------
+const { isMultiDayEvent, isAllDayLike, agendaSegmentKind } = calendarHelpers;
+
+test('isMultiDayEvent: gleicher Tag ist nicht mehrtägig', () => {
+  assert(isMultiDayEvent({ start_datetime: '2026-06-14T03:00', end_datetime: '2026-06-14T08:05' }) === false,
+    'Start/Ende am selben Tag → false');
+});
+
+test('isMultiDayEvent: verschiedene Tage sind mehrtägig', () => {
+  assert(isMultiDayEvent({ start_datetime: '2026-06-14T03:00', end_datetime: '2026-06-19T08:05' }) === true,
+    'Start 14., Ende 19. → true');
+});
+
+test('isMultiDayEvent: ohne Enddatum nicht mehrtägig', () => {
+  assert(isMultiDayEvent({ start_datetime: '2026-06-14T03:00', end_datetime: null }) === false,
+    'kein Enddatum → false');
+});
+
+test('isAllDayLike: mehrtägiges Zeit-Event gehört in die Ganztags-Zeile', () => {
+  assert(isAllDayLike({ start_datetime: '2026-06-14T03:00', end_datetime: '2026-06-19T08:05', all_day: 0 }) === true,
+    'Mehrtägiges Event → Ganztags-Zeile');
+});
+
+test('isAllDayLike: eintägiges Zeit-Event bleibt im Zeitraster', () => {
+  assert(isAllDayLike({ start_datetime: '2026-06-14T03:00', end_datetime: '2026-06-14T08:05', all_day: 0 }) === false,
+    'Eintägiges Zeit-Event → Zeitraster');
+});
+
+test('isAllDayLike: echtes Ganztags-Event gehört in die Ganztags-Zeile', () => {
+  assert(isAllDayLike({ start_datetime: '2026-06-14', end_datetime: '2026-06-14', all_day: 1 }) === true,
+    'all_day=1 → Ganztags-Zeile');
+});
+
+test('agendaSegmentKind: mehrtägiges Event liefert start/middle/end pro Tag', () => {
+  const ev = { start_datetime: '2026-06-14T03:00', end_datetime: '2026-06-19T08:05', all_day: 0 };
+  assert(agendaSegmentKind(ev, '2026-06-14') === 'start',  'Starttag → start');
+  assert(agendaSegmentKind(ev, '2026-06-16') === 'middle', 'Zwischentag → middle');
+  assert(agendaSegmentKind(ev, '2026-06-19') === 'end',    'Endtag → end');
+});
+
+test('agendaSegmentKind: eintägiges Zeit-Event ist single', () => {
+  const ev = { start_datetime: '2026-06-14T03:00', end_datetime: '2026-06-14T08:05', all_day: 0 };
+  assert(agendaSegmentKind(ev, '2026-06-14') === 'single', 'Eintägig → single');
+});
+
+test('agendaSegmentKind: Ganztags-Event ist all-day', () => {
+  const ev = { start_datetime: '2026-06-14', end_datetime: '2026-06-14', all_day: 1 };
+  assert(agendaSegmentKind(ev, '2026-06-14') === 'all-day', 'Ganztägig → all-day');
+});
+
+// --------------------------------------------------------
 // Ergebnis
 // --------------------------------------------------------
 console.log(`\n[Calendar-Test] Ergebnis: ${passed} bestanden, ${failed} fehlgeschlagen\n`);

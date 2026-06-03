@@ -635,6 +635,38 @@ function eventsOnDay(dateStr) {
   });
 }
 
+/** True, wenn Start- und Enddatum auf verschiedene Kalendertage fallen. */
+function isMultiDayEvent(ev) {
+  if (!ev || !ev.start_datetime || !ev.end_datetime) return false;
+  return localDate(ev.start_datetime) !== localDate(ev.end_datetime);
+}
+
+/**
+ * Events, die in der Ganztags-Zeile statt im Zeitraster gezeigt werden:
+ * echte Ganztags-Events, datums-only Events und mehrtägige Zeit-Events.
+ * Mehrtägige Events erscheinen dadurch als durchgehender Balken über alle Tage,
+ * statt auf jedem Tag fälschlich als identischer Zeitblock (#225).
+ */
+function isAllDayLike(ev) {
+  return !!ev.all_day || !ev.start_datetime.includes('T') || isMultiDayEvent(ev);
+}
+
+/**
+ * Einordnung eines Events für einen bestimmten Tag in der Agenda:
+ *   'all-day' | 'single' | 'start' | 'middle' | 'end'.
+ * Mehrtägige Events liefern je nach Tag start/middle/end, damit die Uhrzeit den
+ * durchgehenden Zeitraum widerspiegelt statt auf jedem Tag start–end (#225).
+ */
+function agendaSegmentKind(ev, dayStr) {
+  if (ev.all_day || !ev.start_datetime.includes('T')) return 'all-day';
+  if (!isMultiDayEvent(ev)) return 'single';
+  const startDay = localDate(ev.start_datetime);
+  const endDay   = localDate(ev.end_datetime);
+  if (dayStr === startDay) return 'start';
+  if (dayStr === endDay)   return 'end';
+  return 'middle';
+}
+
 /** Filtert Tasks: nur open/in_progress mit due_date werden angezeigt. */
 function filterTasksForCalendar(tasks) {
   return tasks.filter(
@@ -996,10 +1028,10 @@ function renderWeekView(container) {
   const colCount = days.length;
 
   const alldayEvs = days.map((d) =>
-    eventsOnDay(d).filter((e) => e.all_day || !e.start_datetime.includes('T'))
+    eventsOnDay(d).filter(isAllDayLike)
   );
   const timedEvs = days.map((d) =>
-    eventsOnDay(d).filter((e) => !e.all_day && e.start_datetime.includes('T'))
+    eventsOnDay(d).filter((e) => !isAllDayLike(e))
   );
   const layouts = timedEvs.map((events) => layoutOverlaps(events));
 
@@ -1192,8 +1224,8 @@ function layoutOverlaps(events) {
 function renderDayView(container) {
   const dt      = new Date(state.cursor + 'T00:00:00');
   const dayEvs  = eventsOnDay(state.cursor);
-  const allday  = dayEvs.filter((e) => e.all_day || !e.start_datetime.includes('T'));
-  const timed   = dayEvs.filter((e) => !e.all_day && e.start_datetime.includes('T'));
+  const allday  = dayEvs.filter(isAllDayLike);
+  const timed   = dayEvs.filter((e) => !isAllDayLike(e));
   const layout = layoutOverlaps(timed);
 
   container.replaceChildren();
@@ -1287,7 +1319,7 @@ function renderAgendaView(container) {
               <span class="agenda-day__date">${formatDate(date)}</span>
               <span class="agenda-day__weekday">${DAY_NAMES_LONG()[new Date(date + 'T00:00:00').getDay()]}</span>
             </div>
-            ${events.map((ev) => renderAgendaEvent(ev)).join('')}
+            ${events.map((ev) => renderAgendaEvent(ev, date)).join('')}
             ${tasks.length ? `<div class="agenda-tasks">${tasks.map(renderTaskChip).join('')}</div>` : ''}
           </div>
         `).join('')
@@ -1311,13 +1343,26 @@ function renderAgendaView(container) {
   });
 }
 
-export const __test = { normalizeCalendarView, defaultCalendarViewFromState, filterTasksForCalendar, tasksOnDay };
+export const __test = { normalizeCalendarView, defaultCalendarViewFromState, filterTasksForCalendar, tasksOnDay, isMultiDayEvent, isAllDayLike, agendaSegmentKind };
 
-function renderAgendaEvent(ev) {
-  const timeStr = ev.all_day
-    ? t('calendar.allDay')
-    : formatTime(ev.start_datetime)
-      + (ev.end_datetime ? ` – ${formatTime(ev.end_datetime)} ${t('calendar.timeSuffix')}`.trimEnd() : ` ${t('calendar.timeSuffix')}`.trimEnd());
+function renderAgendaEvent(ev, dayStr) {
+  const kind = agendaSegmentKind(ev, dayStr ?? localDate(ev.start_datetime));
+  let timeStr;
+  switch (kind) {
+    case 'all-day':
+    case 'middle':
+      timeStr = t('calendar.allDay');
+      break;
+    case 'start':
+      timeStr = t('calendar.spanFrom', { time: formatTime(ev.start_datetime) });
+      break;
+    case 'end':
+      timeStr = t('calendar.spanUntil', { time: formatTime(ev.end_datetime) });
+      break;
+    default: // single
+      timeStr = formatTime(ev.start_datetime)
+        + (ev.end_datetime ? ` – ${formatTime(ev.end_datetime)} ${t('calendar.timeSuffix')}`.trimEnd() : ` ${t('calendar.timeSuffix')}`.trimEnd());
+  }
 
   const displayColor = ev.color || ev.cal_color;
   const assignedUsers = ev.assigned_users ?? [];

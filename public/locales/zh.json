@@ -408,6 +408,8 @@
     "dayLongThursday": "星期四",
     "dayLongFriday": "星期五",
     "dayLongSaturday": "星期六",
+    "spanFrom": "从 {{time}} 起",
+    "spanUntil": "至 {{time}}",
     "timeSuffix": "",
     "ics": {
       "reset": "重置为原始",

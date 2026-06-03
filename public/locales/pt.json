@@ -408,6 +408,8 @@
     "dayLongThursday": "Quinta-feira",
     "dayLongFriday": "Sexta-feira",
     "dayLongSaturday": "Sábado",
+    "spanFrom": "a partir das {{time}}",
+    "spanUntil": "até às {{time}}",
     "timeSuffix": "",
     "ics": {
       "reset": "Restaurar original",

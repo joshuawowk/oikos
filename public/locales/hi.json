@@ -408,6 +408,8 @@
     "dayLongThursday": "गुरुवार",
     "dayLongFriday": "शुक्रवार",
     "dayLongSaturday": "शनिवार",
+    "spanFrom": "{{time}} से",
+    "spanUntil": "{{time}} तक",
     "timeSuffix": "",
     "ics": {
       "reset": "मूल पर वापस जाएं",

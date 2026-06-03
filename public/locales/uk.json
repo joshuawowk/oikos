@@ -408,6 +408,8 @@
     "dayLongThursday": "Четвер",
     "dayLongFriday": "П'ятниця",
     "dayLongSaturday": "Субота",
+    "spanFrom": "з {{time}}",
+    "spanUntil": "до {{time}}",
     "timeSuffix": "",
     "ics": {
       "reset": "Скинути до оригіналу",

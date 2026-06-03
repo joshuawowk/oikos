@@ -408,6 +408,8 @@
     "dayLongThursday": "الخميس",
     "dayLongFriday": "الجمعة",
     "dayLongSaturday": "السبت",
+    "spanFrom": "من {{time}}",
+    "spanUntil": "حتى {{time}}",
     "timeSuffix": "",
     "ics": {
       "reset": "إعادة التعيين للأصل",

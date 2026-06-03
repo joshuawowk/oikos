@@ -408,6 +408,8 @@
     "dayLongThursday": "木曜日",
     "dayLongFriday": "金曜日",
     "dayLongSaturday": "土曜日",
+    "spanFrom": "{{time}}から",
+    "spanUntil": "{{time}}まで",
     "timeSuffix": "",
     "ics": {
       "reset": "元に戻す",

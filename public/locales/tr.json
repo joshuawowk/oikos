@@ -408,6 +408,8 @@
     "dayLongThursday": "Perşembe",
     "dayLongFriday": "Cuma",
     "dayLongSaturday": "Cumartesi",
+    "spanFrom": "{{time}}'den itibaren",
+    "spanUntil": "{{time}}'a kadar",
     "timeSuffix": "",
     "ics": {
       "reset": "Orijinale sıfırla",
