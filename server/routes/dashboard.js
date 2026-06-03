@@ -8,6 +8,7 @@ import { createLogger } from '../logger.js';
 import express from 'express';
 import * as db from '../db.js';
 import { hydrateBirthday } from '../services/birthdays.js';
+import { getUpcomingEvents } from '../services/calendar-events.js';
 
 const log = createLogger('Dashboard');
 
@@ -39,22 +40,12 @@ router.get('/', (req, res) => {
   const currentMonth = todayStr.slice(0, 7);
   const deadline48h = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString();
 
-  // Anstehende Termine (nächste 5, ab jetzt)
+  // Anstehende Termine (nächste 5, ab jetzt).
+  // Geteilte Logik mit /calendar/upcoming: expandiert wiederkehrende Serien,
+  // sodass auch Termine erscheinen, deren Master-Start in der Vergangenheit liegt.
   try {
-    result.upcomingEvents = d.prepare(`
-      SELECT
-        ce.*,
-        u.display_name  AS assigned_name,
-        u.avatar_color  AS assigned_color,
-        ec.name  AS cal_name,
-        ec.color AS cal_color
-      FROM calendar_events ce
-      LEFT JOIN users u  ON ce.assigned_to = u.id
-      LEFT JOIN external_calendars ec ON ec.id = ce.calendar_ref_id
-      WHERE ce.start_datetime >= ?
-      ORDER BY ce.start_datetime ASC
-      LIMIT 5
-    `).all(now.toISOString());
+    result.upcomingEvents = getUpcomingEvents(d, { userId, limit: 5 })
+      .map(({ assigned_users_json, ...event }) => event);
   } catch (err) {
     log.error('upcomingEvents error:', err.message);
     result.upcomingEvents = [];

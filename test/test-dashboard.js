@@ -8,6 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { register } from 'node:module';
 import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 import { hydrateBirthday } from '../server/services/birthdays.js';
+import { getUpcomingEvents } from '../server/services/calendar-events.js';
 
 register('./test-browser-loader.mjs', import.meta.url);
 
@@ -278,6 +279,127 @@ test('Budget: Monatswerte für Einnahmen, Ausgaben, Saldo und Top-Ausgabe', () =
   assert(totals.balance === 1350, `Saldo sollte 1350 sein, erhalten ${totals.balance}`);
   assert(totals.entry_count === 3, `Erwartet 3 Einträge, erhalten ${totals.entry_count}`);
   assert(topExpense.category === 'housing', 'Wohnen sollte Top-Ausgabenkategorie sein');
+});
+
+// --------------------------------------------------------
+// Tests: getUpcomingEvents (geteilte Dashboard/Kalender-Logik)
+// Regression für Issue #224: wiederkehrende Termine, deren Master-Start in
+// der Vergangenheit liegt, müssen auf der Übersicht erscheinen.
+// --------------------------------------------------------
+
+// Eigene DB mit vollständigem Kalender-Schema (subscription_id, calendar_ref_id).
+const cdb = new DatabaseSync(':memory:');
+cdb.exec('PRAGMA foreign_keys = ON;');
+cdb.exec(`
+  CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL, display_name TEXT NOT NULL,
+    password_hash TEXT NOT NULL, avatar_color TEXT NOT NULL DEFAULT '#007AFF'
+  );
+  CREATE TABLE external_calendars (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL, color TEXT
+  );
+  CREATE TABLE ics_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL, shared INTEGER NOT NULL DEFAULT 0,
+    created_by INTEGER REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE TABLE calendar_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL, description TEXT,
+    start_datetime TEXT NOT NULL, end_datetime TEXT,
+    all_day INTEGER NOT NULL DEFAULT 0, location TEXT,
+    color TEXT NOT NULL DEFAULT '#007AFF', icon TEXT NOT NULL DEFAULT 'calendar',
+    assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    external_source TEXT NOT NULL DEFAULT 'local',
+    recurrence_rule TEXT,
+    subscription_id INTEGER REFERENCES ics_subscriptions(id) ON DELETE CASCADE,
+    calendar_ref_id INTEGER REFERENCES external_calendars(id) ON DELETE SET NULL
+  );
+  CREATE TABLE event_assignments (
+    event_id INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (event_id, user_id)
+  );
+`);
+
+const cu1 = cdb.prepare(`INSERT INTO users (username, display_name, password_hash, avatar_color)
+  VALUES ('theodore', 'Theodore', 'x', '#34C759')`).run();
+const cu2 = cdb.prepare(`INSERT INTO users (username, display_name, password_hash, avatar_color)
+  VALUES ('sofia', 'Sofia', 'x', '#AF52DE')`).run();
+const cuTheo = cu1.lastInsertRowid;
+const cuSofia = cu2.lastInsertRowid;
+
+function insertEvent(fields) {
+  const cols = Object.keys(fields);
+  const placeholders = cols.map(() => '?').join(', ');
+  const r = cdb.prepare(`INSERT INTO calendar_events (${cols.join(', ')}) VALUES (${placeholders})`)
+    .run(...cols.map((c) => fields[c]));
+  return r.lastInsertRowid;
+}
+
+const isoIn = (ms) => new Date(Date.now() + ms).toISOString().slice(0, 19);
+const HOUR = 3600000;
+const DAY = 24 * HOUR;
+
+// Wiederkehrender Wochentermin, dessen Master-Start 14 Tage in der Vergangenheit liegt.
+// Die nächste Instanz liegt in 7 Tagen relativ zum Master, also innerhalb des Fensters.
+const recurStart = isoIn(-14 * DAY + 5 * HOUR);
+const recurId = insertEvent({
+  title: "Sofia Field Trip",
+  start_datetime: recurStart,
+  recurrence_rule: 'FREQ=WEEKLY;INTERVAL=1',
+  created_by: cuSofia,
+  assigned_to: cuSofia,
+});
+
+// Nicht-wiederkehrender Termin in der Vergangenheit -> darf NICHT erscheinen.
+insertEvent({ title: 'Past one-off', start_datetime: isoIn(-2 * DAY), created_by: cuTheo });
+
+// Nicht-wiederkehrender Termin in der Zukunft -> erscheint.
+insertEvent({ title: 'Theodore Soccer Game', start_datetime: isoIn(3 * DAY), created_by: cuTheo });
+
+test('getUpcomingEvents: wiederkehrender Termin mit Vergangenheits-Start erscheint (Issue #224)', () => {
+  const events = getUpcomingEvents(cdb, { userId: cuTheo, limit: 10 });
+  const sofia = events.find((e) => e.title === 'Sofia Field Trip');
+  assert(sofia, 'Wiederkehrender "Sofia Field Trip" muss in den anstehenden Terminen erscheinen');
+  assert(sofia.start_datetime >= new Date().toISOString(), 'Die expandierte Instanz liegt in der Zukunft');
+  assert(sofia.id === recurId, 'Behält die Original-Event-ID der Serie');
+});
+
+test('getUpcomingEvents: vergangene Einzeltermine erscheinen nicht', () => {
+  const events = getUpcomingEvents(cdb, { userId: cuTheo, limit: 10 });
+  assert(!events.find((e) => e.title === 'Past one-off'), 'Vergangener Einzeltermin darf nicht erscheinen');
+});
+
+test('getUpcomingEvents: zukünftige Termine sortiert und auf limit begrenzt', () => {
+  const events = getUpcomingEvents(cdb, { userId: cuTheo, limit: 10 });
+  assert(events.find((e) => e.title === 'Theodore Soccer Game'), 'Zukünftiger Einzeltermin erscheint');
+  for (let i = 1; i < events.length; i++) {
+    assert(events[i - 1].start_datetime <= events[i].start_datetime, 'Aufsteigend nach Startzeit sortiert');
+  }
+  const limited = getUpcomingEvents(cdb, { userId: cuTheo, limit: 1 });
+  assert(limited.length === 1, `limit=1 liefert genau 1 Event, erhalten ${limited.length}`);
+});
+
+test('getUpcomingEvents: private ICS-Termine fremder User werden ausgeblendet', () => {
+  const sub = cdb.prepare(`INSERT INTO ics_subscriptions (name, shared, created_by) VALUES ('Privat', 0, ?)`)
+    .run(cuSofia).lastInsertRowid;
+  insertEvent({
+    title: 'Sofias privater ICS-Termin',
+    start_datetime: isoIn(2 * DAY),
+    external_source: 'ics',
+    subscription_id: sub,
+    created_by: cuSofia,
+  });
+  const events = getUpcomingEvents(cdb, { userId: cuTheo, limit: 20 });
+  assert(!events.find((e) => e.title === 'Sofias privater ICS-Termin'),
+    'Privates ICS-Abo eines anderen Users darf nicht erscheinen');
+  const ownerEvents = getUpcomingEvents(cdb, { userId: cuSofia, limit: 20 });
+  assert(ownerEvents.find((e) => e.title === 'Sofias privater ICS-Termin'),
+    'Eigentümer sieht seinen privaten ICS-Termin');
 });
 
 // --------------------------------------------------------
