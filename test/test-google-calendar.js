@@ -131,7 +131,10 @@ test('localEventToGoogle: kein recurrence_rule → kein recurrence-Feld', () => 
   assert(!g.recurrence, 'recurrence-Feld darf nicht vorhanden sein');
 });
 
-test('localEventToGoogle: biweekly mit UNTIL wird korrekt gesendet', () => {
+test('localEventToGoogle: all-day UNTIL wird auf reines DATE reduziert', () => {
+  // Google/RFC 5545: Bei all-day-Events (start.date) muss UNTIL ein DATE
+  // (YYYYMMDD) sein, kein DATE-TIME. buildRRule liefert immer DATE-TIME →
+  // sonst "Invalid recurrence rule".
   const event = {
     title: 'Mehrtägig + Wiederholung',
     all_day: 1,
@@ -142,7 +145,78 @@ test('localEventToGoogle: biweekly mit UNTIL wird korrekt gesendet', () => {
   const g = localEventToGoogle(event);
   assertEqual(g.start.date,    '2026-06-01');
   assertEqual(g.end.date,      '2026-06-04', 'Mehrtägiges all-day end exklusiv');
-  assertEqual(g.recurrence[0], 'RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL=20260831T235959Z');
+  assertEqual(g.recurrence[0], 'RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL=20260831');
+});
+
+// --------------------------------------------------------
+// localEventToGoogle – RFC-3339-konforme dateTime (Sekunden)
+// Regression: Issue #217 – Oikos speichert getimte Events als
+// "YYYY-MM-DDTHH:MM" (ohne Sekunden). Google verlangt RFC 3339 mit
+// Sekunden, sonst "Bad Request" bzw. (bei Wiederholung) "Invalid
+// recurrence rule".
+// --------------------------------------------------------
+test('localEventToGoogle: getimtes Event bekommt Sekunden (RFC 3339)', () => {
+  const event = {
+    title: 'Meeting',
+    all_day: 0,
+    start_datetime: '2026-06-03T14:00',
+    end_datetime:   '2026-06-03T15:00',
+    recurrence_rule: null,
+  };
+  const g = localEventToGoogle(event);
+  assertEqual(g.start.dateTime, '2026-06-03T14:00:00', 'start.dateTime mit Sekunden');
+  assertEqual(g.end.dateTime,   '2026-06-03T15:00:00', 'end.dateTime mit Sekunden');
+});
+
+test('localEventToGoogle: getimtes Event ohne end → end = start mit Sekunden', () => {
+  const event = {
+    title: 'Termin',
+    all_day: 0,
+    start_datetime: '2026-06-03T14:00',
+    end_datetime:   null,
+    recurrence_rule: null,
+  };
+  const g = localEventToGoogle(event);
+  assertEqual(g.start.dateTime, '2026-06-03T14:00:00');
+  assertEqual(g.end.dateTime,   '2026-06-03T14:00:00');
+});
+
+test('localEventToGoogle: getimtes Wiederholungs-Event (Issue #217 Events 1/2)', () => {
+  const event = {
+    title: 'Yoga Class',
+    all_day: 0,
+    start_datetime: '2026-06-05T19:00',
+    end_datetime:   '2026-06-05T20:00',
+    recurrence_rule: 'FREQ=WEEKLY;BYDAY=TU',
+  };
+  const g = localEventToGoogle(event);
+  assertEqual(g.start.dateTime, '2026-06-05T19:00:00', 'DTSTART mit Sekunden → gültige Recurrence');
+  assertEqual(g.recurrence[0],  'RRULE:FREQ=WEEKLY;BYDAY=TU');
+});
+
+test('localEventToGoogle: bereits vorhandene Sekunden bleiben unverändert', () => {
+  const event = {
+    title: 'Importiert',
+    all_day: 0,
+    start_datetime: '2026-06-03T14:00:30',
+    end_datetime:   '2026-06-03T15:00:00',
+    recurrence_rule: null,
+  };
+  const g = localEventToGoogle(event);
+  assertEqual(g.start.dateTime, '2026-06-03T14:00:30');
+  assertEqual(g.end.dateTime,   '2026-06-03T15:00:00');
+});
+
+test('localEventToGoogle: getimtes UNTIL ohne Zeitteil wird zu UTC date-time', () => {
+  const event = {
+    title: 'Wöchentlich bis',
+    all_day: 0,
+    start_datetime: '2026-06-03T14:00',
+    end_datetime:   '2026-06-03T15:00',
+    recurrence_rule: 'FREQ=WEEKLY;UNTIL=20260831',
+  };
+  const g = localEventToGoogle(event);
+  assertEqual(g.recurrence[0], 'RRULE:FREQ=WEEKLY;UNTIL=20260831T235959Z');
 });
 
 // --------------------------------------------------------

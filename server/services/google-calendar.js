@@ -332,9 +332,32 @@ function upsertGoogleEvents(items, calRefId = null, calColor = GOOGLE_COLOR) {
   }
 }
 
-// --------------------------------------------------------
-// Helfer: lokales Event → Google Calendar Event Format
-// --------------------------------------------------------
+// Oikos speichert getimte Events als "YYYY-MM-DDTHH:MM" (ohne Sekunden,
+// siehe validate.js). Die Google Calendar API verlangt RFC 3339 mit
+// Sekunden, sonst "Bad Request" bzw. bei Wiederholungen "Invalid
+// recurrence rule" (Issue #217). Sekunden ergänzen, falls sie fehlen.
+function toRfc3339(dt) {
+  if (!dt) return dt;
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dt) ? `${dt}:00` : dt;
+}
+
+// RFC 5545: Der Werttyp von UNTIL muss dem von DTSTART entsprechen.
+// buildRRule liefert UNTIL immer als DATE-TIME (YYYYMMDDTHHMMSSZ).
+//   - all-day-Events (start.date):    UNTIL muss DATE sein (YYYYMMDD)
+//   - getimte Events (start.dateTime): UNTIL muss UTC DATE-TIME sein
+// Andernfalls lehnt Google die Recurrence ab ("Invalid recurrence rule").
+function normalizeRecurrenceUntil(rule, allDay) {
+  return rule.split(';').map((segment) => {
+    const eq = segment.indexOf('=');
+    if (eq === -1) return segment;
+    if (segment.slice(0, eq).toUpperCase() !== 'UNTIL') return segment;
+    const digits   = segment.slice(eq + 1).replace(/\D/g, '');
+    const datePart = digits.slice(0, 8);
+    if (allDay) return `UNTIL=${datePart}`;
+    const timePart = digits.length > 8 ? digits.slice(8, 14).padEnd(6, '0') : '235959';
+    return `UNTIL=${datePart}T${timePart}Z`;
+  }).join(';');
+}
 
 function localEventToGoogle(event) {
   const allDay = !!event.all_day;
@@ -350,15 +373,17 @@ function localEventToGoogle(event) {
     gEvent.start = { date: startDate };
     gEvent.end   = { date: localAllDayEndToExclusive(endDate) };
   } else {
-    gEvent.start = { dateTime: event.start_datetime, timeZone: 'Europe/Berlin' };
-    gEvent.end   = { dateTime: event.end_datetime   || event.start_datetime, timeZone: 'Europe/Berlin' };
+    const startDt = toRfc3339(event.start_datetime);
+    const endDt   = toRfc3339(event.end_datetime) || startDt;
+    gEvent.start = { dateTime: startDt, timeZone: 'Europe/Berlin' };
+    gEvent.end   = { dateTime: endDt,   timeZone: 'Europe/Berlin' };
   }
 
   if (event.recurrence_rule) {
-    const rule = event.recurrence_rule.startsWith('RRULE:')
-      ? event.recurrence_rule
-      : `RRULE:${event.recurrence_rule}`;
-    gEvent.recurrence = [rule];
+    const body = event.recurrence_rule.startsWith('RRULE:')
+      ? event.recurrence_rule.slice('RRULE:'.length)
+      : event.recurrence_rule;
+    gEvent.recurrence = [`RRULE:${normalizeRecurrenceUntil(body, allDay)}`];
   }
 
   return gEvent;
