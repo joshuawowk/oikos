@@ -663,16 +663,27 @@ router.post('/setup', loginLimiter, async (req, res) => {
     const avatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
     const hash = await bcrypt.hash(password, 12);
 
-    const result = db.transaction(() => {
-      const created = db.get()
-        .prepare('INSERT INTO users (username, display_name, password_hash, avatar_color, role) VALUES (?, ?, ?, ?, ?)')
-        .run(username, display_name, hash, avatarColor, 'admin');
-      syncFamilyMemberArtifacts(db.get(), created.lastInsertRowid, {
-        displayName: display_name,
-        actorUserId: created.lastInsertRowid,
+    const SETUP_DONE = Symbol('setup_done');
+    let result;
+    try {
+      result = db.transaction(() => {
+        const { count: liveCount } = db.get().prepare('SELECT COUNT(*) as count FROM users').get();
+        if (liveCount > 0) throw SETUP_DONE;
+        const created = db.get()
+          .prepare('INSERT INTO users (username, display_name, password_hash, avatar_color, role) VALUES (?, ?, ?, ?, ?)')
+          .run(username, display_name, hash, avatarColor, 'admin');
+        syncFamilyMemberArtifacts(db.get(), created.lastInsertRowid, {
+          displayName: display_name,
+          actorUserId: created.lastInsertRowid,
+        });
+        return created;
       });
-      return created;
-    });
+    } catch (txErr) {
+      if (txErr === SETUP_DONE) {
+        return res.status(403).json({ error: 'Setup has already been completed.', code: 403 });
+      }
+      throw txErr;
+    }
     const createdUser = db.get().prepare(`SELECT ${USER_PUBLIC_COLUMNS} FROM users WHERE id = ?`).get(result.lastInsertRowid);
 
     res.status(201).json({
