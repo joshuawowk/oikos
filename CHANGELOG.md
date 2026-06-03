@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.58.2] - 2026-06-03
+
+### Fixed
+- Preserve user-assigned event colors for Google Calendar events across syncs. The sync no longer overwrites a manually chosen event color on every refresh — the Google calendar color is now only used as the default when an event is first imported. The calendar and dashboard views also prioritize the event color over the calendar color, so color categories assigned to synced events are displayed correctly.
+
 ## [0.58.1] - 2026-06-03
 
 ### Fixed
