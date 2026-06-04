@@ -3,6 +3,7 @@
 
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const SEMVER_RE = /^\d+\.\d+\.\d+$/;
 
@@ -82,4 +83,41 @@ export function runGenerate({ sourceDir, outDir, pkgVersion, bump }) {
   writeFileSync(cvPath, JSON.stringify({ version: catalogVersion }, null, 2) + '\n');
 
   return { appVersion: pkgVersion, catalogVersion, imageTag: pkgVersion, written };
+}
+
+function parseArgs(argv) {
+  const args = { bump: 'patch', out: null };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith('--bump=')) args.bump = a.slice('--bump='.length);
+    else if (a === '--bump') args.bump = argv[++i];
+    else if (a.startsWith('--out=')) args.out = a.slice('--out='.length);
+    else if (a === '--out') args.out = argv[++i];
+    else throw new Error(`unbekanntes Argument: ${a}`);
+  }
+  return args;
+}
+
+function main() {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const repoRoot = join(here, '..', '..');
+  const sourceDir = join(repoRoot, 'deploy', 'truenas');
+
+  const args = parseArgs(process.argv.slice(2));
+  if (!args.out) {
+    throw new Error('--out <dir> ist erforderlich (Ziel-App-Verzeichnis im TrueNAS-Fork)');
+  }
+
+  const pkgVersion = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8')).version;
+  const result = runGenerate({ sourceDir, outDir: args.out, pkgVersion, bump: args.bump });
+
+  console.log(
+    `Oikos TrueNAS-Dateien generiert: app_version=${result.appVersion}, ` +
+    `catalog version=${result.catalogVersion}, image tag=${result.imageTag}`,
+  );
+  console.log(`Geschrieben nach ${args.out}: ${result.written.join(', ')}`);
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main();
 }
