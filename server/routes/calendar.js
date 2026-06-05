@@ -192,6 +192,7 @@ function serializeEvent(event) {
     ...rest,
     assigned_users,
     attachment_data: attachmentDataUrl(event),
+    housekeeping_visit_id: event.housekeeping_visit_id ?? null,
   };
 }
 
@@ -631,7 +632,8 @@ router.get('/:id', (req, res) => {
              u_assigned.display_name AS assigned_name,
              u_assigned.avatar_color AS assigned_color,
              u_created.display_name  AS creator_name,
-             ${ASSIGNED_USERS_SQL}
+             ${ASSIGNED_USERS_SQL},
+             (SELECT hws.id FROM housekeeping_work_sessions hws WHERE hws.calendar_event_id = e.id LIMIT 1) AS housekeeping_visit_id
       FROM calendar_events e
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by

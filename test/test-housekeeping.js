@@ -65,3 +65,28 @@ test('decay task: PATCH last_completed=null clears completion (undo)', () => {
   const row = db.prepare('SELECT last_completed FROM housekeeping_decay_tasks WHERE id = ?').get(id);
   assert.equal(row.last_completed, null);
 });
+
+test('GET /visits/:id: found returns visit with fields', async () => {
+  // visit exists (created_by → user id=1, worker needed)
+  const wId = db.prepare(`INSERT INTO housekeeping_workers (user_id, daily_rate) VALUES (1, 80)`).run().lastInsertRowid;
+  const vRow = db.prepare(`
+    INSERT INTO housekeeping_work_sessions (worker_id, check_in, daily_rate, extras, created_by)
+    VALUES (?, '2026-06-01T09:00:00Z', 80, 10, 1)
+  `).run(wId);
+  const vId = vRow.lastInsertRowid;
+  const row = db.prepare(`
+    SELECT hws.*, u.display_name AS worker_name
+    FROM housekeeping_work_sessions hws
+    LEFT JOIN housekeeping_workers hw ON hw.id = hws.worker_id
+    LEFT JOIN users u ON u.id = hw.user_id
+    WHERE hws.id = ?
+  `).get(vId);
+  assert.ok(row);
+  assert.equal(Number(row.daily_rate), 80);
+  assert.ok(row.worker_name);
+});
+
+test('GET /visits/:id: unknown id returns null row', () => {
+  const row = db.prepare('SELECT * FROM housekeeping_work_sessions WHERE id = 99999').get();
+  assert.equal(row, undefined);
+});

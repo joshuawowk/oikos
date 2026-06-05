@@ -1022,6 +1022,19 @@ export async function render(container) {
   try {
     await loadData();
     renderShell(container);
+    const editVisitId = new URLSearchParams(window.location.search).get('editVisit');
+    if (editVisitId) {
+      try {
+        const res = await api.get(`/housekeeping/visits/${editVisitId}`);
+        const visit = res.data;
+        if (visit) {
+          const content = container.querySelector('#housekeeping-content') || container;
+          openVisitEditModal(visit, content);
+        }
+      } catch {
+        // visit not found or unauthorized — silently ignore
+      }
+    }
   } catch (err) {
     container.replaceChildren();
     container.insertAdjacentHTML('beforeend', `

@@ -1684,6 +1684,10 @@ async function loadSyncTargets(selectElement, currentEvent = null) {
 // --------------------------------------------------------
 
 function openEventModal({ mode, event = null, date = null, reminder = null }) {
+  if (mode === 'edit' && event?.housekeeping_visit_id) {
+    window.oikos.navigate(`/housekeeping?editVisit=${event.housekeeping_visit_id}`);
+    return;
+  }
   const isEdit = mode === 'edit';
   const content = buildEventModalContent({ mode, event, date, reminder });
 

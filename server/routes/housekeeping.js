@@ -706,6 +706,45 @@ router.post('/work-sessions/check-in', (req, res) => {
   }
 });
 
+router.get('/visits/:id', (req, res) => {
+  try {
+    const vId = validateId(req.params.id, 'id');
+    if (vId.error) return res.status(400).json({ error: vId.error, code: 400 });
+    const row = db.get().prepare(`
+      SELECT hws.*,
+             hw.payment_schedule,
+             u.display_name AS worker_name,
+             u.avatar_color AS worker_avatar_color,
+             u.avatar_data  AS worker_avatar_data,
+             t.status  AS payment_task_status,
+             t.title   AS payment_task_title,
+             fd.name   AS receipt_document_name
+      FROM housekeeping_work_sessions hws
+      LEFT JOIN housekeeping_workers hw ON hw.id = hws.worker_id
+      LEFT JOIN users u ON u.id = hw.user_id
+      LEFT JOIN tasks t ON t.id = hws.payment_task_id
+      LEFT JOIN family_documents fd ON fd.id = hws.receipt_document_id
+      WHERE hws.id = ?
+    `).get(vId.value);
+    if (!row) return res.status(404).json({ error: 'Visit not found.', code: 404 });
+    const visit = {
+      ...publicSession(row),
+      worker_name: row.worker_name ?? null,
+      worker_avatar_color: row.worker_avatar_color ?? null,
+      worker_avatar_data: row.worker_avatar_data ?? null,
+      payment_schedule: row.payment_schedule ?? 'monthly',
+      payment_task_status: row.payment_task_status ?? null,
+      payment_task_title: row.payment_task_title ?? null,
+      receipt_document_name: row.receipt_document_name ?? null,
+      total_amount: Number(row.daily_rate || 0) + Number(row.extras || 0),
+    };
+    res.json({ data: visit });
+  } catch (err) {
+    log.error('GET /visits/:id error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
 router.put('/visits/:id', (req, res) => {
   try {
     const vId = validateId(req.params.id, 'id');
