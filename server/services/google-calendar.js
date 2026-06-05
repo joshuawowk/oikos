@@ -83,6 +83,10 @@ function setReadonly(enabled) {
   }
 }
 
+function isWritableRole(role) {
+  return role === 'owner' || role === 'writer';
+}
+
 // --------------------------------------------------------
 // Kalenderauswahl (Mehrkalender, Issue #237)
 // --------------------------------------------------------
@@ -175,6 +179,8 @@ async function listCalendars() {
         primary:         !!cal.primary,
         backgroundColor: cal.backgroundColor || GOOGLE_COLOR,
         enabled:         enabledSet.has(cal.id),
+        accessRole:      cal.accessRole,
+        writable:        isWritableRole(cal.accessRole),
       });
     }
     pageToken = res.data.nextPageToken;
@@ -518,6 +524,6 @@ export { getAuthUrl, handleCallback, getStatus, disconnect, sync, listCalendars,
          listSelection, setCalendarEnabled, setReadonly };
 export const __test = {
   localEventToGoogle, googleAllDayEndToInclusive, localAllDayEndToExclusive,
-  upsertGoogleEvents, upsertExternalCalendar, setReadonly, isReadonly,
+  upsertGoogleEvents, upsertExternalCalendar, setReadonly, isReadonly, isWritableRole,
   listSelection, setCalendarEnabled, recordSyncToken, getSyncToken, enabledCalendarIds,
 };

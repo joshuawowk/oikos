@@ -106,5 +106,18 @@ test('googleTarget: zu lange ID → Fehler', () => {
   assert(googleTarget({ target_google_calendar_id: long }).error, 'sollte Fehler liefern');
 });
 
+console.log('\n[Google Multi] accessRole-Filter\n');
+
+test('isWritableRole: owner/writer → true', () => {
+  assertEqual(__test.isWritableRole('owner'), true);
+  assertEqual(__test.isWritableRole('writer'), true);
+});
+
+test('isWritableRole: reader/freeBusyReader/undefined → false', () => {
+  assertEqual(__test.isWritableRole('reader'), false);
+  assertEqual(__test.isWritableRole('freeBusyReader'), false);
+  assertEqual(__test.isWritableRole(undefined), false);
+});
+
 console.log(`\n[Google Multi] ${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
