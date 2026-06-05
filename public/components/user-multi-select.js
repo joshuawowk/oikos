@@ -27,10 +27,13 @@ export function renderAvatarStack(users, { size = 28, maxVisible = 3 } = {}) {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+    const inner = u.avatar_data
+      ? `<img src="${esc(u.avatar_data)}" alt="${esc(u.display_name ?? '')}" loading="lazy">`
+      : esc(initials);
     return `<span class="avatar-stack__item"
       style="width:${size}px;height:${size}px;font-size:${fs}px;background-color:${esc(u.color ?? '#8E8E93')}"
       title="${esc(u.display_name ?? '')}">
-      ${esc(initials)}
+      ${inner}
     </span>`;
   });
   if (overflow > 0) {
@@ -59,12 +62,15 @@ export function renderUserMultiSelect(allUsers, selectedIds, inputName, labelKey
       .join('')
       .toUpperCase()
       .slice(0, 2);
+    const inner = u.avatar_data
+      ? `<img src="${esc(u.avatar_data)}" alt="${esc(u.display_name ?? '')}" loading="lazy">`
+      : esc(initials);
     return `
       <label class="user-ms__option">
         <input type="checkbox" class="user-ms__checkbox" value="${u.id}" ${checked}
                data-ms-input="${esc(inputName)}">
         <span class="user-ms__avatar" style="background-color:${esc(u.avatar_color ?? '#8E8E93')}">
-          ${esc(initials)}
+          ${inner}
         </span>
         <span class="user-ms__name">${esc(u.display_name)}</span>
       </label>`;

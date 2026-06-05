@@ -422,7 +422,11 @@ function renderUrgentTasks(tasks) {
         </div>
         ${t.assigned_color ? `
           <div class="task-item__avatar" style="background-color:${esc(t.assigned_color)}"
-               title="${esc(t.assigned_name)}">${esc(initials(t.assigned_name || ''))}</div>` : ''}
+               title="${esc(t.assigned_name)}">
+            ${t.assigned_avatar
+              ? `<img src="${esc(t.assigned_avatar)}" alt="${esc(t.assigned_name || '')}" loading="lazy">`
+              : esc(initials(t.assigned_name || ''))}
+          </div>` : ''}
       </div>
     `;
   }).join('');

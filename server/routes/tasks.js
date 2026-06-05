@@ -29,7 +29,8 @@ const VALID_CATEGORIES = ['household', 'school', 'shopping', 'repair',
 
 const ASSIGNED_USERS_SQL = `(
   SELECT json_group_array(json_object(
-    'id', u.id, 'display_name', u.display_name, 'color', u.avatar_color
+    'id', u.id, 'display_name', u.display_name, 'color', u.avatar_color,
+    'avatar_data', u.avatar_data
   ))
   FROM task_assignments ta JOIN users u ON u.id = ta.user_id
   WHERE ta.task_id = t.id
@@ -70,7 +71,7 @@ function syncHousekeepingPaymentStatus(d, taskId, status) {
 function loadSubtasks(taskId) {
   return db.get().prepare(`
     SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
-      ${ASSIGNED_USERS_SQL}
+      u.avatar_data AS assigned_avatar, ${ASSIGNED_USERS_SQL}
     FROM tasks t
     LEFT JOIN users u ON t.assigned_to = u.id
     WHERE t.parent_task_id = ?
@@ -120,6 +121,7 @@ router.get('/', (req, res) => {
         t.*,
         u.display_name AS assigned_name,
         u.avatar_color AS assigned_color,
+        u.avatar_data AS assigned_avatar,
         ${ASSIGNED_USERS_SQL},
         (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id)                           AS subtask_total,
         (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.status = 'done')     AS subtask_done
@@ -166,7 +168,7 @@ router.get('/:id', (req, res) => {
   try {
     const task = db.get().prepare(`
       SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
-        ${ASSIGNED_USERS_SQL}
+        u.avatar_data AS assigned_avatar, ${ASSIGNED_USERS_SQL}
       FROM tasks t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = ? AND t.parent_task_id IS NULL
@@ -237,7 +239,7 @@ router.post('/', (req, res) => {
 
     const task = db.get().prepare(`
       SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
-        ${ASSIGNED_USERS_SQL}
+        u.avatar_data AS assigned_avatar, ${ASSIGNED_USERS_SQL}
       FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = ?
     `).get(taskId);
@@ -299,7 +301,7 @@ router.put('/:id', (req, res) => {
 
     const updated = db.get().prepare(`
       SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
-        ${ASSIGNED_USERS_SQL}
+        u.avatar_data AS assigned_avatar, ${ASSIGNED_USERS_SQL}
       FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = ?
     `).get(req.params.id);

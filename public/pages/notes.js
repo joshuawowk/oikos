@@ -188,7 +188,11 @@ function renderNoteCard(note) {
       <div class="note-card__footer">
         <div class="note-card__creator">
           <span class="note-card__avatar"
-                style="background-color:${esc(note.creator_color || '#8E8E93')}">${initials}</span>
+                style="background-color:${esc(note.creator_color || '#8E8E93')}">
+            ${note.creator_avatar
+              ? `<img src="${esc(note.creator_avatar)}" alt="${esc(note.creator_name || '')}" loading="lazy">`
+              : initials}
+          </span>
           <span>${esc(note.creator_name || '')}</span>
         </div>
         <button class="note-card__delete" data-action="delete" data-id="${note.id}" aria-label="${t('notes.deleteLabel')}">

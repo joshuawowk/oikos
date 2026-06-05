@@ -21,7 +21,7 @@ const router  = express.Router();
 router.get('/', (req, res) => {
   try {
     const notes = db.get().prepare(`
-      SELECT n.*, u.display_name AS creator_name, u.avatar_color AS creator_color
+      SELECT n.*, u.display_name AS creator_name, u.avatar_color AS creator_color, u.avatar_data AS creator_avatar
       FROM notes n
       LEFT JOIN users u ON u.id = n.created_by
       ORDER BY n.pinned DESC, n.updated_at DESC
@@ -54,7 +54,7 @@ router.post('/', (req, res) => {
     `).run(vContent.value, vTitle.value, vColor.value, pinned ? 1 : 0, req.session.userId);
 
     const note = db.get().prepare(`
-      SELECT n.*, u.display_name AS creator_name, u.avatar_color AS creator_color
+      SELECT n.*, u.display_name AS creator_name, u.avatar_color AS creator_color, u.avatar_data AS creator_avatar
       FROM notes n LEFT JOIN users u ON u.id = n.created_by
       WHERE n.id = ?
     `).get(result.lastInsertRowid);
@@ -102,7 +102,7 @@ router.put('/:id', (req, res) => {
     );
 
     const updated = db.get().prepare(`
-      SELECT n.*, u.display_name AS creator_name, u.avatar_color AS creator_color
+      SELECT n.*, u.display_name AS creator_name, u.avatar_color AS creator_color, u.avatar_data AS creator_avatar
       FROM notes n LEFT JOIN users u ON u.id = n.created_by WHERE n.id = ?
     `).get(id);
 
