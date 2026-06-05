@@ -324,7 +324,7 @@ function renderTasks(content) {
   `).join('');
   const taskRows = state.tasks.map((task) => `
     <article class="housekeeping-task housekeeping-task--${esc(task.urgency_status)}">
-      <button class="housekeeping-task__check" type="button" data-complete-task="${task.id}"
+      <button class="housekeeping-task__check" type="button" data-complete-task="${esc(task.id)}"
               aria-label="${esc(t('housekeeping.completeTask', { name: task.name }))}">
         <i data-lucide="check" aria-hidden="true"></i>
       </button>
@@ -332,6 +332,21 @@ function renderTasks(content) {
         <h2>${esc(task.name)}</h2>
         <p>${esc(task.area)} · ${esc(t('housekeeping.everyDays', { days: task.frequency_days }))}</p>
         <span>${esc(urgencyLabel(task.urgency_status))}</span>
+      </div>
+      <div class="housekeeping-task__actions">
+        ${task.last_completed ? `
+          <button class="btn btn--secondary btn--icon" type="button" data-undo-task="${esc(task.id)}"
+                  aria-label="${esc(t('housekeeping.undoTask'))}">
+            <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+          </button>` : ''}
+        <button class="btn btn--secondary btn--icon" type="button" data-edit-task="${esc(task.id)}"
+                aria-label="${esc(t('housekeeping.editTask'))}">
+          <i data-lucide="edit-2" aria-hidden="true"></i>
+        </button>
+        <button class="btn btn--danger-outline btn--icon" type="button" data-delete-task="${esc(task.id)}"
+                aria-label="${esc(t('housekeeping.deleteTask'))}">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+        </button>
       </div>
     </article>
   `).join('');
@@ -408,6 +423,42 @@ function renderTasks(content) {
       } catch (err) {
         window.oikos?.showToast(err.message, 'danger');
       }
+    });
+  });
+
+  content.querySelectorAll('[data-undo-task]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await api.patch(`/housekeeping/decay-tasks/${btn.dataset.undoTask}`, { last_completed: null });
+        window.oikos?.showToast(t('housekeeping.taskUndoneToast'), 'success');
+        await loadData();
+        renderTasks(content);
+      } catch (err) {
+        window.oikos?.showToast(err.message, 'danger');
+      }
+    });
+  });
+
+  content.querySelectorAll('[data-delete-task]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const task = state.tasks.find((it) => String(it.id) === btn.dataset.deleteTask);
+      if (!task) return;
+      if (!window.confirm(t('housekeeping.deleteTaskConfirm', { name: task.name }))) return;
+      try {
+        await api.delete(`/housekeeping/decay-tasks/${task.id}`);
+        window.oikos?.showToast(t('housekeeping.taskDeletedToast'), 'success');
+        await loadData();
+        renderTasks(content);
+      } catch (err) {
+        window.oikos?.showToast(err.message, 'danger');
+      }
+    });
+  });
+
+  content.querySelectorAll('[data-edit-task]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const task = state.tasks.find((it) => String(it.id) === btn.dataset.editTask);
+      if (task) openTaskEditModal(task, content);
     });
   });
 }
@@ -656,6 +707,54 @@ function renderStaffVisitLog() {
       </div>
     </section>
   `;
+}
+
+function openTaskEditModal(task, content) {
+  openModal({
+    title: t('housekeeping.editTask'),
+    size: 'md',
+    content: `
+      <form id="housekeeping-task-edit-form" class="housekeeping-worker-form">
+        <label class="housekeeping-field">
+          <span>${esc(t('housekeeping.taskName'))}</span>
+          <input name="name" required maxlength="200" value="${esc(task.name)}">
+        </label>
+        <label class="housekeeping-field">
+          <span>${esc(t('housekeeping.taskArea'))}</span>
+          <input name="area" required maxlength="100" value="${esc(task.area)}">
+        </label>
+        <label class="housekeeping-field">
+          <span>${esc(t('housekeeping.taskFrequency'))}</span>
+          <input name="frequency_days" required inputmode="numeric" type="number" min="1" step="1" value="${esc(task.frequency_days)}">
+        </label>
+        <button class="btn btn--primary housekeeping-form-submit" type="submit">
+          <i data-lucide="save" aria-hidden="true"></i>
+          <span>${esc(t('common.save'))}</span>
+        </button>
+      </form>
+    `,
+    onSave: (panel) => {
+      panel.querySelector('#housekeeping-task-edit-form')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const fields = event.currentTarget.elements;
+        const frequencyDays = Number(fields.frequency_days.value);
+        if (!fields.name.value.trim() || !fields.area.value.trim() || !Number.isInteger(frequencyDays) || frequencyDays < 1) return;
+        try {
+          await api.patch(`/housekeeping/decay-tasks/${task.id}`, {
+            name: fields.name.value.trim(),
+            area: fields.area.value.trim(),
+            frequency_days: frequencyDays,
+          });
+          window.oikos?.showToast(t('housekeeping.taskUpdatedToast'), 'success');
+          await loadData();
+          closeModal({ force: true });
+          renderTasks(content);
+        } catch (err) {
+          window.oikos?.showToast(err.message, 'danger');
+        }
+      });
+    },
+  });
 }
 
 function openVisitEditModal(visit, content) {
