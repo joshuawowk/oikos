@@ -268,9 +268,9 @@ function renderWeekGrid() {
 export const __test = { buildMobileMealDays };
 
 function renderSlot(date, type, mealsForDay) {
-  const meal = mealsForDay.find((m) => m.meal_type === type.key);
+  const meals = mealsForDay.filter((m) => m.meal_type === type.key);
 
-  if (!meal) {
+  if (!meals.length) {
     return `
       <div class="meal-slot meal-slot--empty" data-date="${date}" data-type="${type.key}">
         <div class="meal-slot__type-label">${type.label}</div>
@@ -290,15 +290,14 @@ function renderSlot(date, type, mealsForDay) {
     `;
   }
 
-  const ingCount = meal.ingredients?.length ?? 0;
-  const ingDone  = meal.ingredients?.filter((i) => i.on_shopping_list).length ?? 0;
-  const ingLabel = ingCount > 0 ? (ingCount !== 1 ? t('meals.ingredientCountPlural', { count: ingCount }) : t('meals.ingredientCount', { count: ingCount })) : '';
-  const ingDoneLabel = ingCount > 0 && ingDone === ingCount ? ' ✓' : '';
-  const canTransfer  = ingCount > 0 && ingDone < ingCount;
+  const cardsHTML = meals.map((meal) => {
+    const ingCount    = meal.ingredients?.length ?? 0;
+    const ingDone     = meal.ingredients?.filter((i) => i.on_shopping_list).length ?? 0;
+    const ingLabel    = ingCount > 0 ? (ingCount !== 1 ? t('meals.ingredientCountPlural', { count: ingCount }) : t('meals.ingredientCount', { count: ingCount })) : '';
+    const ingDoneLabel = ingCount > 0 && ingDone === ingCount ? ' ✓' : '';
+    const canTransfer  = ingCount > 0 && ingDone < ingCount;
 
-  return `
-    <div class="meal-slot meal-slot--has-meal" data-meal-id="${meal.id}" data-date="${meal.date}" data-type="${type.key}">
-      <div class="meal-slot__type-label">${type.label}</div>
+    return `
       <div class="meal-card"
            data-action="edit-meal"
            data-meal-id="${meal.id}"
@@ -327,6 +326,20 @@ function renderSlot(date, type, mealsForDay) {
           ><i data-lucide="trash-2" class="icon-sm" aria-hidden="true"></i></button>
         </div>
       </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="meal-slot meal-slot--has-meal" data-date="${date}" data-type="${type.key}">
+      <div class="meal-slot__type-label">${type.label}</div>
+      ${cardsHTML}
+      <button
+        class="meal-slot__add-more-btn"
+        data-action="add-meal"
+        data-date="${date}"
+        data-type="${type.key}"
+        aria-label="${t('meals.addMeal', { type: type.label })}"
+      ><i data-lucide="plus" class="icon-sm" aria-hidden="true"></i></button>
     </div>
   `;
 }
@@ -417,7 +430,7 @@ function wireDragDrop(grid) {
     const slot = card.closest('.meal-slot');
     if (!slot) return;
 
-    const mealId     = parseInt(slot.dataset.mealId, 10);
+    const mealId     = parseInt(card.dataset.mealId, 10);
     const sourceDate = slot.dataset.date;
     const sourceType = slot.dataset.type;
 
@@ -471,12 +484,11 @@ function wireDragDrop(grid) {
 
       const targetSlot = el?.closest('.meal-slot');
       if (targetSlot && targetSlot !== sourceSlot) {
-        const targetDate    = targetSlot.dataset.date;
-        const targetType    = targetSlot.dataset.type;
-        const targetMealId  = targetSlot.dataset.mealId ? parseInt(targetSlot.dataset.mealId, 10) : null;
+        const targetDate = targetSlot.dataset.date;
+        const targetType = targetSlot.dataset.type;
         _suppressNextClick = true;
         setTimeout(() => { _suppressNextClick = false; }, 300);
-        await moveMeal(mealId, sourceDate, sourceType, targetDate, targetType, targetMealId);
+        await moveMeal(mealId, targetDate, targetType);
       }
     }
 
@@ -506,27 +518,13 @@ function wireDragDrop(grid) {
   }, true);
 }
 
-async function moveMeal(mealId, sourceDate, sourceType, targetDate, targetType, targetMealId) {
+async function moveMeal(mealId, targetDate, targetType) {
   try {
-    if (targetMealId) {
-      // Swap: move both meals to each other's slots
-      await Promise.all([
-        api.put(`/meals/${mealId}`,       { date: targetDate, meal_type: targetType }),
-        api.put(`/meals/${targetMealId}`, { date: sourceDate, meal_type: sourceType }),
-      ]);
-      const m1 = state.meals.find((m) => m.id === mealId);
-      const m2 = state.meals.find((m) => m.id === targetMealId);
-      if (m1) { m1.date = targetDate; m1.meal_type = targetType; }
-      if (m2) { m2.date = sourceDate; m2.meal_type = sourceType; }
-    } else {
-      // Move to empty slot
-      await api.put(`/meals/${mealId}`, { date: targetDate, meal_type: targetType });
-      const m = state.meals.find((m) => m.id === mealId);
-      if (m) { m.date = targetDate; m.meal_type = targetType; }
-    }
+    await api.put(`/meals/${mealId}`, { date: targetDate, meal_type: targetType });
+    const m = state.meals.find((m) => m.id === mealId);
+    if (m) { m.date = targetDate; m.meal_type = targetType; }
     renderWeekGrid();
   } catch {
-    // Re-render to restore visual state
     renderWeekGrid();
   }
 }
@@ -986,7 +984,7 @@ function collectModalIngredients(overlay) {
 
 async function deleteMeal(mealId) {
   const meal = state.meals.find((m) => m.id === mealId);
-  const itemEl = _container.querySelector(`.meal-slot--has-meal[data-meal-id="${mealId}"]`);
+  const itemEl = _container.querySelector(`.meal-card[data-meal-id="${mealId}"]`);
   if (itemEl) itemEl.style.display = 'none';
 
   let undone = false;

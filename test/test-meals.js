@@ -293,6 +293,46 @@ test('added_from_meal FK auf meals(id) gesetzt', () => {
 });
 
 // --------------------------------------------------------
+// Mehrere Mahlzeiten pro Slot
+// --------------------------------------------------------
+test('Mehrere Mahlzeiten pro Slot anlegen (gleiche date + meal_type)', () => {
+  const m1 = db.prepare(`
+    INSERT INTO meals (date, meal_type, title, created_by)
+    VALUES ('2026-03-26', 'breakfast', 'Omelette', ?)
+  `).run(uid);
+  const m2 = db.prepare(`
+    INSERT INTO meals (date, meal_type, title, created_by)
+    VALUES ('2026-03-26', 'breakfast', 'French Toast', ?)
+  `).run(uid);
+  assert(m1.lastInsertRowid > 0, 'Erste Mahlzeit angelegt');
+  assert(m2.lastInsertRowid > 0, 'Zweite Mahlzeit angelegt');
+  assert(m1.lastInsertRowid !== m2.lastInsertRowid, 'Unterschiedliche IDs');
+});
+
+test('Mehrere Mahlzeiten desselben Slots werden gemeinsam abgefragt', () => {
+  const meals = db.prepare(`
+    SELECT * FROM meals
+    WHERE date = '2026-03-26' AND meal_type = 'breakfast'
+    ORDER BY id ASC
+  `).all();
+  assert(meals.length === 2, `Erwartet 2, erhalten ${meals.length}`);
+  assert(meals[0].title === 'Omelette');
+  assert(meals[1].title === 'French Toast');
+});
+
+test('Löschen einer Mahlzeit lässt die andere im Slot bestehen', () => {
+  const [first] = db.prepare(`
+    SELECT id FROM meals WHERE date = '2026-03-26' AND meal_type = 'breakfast' ORDER BY id ASC
+  `).all();
+  db.prepare('DELETE FROM meals WHERE id = ?').run(first.id);
+  const remaining = db.prepare(`
+    SELECT * FROM meals WHERE date = '2026-03-26' AND meal_type = 'breakfast'
+  `).all();
+  assert(remaining.length === 1, `Erwartet 1 verbleibende Mahlzeit, erhalten ${remaining.length}`);
+  assert(remaining[0].title === 'French Toast', 'Richtige Mahlzeit verblieben');
+});
+
+// --------------------------------------------------------
 // Autocomplete-Simulation
 // --------------------------------------------------------
 test('Mahlzeit-Autocomplete nach Prefix', () => {

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.63.3] - 2026-06-05
+
+### Added
+- The meal planner now supports **multiple items per slot**: each day/meal-type cell can hold any number of meals, displayed as stacked cards with a separator. A hover-visible `+` button lets you add another item to an already-filled slot without opening a different view (#262).
+
 ## [0.63.2] - 2026-06-05
 
 ### Fixed
