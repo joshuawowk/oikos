@@ -24,9 +24,13 @@ und schreibt `catalog-version.json` fort.
 
 `.github/workflows/truenas-publish.yml` läuft bei jedem `release: published`
 (Default `patch`) und kann manuell via `workflow_dispatch` mit `minor`/`major`
-ausgelöst werden. Er generiert, committet `catalog-version.json` zurück nach
-`main`, pusht den Fork-Branch `community/oikos` und öffnet/aktualisiert den PR
-gegen `truenas/apps:master`.
+ausgelöst werden. Ablauf pro Lauf: den Branch `community/oikos` **frisch aus
+`upstream/master` (truenas/apps) bauen** (der Branch wird nach jedem Merge
+gelöscht, daher kein Verlass darauf), die Versionsdateien hineingenerieren,
+`community/oikos` force-pushen, `catalog-version.json` zurück nach `main`
+committen und den PR gegen `truenas/apps:master` öffnen/aktualisieren. Da auf
+aktuellem upstream aufgesetzt wird (inkl. der bereits gemergten Library), ist
+der PR-Diff sauber nur der Versions-Bump.
 
 ## Voraussetzungen für die Automatik
 

@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ulsklyc/apps
-          ref: community/oikos
+          ref: master          # community/oikos wird unten frisch aus upstream gebaut (nach Merge gelöscht)
           token: ${{ secrets.TRUENAS_FORK_TOKEN }}
           path: truenas-apps
           fetch-depth: 0
@@ -41,6 +41,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Prepare community/oikos branch from upstream
+        working-directory: truenas-apps
+        run: |
+          git remote add upstream https://github.com/truenas/apps.git
+          git fetch upstream master --depth=1
+          git checkout -B community/oikos upstream/master
 
       - name: Generate TrueNAS files
         id: gen
@@ -68,7 +75,7 @@ jobs:
             exit 0
           fi
           git commit -m "fix(oikos): bump to v$VERSION"
-          git push origin community/oikos
+          git push --force origin community/oikos   # Branch wird pro Lauf frisch aus upstream gebaut
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Commit catalog-version.json back to Oikos
