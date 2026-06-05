@@ -5,6 +5,8 @@
  * Ausführen: node test/test-google-multi.js
  */
 process.env.DB_PATH = ':memory:';
+// auth.js (via Route-Import in Task 5) erwartet SESSION_SECRET.
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-secret';
 
 const db = (await import('../server/db.js')).get();
 
@@ -83,6 +85,25 @@ test('recordSyncToken persists a per-calendar token + last_sync', () => {
   const row = db.prepare("SELECT sync_token, last_sync FROM google_calendar_selection WHERE calendar_id = 'a@g'").get();
   assertEqual(row.sync_token, 'newtoken');
   assert(row.last_sync, 'last_sync muss gesetzt sein');
+});
+
+console.log('\n[Google Multi] Outbound-Ziel-Validierung\n');
+
+const routes = await import('../server/routes/calendar.js');
+const googleTarget = routes.__test?.googleTarget;
+
+test('googleTarget: leeres Ziel → null (lokal)', () => {
+  assertEqual(googleTarget({ target_google_calendar_id: '' }).value, null);
+  assertEqual(googleTarget({}).value, null);
+});
+
+test('googleTarget: gültige ID wird durchgereicht (getrimmt)', () => {
+  assertEqual(googleTarget({ target_google_calendar_id: ' fam@g ' }).value, 'fam@g');
+});
+
+test('googleTarget: zu lange ID → Fehler', () => {
+  const long = 'x'.repeat(2049);
+  assert(googleTarget({ target_google_calendar_id: long }).error, 'sollte Fehler liefern');
 });
 
 console.log(`\n[Google Multi] ${passed} passed, ${failed} failed\n`);

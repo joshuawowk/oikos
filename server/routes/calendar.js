@@ -112,6 +112,21 @@ function caldavTarget(body) {
   return { value: { accountId, calendarUrl }, error: null };
 }
 
+// Google-Outbound-Ziel eines Events validieren (Issue #237). Leeres/fehlendes
+// Feld bedeutet "Lokal" (kein Outbound zu Google).
+function googleTarget(body) {
+  const raw = body.target_google_calendar_id;
+  if (raw === null || raw === undefined || raw === '') {
+    return { value: null, error: null };
+  }
+  const id = typeof raw === 'string' ? raw.trim() : '';
+  if (!id) return { value: null, error: null };
+  if (id.length > 2048) {
+    return { value: null, error: 'target_google_calendar_id: zu lang.' };
+  }
+  return { value: id, error: null };
+}
+
 function ensureDocumentFolder(database, name, actorId) {
   const folderName = typeof name === 'string' ? name.trim() : '';
   if (!folderName) return null;
@@ -365,18 +380,21 @@ router.get('/google/calendars', requireAdmin, async (req, res) => {
 });
 
 /**
- * PUT /api/v1/calendar/google/calendar
- * Admin only. Setzt den zu synchronisierenden Kalender und startet einen Sync.
- * Body: { calendarId: string }
+ * PATCH /api/v1/calendar/google/calendars
+ * Admin only. Aktiviert/deaktiviert einen Google-Kalender und startet einen Sync.
+ * Body: { calendarId: string, enabled: boolean }
  * Response: { ok: true, lastSync: string }
  */
-router.put('/google/calendar', requireAdmin, async (req, res) => {
-  const { calendarId } = req.body;
+router.patch('/google/calendars', requireAdmin, async (req, res) => {
+  const { calendarId, enabled } = req.body;
   if (!calendarId || typeof calendarId !== 'string' || calendarId.trim().length === 0) {
     return res.status(400).json({ error: 'calendarId fehlt oder ist ungültig.', code: 400 });
   }
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled muss ein Boolean sein.', code: 400 });
+  }
   try {
-    googleCalendar.setCalendarId(calendarId);
+    googleCalendar.setCalendarEnabled(calendarId, enabled);
     await googleCalendar.sync();
     const { lastSync } = googleCalendar.getStatus();
     res.json({ ok: true, lastSync });
@@ -658,7 +676,8 @@ router.post('/', (req, res) => {
     const vLoc   = str(req.body.location, 'Ort', { max: MAX_TITLE, required: false });
     const vRrule = rrule(req.body.recurrence_rule, 'Wiederholung');
     const vCaldav = caldavTarget(req.body);
-    const errors = collectErrors([vTitle, vDesc, vStart, vEnd, vColor, vLoc, vRrule, vCaldav]);
+    const vGoogle = googleTarget(req.body);
+    const errors = collectErrors([vTitle, vDesc, vStart, vEnd, vColor, vLoc, vRrule, vCaldav, vGoogle]);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
     if (!vIcon) return res.status(400).json({ error: 'icon: invalid calendar event icon.', code: 400 });
 
@@ -675,8 +694,8 @@ router.post('/', (req, res) => {
           (title, description, start_datetime, end_datetime, all_day,
            location, color, icon, assigned_to, created_by, recurrence_rule,
            attachment_name, attachment_mime, attachment_size, attachment_data, attachment_document_id,
-           target_caldav_account_id, target_caldav_calendar_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           target_caldav_account_id, target_caldav_calendar_url, target_google_calendar_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         vTitle.value, vDesc.value,
         vStart.value, vEnd.value,
@@ -689,7 +708,8 @@ router.post('/', (req, res) => {
         attachment.data,
         documentId,
         vCaldav.value.accountId,
-        vCaldav.value.calendarUrl
+        vCaldav.value.calendarUrl,
+        vGoogle.value
       );
       setEventAssignments(db.get(), result.lastInsertRowid, userIds);
       return result.lastInsertRowid;
@@ -739,6 +759,10 @@ router.put('/:id', (req, res) => {
       || req.body.target_caldav_calendar_url !== undefined;
     const vCaldav = caldavProvided ? caldavTarget(req.body) : null;
     if (vCaldav) checks.push(vCaldav);
+    // Google-Ziel nur prüfen, wenn der Client es mitschickt; sonst bestehenden Wert behalten.
+    const googleProvided = req.body.target_google_calendar_id !== undefined;
+    const vGoogle = googleProvided ? googleTarget(req.body) : null;
+    if (vGoogle) checks.push(vGoogle);
     const errors = collectErrors(checks);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
     const vIcon = req.body.icon !== undefined ? eventIcon(req.body.icon) : event.icon;
@@ -766,6 +790,7 @@ router.put('/:id', (req, res) => {
 
     const caldavAccountId = vCaldav ? vCaldav.value.accountId : event.target_caldav_account_id;
     const caldavCalendarUrl = vCaldav ? vCaldav.value.calendarUrl : event.target_caldav_calendar_url;
+    const googleTargetId = vGoogle ? vGoogle.value : event.target_google_calendar_id;
 
     db.get().transaction(() => {
       const documentId = req.body.attachment_data
@@ -790,6 +815,7 @@ router.put('/:id', (req, res) => {
             attachment_document_id = ?,
             target_caldav_account_id   = ?,
             target_caldav_calendar_url = ?,
+            target_google_calendar_id  = ?,
             user_modified   = ?
         WHERE id = ?
       `).run(
@@ -810,6 +836,7 @@ router.put('/:id', (req, res) => {
         documentId,
         caldavAccountId,
         caldavCalendarUrl,
+        googleTargetId,
         userModified,
         id
       );
@@ -1054,4 +1081,5 @@ router.get('/caldav/reminders/status', (req, res) => {
   }
 });
 
+export const __test = { googleTarget };
 export default router;
