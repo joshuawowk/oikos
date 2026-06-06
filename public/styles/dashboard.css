@@ -1800,7 +1800,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
   color: var(--color-accent);
   flex-shrink: 0;
@@ -2004,7 +2004,7 @@
   gap: var(--space-3);
   min-height: 88px;
   padding: var(--space-3);
-  border-radius: 24px;
+  border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-border) 42%, transparent);
   box-shadow: var(--shadow-xs);
@@ -2016,7 +2016,7 @@
   justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   color: var(--color-accent);
   flex-shrink: 0;
@@ -2144,7 +2144,7 @@
 }
 
 .dashboard .widget {
-  border-radius: 28px;
+  border-radius: var(--radius-2xl);
   border: 1px solid color-mix(in srgb, var(--color-border) 42%, transparent);
   background:
     linear-gradient(180deg,
@@ -2177,7 +2177,7 @@
 .dashboard .meal-slot,
 .dashboard .shopping-widget-list,
 .dashboard .note-item {
-  border-radius: 20px;
+  border-radius: var(--radius-glass-card);
 }
 
 .dashboard .task-item:hover,
@@ -2189,7 +2189,7 @@
 }
 
 .dashboard .weather-widget {
-  border-radius: 28px;
+  border-radius: var(--radius-2xl);
 }
 
 .dashboard .weather-widget__inner {
@@ -2248,7 +2248,7 @@
   .dashboard-overview {
     border: 1px solid var(--color-border);
     border-top: 3px solid var(--module-accent);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: var(--space-5);
   }
 }
@@ -2314,7 +2314,7 @@
 .dashboard-action {
   min-height: 36px;
   padding: 0 var(--space-2);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
@@ -2331,7 +2331,7 @@
 .dashboard-action__icon {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
 }
 
 .dashboard-action__icon svg {
@@ -2350,7 +2350,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
@@ -2390,7 +2390,7 @@
 .dashboard__grid--editing {
   padding: var(--space-2);
   border: 1px dashed color-mix(in srgb, var(--module-accent) 48%, var(--color-border));
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--module-accent) 4%, transparent);
 }
 
@@ -2398,7 +2398,7 @@
   padding-top: 42px;
   outline: 1px solid color-mix(in srgb, var(--module-accent) 36%, var(--color-border));
   outline-offset: -1px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .widget-wrapper--editing[draggable="true"] {
@@ -2420,7 +2420,7 @@
   gap: var(--space-2);
   padding: 4px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--color-surface) 96%, transparent);
   box-shadow: var(--shadow-xs);
 }
@@ -2430,7 +2430,7 @@
   width: 30px;
   height: 30px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   display: inline-flex;
@@ -2467,7 +2467,7 @@
   min-width: 132px;
   height: 30px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-size: var(--text-xs);
@@ -2505,14 +2505,14 @@
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--color-surface-2);
   flex: 0 0 auto;
 }
 
 .widget-size-mini span {
   display: block;
-  border-radius: 2px;
+  border-radius: var(--radius-2xs);
   background: var(--color-border);
 }
 
@@ -2534,7 +2534,7 @@
   min-height: 92px;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text-primary);
   text-align: left;
@@ -2553,7 +2553,7 @@
   justify-content: center;
   width: 38px;
   height: 38px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--module-accent) 14%, transparent);
   color: var(--module-accent);
 }
@@ -2679,7 +2679,7 @@
 
 .dashboard .widget,
 .dashboard .widget-skeleton {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
@@ -2718,7 +2718,7 @@
 .dashboard .meal-slot,
 .dashboard .shopping-widget-list,
 .dashboard .note-item {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .dashboard .task-item:hover,
@@ -2730,7 +2730,7 @@
 }
 
 .dashboard .weather-widget {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-deep) 100%);
   color: var(--color-text-on-accent);
   border-color: transparent;
@@ -2742,7 +2742,7 @@
   right: var(--space-3);
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .birthday-widget-item {
@@ -2764,7 +2764,7 @@
 .birthday-widget-item__avatar {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   display: inline-flex;
   align-items: center;
@@ -2806,7 +2806,7 @@
   min-width: 34px;
   text-align: center;
   padding: var(--space-1) var(--space-2);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
@@ -2841,7 +2841,7 @@
 .family-widget-avatar {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2906,7 +2906,7 @@
 .budget-widget-metric {
   min-width: 0;
   padding: var(--space-3);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface-2);
 }
@@ -2941,7 +2941,7 @@
 .budget-widget__footer {
   margin-top: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--module-budget) 10%, transparent);
   color: var(--color-text-secondary);
   font-size: var(--text-xs);

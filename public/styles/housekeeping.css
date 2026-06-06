@@ -385,19 +385,12 @@
   gap: var(--space-2);
 }
 
-.housekeeping-empty,
 .housekeeping-loading {
   min-height: 180px;
   display: grid;
   place-items: center;
   text-align: center;
   color: var(--color-text-secondary);
-}
-
-.housekeeping-empty svg {
-  width: 44px;
-  height: 44px;
-  color: var(--module-accent);
 }
 
 .housekeeping-photo {

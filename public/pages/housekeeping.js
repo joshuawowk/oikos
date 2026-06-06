@@ -413,9 +413,9 @@ function renderTasks(content) {
     </section>
     <section class="housekeeping-task-list">
       ${taskRows || `
-        <div class="housekeeping-empty">
-          <i data-lucide="list-checks" aria-hidden="true"></i>
-          <h2>${esc(t('housekeeping.noTasks'))}</h2>
+        <div class="empty-state">
+          <i class="empty-state__icon" data-lucide="list-checks" aria-hidden="true"></i>
+          <h2 class="empty-state__title">${esc(t('housekeeping.noTasks'))}</h2>
         </div>
       `}
     </section>
