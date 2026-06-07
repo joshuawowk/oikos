@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.63.7] - 2026-06-07
+
+### Fixed
+- API-token requests (`Authorization: Bearer <token>`) no longer crash with a 500 error when creating budget transactions, loans, loan repayments, notes, tasks, shopping lists, meals, or recipes. Affected routes read the canonical authenticated user id (`req.authUserId`) instead of the session-only `req.session.userId`, which is undefined for token auth (#270).
+
 ## [0.63.6] - 2026-06-06
 
 ### Changed
