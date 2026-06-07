@@ -326,15 +326,19 @@
   align-items: center;
   min-height: 88px;
   padding: var(--space-3);
-  border-left: 6px solid var(--color-success);
+  /* Status über Vollborder + Hintergrund-Tönung statt 6px-Seitenstreifen (DESIGN.md-konform) */
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
 }
 
 .housekeeping-task--today {
-  border-left-color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  background-color: color-mix(in srgb, var(--color-warning) 8%, transparent);
 }
 
 .housekeeping-task--overdue {
-  border-left-color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
+  background-color: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
 .housekeeping-task__check {

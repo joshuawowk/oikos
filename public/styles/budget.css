@@ -117,6 +117,10 @@
 
 .budget-tab[data-tab="budget"].budget-tab--active {
   background: var(--module-budget);
+  /* --module-budget kippt im Dark Mode auf helles Teal → dunkle Tinte.
+   * loans (--color-info) und split-expenses bleiben dunkel → behalten das
+   * weiße --color-text-on-accent aus der geteilten .budget-tab--active-Regel. */
+  color: var(--color-ink-on-vivid);
 }
 
 .budget-tab[data-tab="loans"].budget-tab--active {
@@ -574,7 +578,7 @@
 
 .loan-report__status--paid {
   background: var(--color-success);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 .loan-report__grid {
@@ -716,7 +720,6 @@
   gap: var(--space-3);
   padding: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
-  border-left: 3px solid var(--module-accent);
   cursor: pointer;
   transition: background-color var(--transition-fast);
 }
@@ -847,17 +850,17 @@
 
 .amount-type-btn--income.amount-type-btn--active {
   background-color: var(--color-success);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 .amount-type-btn--expenses.amount-type-btn--active {
   background-color: var(--color-danger);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 .amount-type-btn--loan.amount-type-btn--active {
   background-color: var(--module-budget);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 .modal-panel .js-entry-field[hidden],

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.65.1] - 2026-06-07
+
+### Fixed
+- Dark mode: white text and icons sat on light accent and semantic fills — the floating action button, delete/danger buttons, notification badges, completion checkmarks, active filter chips, and the calendar "today" markers were nearly illegible. They now use a dark ink color in dark mode, restoring WCAG AA contrast (the toast pattern, generalized to a shared `--color-ink-on-vivid` token).
+
+### Changed
+- Replaced the colored left-border accent stripes on list rows and cards (tasks, shopping, budget, contacts, notes, housekeeping) with full borders and background tints, matching the design system and improving visual consistency across modules.
+- Page titles and the dashboard greeting now use fixed type-scale steps instead of fluid sizing; the greeting is no longer oversized on large screens.
+
 ## [0.65.0] - 2026-06-07
 
 ### Added

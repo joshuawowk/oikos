@@ -230,7 +230,7 @@
   justify-content: center;
   border-radius: var(--radius-full);
   background-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 /* Filter-Toggle-Button */
@@ -272,7 +272,7 @@
   padding: 0 var(--space-1);
   border-radius: var(--radius-full);
   background-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
   line-height: 1;
@@ -376,7 +376,7 @@
 .swipe-reveal--edit {
   left: 0;
   background-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
   border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 
@@ -411,7 +411,6 @@
 .task-card {
   background-color: var(--color-surface);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  border-left: 3px solid var(--module-accent);
   box-shadow: var(--shadow-sm);
   margin-bottom: var(--space-2);
   overflow: hidden;
@@ -487,7 +486,7 @@
 .task-status-btn__check {
   width: 12px;
   height: 12px;
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
   display: none;
   position: absolute;
   z-index: 1;
@@ -683,7 +682,7 @@
 .subtask-item__checkbox-icon {
   width: 10px;
   height: 10px;
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 .subtask-item__title {

@@ -90,12 +90,21 @@
   --color-surface-3:      var(--_color-surface-3);
   --color-border:         var(--neutral-200);
   --color-border-subtle:  var(--neutral-150);
+  --color-border-strong:  var(--neutral-300);  /* kräftigere Trennlinie (Hover, betonte Rahmen) */
   --color-text-primary:   var(--neutral-900);
   --color-text-secondary: var(--neutral-600);  /* WCAG AA: ~5.0:1 auf weiß */
   --_color-text-tertiary: #6A6964;
   --color-text-tertiary:  var(--_color-text-tertiary);  /* WCAG AA: 4.61:1 auf --color-bg */
+  --color-text-quaternary: var(--neutral-500);  /* nur dekorativ (z.B. Kbd-Hint), nie für Fließtext */
   --color-text-disabled:  var(--neutral-300);
   --color-text-on-accent: #ffffff;  /* Weißer Text auf farbigen Hintergründen */
+
+  /* Tinte für VIVIDE Füllungen (Akzent/Semantik/Modul), die im Dark Mode auf helle
+   * Töne kippen. Light: weiß auf dunkler Füllung. Dark: dunkle Tinte auf heller Füllung.
+   * Gleiches Prinzip wie die Toast-Textfarben (--toast-*-text). Bewusst NICHT auf
+   * --color-btn-primary oder --color-info anwenden — die bleiben in beiden Modi dunkel. */
+  --_color-ink-on-vivid: #ffffff;
+  --color-ink-on-vivid:  var(--_color-ink-on-vivid);
 
   /* Elevation-Stufen für interaktive Listen-Elemente (More-Sheet, Search) */
   --_color-surface-elevated: var(--_neutral-50);
@@ -577,6 +586,9 @@
     --_toast-warning-text: #291400;   /* 13.1:1 auf #F59E0B */
     --_toast-danger-text:  #330808;   /* 15.1:1 auf #FCA5A5 */
 
+    /* Dunkle Tinte auf den vividen Hell-Füllungen des Dark Mode (FAB, Badges, aktive Chips) */
+    --_color-ink-on-vivid: #1A1A18;
+
     --_module-dashboard: #a78bfa;
     --_module-tasks:     #4ADE80;
     --_module-calendar:  #A78BFA;
@@ -687,6 +699,9 @@
     --_toast-success-text: #062010;   /* 13.6:1 auf #4ADE80 */
     --_toast-warning-text: #291400;   /* 13.1:1 auf #F59E0B */
     --_toast-danger-text:  #330808;   /* 15.1:1 auf #FCA5A5 */
+
+    /* Dunkle Tinte auf den vividen Hell-Füllungen des Dark Mode (FAB, Badges, aktive Chips) */
+    --_color-ink-on-vivid: #1A1A18;
 
     /* Modul-Akzente (Entflechtung Meals/Shopping spiegelt Light-Mode) */
     --_module-dashboard: #a78bfa;   /* Violet-400 */

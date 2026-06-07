@@ -72,7 +72,7 @@
 .list-tab--active {
   background-color: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 .list-tab__count {
@@ -249,7 +249,7 @@
   height: var(--target-base);
   border-radius: var(--radius-sm);
   background-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -336,7 +336,6 @@
   gap: var(--space-3);
   padding: var(--space-2) var(--space-1);
   border-bottom: 1px solid var(--color-border-subtle);
-  border-left: 3px solid var(--module-accent);
   transition: opacity var(--transition-fast);
   min-height: var(--target-base);
   cursor: pointer;
@@ -387,7 +386,7 @@
 .item-check__icon {
   width: var(--space-3);
   height: var(--space-3);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
   display: none;
   position: relative;
   z-index: 1;
@@ -470,7 +469,7 @@
 .swipe-reveal--delete {
   left: 0;
   background-color: var(--color-danger);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
   border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 

@@ -123,7 +123,7 @@
 .contact-filter-chip--active {
   background-color: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 /* --------------------------------------------------------
@@ -159,7 +159,6 @@
   gap: var(--space-3);
   padding: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
-  border-left: 3px solid var(--module-accent);
   cursor: pointer;
   transition: background-color var(--transition-fast);
 }

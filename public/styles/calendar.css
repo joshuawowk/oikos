@@ -215,7 +215,7 @@
 
 .month-day--today .month-day__number {
   background-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
   font-weight: var(--font-weight-bold);
 }
 
@@ -335,7 +335,7 @@
 
 .week-view__day-num--today {
   background-color: var(--color-accent);
-  color: var(--color-text-on-accent);
+  color: var(--color-ink-on-vivid);
 }
 
 .week-view__scroll {
