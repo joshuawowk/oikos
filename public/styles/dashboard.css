@@ -2848,7 +2848,7 @@ svg.weather-forecast__icon {
 .family-widget-avatar {
   width: 34px;
   height: 34px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   display: inline-flex;
   align-items: center;
   justify-content: center;

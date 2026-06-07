@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.65.14] - 2026-06-07
+
+### Fixed
+- Family member widget avatars in the dashboard are now circular (`border-radius: var(--radius-full)`) instead of square with small rounded corners (`--radius-sm`), matching the consistent round avatar style used throughout the app.
+
 ## [0.65.13] - 2026-06-07
 
 ### Fixed
