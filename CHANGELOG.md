@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.65.16] - 2026-06-07
+
+### Fixed
+- Creator avatar and name in note cards are no longer tinted by the note's background color. The footer's `opacity: 0.55` (which cascades to all children including the avatar) has been replaced with `color: color-mix(in srgb, currentColor 55%, transparent)`, which mutes the border and text while leaving the avatar image and background-color at full opacity.
+
 ## [0.65.15] - 2026-06-07
 
 ### Fixed
