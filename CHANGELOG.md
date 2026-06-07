@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.65.9] - 2026-06-07
+
+### Fixed
+- Weather widget icons now remain visible in light mode. SVG stroke was bound to `var(--color-text-secondary)` (dark in light mode) against the widget's always-dark gradient background; changed to `currentColor` so it inherits `var(--color-text-on-accent)` from the parent.
+
 ## [0.65.8] - 2026-06-07
 
 ### Fixed

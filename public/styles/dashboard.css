@@ -1075,7 +1075,7 @@
    Stroke nur für die SVG-Variante setzen — <img> bleibt unberührt. */
 svg.weather-widget__icon,
 svg.weather-forecast__icon {
-  stroke: var(--color-text-secondary);
+  stroke: currentColor;
 }
 
 .weather-forecast__temps {
