@@ -36,4 +36,7 @@ Oikos ships to several deploy targets that each describe env vars, ports and vol
 
 ### TrueNAS specifics
 
-Files under `deploy/truenas/` are the **source**; the published catalog files in the `ulsklyc/apps` fork are produced from them by `tools/truenas/generate.mjs` (auto-PR on release). Edit `deploy/truenas/` only — never hand-edit the fork. Editing `questions.yaml` or `templates/docker-compose.yaml` here is enough; the version fields (`app.yaml.tmpl`, `ix_values.yaml.tmpl`) are filled by the generator and must not be hardcoded.
+Files under `deploy/truenas/` are the tracked **source** for the app's TrueNAS catalog config (install form + compose). The published catalog lives in the upstream `truenas/apps` community train and is updated two separate ways:
+
+- **Version bumps are automatic.** TrueNAS's own Renovate bot (`truenasbot`) detects each new `ghcr.io/ulsklyc/oikos` image tag (published by `docker-publish.yml` on release) and opens a catalog-bump PR upstream. Nothing on our side is required — there is no generator and no version-templating anymore.
+- **Config changes are not automatic.** A new **required secret**, **port**, or **volume** is not propagated by the bot. Edit `deploy/truenas/questions.yaml` / `templates/docker-compose.yaml` here as the source, then carry those edits to the upstream catalog via a manual PR to `truenas/apps`.

@@ -55,7 +55,7 @@ sync targets below and update **only** what the change actually affects.
 | `tools/quadlet/oikos.container` | Podman Quadlet — ports, env, volumes (mirror compose) |
 | `templates/oikos.xml` | Unraid CA template — **every** env var/port/volume is a hand-written `<Config>` (no fallback). Add/edit/remove the matching entry; mask secrets (`Mask="true"`), put optional integrations on `Display="advanced"` |
 | `ca_profile.xml` | Unraid CA profile blurb — only when the app overview / module list changed |
-| `deploy/truenas/questions.yaml` + `deploy/truenas/templates/docker-compose.yaml` | TrueNAS source. Required secrets / new ports / new volumes only — optional env vars are covered by the generic `additional_envs` list. The published catalog files are generated from here by `tools/truenas/generate.mjs`; never hand-edit the fork |
+| `deploy/truenas/questions.yaml` + `deploy/truenas/templates/docker-compose.yaml` | TrueNAS catalog-config source. Required secrets / new ports / new volumes only — optional env vars are covered by the generic `additional_envs` list. Version bumps reach the upstream `truenas/apps` catalog automatically via the `truenasbot` Renovate bot (new ghcr image tags); config changes need a manual PR carrying these edits |
 | `tools/installer/README.md` | Installer steps, requirements, endpoints, localization, design |
 | `docs/index.html` | Version badge (hero + footer), feature showcase/grid, social-proof counts. **EN + DE i18n in lockstep** |
 | `docs/install.html` | Install options/cards, optional-integration cards. **EN + DE i18n in lockstep** |
