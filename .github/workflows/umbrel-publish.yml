@@ -73,7 +73,9 @@ jobs:
           set -euo pipefail
           IMG="ghcr.io/${{ github.repository_owner }}/oikos:${{ steps.ver.outputs.version }}"
           for i in $(seq 1 40); do
-            D="$(docker buildx imagetools inspect "$IMG" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty')"
+            # `|| true` keeps a not-yet-published image (pipefail makes inspect's
+            # failure propagate) from tripping `set -e` and aborting the retry loop.
+            D="$(docker buildx imagetools inspect "$IMG" --format '{{json .Manifest}}' 2>/dev/null | jq -r '.digest // empty' || true)"
             if [ -n "$D" ]; then
               echo "digest=$D" >> "$GITHUB_OUTPUT"
               echo "✓ $IMG -> $D"
