@@ -18,7 +18,7 @@ const BORDER = '#3D3D3A';
 // Layout (px on the 1920x1200 canvas).
 const DESK = { w: 1240, h: 775, x: 168, y: 212, r: 14, border: 1.5 };
 const PHONE = { h: 900, x: 1330, y: 150, r: 40, border: 2 };
-const PHONE_W = Math.round(PHONE.h * (918 / 1986)); // keep mobile aspect ratio
+const PHONE_W = Math.round(PHONE.h * (1320 / 2867)); // keep mobile aspect ratio (iPhone 17 Pro Max portrait)
 
 const modules = ['dashboard', 'calendar', 'meals', 'shopping', 'budget'];
 
@@ -74,7 +74,7 @@ async function shadow(w, h, r, blur = 34, opacity = 0.5) {
 }
 
 async function build(module) {
-  const deskFile = path.join(here, `${module}-dark-desktop.png`);
+  const deskFile = path.join(here, `${module}-dark-web.png`);
   const phoneFile = path.join(here, `${module}-dark-mobile.png`);
 
   const deskImg = await panel(deskFile, DESK.w, DESK.h, DESK.r, DESK.border);
