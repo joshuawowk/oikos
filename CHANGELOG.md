@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.65.21] - 2026-06-08
+
+### Added
+- **WebDAV backup target** — after each automatic local backup, Oikos can now upload the file to any WebDAV-compatible server (Nextcloud, ownCloud, Hetzner Storage Box, Infomaniak kDrive, etc.). Configure in **Settings → Backup → WebDAV Backup Target** or via six new environment variables (`WEBDAV_BACKUP_ENABLED`, `WEBDAV_BACKUP_URL`, `WEBDAV_BACKUP_USERNAME`, `WEBDAV_BACKUP_PASSWORD`, `WEBDAV_BACKUP_PATH`, `WEBDAV_BACKUP_KEEP`). Environment variables take precedence over the UI configuration and make fields read-only. Uses Node 22 built-in `fetch` — zero new npm dependencies. Upload failures are non-fatal: the local backup is always retained. Password is always masked (`****`) in the API and UI.
+- Manual "Upload now" button in Settings → Backup to trigger an immediate WebDAV upload of the latest local backup file.
+- "Test connection" button with inline success/failure feedback.
+- Remote backup rotation: oldest remote files are deleted automatically once the configured `keep` limit is exceeded.
+
 ## [0.65.20] - 2026-06-08
 
 ### Added

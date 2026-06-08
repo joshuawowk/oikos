@@ -154,7 +154,7 @@ Each module is independent. Use what fits, skip what doesn't.
 | 👪 | **Family** | Member profiles with roles, photos, phone, email, and birthday — synced to Contacts and Birthdays. |
 | 🔔 | **Reminders** | Time-based notifications on tasks and calendar events with in-app badge counter. |
 | 🔑 | **API Tokens** | Named Bearer / X-API-Key tokens for integrations. OpenAPI 3.0 spec included. |
-| 💾 | **Backup** | Manual and scheduled database backup and restore, with automatic pre-restore rollback. |
+| 💾 | **Backup** | Manual and scheduled database backup and restore, with automatic pre-restore rollback. Optional WebDAV upload target (Nextcloud, ownCloud, Hetzner, etc.). |
 
 ---
 

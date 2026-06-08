@@ -116,4 +116,12 @@ After the container starts, open the WebUI — the first visit guides you throug
   <Config Name="BACKUP_ENABLED" Target="BACKUP_ENABLED" Default="true" Mode="" Description="Optional. Enable automated database backups (default: true)." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
   <Config Name="BACKUP_SCHEDULE" Target="BACKUP_SCHEDULE" Default="0 2 * * *" Mode="" Description="Optional. Cron schedule for automated backups (default: 2 AM daily)." Type="Variable" Display="advanced" Required="false" Mask="false">0 2 * * *</Config>
   <Config Name="BACKUP_KEEP" Target="BACKUP_KEEP" Default="7" Mode="" Description="Optional. Number of backups to retain (default: 7)." Type="Variable" Display="advanced" Required="false" Mask="false">7</Config>
+
+  <!-- WebDAV backup target (optional) — upload each backup to Nextcloud, ownCloud, Hetzner Storage Box, etc. -->
+  <Config Name="WEBDAV_BACKUP_ENABLED" Target="WEBDAV_BACKUP_ENABLED" Default="" Mode="" Description="Optional. Set to true to enable automatic upload of backups to a WebDAV server after each local backup." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="WEBDAV_BACKUP_URL" Target="WEBDAV_BACKUP_URL" Default="" Mode="" Description="Optional. WebDAV server URL, e.g. https://cloud.example.com/remote.php/dav/files/username/" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="WEBDAV_BACKUP_USERNAME" Target="WEBDAV_BACKUP_USERNAME" Default="" Mode="" Description="Optional. WebDAV username for authentication." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="WEBDAV_BACKUP_PASSWORD" Target="WEBDAV_BACKUP_PASSWORD" Default="" Mode="" Description="Optional. WebDAV password for authentication." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="WEBDAV_BACKUP_PATH" Target="WEBDAV_BACKUP_PATH" Default="/oikos/backups/" Mode="" Description="Optional. Remote directory path where backup files are stored (default: /oikos/backups/)." Type="Variable" Display="advanced" Required="false" Mask="false">/oikos/backups/</Config>
+  <Config Name="WEBDAV_BACKUP_KEEP" Target="WEBDAV_BACKUP_KEEP" Default="7" Mode="" Description="Optional. Number of remote backup files to keep (default: 7)." Type="Variable" Display="advanced" Required="false" Mask="false">7</Config>
 </Container>
