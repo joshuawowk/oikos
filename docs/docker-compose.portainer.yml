@@ -18,7 +18,7 @@
 
 services:
   oikos:
-    image: ghcr.io/ulsklyc/oikos:latest
+    image: ghcr.io/ulsklyc/yuvomi:latest
     container_name: oikos
     restart: unless-stopped
     ports:

@@ -5,7 +5,7 @@ Three ways to get Yuvomi running from scratch:
 ### Option A — Web Installer (recommended, all platforms)
 
 ```bash
-git clone https://github.com/ulsklyc/oikos.git && cd oikos
+git clone https://github.com/ulsklyc/yuvomi.git && cd yuvomi
 node tools/installer/install-server.js
 # Open http://localhost:8090
 ```
@@ -15,7 +15,7 @@ Requires Node.js 18+ on the host. The browser-based wizard is fully localized (1
 ### Option B — CLI Installer (Linux / macOS)
 
 ```bash
-git clone https://github.com/ulsklyc/oikos.git && cd oikos
+git clone https://github.com/ulsklyc/yuvomi.git && cd yuvomi
 bash install.sh
 ```
 
@@ -36,8 +36,8 @@ bash install.sh --env-file /path/to/.env
 ### Option C — Manual (Docker or Podman, no clone required)
 
 ```bash
-curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/.env.example
+curl -O https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/ulsklyc/yuvomi/main/.env.example
 cp .env.example .env  # set SESSION_SECRET and DB_ENCRYPTION_KEY
 docker compose up -d
 ```
@@ -46,8 +46,8 @@ docker compose up -d
 adds the SELinux `:Z` relabel so the rootless container can write to its volumes:
 
 ```bash
-curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/podman-compose.yml
-curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/.env.example
+curl -O https://raw.githubusercontent.com/ulsklyc/yuvomi/main/podman-compose.yml
+curl -O https://raw.githubusercontent.com/ulsklyc/yuvomi/main/.env.example
 cp .env.example .env  # set SESSION_SECRET and DB_ENCRYPTION_KEY
 podman compose -f podman-compose.yml up -d   # or: podman-compose -f podman-compose.yml up -d
 ```
@@ -156,8 +156,8 @@ Requires Node.js 18+ and Docker on the host.
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ulsklyc/oikos.git
-cd oikos
+git clone https://github.com/ulsklyc/yuvomi.git
+cd yuvomi
 ```
 
 #### 2. Start the Installer
@@ -189,8 +189,8 @@ A ready-to-use Docker image is published to the GitHub Container Registry on eve
 #### 1. Download the Compose File and Example Config
 
 ```bash
-curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/ulsklyc/oikos/main/.env.example
+curl -O https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/ulsklyc/yuvomi/main/.env.example
 ```
 
 #### 2. Configure Environment Variables
@@ -220,7 +220,7 @@ Run this command **twice** and paste each result. See [Environment Variables](#e
 docker compose up -d
 ```
 
-Docker pulls `ghcr.io/ulsklyc/oikos:latest` automatically. No build step, no Node.js installation needed.
+Docker pulls `ghcr.io/ulsklyc/yuvomi:latest` automatically. No build step, no Node.js installation needed.
 
 Continue with [Step 4 — Verify](#4-verify-the-container-is-running).
 
@@ -231,8 +231,8 @@ Continue with [Step 4 — Verify](#4-verify-the-container-is-running).
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ulsklyc/oikos.git
-cd oikos
+git clone https://github.com/ulsklyc/yuvomi.git
+cd yuvomi
 ```
 
 #### 2. Configure Environment Variables
@@ -616,7 +616,7 @@ No rebuild needed. The database volume persists across updates.
 ### Option C — Build from Source
 
 ```bash
-cd oikos
+cd yuvomi
 git pull
 docker compose up -d --build
 ```
@@ -842,7 +842,7 @@ docker compose down -v
 Remove the repository:
 
 ```bash
-cd .. && rm -rf oikos
+cd .. && rm -rf yuvomi
 ```
 
 > **Warning**: `docker compose down -v` permanently deletes all data including the database. Create a backup first if needed.
