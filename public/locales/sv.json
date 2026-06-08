@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Bilaga uppladdad för kalenderhändelsen \"{{title}}\".",
     "agendaEmpty": "Inga händelser under vald period",
-    "taskChipAriaLabel": "Uppgift: {{title}}"
+    "taskChipAriaLabel": "Uppgift: {{title}}",
+    "toggleHolidays": "Helgdagar",
+    "toggleSchool": "Skollov"
   },
   "notes": {
     "title": "Anteckningar",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo aktiveras vid sparning och OWM ignoreras.",
     "weatherLocateBtn": "Identifiera plats",
     "weatherLocateSuccess": "Plats identifierad.",
-    "weatherLocateUnsupported": "Geolokalisering stöds inte av din webbläsare."
+    "weatherLocateUnsupported": "Geolokalisering stöds inte av din webbläsare.",
+    "sectionHolidays": "Helgdagar & Skollov",
+    "holidayTitle": "OpenHolidays API (gratis, ingen API-nyckel)",
+    "holidayDescription": "Visa officiella helgdagar och skollov i din kalender.",
+    "holidayCountryLabel": "Land",
+    "holidayCountryPlaceholder": "Välj ett land…",
+    "holidaySubdivisionLabel": "Län / Region",
+    "holidaySubdivisionNone": "Hela landet",
+    "holidaySubdivisionPlaceholder": "Välj ett län…",
+    "holidayPublicLabel": "Visa helgdagar",
+    "holidaySchoolLabel": "Visa skollov",
+    "holidayPublicColor": "Färg helgdagar",
+    "holidaySchoolColor": "Färg skollov",
+    "holidaySaveBtn": "Spara",
+    "holidaySaved": "Kalenderinställningar sparade.",
+    "holidaySyncBtn": "Synkronisera nu",
+    "holidaySynced": "Helgdagar synkroniserade.",
+    "holidaySyncError": "Synkronisering misslyckades.",
+    "holidayLastSync": "Senast synkroniserad: {{date}}",
+    "holidayNeverSynced": "Aldrig synkroniserad",
+    "holidayCountryRequired": "Välj ett land först."
   },
   "login": {
     "tagline": "Familjeplanering. Säker. Sekretessvänlig. Öppen källkod.",

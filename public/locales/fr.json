@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Pièce jointe téléversée pour l’événement \"{{title}}\".",
     "agendaEmpty": "Aucun événement dans la période sélectionnée",
-    "taskChipAriaLabel": "Tâche : {{title}}"
+    "taskChipAriaLabel": "Tâche : {{title}}",
+    "toggleHolidays": "Jours fériés",
+    "toggleSchool": "Vacances scolaires"
   },
   "notes": {
     "title": "Notes",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo sera activé à l'enregistrement et OWM ignoré.",
     "weatherLocateBtn": "Détecter ma position",
     "weatherLocateSuccess": "Position détectée.",
-    "weatherLocateUnsupported": "La géolocalisation n'est pas prise en charge par votre navigateur."
+    "weatherLocateUnsupported": "La géolocalisation n'est pas prise en charge par votre navigateur.",
+    "sectionHolidays": "Jours fériés & Vacances scolaires",
+    "holidayTitle": "OpenHolidays API (gratuit, sans clé API)",
+    "holidayDescription": "Affichez les jours fériés officiels et les vacances scolaires dans votre calendrier.",
+    "holidayCountryLabel": "Pays",
+    "holidayCountryPlaceholder": "Sélectionner un pays…",
+    "holidaySubdivisionLabel": "Région / Département",
+    "holidaySubdivisionNone": "Tout le pays",
+    "holidaySubdivisionPlaceholder": "Sélectionner une région…",
+    "holidayPublicLabel": "Afficher les jours fériés",
+    "holidaySchoolLabel": "Afficher les vacances scolaires",
+    "holidayPublicColor": "Couleur des jours fériés",
+    "holidaySchoolColor": "Couleur des vacances scolaires",
+    "holidaySaveBtn": "Enregistrer",
+    "holidaySaved": "Paramètres du calendrier enregistrés.",
+    "holidaySyncBtn": "Synchroniser maintenant",
+    "holidaySynced": "Jours fériés synchronisés.",
+    "holidaySyncError": "La synchronisation a échoué.",
+    "holidayLastSync": "Dernière synchronisation : {{date}}",
+    "holidayNeverSynced": "Jamais synchronisé",
+    "holidayCountryRequired": "Veuillez d'abord sélectionner un pays."
   },
   "login": {
     "tagline": "Planification familiale. Sécurisée. Respectueuse de la vie privée. Open source.",

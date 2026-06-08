@@ -210,6 +210,8 @@ const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const ATTACHMENT_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 const CALENDAR_VIEW_STORAGE_KEY = 'oikos:calendar:view';
 const LEGACY_CALENDAR_VIEW_STORAGE_KEY = 'oikos-calendar-view';
+const LAYER_HOLIDAYS_KEY = 'oikos:calendar:layer:holidays';
+const LAYER_SCHOOL_KEY   = 'oikos:calendar:layer:school';
 
 const HOUR_HEIGHT = 56; // px pro Stunde in Wochen-/Tagesansicht
 
@@ -326,14 +328,18 @@ function getContrastColor(hex) {
 // --------------------------------------------------------
 
 let state = {
-  view:        'month',
-  today:       '',
-  cursor:      null,     // aktuell angezeigte Referenz-Datum (YYYY-MM-DD)
-  events:      [],
-  tasks:       [],       // Aufgaben mit due_date für Kalender-Anzeige
-  users:       [],
-  rangeFrom:   '',
-  rangeTo:     '',
+  view:          'month',
+  today:         '',
+  cursor:        null,     // aktuell angezeigte Referenz-Datum (YYYY-MM-DD)
+  events:        [],
+  tasks:         [],       // Aufgaben mit due_date für Kalender-Anzeige
+  users:         [],
+  rangeFrom:     '',
+  rangeTo:       '',
+  holidays:      [],       // cached entries from holiday_cache
+  holidayPrefs:  {},       // subset of /preferences
+  layerHolidays: true,     // toggle for public holiday layer
+  layerSchool:   true,     // toggle for school holiday layer
 };
 let _container = null;
 
@@ -686,6 +692,17 @@ function tasksOnDay(dateStr) {
   return state.tasks.filter((t) => t.due_date === dateStr);
 }
 
+/** Holiday entries that overlap a given date (respects layer toggles). */
+function holidaysOnDay(dateStr) {
+  if (!state.holidays?.length) return [];
+  return state.holidays.filter((h) => {
+    if (h.start_date > dateStr || h.end_date < dateStr) return false;
+    if (h.type === 'public' && !state.layerHolidays) return false;
+    if (h.type === 'school' && !state.layerSchool)   return false;
+    return true;
+  });
+}
+
 /** Rendert einen read-only Task-Chip für Kalenderansichten. */
 function renderTaskChip(task) {
   const priority = task.priority || 'none';
@@ -708,19 +725,22 @@ function renderTaskChip(task) {
 
 async function loadRange(from, to) {
   try {
-    const [evRes, taskRes] = await Promise.all([
+    const [evRes, taskRes, holRes] = await Promise.all([
       api.get(`/calendar?from=${from}&to=${to}`),
       api.get('/tasks?include_future=1').catch((err) => {
         console.warn('[Calendar] Tasks-Fetch fehlgeschlagen:', err);
         return { data: [] };
       }),
+      api.get(`/calendar/holidays?from=${from}&to=${to}`).catch(() => ({ data: [] })),
     ]);
-    state.events = evRes.data;
-    state.tasks  = filterTasksForCalendar(taskRes.data ?? []);
+    state.events   = evRes.data;
+    state.tasks    = filterTasksForCalendar(taskRes.data ?? []);
+    state.holidays = holRes.data ?? [];
   } catch (err) {
     console.error('[Calendar] loadRange Fehler:', err);
-    state.events = [];
-    state.tasks  = [];
+    state.events   = [];
+    state.tasks    = [];
+    state.holidays = [];
     window.oikos?.showToast(t('calendar.loadError'), 'danger');
   }
   state.rangeFrom = from;
@@ -758,7 +778,14 @@ export async function render(container, { user }) {
   `);
 
   const { from, to } = getRangeForView(state.view, state.cursor);
-  await Promise.all([loadRange(from, to), loadUsers()]);
+  const [,, prefsRes] = await Promise.all([
+    loadRange(from, to),
+    loadUsers(),
+    api.get('/preferences').catch(() => ({ data: {} })),
+  ]);
+  state.holidayPrefs  = prefsRes.data ?? {};
+  state.layerHolidays = localStorage.getItem(LAYER_HOLIDAYS_KEY) !== 'false';
+  state.layerSchool   = localStorage.getItem(LAYER_SCHOOL_KEY)   !== 'false';
 
   renderToolbar();
   renderView();
@@ -786,6 +813,33 @@ function renderToolbar() {
   const bar = _container.querySelector('#cal-toolbar');
   if (!bar) return;
 
+  const hp = state.holidayPrefs ?? {};
+  const showHolidayToggle = hp.holiday_show_public;
+  const showSchoolToggle  = hp.holiday_show_school;
+
+  const holidayToggleHtml = (showHolidayToggle || showSchoolToggle) ? `
+    <div class="cal-toolbar__layers">
+      ${showHolidayToggle ? `
+        <button class="cal-toolbar__layer-btn ${state.layerHolidays ? 'cal-toolbar__layer-btn--active' : ''}"
+                id="cal-layer-holidays" data-layer="holidays"
+                title="${t('calendar.toggleHolidays')}"
+                style="--layer-color:${esc(hp.holiday_public_color ?? '#FF3B30')}">
+          <span class="cal-toolbar__layer-dot"></span>
+          <span>${t('calendar.toggleHolidays')}</span>
+        </button>
+      ` : ''}
+      ${showSchoolToggle ? `
+        <button class="cal-toolbar__layer-btn ${state.layerSchool ? 'cal-toolbar__layer-btn--active' : ''}"
+                id="cal-layer-school" data-layer="school"
+                title="${t('calendar.toggleSchool')}"
+                style="--layer-color:${esc(hp.holiday_school_color ?? '#34C759')}">
+          <span class="cal-toolbar__layer-dot"></span>
+          <span>${t('calendar.toggleSchool')}</span>
+        </button>
+      ` : ''}
+    </div>
+  ` : '';
+
   bar.replaceChildren();
   bar.insertAdjacentHTML('beforeend', `
     <h1 class="sr-only">${t('calendar.title')}</h1>
@@ -796,6 +850,7 @@ function renderToolbar() {
     </div>
     <button class="cal-toolbar__today" id="cal-today">${t('calendar.today')}</button>
     <span class="cal-toolbar__label" id="cal-label"></span>
+    ${holidayToggleHtml}
     <div class="cal-toolbar__views">
       ${VIEWS.map((v) => `
         <button class="cal-toolbar__view-btn ${v === state.view ? 'cal-toolbar__view-btn--active' : ''}"
@@ -821,6 +876,22 @@ function renderToolbar() {
   bar.querySelector('#cal-next').addEventListener('click', () => navigate(1));
   bar.querySelector('#cal-today').addEventListener('click', goToday);
   bar.querySelector('#cal-add').addEventListener('click', () => openEventModal({ mode: 'create' }));
+
+  bar.querySelectorAll('[data-layer]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const layer = btn.dataset.layer;
+      if (layer === 'holidays') {
+        state.layerHolidays = !state.layerHolidays;
+        localStorage.setItem(LAYER_HOLIDAYS_KEY, state.layerHolidays);
+        btn.classList.toggle('cal-toolbar__layer-btn--active', state.layerHolidays);
+      } else if (layer === 'school') {
+        state.layerSchool = !state.layerSchool;
+        localStorage.setItem(LAYER_SCHOOL_KEY, state.layerSchool);
+        btn.classList.toggle('cal-toolbar__layer-btn--active', state.layerSchool);
+      }
+      renderView();
+    });
+  });
 
   bar.querySelectorAll('[data-view]').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -982,6 +1053,7 @@ function renderMonthView(container) {
 function renderMonthDay(date, inMonth) {
   const evs      = eventsOnDay(date);
   const dayTasks = tasksOnDay(date);
+  const dayHols  = holidaysOnDay(date);
   const isToday  = date === state.today;
   const classes  = [
     'month-day',
@@ -1008,9 +1080,16 @@ function renderMonthDay(date, inMonth) {
   const MAX_TASK_SHOW = 2;
   const taskHtml = dayTasks.slice(0, MAX_TASK_SHOW).map(renderTaskChip).join('');
 
+  const holHtml = dayHols.map((h) => `
+    <div class="month-day__holiday" style="--holi-color:${esc(h.color)}" title="${esc(h.name)}">
+      <span>${esc(h.name)}</span>
+    </div>
+  `).join('');
+
   return `
     <div class="${classes}" data-date="${date}">
       <div class="month-day__number">${new Date(date + 'T00:00:00').getDate()}</div>
+      ${holHtml}
       ${evHtml}
       ${extra > 0 ? `<div class="month-day__more">${t('calendar.moreEvents', { count: extra })}</div>` : ''}
       ${taskHtml}
@@ -1060,6 +1139,11 @@ function renderWeekView(container) {
         <div class="calendar-all-day-label">${t('calendar.allDayShort')}</div>
         ${days.map((d, i) => `
           <div class="allday-cell">
+            ${holidaysOnDay(d).map((h) => `
+              <div class="allday-holiday" style="--holi-color:${esc(h.color)}" title="${esc(h.name)}">
+                <span>${esc(h.name)}</span>
+              </div>
+            `).join('')}
             ${alldayEvs[i].map((ev) => `
               <div class="allday-event" data-id="${ev.id}"
                    style="${ev.color || ev.cal_color ? `background-color:${esc(ev.color || ev.cal_color)};` : ''}${getContrastColor(ev.color || ev.cal_color) ? `color:${getContrastColor(ev.color || ev.cal_color)};` : ''}"
@@ -1240,10 +1324,15 @@ function renderDayView(container) {
       <div class="day-view__header">
         <div class="day-view__date-label">${formatDate(state.cursor, { weekday: true, long: true })}</div>
       </div>
-      ${(allday.length || tasksOnDay(state.cursor).length) ? `
+      ${(allday.length || tasksOnDay(state.cursor).length || holidaysOnDay(state.cursor).length) ? `
       <div class="allday-row" style="display:grid;grid-template-columns:var(--space-12) 1fr;">
         <div class="calendar-all-day-label">${t('calendar.allDayShort')}</div>
         <div class="allday-cell">
+          ${holidaysOnDay(state.cursor).map((h) => `
+            <div class="allday-holiday" style="--holi-color:${esc(h.color)}" title="${esc(h.name)}">
+              <span>${esc(h.name)}</span>
+            </div>
+          `).join('')}
           ${allday.map((ev) => `
             <div class="allday-event" data-id="${ev.id}"
                  style="${ev.color || ev.cal_color ? `background-color:${esc(ev.color || ev.cal_color)};` : ''}${getContrastColor(ev.color || ev.cal_color) ? `color:${getContrastColor(ev.color || ev.cal_color)};` : ''}"
@@ -1311,20 +1400,25 @@ function renderAgendaView(container) {
   const days = Array.from({ length: 31 }, (_, i) => addDays(from, i));
 
   const groups = days
-    .map((d) => ({ date: d, events: eventsOnDay(d), tasks: tasksOnDay(d) }))
-    .filter((g) => g.events.length > 0 || g.tasks.length > 0);
+    .map((d) => ({ date: d, events: eventsOnDay(d), tasks: tasksOnDay(d), holidays: holidaysOnDay(d) }))
+    .filter((g) => g.events.length > 0 || g.tasks.length > 0 || g.holidays.length > 0);
 
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
     <div class="agenda-view" id="agenda-view">
       ${groups.length === 0
         ? `<div class="agenda-empty">${t('calendar.agendaEmpty')}</div>`
-        : groups.map(({ date, events, tasks }) => `
+        : groups.map(({ date, events, tasks, holidays }) => `
           <div class="agenda-day">
             <div class="agenda-day__header ${date === state.today ? 'agenda-day__header--today' : ''}">
               <span class="agenda-day__date">${formatDate(date)}</span>
               <span class="agenda-day__weekday">${DAY_NAMES_LONG()[new Date(date + 'T00:00:00').getDay()]}</span>
             </div>
+            ${holidays.length ? `<div class="agenda-holidays">${holidays.map((h) => `
+              <div class="agenda-holiday" style="--holi-color:${esc(h.color)}">
+                <span class="agenda-holiday__dot"></span>
+                <span>${esc(h.name)}</span>
+              </div>`).join('')}</div>` : ''}
             ${events.map((ev) => renderAgendaEvent(ev, date)).join('')}
             ${tasks.length ? `<div class="agenda-tasks">${tasks.map(renderTaskChip).join('')}</div>` : ''}
           </div>

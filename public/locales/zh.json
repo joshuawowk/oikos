@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "为日历事件“{{title}}”上传的附件。",
     "agendaEmpty": "所选时间范围内没有日程",
-    "taskChipAriaLabel": "任务：{{title}}"
+    "taskChipAriaLabel": "任务：{{title}}",
+    "toggleHolidays": "Public Holidays",
+    "toggleSchool": "School Holidays"
   },
   "notes": {
     "title": "便签板",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "保存后将激活Open-Meteo并忽略OWM。",
     "weatherLocateBtn": "获取当前位置",
     "weatherLocateSuccess": "位置获取成功。",
-    "weatherLocateUnsupported": "您的浏览器不支持地理定位。"
+    "weatherLocateUnsupported": "您的浏览器不支持地理定位。",
+    "sectionHolidays": "Public & School Holidays",
+    "holidayTitle": "OpenHolidays API (free, no API key)",
+    "holidayDescription": "Display official public holidays and school vacations in your calendar.",
+    "holidayCountryLabel": "Country",
+    "holidayCountryPlaceholder": "Select a country…",
+    "holidaySubdivisionLabel": "State / Region",
+    "holidaySubdivisionNone": "Entire country",
+    "holidaySubdivisionPlaceholder": "Select a state…",
+    "holidayPublicLabel": "Show public holidays",
+    "holidaySchoolLabel": "Show school holidays",
+    "holidayPublicColor": "Public holiday color",
+    "holidaySchoolColor": "School holiday color",
+    "holidaySaveBtn": "Save",
+    "holidaySaved": "Calendar settings saved.",
+    "holidaySyncBtn": "Sync now",
+    "holidaySynced": "Holidays synced.",
+    "holidaySyncError": "Sync failed.",
+    "holidayLastSync": "Last sync: {{date}}",
+    "holidayNeverSynced": "Not yet synced",
+    "holidayCountryRequired": "Please select a country first."
   },
   "login": {
     "tagline": "家庭规划。安全。注重隐私。开源。",

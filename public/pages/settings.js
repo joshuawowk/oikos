@@ -264,7 +264,7 @@ export async function render(container, { user }) {
       : t('settings.notConnected');
 
   const allowedTabs = [
-    'general', 'meals', 'budget', 'shopping', 'sync',
+    'general', 'meals', 'budget', 'shopping', 'calendar', 'sync',
     ...(user?.role === 'admin' ? ['family', 'api-tokens'] : []),
     'account',
     ...(user?.role === 'admin' ? ['backup'] : []),
@@ -542,6 +542,76 @@ export async function render(container, { user }) {
             </form>
           </div>
         </section>
+      </div>
+
+      <!-- Panel: Kalender -->
+      <div class="settings-tab-panel" data-panel="calendar" role="tabpanel"
+        data-holiday-country="${esc(prefs.holiday_country ?? '')}"
+        data-holiday-subdivision="${esc(prefs.holiday_subdivision ?? '')}"
+        ${panelHidden('calendar')}>
+        ${user?.role === 'admin' ? `
+        <section class="settings-section">
+          <h2 class="settings-section__title">${t('settings.sectionHolidays')}</h2>
+          <div class="settings-card" id="holidays-card">
+            <h3 class="settings-card__title">${t('settings.holidayTitle')}</h3>
+            <p class="settings-card-description">${t('settings.holidayDescription')}</p>
+
+            <form class="settings-form settings-form--compact" id="holidays-form" novalidate autocomplete="off">
+              <div class="form-group">
+                <label class="form-label" for="holiday-country">${t('settings.holidayCountryLabel')}</label>
+                <select class="form-input" id="holiday-country">
+                  <option value="">${t('settings.holidayCountryPlaceholder')}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="holiday-subdivision">${t('settings.holidaySubdivisionLabel')}</label>
+                <select class="form-input" id="holiday-subdivision" disabled>
+                  <option value="">${t('settings.holidaySubdivisionNone')}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="toggle-row">
+                  <input type="checkbox" id="holiday-show-public" ${prefs.holiday_show_public ? 'checked' : ''}>
+                  <span>${t('settings.holidayPublicLabel')}</span>
+                </label>
+              </div>
+              <div class="form-group" id="holiday-public-color-group" ${!prefs.holiday_show_public ? 'hidden' : ''}>
+                <label class="form-label" for="holiday-public-color">${t('settings.holidayPublicColor')}</label>
+                <input class="form-input" type="color" id="holiday-public-color"
+                  value="${esc(prefs.holiday_public_color ?? '#FF3B30')}" />
+              </div>
+              <div class="form-group">
+                <label class="toggle-row">
+                  <input type="checkbox" id="holiday-show-school" ${prefs.holiday_show_school ? 'checked' : ''}>
+                  <span>${t('settings.holidaySchoolLabel')}</span>
+                </label>
+              </div>
+              <div class="form-group" id="holiday-school-color-group" ${!prefs.holiday_show_school ? 'hidden' : ''}>
+                <label class="form-label" for="holiday-school-color">${t('settings.holidaySchoolColor')}</label>
+                <input class="form-input" type="color" id="holiday-school-color"
+                  value="${esc(prefs.holiday_school_color ?? '#34C759')}" />
+              </div>
+              <div id="holidays-form-error" class="form-error" hidden></div>
+              <div class="settings-form-actions">
+                <button type="submit" class="btn btn--primary">${t('settings.holidaySaveBtn')}</button>
+              </div>
+            </form>
+
+            <div class="settings-sync-info" style="margin-top:var(--space-4)">
+              <span class="form-label" id="holiday-last-sync-label">
+                ${prefs.holiday_last_sync
+                  ? t('settings.holidayLastSync', { date: new Date(prefs.holiday_last_sync).toLocaleString() })
+                  : t('settings.holidayNeverSynced')}
+              </span>
+              <button type="button" class="btn btn--secondary btn--sm" id="holiday-sync-btn"
+                ${!prefs.holiday_country ? 'disabled title="' + t('settings.holidayCountryRequired') + '"' : ''}>
+                <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                ${t('settings.holidaySyncBtn')}
+              </button>
+            </div>
+          </div>
+        </section>
+        ` : '<p class="form-hint" style="padding:var(--space-4)">' + t('settings.adminOnly') + '</p>'}
       </div>
 
       <!-- Panel: Synchronisation -->
@@ -1383,6 +1453,7 @@ function buildSettingsTabs(user) {
     { id: 'meals',      label: t('settings.tabMeals'),      icon: 'utensils'       },
     { id: 'budget',     label: t('settings.tabBudget'),     icon: 'wallet'         },
     { id: 'shopping',   label: t('settings.tabShopping'),   icon: 'shopping-cart'  },
+    { id: 'calendar',   label: t('settings.tabCalendar'),   icon: 'calendar'       },
     { id: 'sync',       label: t('settings.tabSync'),       icon: 'refresh-cw',    separatorBefore: true },
     { id: 'account',    label: t('settings.tabAccount'),    icon: 'user',          separatorBefore: true },
   ];
@@ -1876,6 +1947,126 @@ function bindEvents(container, user, users, categories, icsSubscriptions, apiTok
         );
       });
     }
+  }
+
+  // ── Holiday config (admin) ────────────────────────────────────────────────
+  const holidaysForm = container.querySelector('#holidays-form');
+  if (holidaysForm) {
+    // Populate countries dropdown
+    const countrySelect = container.querySelector('#holiday-country');
+    const subdivisionSelect = container.querySelector('#holiday-subdivision');
+    const syncBtn = container.querySelector('#holiday-sync-btn');
+    const errEl = container.querySelector('#holidays-form-error');
+
+    (async () => {
+      try {
+        const res = await api.get('/preferences/holidays/countries');
+        const panel = container.querySelector('[data-panel="calendar"]');
+        const savedCode = panel?.dataset.holidayCountry ?? '';
+        for (const c of (res.data ?? [])) {
+          const opt = document.createElement('option');
+          opt.value = c.isoCode;
+          opt.textContent = c.name;
+          if (c.isoCode === savedCode) opt.selected = true;
+          countrySelect.appendChild(opt);
+        }
+        // After populating country list, load subdivisions for saved country
+        if (savedCode) {
+          const savedSub = panel?.dataset.holidaySubdivision ?? '';
+          await loadSubdivisions(savedCode, savedSub);
+        }
+      } catch { /* silently ignore if API unavailable */ }
+    })();
+
+    // Load subdivisions for a given country code
+    async function loadSubdivisions(countryCode, selectedCode) {
+      subdivisionSelect.innerHTML = `<option value="">${t('settings.holidaySubdivisionNone')}</option>`;
+      subdivisionSelect.disabled = true;
+      if (!countryCode) return;
+      try {
+        const res = await api.get(`/preferences/holidays/subdivisions/${countryCode}`);
+        for (const s of (res.data ?? [])) {
+          const opt = document.createElement('option');
+          opt.value = s.isoCode;
+          opt.textContent = s.name;
+          if (s.isoCode === selectedCode) opt.selected = true;
+          subdivisionSelect.appendChild(opt);
+        }
+        if ((res.data ?? []).length > 0) subdivisionSelect.disabled = false;
+      } catch { /* ignore */ }
+    }
+
+    // Set sync button initial state
+    if (syncBtn) {
+      const panel = container.querySelector('[data-panel="calendar"]');
+      const savedCode = panel?.dataset.holidayCountry ?? '';
+      syncBtn.disabled = !savedCode;
+      if (!savedCode) syncBtn.title = t('settings.holidayCountryRequired');
+    }
+
+    countrySelect.addEventListener('change', () => {
+      const code = countrySelect.value;
+      loadSubdivisions(code, '');
+      if (syncBtn) {
+        syncBtn.disabled = !code;
+        syncBtn.title = code ? '' : t('settings.holidayCountryRequired');
+      }
+    });
+
+    // Show/hide color pickers based on toggles
+    const showPublicCb  = container.querySelector('#holiday-show-public');
+    const showSchoolCb  = container.querySelector('#holiday-show-school');
+    const publicColorGr = container.querySelector('#holiday-public-color-group');
+    const schoolColorGr = container.querySelector('#holiday-school-color-group');
+    showPublicCb?.addEventListener('change', () => { if (publicColorGr) publicColorGr.hidden = !showPublicCb.checked; });
+    showSchoolCb?.addEventListener('change', () => { if (schoolColorGr) schoolColorGr.hidden = !showSchoolCb.checked; });
+
+    holidaysForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.hidden = true;
+      const country     = countrySelect.value || null;
+      const subdivision = subdivisionSelect.value || null;
+      const showPublic  = container.querySelector('#holiday-show-public').checked;
+      const showSchool  = container.querySelector('#holiday-show-school').checked;
+      const publicColor = container.querySelector('#holiday-public-color').value;
+      const schoolColor = container.querySelector('#holiday-school-color').value;
+      try {
+        await api.put('/preferences', {
+          holiday_country:      country,
+          holiday_subdivision:  subdivision,
+          holiday_show_public:  showPublic,
+          holiday_show_school:  showSchool,
+          holiday_public_color: publicColor,
+          holiday_school_color: schoolColor,
+        });
+        window.oikos?.showToast(t('settings.holidaySaved'), 'success');
+      } catch (err) {
+        errEl.textContent = err.message ?? t('common.errorGeneric');
+        errEl.hidden = false;
+      }
+    });
+
+    syncBtn?.addEventListener('click', async () => {
+      if (!countrySelect.value) {
+        window.oikos?.showToast(t('settings.holidayCountryRequired'), 'warning');
+        return;
+      }
+      syncBtn.disabled = true;
+      try {
+        const res = await api.post('/preferences/holidays/sync', {});
+        const lastSyncLabel = container.querySelector('#holiday-last-sync-label');
+        if (lastSyncLabel && res.data?.last_sync) {
+          lastSyncLabel.textContent = t('settings.holidayLastSync', {
+            date: new Date(res.data.last_sync).toLocaleString(),
+          });
+        }
+        window.oikos?.showToast(t('settings.holidaySynced'), 'success');
+      } catch (err) {
+        window.oikos?.showToast(err.message ?? t('settings.holidaySyncError'), 'danger');
+      } finally {
+        syncBtn.disabled = !countrySelect.value;
+      }
+    });
   }
 
   const appNameForm = container.querySelector('#app-name-form');

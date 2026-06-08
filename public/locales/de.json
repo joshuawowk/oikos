@@ -537,7 +537,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Anhang für Kalendereintrag \"{{title}}\" hochgeladen.",
     "agendaEmpty": "Keine Termine im ausgewählten Zeitraum",
-    "taskChipAriaLabel": "Aufgabe: {{title}}"
+    "taskChipAriaLabel": "Aufgabe: {{title}}",
+    "toggleHolidays": "Feiertage",
+    "toggleSchool": "Schulferien"
   },
   "notes": {
     "title": "Notizen",
@@ -1199,7 +1201,27 @@
     "weatherSwitchHint": "Open-Meteo wird beim Speichern automatisch aktiviert und OWM ignoriert.",
     "weatherLocateBtn": "Standort ermitteln",
     "weatherLocateSuccess": "Standort erfolgreich ermittelt.",
-    "weatherLocateUnsupported": "Geolokalisierung wird von Ihrem Browser nicht unterstützt."
+    "weatherLocateUnsupported": "Geolokalisierung wird von Ihrem Browser nicht unterstützt.",
+    "sectionHolidays": "Feiertage & Schulferien",
+    "holidayTitle": "OpenHolidays API (kostenlos, kein API-Key)",
+    "holidayDescription": "Offizielle Feiertage und Schulferien im Kalender anzeigen.",
+    "holidayCountryLabel": "Land",
+    "holidayCountryPlaceholder": "Land auswählen…",
+    "holidaySubdivisionLabel": "Bundesland / Region",
+    "holidaySubdivisionNone": "Gesamtes Land",
+    "holidaySubdivisionPlaceholder": "Bundesland auswählen…",
+    "holidayPublicLabel": "Feiertage anzeigen",
+    "holidaySchoolLabel": "Schulferien anzeigen",
+    "holidayPublicColor": "Farbe Feiertage",
+    "holidaySchoolColor": "Farbe Schulferien",
+    "holidaySaveBtn": "Speichern",
+    "holidaySaved": "Kalendereinstellungen gespeichert.",
+    "holidaySyncBtn": "Jetzt synchronisieren",
+    "holidaySynced": "Feiertage synchronisiert.",
+    "holidaySyncError": "Synchronisierung fehlgeschlagen.",
+    "holidayLastSync": "Zuletzt: {{date}}",
+    "holidayNeverSynced": "Noch nicht synchronisiert",
+    "holidayCountryRequired": "Bitte zuerst ein Land auswählen."
   },
   "login": {
     "tagline": "Familienplanung. Sicher. Datenschutzfreundlich. Open Source.",

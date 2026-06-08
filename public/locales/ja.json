@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "カレンダー予定「{{title}}」にアップロードされた添付ファイル。",
     "agendaEmpty": "選択した期間に予定はありません",
-    "taskChipAriaLabel": "タスク: {{title}}"
+    "taskChipAriaLabel": "タスク: {{title}}",
+    "toggleHolidays": "Public Holidays",
+    "toggleSchool": "School Holidays"
   },
   "notes": {
     "title": "メモボード",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "保存するとOpen-Meteoが有効化され、OWMは無視されます。",
     "weatherLocateBtn": "現在地を取得",
     "weatherLocateSuccess": "現在地を取得しました。",
-    "weatherLocateUnsupported": "お使いのブラウザは位置情報に対応していません。"
+    "weatherLocateUnsupported": "お使いのブラウザは位置情報に対応していません。",
+    "sectionHolidays": "Public & School Holidays",
+    "holidayTitle": "OpenHolidays API (free, no API key)",
+    "holidayDescription": "Display official public holidays and school vacations in your calendar.",
+    "holidayCountryLabel": "Country",
+    "holidayCountryPlaceholder": "Select a country…",
+    "holidaySubdivisionLabel": "State / Region",
+    "holidaySubdivisionNone": "Entire country",
+    "holidaySubdivisionPlaceholder": "Select a state…",
+    "holidayPublicLabel": "Show public holidays",
+    "holidaySchoolLabel": "Show school holidays",
+    "holidayPublicColor": "Public holiday color",
+    "holidaySchoolColor": "School holiday color",
+    "holidaySaveBtn": "Save",
+    "holidaySaved": "Calendar settings saved.",
+    "holidaySyncBtn": "Sync now",
+    "holidaySynced": "Holidays synced.",
+    "holidaySyncError": "Sync failed.",
+    "holidayLastSync": "Last sync: {{date}}",
+    "holidayNeverSynced": "Not yet synced",
+    "holidayCountryRequired": "Please select a country first."
   },
   "login": {
     "tagline": "家族計画。安全。プライバシー重視。オープンソース。",

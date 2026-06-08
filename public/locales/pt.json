@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Anexo enviado para o evento \"{{title}}\" do calendário.",
     "agendaEmpty": "Nenhum evento no período selecionado",
-    "taskChipAriaLabel": "Tarefa: {{title}}"
+    "taskChipAriaLabel": "Tarefa: {{title}}",
+    "toggleHolidays": "Feriados",
+    "toggleSchool": "Férias escolares"
   },
   "notes": {
     "title": "Quadro de notas",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo será ativado ao guardar e OWM ignorado.",
     "weatherLocateBtn": "Detectar localização",
     "weatherLocateSuccess": "Localização detectada.",
-    "weatherLocateUnsupported": "A geolocalização não é suportada pelo seu navegador."
+    "weatherLocateUnsupported": "A geolocalização não é suportada pelo seu navegador.",
+    "sectionHolidays": "Feriados e Férias escolares",
+    "holidayTitle": "OpenHolidays API (gratuito, sem chave de API)",
+    "holidayDescription": "Exiba feriados oficiais e férias escolares no seu calendário.",
+    "holidayCountryLabel": "País",
+    "holidayCountryPlaceholder": "Selecionar um país…",
+    "holidaySubdivisionLabel": "Estado / Região",
+    "holidaySubdivisionNone": "Todo o país",
+    "holidaySubdivisionPlaceholder": "Selecionar um estado…",
+    "holidayPublicLabel": "Mostrar feriados",
+    "holidaySchoolLabel": "Mostrar férias escolares",
+    "holidayPublicColor": "Cor dos feriados",
+    "holidaySchoolColor": "Cor das férias escolares",
+    "holidaySaveBtn": "Guardar",
+    "holidaySaved": "Configurações do calendário guardadas.",
+    "holidaySyncBtn": "Sincronizar agora",
+    "holidaySynced": "Feriados sincronizados.",
+    "holidaySyncError": "Falha na sincronização.",
+    "holidayLastSync": "Última sincronização: {{date}}",
+    "holidayNeverSynced": "Nunca sincronizado",
+    "holidayCountryRequired": "Selecione primeiro um país."
   },
   "login": {
     "tagline": "Planejamento familiar. Seguro. Privado. Código aberto.",

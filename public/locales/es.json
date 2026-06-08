@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Archivo adjunto subido para el evento de calendario \"{{title}}\".",
     "agendaEmpty": "No hay eventos en el período seleccionado",
-    "taskChipAriaLabel": "Tarea: {{title}}"
+    "taskChipAriaLabel": "Tarea: {{title}}",
+    "toggleHolidays": "Festivos",
+    "toggleSchool": "Vacaciones escolares"
   },
   "notes": {
     "title": "Notas",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo se activará al guardar y se ignorará OWM.",
     "weatherLocateBtn": "Detectar ubicación",
     "weatherLocateSuccess": "Ubicación detectada.",
-    "weatherLocateUnsupported": "La geolocalización no es compatible con su navegador."
+    "weatherLocateUnsupported": "La geolocalización no es compatible con su navegador.",
+    "sectionHolidays": "Festivos y Vacaciones escolares",
+    "holidayTitle": "OpenHolidays API (gratis, sin clave API)",
+    "holidayDescription": "Muestra los festivos oficiales y las vacaciones escolares en tu calendario.",
+    "holidayCountryLabel": "País",
+    "holidayCountryPlaceholder": "Seleccionar un país…",
+    "holidaySubdivisionLabel": "Comunidad / Región",
+    "holidaySubdivisionNone": "Todo el país",
+    "holidaySubdivisionPlaceholder": "Seleccionar una región…",
+    "holidayPublicLabel": "Mostrar festivos",
+    "holidaySchoolLabel": "Mostrar vacaciones escolares",
+    "holidayPublicColor": "Color de festivos",
+    "holidaySchoolColor": "Color de vacaciones escolares",
+    "holidaySaveBtn": "Guardar",
+    "holidaySaved": "Configuración del calendario guardada.",
+    "holidaySyncBtn": "Sincronizar ahora",
+    "holidaySynced": "Festivos sincronizados.",
+    "holidaySyncError": "Error en la sincronización.",
+    "holidayLastSync": "Última sincronización: {{date}}",
+    "holidayNeverSynced": "Nunca sincronizado",
+    "holidayCountryRequired": "Selecciona primero un país."
   },
   "login": {
     "tagline": "Planificación familiar. Segura. Privada. Código abierto.",

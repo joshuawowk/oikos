@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Allegato caricato per l’evento calendario \"{{title}}\".",
     "agendaEmpty": "Nessun evento nell'intervallo selezionato",
-    "taskChipAriaLabel": "Attività: {{title}}"
+    "taskChipAriaLabel": "Attività: {{title}}",
+    "toggleHolidays": "Festività",
+    "toggleSchool": "Vacanze scolastiche"
   },
   "notes": {
     "title": "Bacheca",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo sarà attivato al salvataggio e OWM ignorato.",
     "weatherLocateBtn": "Rileva posizione",
     "weatherLocateSuccess": "Posizione rilevata.",
-    "weatherLocateUnsupported": "La geolocalizzazione non è supportata dal browser."
+    "weatherLocateUnsupported": "La geolocalizzazione non è supportata dal browser.",
+    "sectionHolidays": "Festività e Vacanze scolastiche",
+    "holidayTitle": "OpenHolidays API (gratuito, senza chiave API)",
+    "holidayDescription": "Visualizza le festività ufficiali e le vacanze scolastiche nel tuo calendario.",
+    "holidayCountryLabel": "Paese",
+    "holidayCountryPlaceholder": "Seleziona un paese…",
+    "holidaySubdivisionLabel": "Regione / Provincia",
+    "holidaySubdivisionNone": "Tutto il paese",
+    "holidaySubdivisionPlaceholder": "Seleziona una regione…",
+    "holidayPublicLabel": "Mostra festività",
+    "holidaySchoolLabel": "Mostra vacanze scolastiche",
+    "holidayPublicColor": "Colore festività",
+    "holidaySchoolColor": "Colore vacanze scolastiche",
+    "holidaySaveBtn": "Salva",
+    "holidaySaved": "Impostazioni calendario salvate.",
+    "holidaySyncBtn": "Sincronizza ora",
+    "holidaySynced": "Festività sincronizzate.",
+    "holidaySyncError": "Sincronizzazione non riuscita.",
+    "holidayLastSync": "Ultima sincronizzazione: {{date}}",
+    "holidayNeverSynced": "Mai sincronizzato",
+    "holidayCountryRequired": "Seleziona prima un paese."
   },
   "login": {
     "tagline": "Pianificazione familiare. Sicura. Rispettosa della privacy. Open source.",

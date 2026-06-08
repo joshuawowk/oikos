@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Attachment uploaded for calendar event \"{{title}}\".",
     "agendaEmpty": "No events in the selected range",
-    "taskChipAriaLabel": "Task: {{title}}"
+    "taskChipAriaLabel": "Task: {{title}}",
+    "toggleHolidays": "Public Holidays",
+    "toggleSchool": "School Holidays"
   },
   "notes": {
     "title": "Board",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo will be activated on save and OWM will be ignored.",
     "weatherLocateBtn": "Detect location",
     "weatherLocateSuccess": "Location detected.",
-    "weatherLocateUnsupported": "Geolocation is not supported by your browser."
+    "weatherLocateUnsupported": "Geolocation is not supported by your browser.",
+    "sectionHolidays": "Public & School Holidays",
+    "holidayTitle": "OpenHolidays API (free, no API key)",
+    "holidayDescription": "Display official public holidays and school vacations in your calendar.",
+    "holidayCountryLabel": "Country",
+    "holidayCountryPlaceholder": "Select a country…",
+    "holidaySubdivisionLabel": "State / Region",
+    "holidaySubdivisionNone": "Entire country",
+    "holidaySubdivisionPlaceholder": "Select a state…",
+    "holidayPublicLabel": "Show public holidays",
+    "holidaySchoolLabel": "Show school holidays",
+    "holidayPublicColor": "Public holiday color",
+    "holidaySchoolColor": "School holiday color",
+    "holidaySaveBtn": "Save",
+    "holidaySaved": "Calendar settings saved.",
+    "holidaySyncBtn": "Sync now",
+    "holidaySynced": "Holidays synced.",
+    "holidaySyncError": "Sync failed.",
+    "holidayLastSync": "Last sync: {{date}}",
+    "holidayNeverSynced": "Not yet synced",
+    "holidayCountryRequired": "Please select a country first."
   },
   "login": {
     "tagline": "Family planning. Secure. Privacy-friendly. Open source.",

@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Вкладення завантажено для події календаря «{{title}}».",
     "agendaEmpty": "Немає подій у вибраному періоді",
-    "taskChipAriaLabel": "Завдання: {{title}}"
+    "taskChipAriaLabel": "Завдання: {{title}}",
+    "toggleHolidays": "Public Holidays",
+    "toggleSchool": "School Holidays"
   },
   "notes": {
     "title": "Нотатки",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo буде активовано при збереженні, OWM ігноруватиметься.",
     "weatherLocateBtn": "Визначити місцезнаходження",
     "weatherLocateSuccess": "Місцезнаходження успішно визначено.",
-    "weatherLocateUnsupported": "Ваш браузер не підтримує геолокацію."
+    "weatherLocateUnsupported": "Ваш браузер не підтримує геолокацію.",
+    "sectionHolidays": "Public & School Holidays",
+    "holidayTitle": "OpenHolidays API (free, no API key)",
+    "holidayDescription": "Display official public holidays and school vacations in your calendar.",
+    "holidayCountryLabel": "Country",
+    "holidayCountryPlaceholder": "Select a country…",
+    "holidaySubdivisionLabel": "State / Region",
+    "holidaySubdivisionNone": "Entire country",
+    "holidaySubdivisionPlaceholder": "Select a state…",
+    "holidayPublicLabel": "Show public holidays",
+    "holidaySchoolLabel": "Show school holidays",
+    "holidayPublicColor": "Public holiday color",
+    "holidaySchoolColor": "School holiday color",
+    "holidaySaveBtn": "Save",
+    "holidaySaved": "Calendar settings saved.",
+    "holidaySyncBtn": "Sync now",
+    "holidaySynced": "Holidays synced.",
+    "holidaySyncError": "Sync failed.",
+    "holidayLastSync": "Last sync: {{date}}",
+    "holidayNeverSynced": "Not yet synced",
+    "holidayCountryRequired": "Please select a country first."
   },
   "login": {
     "tagline": "Планування для родини. Безпечно. Конфіденційно. Відкритий код.",

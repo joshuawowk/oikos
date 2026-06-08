@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "कैलेंडर इवेंट \"{{title}}\" के लिए अपलोड किया गया अटैचमेंट।",
     "agendaEmpty": "चुनी गई अवधि में कोई कार्यक्रम नहीं",
-    "taskChipAriaLabel": "कार्य: {{title}}"
+    "taskChipAriaLabel": "कार्य: {{title}}",
+    "toggleHolidays": "Public Holidays",
+    "toggleSchool": "School Holidays"
   },
   "notes": {
     "title": "नोट बोर्ड",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "सहेजने पर Open-Meteo सक्रिय हो जाएगा और OWM अनदेखा किया जाएगा।",
     "weatherLocateBtn": "स्थान पता करें",
     "weatherLocateSuccess": "स्थान सफलतापूर्वक पता चला।",
-    "weatherLocateUnsupported": "आपका ब्राउज़र जियोलोकेशन का समर्थन नहीं करता।"
+    "weatherLocateUnsupported": "आपका ब्राउज़र जियोलोकेशन का समर्थन नहीं करता।",
+    "sectionHolidays": "Public & School Holidays",
+    "holidayTitle": "OpenHolidays API (free, no API key)",
+    "holidayDescription": "Display official public holidays and school vacations in your calendar.",
+    "holidayCountryLabel": "Country",
+    "holidayCountryPlaceholder": "Select a country…",
+    "holidaySubdivisionLabel": "State / Region",
+    "holidaySubdivisionNone": "Entire country",
+    "holidaySubdivisionPlaceholder": "Select a state…",
+    "holidayPublicLabel": "Show public holidays",
+    "holidaySchoolLabel": "Show school holidays",
+    "holidayPublicColor": "Public holiday color",
+    "holidaySchoolColor": "School holiday color",
+    "holidaySaveBtn": "Save",
+    "holidaySaved": "Calendar settings saved.",
+    "holidaySyncBtn": "Sync now",
+    "holidaySynced": "Holidays synced.",
+    "holidaySyncError": "Sync failed.",
+    "holidayLastSync": "Last sync: {{date}}",
+    "holidayNeverSynced": "Not yet synced",
+    "holidayCountryRequired": "Please select a country first."
   },
   "login": {
     "tagline": "पारिवारिक योजना। सुरक्षित। गोपनीयता-अनुकूल। ओपन सोर्स।",

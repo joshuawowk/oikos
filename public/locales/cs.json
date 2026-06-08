@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "Příloha nahraná ke kalendářní události \"{{title}}\".",
     "agendaEmpty": "V vybraném rozsahu nejsou žádné události",
-    "taskChipAriaLabel": "Úkol: {{title}}"
+    "taskChipAriaLabel": "Úkol: {{title}}",
+    "toggleHolidays": "Public Holidays",
+    "toggleSchool": "School Holidays"
   },
   "notes": {
     "title": "Nástěnka",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "Open-Meteo bude aktivován při uložení a OWM bude ignorován.",
     "weatherLocateBtn": "Zjistit polohu",
     "weatherLocateSuccess": "Poloha úspěšně zjištěna.",
-    "weatherLocateUnsupported": "Geolokalizace není vaším prohlížečem podporována."
+    "weatherLocateUnsupported": "Geolokalizace není vaším prohlížečem podporována.",
+    "sectionHolidays": "Public & School Holidays",
+    "holidayTitle": "OpenHolidays API (free, no API key)",
+    "holidayDescription": "Display official public holidays and school vacations in your calendar.",
+    "holidayCountryLabel": "Country",
+    "holidayCountryPlaceholder": "Select a country…",
+    "holidaySubdivisionLabel": "State / Region",
+    "holidaySubdivisionNone": "Entire country",
+    "holidaySubdivisionPlaceholder": "Select a state…",
+    "holidayPublicLabel": "Show public holidays",
+    "holidaySchoolLabel": "Show school holidays",
+    "holidayPublicColor": "Public holiday color",
+    "holidaySchoolColor": "School holiday color",
+    "holidaySaveBtn": "Save",
+    "holidaySaved": "Calendar settings saved.",
+    "holidaySyncBtn": "Sync now",
+    "holidaySynced": "Holidays synced.",
+    "holidaySyncError": "Sync failed.",
+    "holidayLastSync": "Last sync: {{date}}",
+    "holidayNeverSynced": "Not yet synced",
+    "holidayCountryRequired": "Please select a country first."
   },
   "login": {
     "tagline": "Rodinné plánování. Bezpečné. Soukromé. Open Source.",

@@ -531,7 +531,9 @@
     "attachmentDocumentName": "{{title}} - {{name}}",
     "attachmentDocumentDescription": "مرفق تم رفعه لحدث التقويم \"{{title}}\".",
     "agendaEmpty": "لا توجد مواعيد في الفترة المحددة",
-    "taskChipAriaLabel": "مهمة: {{title}}"
+    "taskChipAriaLabel": "مهمة: {{title}}",
+    "toggleHolidays": "Public Holidays",
+    "toggleSchool": "School Holidays"
   },
   "notes": {
     "title": "لوحة الملاحظات",
@@ -1193,7 +1195,27 @@
     "weatherSwitchHint": "سيتم تفعيل Open-Meteo عند الحفظ وسيتم تجاهل OWM.",
     "weatherLocateBtn": "تحديد الموقع",
     "weatherLocateSuccess": "تم تحديد الموقع بنجاح.",
-    "weatherLocateUnsupported": "المتصفح لا يدعم تحديد الموقع الجغرافي."
+    "weatherLocateUnsupported": "المتصفح لا يدعم تحديد الموقع الجغرافي.",
+    "sectionHolidays": "Public & School Holidays",
+    "holidayTitle": "OpenHolidays API (free, no API key)",
+    "holidayDescription": "Display official public holidays and school vacations in your calendar.",
+    "holidayCountryLabel": "Country",
+    "holidayCountryPlaceholder": "Select a country…",
+    "holidaySubdivisionLabel": "State / Region",
+    "holidaySubdivisionNone": "Entire country",
+    "holidaySubdivisionPlaceholder": "Select a state…",
+    "holidayPublicLabel": "Show public holidays",
+    "holidaySchoolLabel": "Show school holidays",
+    "holidayPublicColor": "Public holiday color",
+    "holidaySchoolColor": "School holiday color",
+    "holidaySaveBtn": "Save",
+    "holidaySaved": "Calendar settings saved.",
+    "holidaySyncBtn": "Sync now",
+    "holidaySynced": "Holidays synced.",
+    "holidaySyncError": "Sync failed.",
+    "holidayLastSync": "Last sync: {{date}}",
+    "holidayNeverSynced": "Not yet synced",
+    "holidayCountryRequired": "Please select a country first."
   },
   "login": {
     "tagline": "تخطيط عائلي. آمن. يحترم الخصوصية. مفتوح المصدر.",
