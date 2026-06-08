@@ -193,32 +193,22 @@ test('Anstehende Termine: zukünftige Events, sortiert, max 5', () => {
 });
 
 test('Anstehende Termine: Dashboard-Mapping erzeugt assigned_users Array (Issue #284)', () => {
-  // Testet die Mapping-Logik direkt mit Mock-Daten (ohne SQL).
-  const mockRaw = [
-    {
-      id: 1, title: 'Morgen-Meeting',
-      assigned_users_json: JSON.stringify([
-        { id: 1, display_name: 'Anna Admin', color: '#007AFF', avatar_data: null },
-        { id: 2, display_name: 'Max Muster', color: '#34C759', avatar_data: null },
-      ]),
-    },
-    { id: 2, title: 'Solo Event', assigned_users_json: null },
-  ];
-
-  const upcomingEvents = mockRaw.map(({ assigned_users_json, ...event }) => {
+  const raw = getUpcomingEvents(cdb, { userId: cuTheo, limit: 10 });
+  const mapped = raw.map(({ assigned_users_json, ...event }) => {
     event.assigned_users = assigned_users_json ? JSON.parse(assigned_users_json) : [];
     return event;
   });
 
-  const meeting = upcomingEvents[0];
-  assert(!('assigned_users_json' in meeting), 'assigned_users_json darf nicht im Ergebnis sein');
-  assert(Array.isArray(meeting.assigned_users), 'assigned_users muss ein Array sein');
-  assert(meeting.assigned_users.length === 2, `Erwartet 2 Einträge, erhalten ${meeting.assigned_users.length}`);
-  assert(meeting.assigned_users[0].display_name === 'Anna Admin', 'Erster User ist Anna Admin');
-  assert('avatar_data' in meeting.assigned_users[0], 'avatar_data muss im User-Objekt enthalten sein');
+  const soccer = mapped.find((e) => e.title === 'Theodore Soccer Game');
+  assert(soccer, 'Theodore Soccer Game muss im Ergebnis sein');
+  assert(!('assigned_users_json' in soccer), 'assigned_users_json darf nicht im Ergebnis sein');
+  assert(Array.isArray(soccer.assigned_users), 'assigned_users muss ein Array sein');
+  assert(soccer.assigned_users.length === 2, `Erwartet 2 Einträge, erhalten ${soccer.assigned_users.length}`);
+  assert('avatar_data' in soccer.assigned_users[0], 'avatar_data muss im User-Objekt enthalten sein');
 
-  const solo = upcomingEvents[1];
-  assert(Array.isArray(solo.assigned_users) && solo.assigned_users.length === 0,
+  const fieldTrip = mapped.find((e) => e.title === 'Sofia Field Trip');
+  assert(fieldTrip, 'Sofia Field Trip muss erscheinen');
+  assert(Array.isArray(fieldTrip.assigned_users) && fieldTrip.assigned_users.length === 0,
     'Event ohne Zuweisung hat leeres assigned_users Array');
 });
 
@@ -455,8 +445,6 @@ test('getUpcomingEvents: assigned_users_json enthält avatar_data (Issue #284)',
 });
 
 test('getUpcomingEvents: Event ohne Assignments hat leeres assigned_users_json Array (Issue #284)', () => {
-  const events = getUpcomingEvents(cdb, { userId: cuTheo, limit: 10 });
-  const morning = events.find((e) => e.title === 'Morning Meeting Today');
   // Morning Meeting Today wurde ohne event_assignments eingefügt.
   const mornEvents = getUpcomingEvents(cdb, { userId: cuTheo, limit: 10, fromToday: true });
   const mm = mornEvents.find((e) => e.title === 'Morning Meeting Today');
