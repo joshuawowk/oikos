@@ -647,10 +647,10 @@ function renderTodayCockpit(data) {
         <span class="today-cockpit__date">${esc(formatDate(new Date()))}</span>
       </div>
       <div class="today-cockpit__grid">
-        ${renderTodayCard('check-square', t('dashboard.todayTask'), taskTitle, '/tasks', 'task')}
-        ${renderTodayCard('calendar', t('dashboard.todayEvent'), eventTitle, '/calendar', 'event')}
-        ${renderTodayCard('shopping-cart', t('dashboard.todayShopping'), t('dashboard.todayShoppingCount', { count: highlights.openShoppingCount }), '/shopping', 'shopping')}
-        ${renderTodayCard('utensils', t('dashboard.todayDinner'), dinnerTitle, '/meals', 'dinner')}
+        ${!window.oikos?.isModuleDisabled('tasks')    ? renderTodayCard('check-square',   t('dashboard.todayTask'),     taskTitle, '/tasks', 'task') : ''}
+        ${!window.oikos?.isModuleDisabled('calendar') ? renderTodayCard('calendar',        t('dashboard.todayEvent'),    eventTitle, '/calendar', 'event') : ''}
+        ${!window.oikos?.isModuleDisabled('shopping') ? renderTodayCard('shopping-cart',   t('dashboard.todayShopping'), t('dashboard.todayShoppingCount', { count: highlights.openShoppingCount }), '/shopping', 'shopping') : ''}
+        ${!window.oikos?.isModuleDisabled('meals')    ? renderTodayCard('utensils',        t('dashboard.todayDinner'),   dinnerTitle, '/meals', 'dinner') : ''}
       </div>
     </section>
   `;
@@ -751,8 +751,13 @@ function renderDashboardLayout(cfg, data, weather, currency, { editing = false }
     weather: () => (weather ? renderWeatherWidget(weather) : ''),
   };
 
+  const MODULE_FOR_WIDGET = { tasks: 'tasks', calendar: 'calendar', shopping: 'shopping', meals: 'meals', notes: 'notes', birthdays: 'birthdays', budget: 'budget' };
   const tiles = cfg
-    .filter((w) => w.visible && widgetById[w.id])
+    .filter((w) => {
+      if (!w.visible || !widgetById[w.id]) return false;
+      const mod = MODULE_FOR_WIDGET[w.id];
+      return !mod || !window.oikos?.isModuleDisabled(mod);
+    })
     .map((w) => {
       const html = widgetById[w.id]();
       if (!html) return '';
