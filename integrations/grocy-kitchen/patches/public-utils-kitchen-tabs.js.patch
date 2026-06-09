@@ -1,0 +1,40 @@
+diff --git a/public/utils/kitchen-tabs.js b/public/utils/kitchen-tabs.js
+index e067471..6be8e1a 100644
+--- a/public/utils/kitchen-tabs.js
++++ b/public/utils/kitchen-tabs.js
+@@ -4,6 +4,12 @@ import { renderSubTabs } from '/utils/sub-tabs.js';
+ export const KITCHEN_ROUTES = ['/meals', '/recipes', '/shopping'];
+ export const KITCHEN_STORAGE_KEY = 'oikos-kitchen-tab';
+ 
++// Grocy Kitchen integration: the native Kitchen pages are superseded by the
++// grocy-kitchen module (a single Grocy-backed Kitchen). The Kitchen nav button and
++// route highlighting point at the module route below; router.js redirects the legacy
++// /meals · /recipes · /shopping routes here so deep links + shortcuts keep working.
++export const GROCY_KITCHEN_ROUTE = '/m/grocy-kitchen';
++
+ const TABS = () => [
+   { route: '/meals',    labelKey: 'nav.meals',    icon: 'utensils'      },
+   { route: '/recipes',  labelKey: 'nav.recipes',  icon: 'book-text'     },
+@@ -11,18 +17,13 @@ const TABS = () => [
+ ].filter(({ route }) => !window.oikos?.isModuleDisabled(route.slice(1)));
+ 
+ export function getLastKitchenRoute() {
+-  try {
+-    const stored = sessionStorage.getItem(KITCHEN_STORAGE_KEY);
+-    if (KITCHEN_ROUTES.includes(stored) && !window.oikos?.isModuleDisabled(stored.slice(1))) {
+-      return stored;
+-    }
+-  } catch { /* ignore */ }
+-  const first = ['meals', 'recipes', 'shopping'].find((m) => !window.oikos?.isModuleDisabled(m));
+-  return first ? `/${first}` : '/meals';
++  // The Grocy-backed Kitchen lives at a single module route; it remembers its own
++  // last-used sub-tab internally, so we always hand the nav button that one route.
++  return GROCY_KITCHEN_ROUTE;
+ }
+ 
+ export function isKitchenRoute(path) {
+-  return KITCHEN_ROUTES.includes(path);
++  return path === GROCY_KITCHEN_ROUTE || KITCHEN_ROUTES.includes(path);
+ }
+ 
+ export function renderKitchenTabsBar(container, activeRoute) {

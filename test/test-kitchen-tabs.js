@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { KITCHEN_ROUTES, KITCHEN_STORAGE_KEY, getLastKitchenRoute, isKitchenRoute } = await (async () => {
+const { KITCHEN_ROUTES, KITCHEN_STORAGE_KEY, GROCY_KITCHEN_ROUTE, getLastKitchenRoute, isKitchenRoute } = await (async () => {
   global.window = { oikos: null };
   global.document = {
     createElement: () => ({
@@ -34,25 +34,27 @@ test('KITCHEN_STORAGE_KEY ist korrekt', () => {
   assert.equal(KITCHEN_STORAGE_KEY, 'oikos-kitchen-tab');
 });
 
-test('getLastKitchenRoute: Standardwert /meals wenn kein Storage-Eintrag', () => {
+// Grocy Kitchen integration: the Kitchen nav always targets the grocy-kitchen
+// module route; the module remembers its own last-used sub-tab internally.
+test('GROCY_KITCHEN_ROUTE ist die Modul-Route', () => {
+  assert.equal(GROCY_KITCHEN_ROUTE, '/m/grocy-kitchen');
+});
+
+test('getLastKitchenRoute: liefert immer die Grocy-Kitchen-Modul-Route', () => {
   global.sessionStorage._d = {};
-  assert.equal(getLastKitchenRoute(), '/meals');
+  assert.equal(getLastKitchenRoute(), GROCY_KITCHEN_ROUTE);
 });
 
-test('getLastKitchenRoute: gibt gespeicherte Route zurück', () => {
+test('getLastKitchenRoute: ignoriert gespeicherte Legacy-Routen', () => {
   global.sessionStorage._d = { 'oikos-kitchen-tab': '/recipes' };
-  assert.equal(getLastKitchenRoute(), '/recipes');
+  assert.equal(getLastKitchenRoute(), GROCY_KITCHEN_ROUTE);
 });
 
-test('getLastKitchenRoute: ignoriert ungültige gespeicherte Route', () => {
-  global.sessionStorage._d = { 'oikos-kitchen-tab': '/admin' };
-  assert.equal(getLastKitchenRoute(), '/meals');
-});
-
-test('isKitchenRoute: erkennt Kitchen-Routen', () => {
+test('isKitchenRoute: erkennt Kitchen-Routen (Legacy + Modul-Route)', () => {
   assert.equal(isKitchenRoute('/meals'), true);
   assert.equal(isKitchenRoute('/recipes'), true);
   assert.equal(isKitchenRoute('/shopping'), true);
+  assert.equal(isKitchenRoute(GROCY_KITCHEN_ROUTE), true);
 });
 
 test('isKitchenRoute: lehnt Nicht-Kitchen-Routen ab', () => {

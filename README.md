@@ -168,6 +168,12 @@ Each module is independent. Use what fits, skip what doesn't.
 | ![api-tokens](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/api-tokens.png) | **API Tokens** | Named Bearer / X-API-Key tokens for integrations. OpenAPI 3.0 spec included. |
 | ![backup](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/backup.png) | **Backup** | Manual and scheduled database backup and restore, with automatic pre-restore rollback. Optional WebDAV upload target (Nextcloud, ownCloud, Hetzner, etc.). |
 
+> **Fork addition — Grocy Kitchen:** this fork can replace the native Kitchen
+> (Meals / Recipes / Shopping) with a single [Grocy](https://grocy.info)-backed
+> Kitchen module (Stock · Shopping · Recipes · Meal Plan · Products), so Grocy
+> stays the single source of truth and grocy-android keeps working.
+> See [`integrations/grocy-kitchen/`](integrations/grocy-kitchen/).
+
 ---
 
 ## Design & technology

@@ -8,8 +8,14 @@ import { api, auth } from '/api.js';
 import { initI18n, getLocale, t } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { init as initReminders, stop as stopReminders } from '/reminders.js';
-import { isKitchenRoute, getLastKitchenRoute } from '/utils/kitchen-tabs.js';
+import { isKitchenRoute, getLastKitchenRoute, GROCY_KITCHEN_ROUTE } from '/utils/kitchen-tabs.js';
 import { NAV_ICONS } from '/nav-icons.js';
+
+// Grocy Kitchen integration: the native Kitchen pages (/meals · /recipes · /shopping)
+// are superseded by the grocy-kitchen module, a single Grocy-backed Kitchen. Map the
+// legacy routes onto the module's sub-tabs so deep links, keyboard shortcuts and
+// search results all land in the right place.
+const GROCY_KITCHEN_REDIRECT = { '/meals': 'mealplan', '/recipes': 'recipes', '/shopping': 'shopping' };
 
 // --------------------------------------------------------
 // Routen-Definitionen
@@ -291,6 +297,18 @@ function createFocusTrap(container) {
  */
 async function navigate(path, userOrPushState = true, pushState = true) {
   if (isNavigating) return;
+
+  // Grocy Kitchen integration: redirect legacy kitchen routes to the module route.
+  // Done before the isNavigating latch so the recursive call proceeds normally.
+  const _gkBase = String(path).split('?')[0];
+  if (Object.prototype.hasOwnProperty.call(GROCY_KITCHEN_REDIRECT, _gkBase)) {
+    const _gkTarget = `${GROCY_KITCHEN_ROUTE}?tab=${GROCY_KITCHEN_REDIRECT[_gkBase]}`;
+    // Ensure the URL carries the sub-tab even on hard loads (initial nav passes
+    // pushState=false), so the module opens the requested tab. replaceState keeps history clean.
+    try { history.replaceState({ path: _gkTarget }, '', _gkTarget); } catch { /* ignore */ }
+    return navigate(_gkTarget, userOrPushState, pushState);
+  }
+
   isNavigating = true;
 
   try {
