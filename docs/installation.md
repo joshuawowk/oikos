@@ -431,6 +431,11 @@ The settings UI and the environment use hybrid per-field precedence. Every non-e
 value below overrides only its corresponding database value and makes that field read-only in the
 UI. Empty values fall back to the database configuration.
 
+For SSRF protection, URLs entered through the admin UI must resolve only to public network
+addresses. Private, loopback, link-local, and internal DNS targets are rejected and rechecked when
+the connection is opened. To use a trusted WebDAV server on the local network, configure
+`DOCUMENT_STORAGE_WEBDAV_URL` through the deployment environment instead.
+
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `DOCUMENT_STORAGE_WEBDAV_ENABLED` | Use WebDAV for new document files (`true`/`false`) | `false` | No |

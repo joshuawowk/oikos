@@ -5,6 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import { Readable } from 'node:stream';
 import test from 'node:test';
@@ -55,7 +56,13 @@ test.after(() => {
 test.afterEach(() => {
   clearStorageConfig();
   storage.__setRequestTimeoutForTests?.();
+  storage.__setPrivateNetworkAccessForTests?.();
+  storage.__setHostnameLookupForTests?.();
   _setDmsAdapterFactory();
+});
+
+test.beforeEach(() => {
+  storage.__setPrivateNetworkAccessForTests?.(true);
 });
 
 function createRouteHarness({ userId = 1, role = 'admin' } = {}) {
@@ -553,6 +560,124 @@ test('getConfig defaults and normalizes safe paths while rejecting invalid confi
 
   storage.saveConfig({ path: '/family//documents/' });
   assert.equal(storage.getConfig().basePath, 'family/documents');
+});
+
+test('config update rejects literal private WebDAV targets before persistence', async (t) => {
+  storage.__setPrivateNetworkAccessForTests?.(false);
+  setConfig({
+    enabled: '0',
+    url: 'https://files.example.test/dav',
+    username: 'alice',
+    password: 'secret',
+    path: 'documents',
+  });
+  const userId = createRouteUser();
+  const harness = createRouteHarness({ userId });
+  t.after(() => harness.close());
+
+  const result = await routeCall(harness, 'PUT', '/storage/config', {
+    url: 'http://127.0.0.1:8080/webdav',
+  });
+
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.storage_code, 'DOCUMENT_STORAGE_INVALID_CONFIG');
+  assert.equal(storage.getConfig().url, 'https://files.example.test/dav');
+});
+
+test('config update rejects WebDAV hostnames that resolve to private addresses', async (t) => {
+  storage.__setPrivateNetworkAccessForTests?.(false);
+  storage.__setHostnameLookupForTests?.(async () => [
+    { address: '10.0.0.8', family: 4 },
+  ]);
+  setConfig({
+    enabled: '0',
+    url: 'https://files.example.test/dav',
+    username: 'alice',
+    password: 'secret',
+    path: 'documents',
+  });
+  const userId = createRouteUser();
+  const harness = createRouteHarness({ userId });
+  t.after(() => harness.close());
+
+  const result = await routeCall(harness, 'PUT', '/storage/config', {
+    url: 'https://webdav.example.test/dav',
+  });
+
+  assert.equal(result.response.status, 400);
+  assert.equal(result.body.storage_code, 'DOCUMENT_STORAGE_INVALID_CONFIG');
+  assert.equal(storage.getConfig().url, 'https://files.example.test/dav');
+});
+
+test('protected config changes reject DNS rebinding before the WebDAV request', async (t) => {
+  storage.__setPrivateNetworkAccessForTests?.(false);
+  let lookupCount = 0;
+  storage.__setHostnameLookupForTests?.(async () => {
+    lookupCount += 1;
+    return lookupCount === 1
+      ? [{ address: '93.184.216.34', family: 4 }]
+      : [{ address: '127.0.0.1', family: 4 }];
+  });
+  const current = await createWebdavServer(t);
+  const privateTarget = await createWebdavServer(t);
+  setConfig({
+    enabled: '1',
+    url: current.url,
+    username: 'alice',
+    password: 'secret',
+    path: 'documents',
+  });
+  const userId = createRouteUser();
+  insertRouteDocument(userId, {
+    contentData: '',
+    storageProvider: 'external',
+    storageBackend: 'webdav',
+    storageKey: 'protected.txt',
+  });
+  const harness = createRouteHarness({ userId });
+  t.after(() => harness.close());
+
+  const result = await routeCall(harness, 'PUT', '/storage/config', {
+    url: `http://webdav.example.test:${new URL(privateTarget.url).port}`,
+    confirm_existing_access: true,
+  });
+
+  assert.equal(result.response.status, 409);
+  assert.equal(result.body.storage_code, 'DOCUMENT_STORAGE_CONFIG_PROTECTED');
+  assert.equal(lookupCount, 2);
+  assert.equal(privateTarget.requests.length, 0);
+  assert.equal(storage.getConfig().url, current.url);
+});
+
+test('trusted environment WebDAV targets may use private network addresses', async (t) => {
+  storage.__setPrivateNetworkAccessForTests?.(false);
+  const webdav = await createWebdavServer(t);
+  storage.__setHostnameLookupForTests?.(async () => [
+    { address: '127.0.0.1', family: 4 },
+  ]);
+  process.env.DOCUMENT_STORAGE_WEBDAV_ENABLED = 'true';
+  process.env.DOCUMENT_STORAGE_WEBDAV_URL =
+    `http://nas.local:${new URL(webdav.url).port}`;
+  process.env.DOCUMENT_STORAGE_WEBDAV_USERNAME = 'alice';
+  process.env.DOCUMENT_STORAGE_WEBDAV_PASSWORD = 'secret';
+  process.env.DOCUMENT_STORAGE_WEBDAV_PATH = 'documents';
+
+  const result = await storage.testConnection();
+
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(
+    webdav.requests.map(({ method }) => method),
+    ['MKCOL', 'PUT', 'GET', 'DELETE']
+  );
+});
+
+test('document storage avoids ambiguous trailing-slash regular expressions', () => {
+  const source = readFileSync(
+    new URL('../server/services/document-storage.js', import.meta.url),
+    'utf8'
+  );
+
+  assert.equal(source.includes("replace(/\\/+$/, '')"), false);
 });
 
 test('saveConfig persists values and isWebdavUploadEnabled fails closed on incomplete config', async () => {

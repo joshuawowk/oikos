@@ -39,6 +39,7 @@ Vulnerabilities that require physical access to the host or root on the server a
 - Content Security Policy via Helmet (`self`-only)
 - Optional SQLCipher AES-256 database encryption (built into the official Docker image; enable by setting `DB_ENCRYPTION_KEY`. Bare-metal installs require a SQLCipher-enabled build of better-sqlite3.)
 - Existing WebDAV documents protect their connection configuration: changing the URL, username, password, or base path requires explicit admin confirmation and a successful read test against an existing object; required connection data cannot be removed while WebDAV documents exist
+- UI-managed WebDAV document-storage URLs are protected against SSRF: private, loopback, link-local, internal-DNS, and DNS-rebinding targets are rejected before persistence and during socket lookup. Trusted private-network targets require the deployment-controlled `DOCUMENT_STORAGE_WEBDAV_URL` override
 - No API endpoint accessible without session auth (except login)
 - `SESSION_SECRET` is mandatory - server refuses to start if unset
 

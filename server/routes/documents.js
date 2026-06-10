@@ -11,6 +11,7 @@ import { str, collectErrors, id as validateId, MAX_TEXT, MAX_TITLE } from '../mi
 import { getAdapter as defaultGetDmsAdapter } from '../services/dms/index.js';
 import {
   StorageError,
+  assertWebdavTargetAllowed,
   cleanupStagedUpload,
   deleteDocumentContent,
   getConfig as getStorageConfig,
@@ -262,6 +263,14 @@ router.put('/storage/config', async (req, res) => {
     `).get();
     const current = getStorageConfig();
     const proposed = resolveConfig(req.body);
+    const targetChanged = (
+      (!current.envControlled.url && Object.hasOwn(req.body, 'url'))
+      || (!current.envControlled.path
+        && (Object.hasOwn(req.body, 'path') || Object.hasOwn(req.body, 'basePath')))
+    );
+    if (targetChanged && proposed.url) {
+      await assertWebdavTargetAllowed(proposed);
+    }
 
     if (existing) {
       const deletingRequiredField = (

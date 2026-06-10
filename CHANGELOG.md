@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.70.2] - 2026-06-10
+
+### Security
+- **WebDAV document storage**: UI-managed targets now reject private, loopback, link-local, internal-DNS, and DNS-rebinding destinations both before persistence and during socket lookup. Trusted private-network targets remain available through `DOCUMENT_STORAGE_WEBDAV_URL`.
+- **WebDAV path normalization**: replaced ambiguous trailing-slash regular expressions with linear path processing to prevent polynomial-time matching on attacker-controlled configuration.
+
 ## [0.70.1] - 2026-06-10
 
 ### Removed

@@ -169,6 +169,8 @@ Each module is independent. Use what fits, skip what doesn't.
 | ![backup](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/backup.png) | **Backup** | Manual and scheduled database backup and restore, with automatic pre-restore rollback. Optional WebDAV upload target (Nextcloud, ownCloud, Hetzner, etc.). |
 
 > **WebDAV document storage needs its own backup.** SQLite/database backups contain document metadata and links, but not document binaries stored on WebDAV. Back up the WebDAV target separately.
+> WebDAV targets configured in the admin UI must resolve to public network addresses. For a trusted
+> LAN or loopback target, set `DOCUMENT_STORAGE_WEBDAV_URL` through the deployment environment.
 
 ---
 

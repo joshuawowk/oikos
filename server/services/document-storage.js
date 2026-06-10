@@ -4,6 +4,11 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { lookup as dnsLookup } from 'node:dns/promises';
+import { Agent as HttpAgent } from 'node:http';
+import { Agent as HttpsAgent } from 'node:https';
+import { BlockList, isIP } from 'node:net';
+import fetch from 'node-fetch';
 import * as db from '../db.js';
 
 const CONFIG_PREFIX = 'document_storage_webdav_';
@@ -19,8 +24,43 @@ const ENV_FIELDS = {
   path: 'DOCUMENT_STORAGE_WEBDAV_PATH',
 };
 const PASSWORD_MASK_RE = /^(?:\*|•){4,}$/;
+const BLOCKED_HOST_SUFFIXES = ['.localhost', '.local', '.internal', '.home.arpa'];
+const BLOCKED_NETWORKS = new BlockList();
+
+for (const [address, prefix, type] of [
+  ['0.0.0.0', 8, 'ipv4'],
+  ['10.0.0.0', 8, 'ipv4'],
+  ['100.64.0.0', 10, 'ipv4'],
+  ['127.0.0.0', 8, 'ipv4'],
+  ['169.254.0.0', 16, 'ipv4'],
+  ['172.16.0.0', 12, 'ipv4'],
+  ['192.0.0.0', 24, 'ipv4'],
+  ['192.0.2.0', 24, 'ipv4'],
+  ['192.168.0.0', 16, 'ipv4'],
+  ['198.18.0.0', 15, 'ipv4'],
+  ['198.51.100.0', 24, 'ipv4'],
+  ['203.0.113.0', 24, 'ipv4'],
+  ['224.0.0.0', 4, 'ipv4'],
+  ['240.0.0.0', 4, 'ipv4'],
+  ['::', 128, 'ipv6'],
+  ['::1', 128, 'ipv6'],
+  ['64:ff9b::', 96, 'ipv6'],
+  ['64:ff9b:1::', 48, 'ipv6'],
+  ['100::', 64, 'ipv6'],
+  ['2001::', 32, 'ipv6'],
+  ['2001:2::', 48, 'ipv6'],
+  ['2001:db8::', 32, 'ipv6'],
+  ['2002::', 16, 'ipv6'],
+  ['fc00::', 7, 'ipv6'],
+  ['fe80::', 10, 'ipv6'],
+  ['ff00::', 8, 'ipv6'],
+]) {
+  BLOCKED_NETWORKS.addSubnet(address, prefix, type);
+}
 
 let requestTimeoutMs = DEFAULT_TIMEOUT_MS;
+let hostnameLookup = dnsLookup;
+let privateNetworkAccessForTests = false;
 
 export class StorageError extends Error {
   constructor(storageCode, message, options = {}) {
@@ -152,6 +192,27 @@ function normalizeStorageKey(value) {
   return segments.join('/');
 }
 
+function trimTrailingSlashes(value) {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) end -= 1;
+  return value.slice(0, end);
+}
+
+function collapsePathSlashes(value) {
+  let result = '';
+  let previousWasSlash = false;
+  for (const char of value) {
+    if (char === '/') {
+      if (!previousWasSlash) result += char;
+      previousWasSlash = true;
+    } else {
+      result += char;
+      previousWasSlash = false;
+    }
+  }
+  return result;
+}
+
 function validateUrl(value) {
   let parsed;
   try {
@@ -171,8 +232,129 @@ function validateUrl(value) {
   }
   parsed.hash = '';
   parsed.search = '';
-  parsed.pathname = parsed.pathname.replace(/\/+$/, '');
+  parsed.pathname = trimTrailingSlashes(parsed.pathname);
   return parsed;
+}
+
+function normalizedHostname(hostname) {
+  const value = String(hostname).toLowerCase();
+  return value.startsWith('[') && value.endsWith(']')
+    ? value.slice(1, -1)
+    : value;
+}
+
+function privateNetworkAllowed(config) {
+  return privateNetworkAccessForTests || config.envControlled?.url === true;
+}
+
+function assertHostnameAllowed(hostname, allowPrivate = false) {
+  const normalized = normalizedHostname(hostname);
+  if (
+    !allowPrivate
+    && (
+      normalized === 'localhost'
+      || BLOCKED_HOST_SUFFIXES.some((suffix) => (
+        normalized === suffix.slice(1) || normalized.endsWith(suffix)
+      ))
+    )
+  ) {
+    throw new StorageError(
+      'DOCUMENT_STORAGE_INVALID_CONFIG',
+      'The WebDAV URL must not target a private network host.'
+    );
+  }
+  return normalized;
+}
+
+function assertAddressAllowed(address) {
+  const normalized = normalizedHostname(address);
+  const detectedFamily = isIP(normalized);
+  if (
+    !detectedFamily
+    || BLOCKED_NETWORKS.check(normalized, detectedFamily === 6 ? 'ipv6' : 'ipv4')
+  ) {
+    throw new StorageError(
+      'DOCUMENT_STORAGE_INVALID_CONFIG',
+      'The WebDAV URL must resolve only to public network addresses.'
+    );
+  }
+}
+
+async function resolveHostAddresses(hostname, options = {}, allowPrivate = false) {
+  const normalized = assertHostnameAllowed(hostname, allowPrivate);
+  const literalFamily = isIP(normalized);
+  if (literalFamily) {
+    return [{ address: normalized, family: literalFamily }];
+  }
+  let addresses;
+  try {
+    addresses = await hostnameLookup(normalized, {
+      all: true,
+      family: Number(options.family) || 0,
+      verbatim: true,
+    });
+  } catch (error) {
+    throw new StorageError(
+      'DOCUMENT_STORAGE_INVALID_CONFIG',
+      'The WebDAV hostname could not be resolved.',
+      { cause: error }
+    );
+  }
+  const results = Array.isArray(addresses) ? addresses : [addresses];
+  if (results.length === 0) {
+    throw new StorageError(
+      'DOCUMENT_STORAGE_INVALID_CONFIG',
+      'The WebDAV hostname did not resolve to an address.'
+    );
+  }
+  return results;
+}
+
+async function validatedHostAddresses(hostname, options, allowPrivate) {
+  const addresses = await resolveHostAddresses(hostname, options, allowPrivate);
+  if (!allowPrivate) {
+    for (const { address } of addresses) {
+      assertAddressAllowed(address);
+    }
+  }
+  return addresses;
+}
+
+function validatedLookup(allowPrivate) {
+  return (hostname, options, callback) => {
+    const lookupOptions = typeof options === 'number' ? { family: options } : options;
+    validatedHostAddresses(hostname, lookupOptions, allowPrivate)
+      .then((addresses) => {
+        if (lookupOptions?.all) {
+          callback(null, addresses);
+          return;
+        }
+        const [selected] = addresses;
+        callback(null, selected.address, selected.family);
+      })
+      .catch((error) => callback(error));
+  };
+}
+
+function requestAgent(url, config) {
+  const allowPrivate = privateNetworkAllowed(config);
+  const hostname = assertHostnameAllowed(url.hostname, allowPrivate);
+  const literalFamily = isIP(hostname);
+  if (!allowPrivate && literalFamily) {
+    assertAddressAllowed(hostname);
+  }
+  const Agent = url.protocol === 'https:' ? HttpsAgent : HttpAgent;
+  return new Agent({ lookup: validatedLookup(allowPrivate) });
+}
+
+export async function assertWebdavTargetAllowed(config) {
+  if (!config?.url) return;
+  const url = validateUrl(config.url);
+  if (privateNetworkAllowed(config)) return;
+  const addresses = await resolveHostAddresses(url.hostname);
+  for (const { address } of addresses) {
+    assertAddressAllowed(address);
+  }
 }
 
 function requireWebdavConfig(config) {
@@ -201,17 +383,19 @@ function encodePath(segments) {
 
 function remoteUrl(config, relativeSegments) {
   const url = validateUrl(config.url);
-  const basePath = url.pathname.replace(/\/+$/, '');
+  const basePath = trimTrailingSlashes(url.pathname);
   const suffix = encodePath(relativeSegments);
-  url.pathname = `${basePath}/${suffix}`.replace(/\/{2,}/g, '/');
+  url.pathname = collapsePathSlashes(`${basePath}/${suffix}`);
   return url;
 }
 
 async function davFetch(config, method, relativeSegments, { body, headers } = {}) {
   const url = remoteUrl(config, relativeSegments);
+  const agent = requestAgent(url, config);
   return fetch(url, {
     method,
     redirect: 'manual',
+    agent,
     headers: {
       Authorization: basicAuth(config.username, config.password),
       ...headers,
@@ -235,7 +419,11 @@ async function ensureCollections(config, extraSegments = []) {
 async function readResponseBuffer(response) {
   const declaredLength = Number(response.headers.get('content-length'));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_READ_BYTES) {
-    await response.body?.cancel();
+    if (typeof response.body?.cancel === 'function') {
+      await response.body.cancel();
+    } else {
+      response.body?.destroy();
+    }
     throw new StorageError(
       'DOCUMENT_STORAGE_TOO_LARGE',
       'The remote document exceeds the 5 MiB read limit.'
@@ -245,6 +433,22 @@ async function readResponseBuffer(response) {
 
   const chunks = [];
   let total = 0;
+  if (typeof response.body.getReader !== 'function') {
+    for await (const value of response.body) {
+      const chunk = Buffer.from(value);
+      total += chunk.byteLength;
+      if (total > MAX_READ_BYTES) {
+        response.body.destroy();
+        throw new StorageError(
+          'DOCUMENT_STORAGE_TOO_LARGE',
+          'The remote document exceeds the 5 MiB read limit.'
+        );
+      }
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks, total);
+  }
+
   const reader = response.body.getReader();
   try {
     while (true) {
@@ -386,9 +590,10 @@ export function getEffectiveTarget(config = getConfig()) {
   if (!config.url) return null;
   try {
     const url = validateUrl(config.url);
-    url.pathname = `${url.pathname.replace(/\/+$/, '')}/${normalizeBasePath(config.basePath)}`
-      .replace(/\/{2,}/g, '/');
-    return url.toString().replace(/\/$/, '');
+    const basePath = trimTrailingSlashes(url.pathname);
+    url.pathname = collapsePathSlashes(`${basePath}/${normalizeBasePath(config.basePath)}`);
+    const target = url.toString();
+    return target.endsWith('/') ? target.slice(0, -1) : target;
   } catch {
     return null;
   }
@@ -677,4 +882,12 @@ export async function testConnection(overrides = {}) {
 
 export function __setRequestTimeoutForTests(timeoutMs) {
   requestTimeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+}
+
+export function __setHostnameLookupForTests(lookup) {
+  hostnameLookup = lookup || dnsLookup;
+}
+
+export function __setPrivateNetworkAccessForTests(enabled = false) {
+  privateNetworkAccessForTests = enabled;
 }

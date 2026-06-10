@@ -49,7 +49,9 @@ dedicated `podman-compose.yml` (SELinux `:Z` labels).
 The WebDAV document-storage fields are optional. Non-empty
 `DOCUMENT_STORAGE_WEBDAV_ENABLED`, `_URL`, `_USERNAME`, `_PASSWORD`, and `_PATH` values override
 their matching in-app settings individually. They control the destination for new document files,
-including calendar attachments; existing local files are not migrated.
+including calendar attachments; existing local files are not migrated. Private or LAN WebDAV
+targets must be supplied through these deployment variables because URLs managed in the admin UI
+are restricted to public network addresses.
 
 > SQLite/database backups do not contain document binaries stored on WebDAV. Back up the WebDAV
 > target separately.
