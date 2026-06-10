@@ -376,6 +376,7 @@ let state = {
   rangeTo:       '',
   holidays:      [],       // cached entries from holiday_cache
   holidayPrefs:  {},       // subset of /preferences
+  documentUploadBackend: 'local',
   layerHolidays: true,     // toggle for public holiday layer
   layerSchool:   true,     // toggle for school holiday layer
 };
@@ -552,18 +553,30 @@ function attachmentDataUrl(data, mime) {
   return mime ? `data:${mime};base64,${raw}` : raw;
 }
 
+function hasAttachment(event) {
+  return Boolean(event?.attachment_document_id || event?.attachment_data);
+}
+
+function attachmentUrls(event) {
+  const legacyUrl = attachmentDataUrl(event?.attachment_data, event?.attachment_mime);
+  return {
+    preview: event?.attachment_preview_url || legacyUrl,
+    download: event?.attachment_download_url || legacyUrl,
+  };
+}
+
 function attachmentHtml(event) {
-  if (!event?.attachment_data) return '';
+  if (!hasAttachment(event)) return '';
   const name = esc(event.attachment_name || t('calendar.attachmentFallback'));
-  const src = esc(attachmentDataUrl(event.attachment_data, event.attachment_mime));
+  const urls = attachmentUrls(event);
   if (isImageAttachment(event.attachment_mime)) {
     return `
       <div class="event-popup__attachment event-popup__attachment--image">
-        <img src="${src}" alt="${name}">
+        <img src="${esc(urls.preview)}" alt="${name}">
       </div>`;
   }
   return `
-    <a class="event-popup__attachment event-popup__attachment--file" href="${src}" download="${name}">
+    <a class="event-popup__attachment event-popup__attachment--file" href="${esc(urls.download)}" download="${name}">
       <i data-lucide="paperclip" aria-hidden="true"></i>
       <span>${name}</span>
     </a>`;
@@ -577,12 +590,12 @@ function truncateDescription(description, maxLength = 500) {
 }
 
 function attachmentPreviewHtml(event) {
-  if (!event?.attachment_data) return '';
+  if (!hasAttachment(event)) return '';
   const name = esc(event.attachment_name || t('calendar.attachmentFallback'));
-  const src = esc(attachmentDataUrl(event.attachment_data, event.attachment_mime));
+  const urls = attachmentUrls(event);
   return isImageAttachment(event.attachment_mime)
-    ? `<img src="${src}" alt="${name}">`
-    : `<a href="${src}" download="${name}">${name}</a>`;
+    ? `<img src="${esc(urls.preview)}" alt="${name}">`
+    : `<a href="${esc(urls.download)}" download="${name}">${name}</a>`;
 }
 
 function selectedAttachmentLabel(name) {
@@ -822,12 +835,14 @@ export async function render(container, { user }) {
   `);
 
   const { from, to } = getRangeForView(state.view, state.cursor);
-  const [,, prefsRes] = await Promise.all([
+  const [,, prefsRes, documentOptionsRes] = await Promise.all([
     loadRange(from, to),
     loadUsers(),
     api.get('/preferences').catch(() => ({ data: {} })),
+    api.get('/documents/meta/options').catch(() => ({ data: {} })),
   ]);
   state.holidayPrefs  = prefsRes.data ?? {};
+  state.documentUploadBackend = documentOptionsRes.data?.active_upload_backend ?? 'local';
   state.layerHolidays = localStorage.getItem(LAYER_HOLIDAYS_KEY) !== 'false';
   state.layerSchool   = localStorage.getItem(LAYER_SCHOOL_KEY)   !== 'false';
 
@@ -1497,7 +1512,17 @@ function renderAgendaView(container) {
   });
 }
 
-export const __test = { normalizeCalendarView, defaultCalendarViewFromState, filterTasksForCalendar, tasksOnDay, isMultiDayEvent, isAllDayLike, agendaSegmentKind };
+export const __test = {
+  normalizeCalendarView,
+  defaultCalendarViewFromState,
+  filterTasksForCalendar,
+  tasksOnDay,
+  isMultiDayEvent,
+  isAllDayLike,
+  agendaSegmentKind,
+  hasAttachment,
+  attachmentUrls,
+};
 
 function renderAgendaEvent(ev, dayStr) {
   const kind = agendaSegmentKind(ev, dayStr ?? localDate(ev.start_datetime));
@@ -1565,7 +1590,7 @@ function showEventPopup(ev, anchor) {
       <div class="calendar-meta-item">${calendarMetaIconHtml('clock')}<span>${esc(timeStr)}</span></div>
       ${ev.location ? `<div class="calendar-meta-item">${calendarMetaIconHtml('map-pin')}<span>${esc(fmtLocation(ev.location))}</span></div>` : ''}
       ${ev.description ? `<div>${esc(truncateDescription(ev.description, 500))}</div>` : ''}
-      ${ev.attachment_data ? attachmentHtml(ev) : ''}
+      ${hasAttachment(ev) ? attachmentHtml(ev) : ''}
       ${ev.assigned_name ? `<div class="calendar-meta-item">${calendarMetaIconHtml('user')}<span>${esc(ev.assigned_name)}</span></div>` : ''}
     </div>
     <div class="event-popup__actions">
@@ -1951,25 +1976,34 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
       const attachmentInput = panel.querySelector('#modal-attachment');
       const selectedAttachment = panel.querySelector('#modal-selected-attachment');
       const attachmentPreview = panel.querySelector('#modal-attachment-preview');
+      const removeAttachment = panel.querySelector('#modal-remove-attachment');
       const attachmentState = {
         name: event?.attachment_name || null,
         mime: event?.attachment_mime || null,
         size: event?.attachment_size || null,
-        data: event?.attachment_data || null,
+        changed: false,
+        removed: false,
       };
 
       const syncSelectedAttachment = () => {
         if (!selectedAttachment) return;
         selectedAttachment.hidden = !attachmentState.name;
         selectedAttachment.textContent = attachmentState.name ? selectedAttachmentLabel(attachmentState.name) : '';
+        if (removeAttachment) removeAttachment.hidden = !attachmentState.name;
       };
 
       const syncAttachmentSelection = () => {
         if (!selectedAttachment) return;
         const file = attachmentInput.files?.[0];
         if (file) {
+          attachmentState.name = file.name;
+          attachmentState.mime = file.type || 'application/octet-stream';
+          attachmentState.size = file.size;
+          attachmentState.changed = true;
+          attachmentState.removed = false;
           selectedAttachment.hidden = false;
           selectedAttachment.textContent = selectedAttachmentLabel(file.name);
+          if (removeAttachment) removeAttachment.hidden = false;
           if (attachmentPreview) {
             attachmentPreview.replaceChildren();
             attachmentPreview.hidden = true;
@@ -1980,6 +2014,19 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
       };
 
       attachmentInput?.addEventListener('change', syncAttachmentSelection);
+      removeAttachment?.addEventListener('click', () => {
+        if (attachmentInput) attachmentInput.value = '';
+        attachmentState.name = null;
+        attachmentState.mime = null;
+        attachmentState.size = null;
+        attachmentState.changed = true;
+        attachmentState.removed = true;
+        if (attachmentPreview) {
+          attachmentPreview.replaceChildren();
+          attachmentPreview.hidden = true;
+        }
+        syncSelectedAttachment();
+      });
 
       const attachmentDropzone = panel.querySelector('#modal-attachment-dropzone');
       if (attachmentDropzone && attachmentInput) {
@@ -2172,6 +2219,14 @@ function buildEventModalContent({ mode, event, date, reminder = null }) {
 
     <div class="form-group">
       <label class="form-label" for="modal-attachment">${t('calendar.attachmentLabel')}</label>
+      <p class="document-storage-target">
+        <i data-lucide="${state.documentUploadBackend === 'webdav' ? 'cloud' : 'database'}" aria-hidden="true"></i>
+        <span>${t('documents.activeUploadTarget', {
+          target: state.documentUploadBackend === 'webdav'
+            ? t('documents.storageWebdav')
+            : t('documents.storageLocal'),
+        })}</span>
+      </p>
       <label class="document-dropzone" id="modal-attachment-dropzone" for="modal-attachment">
         <input class="sr-only" id="modal-attachment" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
         <span class="document-dropzone__icon">
@@ -2184,9 +2239,11 @@ function buildEventModalContent({ mode, event, date, reminder = null }) {
         </span>
       </label>
       <div class="form-help">${t('calendar.attachmentHint')}</div>
-      <div class="event-attachment-preview" id="modal-attachment-preview" ${isEdit && event.attachment_data ? '' : 'hidden'}>
-        ${isEdit && event.attachment_data ? attachmentPreviewHtml(event) : ''}
+      <div class="event-attachment-preview" id="modal-attachment-preview" ${isEdit && hasAttachment(event) ? '' : 'hidden'}>
+        ${isEdit && hasAttachment(event) ? attachmentPreviewHtml(event) : ''}
       </div>
+      <button class="btn btn--secondary" id="modal-remove-attachment" type="button"
+              ${isEdit && hasAttachment(event) ? '' : 'hidden'}>${t('calendar.attachmentRemove')}</button>
     </div>
 
     ${renderRRuleFields('event', isEdit ? event.recurrence_rule : null)}
@@ -2267,19 +2324,16 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
       saveBtn.textContent = mode === 'edit' ? t('common.save') : t('common.create');
       return;
     }
-    const attachmentPayload = {
-      name: attachmentState?.name || null,
-      mime: attachmentState?.mime || null,
-      size: attachmentState?.size || null,
-      data: attachmentState?.data || null,
-    };
     const attachmentFile = overlay.querySelector('#modal-attachment')?.files?.[0];
+    let attachmentPayload = null;
     if (attachmentFile) {
       if (attachmentFile.size > MAX_ATTACHMENT_BYTES) throw new Error(t('calendar.attachmentTooLarge'));
-      attachmentPayload.name = attachmentFile.name;
-      attachmentPayload.mime = attachmentFile.type || 'application/octet-stream';
-      attachmentPayload.size = attachmentFile.size;
-      attachmentPayload.data = await readFileAsDataUrl(attachmentFile);
+      attachmentPayload = {
+        name: attachmentFile.name,
+        mime: attachmentFile.type || 'application/octet-stream',
+        size: attachmentFile.size,
+        data: await readFileAsDataUrl(attachmentFile),
+      };
     }
 
     // Extract sync target (unified Google + CalDAV picker)
@@ -2303,21 +2357,23 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
       all_day: allday ? 1 : 0,
       location, color, icon, assigned_to,
       recurrence_rule: rrule.recurrence_rule,
-      attachment_name: attachmentPayload.name,
-      attachment_mime: attachmentPayload.mime,
-      attachment_size: attachmentPayload.size,
-      attachment_data: attachmentPayload.data,
-      document_folder_name: t('documents.calendarItemsFolder'),
-      document_name: attachmentPayload.name
-        ? t('calendar.attachmentDocumentName', { title, name: attachmentPayload.name })
-        : null,
-      document_description: attachmentPayload.name
-        ? t('calendar.attachmentDocumentDescription', { title })
-        : null,
       target_google_calendar_id,
       target_caldav_account_id,
       target_caldav_calendar_url,
     };
+    if (attachmentPayload) {
+      Object.assign(body, {
+        attachment_name: attachmentPayload.name,
+        attachment_mime: attachmentPayload.mime,
+        attachment_size: attachmentPayload.size,
+        attachment_data: attachmentPayload.data,
+        document_folder_name: t('documents.calendarItemsFolder'),
+        document_name: t('calendar.attachmentDocumentName', { title, name: attachmentPayload.name }),
+        document_description: t('calendar.attachmentDocumentDescription', { title }),
+      });
+    } else if (attachmentState?.changed && attachmentState.removed) {
+      body.remove_attachment = true;
+    }
 
     let savedEventId = eventId;
     if (mode === 'create') {

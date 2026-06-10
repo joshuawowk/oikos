@@ -207,9 +207,10 @@ export async function render(container, { user }) {
   let icsSubscriptions = [];
   let apiTokens       = [];
   let thirdPartyModules = [];
+  let dmsAccounts       = [];
 
   try {
-    const [usersRes, gStatus, aStatus, prefsRes, catsRes, icsRes, apiTokensRes, modulesRes] = await Promise.allSettled([
+    const [usersRes, gStatus, aStatus, prefsRes, catsRes, icsRes, apiTokensRes, modulesRes, dmsRes] = await Promise.allSettled([
       user.role === 'admin' ? auth.getUsers() : Promise.resolve({ data: [] }),
       api.get('/calendar/google/status'),
       api.get('/calendar/apple/status'),
@@ -218,6 +219,7 @@ export async function render(container, { user }) {
       api.get('/calendar/subscriptions'),
       user.role === 'admin' ? api.get('/auth/api-tokens') : Promise.resolve({ data: [] }),
       user.role === 'admin' ? api.get('/modules?admin=1') : Promise.resolve({ data: [] }),
+      user.role === 'admin' ? api.get('/documents/dms/accounts') : Promise.resolve({ data: [] }),
     ]);
     if (usersRes.status === 'fulfilled')  users            = usersRes.value.data  ?? [];
     if (gStatus.status  === 'fulfilled')  googleStatus     = gStatus.value;
@@ -227,6 +229,7 @@ export async function render(container, { user }) {
     if (icsRes.status   === 'fulfilled')  icsSubscriptions = icsRes.value.data    ?? [];
     if (apiTokensRes.status === 'fulfilled') apiTokens     = apiTokensRes.value.data ?? [];
     if (modulesRes.status === 'fulfilled') thirdPartyModules = modulesRes.value.data ?? [];
+    if (dmsRes.status   === 'fulfilled')  dmsAccounts      = dmsRes.value.data    ?? [];
   } catch (_) { /* non-critical */ }
 
   if (prefs.date_format) {
@@ -460,6 +463,91 @@ export async function render(container, { user }) {
                 ${prefs.weather_provider === 'open-meteo' ? `
                   <button type="button" class="btn btn--danger" id="weather-remove-btn">${t('settings.weatherRemove')}</button>
                 ` : ''}
+              </div>
+            </form>
+          </div>
+        </section>
+        ` : ''}
+
+        ${user?.role === 'admin' ? `
+        <section class="settings-section" id="documents-section">
+          <h2 class="settings-section__title">${t('settings.sectionDocuments')}</h2>
+          <div class="settings-card settings-card--document-storage" id="document-storage-card">
+            <h3 class="settings-card__title">${t('settings.documentStorageTitle')}</h3>
+            <p class="settings-card-description">${t('settings.documentStorageDescription')}</p>
+            <form class="settings-form settings-form--compact" id="document-storage-form" novalidate autocomplete="off">
+              <div class="settings-webdav-toggle-row">
+                <label class="toggle-row">
+                  <input type="checkbox" id="document-storage-enabled" name="enabled" />
+                  <span>${t('settings.documentStorageEnabled')}</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="document-storage-url">${t('settings.documentStorageUrl')}</label>
+                <input class="form-input" type="url" id="document-storage-url" name="url" placeholder="https://..." />
+                <span class="form-hint" data-env-hint="url" hidden>${t('settings.documentStorageEnvHint')}</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="document-storage-username">${t('settings.documentStorageUsername')}</label>
+                <input class="form-input" type="text" id="document-storage-username" name="username" autocomplete="username" />
+                <span class="form-hint" data-env-hint="username" hidden>${t('settings.documentStorageEnvHint')}</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="document-storage-password">${t('settings.documentStoragePassword')}</label>
+                <div class="settings-webdav-pw-wrap">
+                  <input class="form-input" type="password" id="document-storage-password" name="password"
+                    autocomplete="new-password" placeholder="${t('settings.documentStoragePasswordPlaceholder')}" />
+                  <button type="button" class="btn btn--icon btn--ghost settings-webdav-reveal-btn"
+                    data-reveal-target="document-storage-password" aria-label="${t('common.togglePasswordVisibility')}">
+                    <i data-lucide="eye" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <span class="form-hint" data-env-hint="password" hidden>${t('settings.documentStorageEnvHint')}</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="document-storage-path">${t('settings.documentStoragePath')}</label>
+                <input class="form-input" type="text" id="document-storage-path" name="path" />
+                <span class="form-hint" data-env-hint="path" hidden>${t('settings.documentStorageEnvHint')}</span>
+              </div>
+              <div class="form-hint" data-env-hint="enabled" hidden>${t('settings.documentStorageEnvHint')}</div>
+              <div id="document-storage-test-result" class="form-hint" hidden></div>
+              <div class="settings-form-actions">
+                <button type="button" class="btn btn--secondary" id="document-storage-test-btn">
+                  <i data-lucide="plug-zap" aria-hidden="true"></i>
+                  ${t('settings.documentStorageTest')}
+                </button>
+                <button type="submit" class="btn btn--primary" id="document-storage-save-btn">
+                  ${t('settings.documentStorageSave')}
+                </button>
+              </div>
+            </form>
+            <div class="settings-info-grid document-storage-status" id="document-storage-status"></div>
+            <p class="settings-document-storage-warning">
+              <i data-lucide="triangle-alert" aria-hidden="true"></i>
+              <span>${t('settings.documentStorageBackupWarning')}</span>
+            </p>
+          </div>
+
+          <div class="settings-card settings-card--document-storage" id="dms-card">
+            <h3 class="settings-card__title">${t('settings.dmsTitle')}</h3>
+            <p class="settings-card-description">${t('settings.dmsDescription')}</p>
+            <ul class="dms-account-list" id="dms-account-list"></ul>
+            <form class="settings-form settings-form--compact" id="dms-form" novalidate autocomplete="off">
+              <div class="form-group">
+                <label class="form-label" for="dms-name">${t('settings.dmsName')}</label>
+                <input class="form-input" type="text" id="dms-name" maxlength="100" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dms-url">${t('settings.dmsBaseUrl')}</label>
+                <input class="form-input" type="url" id="dms-url" required placeholder="https://..." />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dms-token">${t('settings.dmsToken')}</label>
+                <input class="form-input" type="password" id="dms-token" required autocomplete="new-password" />
+              </div>
+              <div id="dms-form-error" class="form-error" hidden></div>
+              <div class="settings-form-actions">
+                <button type="submit" class="btn btn--primary">${t('settings.dmsAddBtn')}</button>
               </div>
             </form>
           </div>
@@ -1105,8 +1193,15 @@ docker cp oikos:/data/oikos-backup.db ./oikos-backup.db</code></pre>
     loadCardDAVAccounts(container, user);
   }
 
+  // Initial render: DMS accounts (admin only)
+  if (container.querySelector('#dms-account-list')) {
+    renderDmsAccounts(dmsAccounts);
+  }
+
   renderSettingsSubTabs(container, user, activeTab);
   bindEvents(container, user, users, categories, icsSubscriptions, apiTokens, thirdPartyModules);
+  bindDocumentStorageEvents(container);
+  bindDmsEvents(container);
   if (window.lucide) window.lucide.createIcons({ el: container });
 }
 // CalDAV-Konten laden
@@ -1492,6 +1587,315 @@ async function loadCardDAVAccounts(container, user) {
   } catch (err) {
     console.error('Failed to load CardDAV accounts:', err);
   }
+}
+
+// --------------------------------------------------------
+// Document storage
+// --------------------------------------------------------
+
+function documentStorageTarget(data) {
+  if (data.effective_target) return data.effective_target;
+  if (!data.url) return t('settings.documentStorageNotConfigured');
+  const basePath = data.base_path ?? data.basePath ?? '';
+  return basePath ? `${data.url.replace(/\/+$/, '')}/${String(basePath).replace(/^\/+/, '')}` : data.url;
+}
+
+function renderDocumentStorageStatus(container, data) {
+  const status = container.querySelector('#document-storage-status');
+  if (!status) return;
+  const activeBackend = data.active_upload_backend ?? (data.enabled ? 'webdav' : 'local');
+  const activeLabel = activeBackend === 'webdav'
+    ? t('documents.storageWebdav')
+    : t('documents.storageLocal');
+  const lastTest = data.last_test ?? data.lastTest;
+  const lastTestLabel = lastTest
+    ? `${formatDate(lastTest)} ${formatTime(lastTest)}`
+    : t('settings.documentStorageNeverTested');
+  const lastError = data.last_error ?? data.lastError;
+
+  status.replaceChildren();
+  status.insertAdjacentHTML('beforeend', `
+    <div class="settings-info-row">
+      <span class="settings-info-label">${t('settings.documentStorageActive')}</span>
+      <span class="settings-info-value settings-info-value--success">${esc(activeLabel)}</span>
+    </div>
+    <div class="settings-info-row">
+      <span class="settings-info-label">${t('settings.documentStorageTarget')}</span>
+      <span class="settings-info-value"><code>${esc(documentStorageTarget(data))}</code></span>
+    </div>
+    <div class="settings-info-row">
+      <span class="settings-info-label">${t('settings.documentStorageCount')}</span>
+      <span class="settings-info-value">${Number(data.webdav_document_count ?? 0)}</span>
+    </div>
+    <div class="settings-info-row">
+      <span class="settings-info-label">${t('settings.documentStorageLastTest')}</span>
+      <span class="settings-info-value">${esc(lastTestLabel)}</span>
+    </div>
+    ${lastError ? `
+      <div class="settings-info-row">
+        <span class="settings-info-label">${t('settings.documentStorageLastError')}</span>
+        <span class="settings-info-value settings-document-storage-error">${esc(lastError)}</span>
+      </div>
+    ` : ''}
+  `);
+}
+
+async function loadDocumentStorageConfig(container) {
+  const form = container.querySelector('#document-storage-form');
+  if (!form) return;
+  try {
+    const res = await api.get('/documents/storage/config');
+    const data = res.data ?? {};
+    const envControlled = data.env_controlled ?? data.envControlled ?? {};
+    const basePath = data.base_path ?? data.basePath ?? '';
+    form._documentStorageConfig = {
+      ...data,
+      base_path: basePath,
+      env_controlled: envControlled,
+    };
+
+    form.querySelector('#document-storage-enabled').checked = Boolean(data.enabled);
+    form.querySelector('#document-storage-url').value = data.url ?? '';
+    form.querySelector('#document-storage-username').value = data.username ?? '';
+    form.querySelector('#document-storage-password').value = '';
+    form.querySelector('#document-storage-password').placeholder = data.password_configured
+      ? '****'
+      : t('settings.documentStoragePasswordPlaceholder');
+    form.querySelector('#document-storage-path').value = basePath;
+
+    const fieldIds = {
+      enabled: 'document-storage-enabled',
+      url: 'document-storage-url',
+      username: 'document-storage-username',
+      password: 'document-storage-password',
+      path: 'document-storage-path',
+    };
+    for (const [field, id] of Object.entries(fieldIds)) {
+      const input = form.querySelector(`#${id}`);
+      const controlled = Boolean(envControlled[field]);
+      if (input) input.disabled = controlled;
+      const hint = form.querySelector(`[data-env-hint="${field}"]`);
+      if (hint) hint.hidden = !controlled;
+    }
+    renderDocumentStorageStatus(container, data);
+  } catch (err) {
+    console.error('Failed to load document storage config:', err);
+  }
+}
+
+function documentStoragePayload(form) {
+  const envControlled = form._documentStorageConfig?.env_controlled ?? {};
+  const payload = {};
+  if (!envControlled.enabled) {
+    payload.enabled = form.querySelector('#document-storage-enabled')?.checked ?? false;
+  }
+  if (!envControlled.url) {
+    payload.url = form.querySelector('#document-storage-url')?.value?.trim() ?? '';
+  }
+  if (!envControlled.username) {
+    payload.username = form.querySelector('#document-storage-username')?.value?.trim() ?? '';
+  }
+  if (!envControlled.path) {
+    payload.path = form.querySelector('#document-storage-path')?.value?.trim() ?? '';
+  }
+  const password = form.querySelector('#document-storage-password')?.value;
+  if (!envControlled.password && password && password !== '****') payload.password = password;
+  return payload;
+}
+
+function hasProtectedDocumentStorageChange(form, payload) {
+  const current = form._documentStorageConfig ?? {};
+  if (Number(current.webdav_document_count ?? 0) < 1) return false;
+  const envControlled = current.env_controlled ?? {};
+  if (Object.hasOwn(payload, 'url') && payload.url !== (current.url ?? '')) return true;
+  if (Object.hasOwn(payload, 'username') && payload.username !== (current.username ?? '')) return true;
+  if (Object.hasOwn(payload, 'path') && payload.path !== (current.base_path ?? '')) return true;
+  return !envControlled.password && Object.hasOwn(payload, 'password');
+}
+
+function bindDocumentStorageEvents(container) {
+  const form = container.querySelector('#document-storage-form');
+  const testBtn = container.querySelector('#document-storage-test-btn');
+  const result = container.querySelector('#document-storage-test-result');
+  if (!form) return;
+
+  loadDocumentStorageConfig(container);
+
+  form.querySelector('[data-reveal-target]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget;
+    const input = form.querySelector(`#${button.dataset.revealTarget}`);
+    if (!input) return;
+    const reveal = input.type === 'password';
+    input.type = reveal ? 'text' : 'password';
+    const icon = button.querySelector('[data-lucide]');
+    if (icon) icon.dataset.lucide = reveal ? 'eye-off' : 'eye';
+    if (window.lucide) window.lucide.createIcons({ el: button });
+  });
+
+  testBtn?.addEventListener('click', async () => {
+    testBtn.disabled = true;
+    if (result) {
+      result.hidden = false;
+      result.textContent = t('settings.documentStorageTesting');
+      result.className = 'form-hint';
+    }
+    try {
+      await api.post('/documents/storage/test', documentStoragePayload(form));
+      if (result) {
+        result.textContent = t('settings.documentStorageTestSuccess');
+        result.className = 'form-hint settings-document-storage-success';
+      }
+      await loadDocumentStorageConfig(container);
+    } catch (err) {
+      if (result) {
+        result.textContent = t('settings.documentStorageTestFailed', { error: err.message });
+        result.className = 'form-hint settings-document-storage-error';
+      }
+    } finally {
+      testBtn.disabled = false;
+    }
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const saveBtn = form.querySelector('#document-storage-save-btn');
+    const payload = documentStoragePayload(form);
+    if (hasProtectedDocumentStorageChange(form, payload)) {
+      const confirmed = await confirmModal(t('settings.documentStorageConfirmExisting'), {
+        confirmLabel: t('common.confirm'),
+      });
+      if (!confirmed) return;
+      payload.confirm_existing_access = true;
+    }
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = t('common.saving');
+    }
+    try {
+      await api.put('/documents/storage/config', payload);
+      window.oikos?.showToast(t('settings.documentStorageSaved'), 'success');
+      await loadDocumentStorageConfig(container);
+    } catch (err) {
+      window.oikos?.showToast(err.message ?? t('common.errorGeneric'), 'danger');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = t('settings.documentStorageSave');
+      }
+    }
+  });
+}
+
+// --------------------------------------------------------
+// DMS accounts
+// --------------------------------------------------------
+
+function renderDmsAccounts(accounts) {
+  const list = document.getElementById('dms-account-list');
+  if (!list) return;
+  list.replaceChildren();
+  if (!accounts.length) {
+    const li = document.createElement('li');
+    li.className = 'dms-account-empty form-hint';
+    li.textContent = t('settings.dmsNone');
+    list.appendChild(li);
+    return;
+  }
+  for (const acc of accounts) {
+    const li = document.createElement('li');
+    li.className = 'dms-account-item';
+    li.dataset.id = acc.id;
+
+    const meta = document.createElement('div');
+    meta.className = 'dms-account-meta';
+    const name = document.createElement('strong');
+    name.textContent = acc.name;
+    const url = document.createElement('span');
+    url.className = 'form-hint';
+    url.textContent = acc.base_url;
+    meta.append(name, document.createElement('br'), url);
+
+    const testBtn = document.createElement('button');
+    testBtn.type = 'button';
+    testBtn.className = 'btn btn--secondary btn--sm';
+    testBtn.dataset.action = 'test-dms';
+    testBtn.dataset.id = acc.id;
+    testBtn.textContent = t('settings.dmsTestBtn');
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn btn--danger btn--sm';
+    delBtn.dataset.action = 'remove-dms';
+    delBtn.dataset.id = acc.id;
+    delBtn.textContent = t('settings.dmsRemove');
+
+    li.append(meta, testBtn, delBtn);
+    list.appendChild(li);
+  }
+}
+
+function bindDmsEvents(container) {
+  const dmsForm = container.querySelector('#dms-form');
+  if (!dmsForm) return;
+
+  dmsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = container.querySelector('#dms-form-error');
+    errEl.hidden = true;
+    const name      = container.querySelector('#dms-name').value.trim();
+    const base_url  = container.querySelector('#dms-url').value.trim();
+    const api_token = container.querySelector('#dms-token').value;
+    try {
+      const res = await api.post('/documents/dms/accounts', { provider: 'paperless', name, base_url, api_token });
+      const accounts = res.data ?? [];
+      renderDmsAccounts(Array.isArray(accounts) ? accounts : [accounts]);
+      // Reload full list to get up-to-date state
+      const listRes = await api.get('/documents/dms/accounts');
+      renderDmsAccounts(listRes.data ?? []);
+      dmsForm.reset();
+      window.oikos?.showToast(t('settings.dmsConnected'), 'success');
+    } catch (err) {
+      showError(errEl, err.message ?? t('common.errorGeneric'));
+    }
+  });
+
+  const list = container.querySelector('#dms-account-list');
+  if (!list) return;
+
+  list.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+
+    if (action === 'test-dms') {
+      btn.disabled = true;
+      try {
+        const res = await api.post(`/documents/dms/accounts/${id}/test`);
+        const result = res.data ?? {};
+        if (result.ok) {
+          window.oikos?.showToast(t('settings.dmsTestOk'), 'success');
+        } else {
+          window.oikos?.showToast(t('settings.dmsTestFail', { status: result.status }), 'danger');
+        }
+      } catch (err) {
+        window.oikos?.showToast(err.message ?? t('common.errorGeneric'), 'danger');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    if (action === 'remove-dms') {
+      if (!confirm(t('settings.dmsRemoveConfirm'))) return;
+      try {
+        await api.delete(`/documents/dms/accounts/${id}`);
+        const listRes = await api.get('/documents/dms/accounts');
+        renderDmsAccounts(listRes.data ?? []);
+      } catch (err) {
+        window.oikos?.showToast(err.message ?? t('common.errorGeneric'), 'danger');
+      }
+    }
+  });
 }
 
 // --------------------------------------------------------
@@ -2031,7 +2435,10 @@ function bindEvents(container, user, users, categories, icsSubscriptions, apiTok
 
     // Load subdivisions for a given country code
     async function loadSubdivisions(countryCode, selectedCode) {
-      subdivisionSelect.innerHTML = `<option value="">${t('settings.holidaySubdivisionNone')}</option>`;
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = t('settings.holidaySubdivisionNone');
+      subdivisionSelect.replaceChildren(noneOpt);
       subdivisionSelect.disabled = true;
       if (!countryCode) return;
       try {

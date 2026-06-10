@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.70.2] - 2026-06-10
+
+### Security
+- **WebDAV document storage**: UI-managed targets now reject private, loopback, link-local, internal-DNS, and DNS-rebinding destinations both before persistence and during socket lookup. Trusted private-network targets remain available through `DOCUMENT_STORAGE_WEBDAV_URL`.
+- **WebDAV path normalization**: replaced ambiguous trailing-slash regular expressions with linear path processing to prevent polynomial-time matching on attacker-controlled configuration.
+
+## [0.70.1] - 2026-06-10
+
+### Removed
+- **Repository metadata**: removed the last published reference to an internal development tool.
+
+## [0.70.0] - 2026-06-10
+
+### Added
+- **WebDAV document storage**: admins can select WebDAV as the global destination for new document files, including calendar attachments, with per-field environment overrides, connection tests, protected configuration changes, and clear local/WebDAV/DMS status throughout the interface.
+
+### Changed
+- **Document binary handling**: previews, downloads, calendar attachments, deletion, and Paperless/DMS uploads now share one storage layer. Existing local files stay local, failed WebDAV uploads never fall back silently, failed database writes clean up staged remote files, and database backups explicitly exclude WebDAV binaries, which must be backed up separately.
+
+## [0.69.0] - 2026-06-10
+
+### Added
+- **Documents — Paperless-ngx (DMS) integration**: admins can connect a Paperless-ngx document management system in Settings (server URL + API token, with a connection test). Multiple DMS accounts are supported.
+- **Link from DMS**: search a connected DMS and link existing documents into the Documents module as references — the binary stays in the DMS and is not duplicated. Previews and downloads of linked documents are proxied live from the DMS, while each document's family/restricted/private visibility is still enforced.
+- **Upload to DMS**: push a local document up into the connected DMS (asynchronous OCR ingestion); when several DMS accounts are configured, an account picker lets you choose the target.
+
+All DMS operations are admin-only, and the API token is never returned in responses. The integration uses a provider-pluggable adapter layer (Paperless-ngx is the first adapter) and requires no new environment variables — everything is configured in-app.
+
+## [0.68.4] - 2026-06-09
+
+### Fixed
+- **Documents**: PDF previews no longer fail with "This page was blocked by Chrome" in Chromium-based browsers. The preview iframe dropped its `sandbox` attribute (Chromium refuses to start its internal PDF viewer inside sandboxed frames) and the `/documents/:id/preview` endpoint now sends a PDF-specific Content-Security-Policy (`default-src 'self'`) instead of the strict `default-src 'none'` that blocked the native viewer. PDFs are still served same-origin as `application/pdf` with `X-Content-Type-Options: nosniff`, so no scripts can execute; non-PDF previews keep the strict policy.
+
 ## [0.68.3] - 2026-06-09
 
 ### Changed

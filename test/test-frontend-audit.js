@@ -525,6 +525,15 @@ test('calendar metadata uses lucide icon markup instead of visible emoji', () =>
   assert.match(source, /class="calendar-meta-icon icon-sm"/, 'metadata icons should use tokenized icon classes');
 });
 
+test('calendar attachment removal control honors its hidden state', () => {
+  const calendarCss = read('../public/styles/calendar.css');
+  assert.match(
+    calendarCss,
+    /#modal-remove-attachment\[hidden\]\s*\{\s*display:\s*none;/,
+    'the remove-attachment button must stay hidden for events without an attachment'
+  );
+});
+
 test('phase 7 calendar inline polish keeps icons and all-day labels tokenized', () => {
   const source = read('../public/pages/calendar.js');
   const calendar = read('../public/styles/calendar.css');

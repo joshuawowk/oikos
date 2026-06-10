@@ -27,6 +27,7 @@
    - 2.3 [CalDAV/CardDAV-Sync](#23-caldavcarddav-sync)
    - 2.4 [OIDC-Provider (Single Sign-On)](#24-oidc-provider-single-sign-on)
    - 2.5 [WebDAV-Backup](#25-webdav-backup)
+   - 2.6 [WebDAV-Dokumentspeicher](#26-webdav-dokumentspeicher)
 3. [Logging und Speicherbegrenzung](#3-logging-und-speicherbegrenzung-art-5-abs-1-lit-e-dsgvo)
 4. [Haushaltsausnahme](#4-haushaltsausnahme-art-2-abs-2-lit-c-dsgvo)
 5. [Verarbeitungsverzeichnis-Vorlage (Art. 30 DSGVO)](#5-verarbeitungsverzeichnis-vorlage-art-30-dsgvo)
@@ -69,6 +70,7 @@ Betreiber daraus resultieren.
 | CalDAV/CardDAV-Server | `server/services/caldav-sync.js`, `server/services/cardav-sync.js` | nur wenn Nutzer einen Sync konfiguriert | abhängig vom Provider | ja, bei kommerziellen Anbietern (siehe 2.3) |
 | OIDC-Provider | `server/auth.js`, `server/services/oidc.js` | nur wenn konfiguriert | abhängig vom Provider | meistens ja (siehe 2.4) |
 | WebDAV-Backup | `server/services/backup-webdav.js` | nur wenn konfiguriert | abhängig vom Provider | ja, bei kommerziellen Anbietern (siehe 2.5) |
+| WebDAV-Dokumentspeicher | `server/services/document-storage.js` | nur wenn konfiguriert | abhängig vom Provider | ja, bei kommerziellen Anbietern (siehe 2.6) |
 
 ### 2.1 Open-Meteo (Wetter-Standard)
 
@@ -165,9 +167,11 @@ Konfiguration so, dass du auf einen EU-Provider umstellen könntest.
   `server/routes/backup.js` und `server/services/backup-scheduler.js`.
 - **Aktiv nur, wenn:** du WebDAV-Backups in deinen Backup-Einstellungen
   konfigurierst.
-- **Was wird übertragen:** Backup-Archive deiner Yuvomi-Instanz inkl. **aller
-  Nutzdaten** — Kontakte, Termine, Notizen, Dokumente. Das ist datenschutz-
-  rechtlich der sensibelste Datenstrom.
+- **Was wird übertragen:** Backup-Archive deiner Yuvomi-Instanz mit allen
+  SQLite-Nutzdaten — Kontakte, Termine, Notizen sowie Dokument-Metadaten und
+  lokal gespeicherte Dokumentdateien. Dateien aus dem separaten
+  WebDAV-Dokumentspeicher sind nicht enthalten. Das Backup ist
+  datenschutzrechtlich ein besonders sensibler Datenstrom.
 - **Drittland-Bewertung — abhängig vom Anbieter:**
   | Anbieter | Standort | Bewertung |
   |---|---|---|
@@ -182,6 +186,28 @@ Konfiguration so, dass du auf einen EU-Provider umstellen könntest.
   Backup-Verschlüsselung in den Einstellungen — aktivieren). Damit wird der
   WebDAV-Provider zum reinen Speicheranbieter ohne Klartextzugriff. Halte
   die Verschlüsselungs-Passphrase getrennt vom Backup-Speicherort.
+
+### 2.6 WebDAV-Dokumentspeicher
+
+- **Code-Stelle:** `server/services/document-storage.js`, gesteuert über
+  `server/routes/documents.js`.
+- **Aktiv nur, wenn:** ein Admin WebDAV als Ziel für neue Dokumentdateien
+  aktiviert oder die entsprechenden `DOCUMENT_STORAGE_WEBDAV_*`-Variablen
+  setzt.
+- **Was wird übertragen:** neu hochgeladene Dokumentdateien einschließlich
+  neuer Kalenderanhänge, außerdem Basic-Auth-Zugangsdaten und die IP-Adresse
+  des Yuvomi-Servers. Dateinamen werden nicht als Objektpfad übernommen; die
+  Dateien können dennoch unmittelbar personenbezogene oder besonders
+  schützenswerte Inhalte enthalten.
+- **Drittland und AVV:** Es gelten dieselben providerabhängigen Bewertungen
+  wie beim WebDAV-Backup in Abschnitt 2.5. Bei einem kommerziellen Hoster ist
+  außerhalb der Haushaltsausnahme ein AVV erforderlich; bei Anbietern außerhalb
+  des EWR sind zusätzlich Angemessenheitsbeschluss, DPF oder SCCs mit TIA zu
+  prüfen.
+- **Empfehlung:** Bevorzuge einen selbst gehosteten oder in der EU betriebenen
+  WebDAV-Dienst, beschränke den Zugriff auf ein eigenes Verzeichnis und sichere
+  dieses Ziel separat. SQLite-Backups enthalten nur Metadaten und
+  Speicher-Schlüssel, nicht die dort abgelegten Binärdateien.
 
 ---
 
@@ -299,7 +325,8 @@ konkrete Konfiguration ein und ergänze um eigene Verarbeitungen.
 | 3 | Kontakte / CardDAV | Adressbuch | Art. 6 Abs. 1 lit. b/f | Nutzer, Kontakte | Name, Adresse, Telefon, E-Mail | CardDAV-Server (falls Sync) | <<je nach Anbieter>> | bis Löschung | TLS, AVV |
 | 4 | Wetter | Anzeige Vorhersage | Art. 6 Abs. 1 lit. b | Nutzer | Koordinaten/Ortsname | Open-Meteo (CH); ggf. OpenWeather (UK) | CH/UK Angemessenheit | sofort nach Anfrage | TLS |
 | 5 | Backups | Datensicherung | Art. 6 Abs. 1 lit. f | Nutzer und alle Datensubjekte der App | Vollbackup der DB | <<WebDAV-Provider>> | <<Aufbewahrungs-Konzept, z. B. 30 Tage rollierend>> | Verschlüsselung vor Upload, AVV |
-| 6 | Sicherheits-/Betriebs-Logs | Missbrauchserkennung, Fehlersuche | Art. 6 Abs. 1 lit. f | Nutzer / Login-Versuchende | IP bei fehlgeschlagenen Logins, Fehler-Stacktraces | nur lokal | nein | **max. 30 Tage** | Rotation, Zugangsbeschränkung |
+| 6 | Dokumentablage | Gemeinsame Ablage und Kalenderanhänge | Art. 6 Abs. 1 lit. b/f | Nutzer und in Dokumenten genannte Personen | Dokumentdateien, Anhänge, Metadaten | <<WebDAV-Provider, falls aktiv>> | <<je nach Anbieter>> | bis Löschung durch Nutzer | TLS, eigener Pfad, AVV, separates Backup |
+| 7 | Sicherheits-/Betriebs-Logs | Missbrauchserkennung, Fehlersuche | Art. 6 Abs. 1 lit. f | Nutzer / Login-Versuchende | IP bei fehlgeschlagenen Logins, Fehler-Stacktraces | nur lokal | nein | **max. 30 Tage** | Rotation, Zugangsbeschränkung |
 
 ### 5.3 Auftragsverarbeiter (Art. 28)
 
@@ -308,7 +335,7 @@ konkrete Konfiguration ein und ergänze um eigene Verarbeitungen.
 | <<z. B. Hetzner Online GmbH>> | Server-Hosting | <<Datum>> | DE | AVV nach Art. 28; ISO 27001 |
 | <<OpenWeather Ltd.>> | Wetter-API (falls aktiv) | <<Datum>> | UK | Angemessenheit; DPA |
 | <<OIDC-Provider>> | Authentifizierung | <<Datum>> | <<EU/USA>> | <<AVV; ggf. DPF + SCCs>> |
-| <<WebDAV-Provider>> | Backup-Storage | <<Datum>> | <<je nach Anbieter>> | <<AVV; Verschlüsselung clientseitig>> |
+| <<WebDAV-Provider>> | Backup- und/oder Dokument-Storage | <<Datum>> | <<je nach Anbieter>> | <<AVV; Verschlüsselung für Backups; Zugriffsbeschränkung>> |
 
 ---
 
