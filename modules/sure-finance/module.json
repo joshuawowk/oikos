@@ -1,0 +1,16 @@
+{
+  "id": "sure-finance",
+  "name": "Finance",
+  "version": "1.0.0",
+  "description": "Sure-backed Finance — net worth, accounts and transactions from your Sure (Maybe) instance, the single source of truth for money. Requires the /api/v1/sure proxy.",
+  "entry": "index.js",
+  "style": "style.css",
+  "icon": "wallet",
+  "accent": "#059669",
+  "menu": {
+    "show": true,
+    "label": "Finance",
+    "icon": "wallet",
+    "order": 26
+  }
+}

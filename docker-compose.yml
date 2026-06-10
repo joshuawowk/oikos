@@ -1,6 +1,6 @@
 services:
   oikos:
-    image: ghcr.io/ulsklyc/yuvomi:latest
+    image: ghcr.io/ulsklyc/yuvomi:0.68.3
     build: .                          # optional: use --build to build locally instead
     container_name: oikos
     restart: unless-stopped
@@ -12,6 +12,11 @@ services:
       - ${BACKUP_DIR:-./backups}:/backups
       # Drop Yuvomi modules into ./modules, or set MODULES_DIR=/path/to/modules.
       - ${MODULES_DIR:-./modules}:/app/modules
+      - ./custom/grocy.js:/app/server/routes/grocy.js:ro
+      - ./custom/sure.js:/app/server/routes/sure.js:ro
+      - ./custom/index.js:/app/server/index.js:ro
+      - ./custom/router.js:/app/public/router.js:ro
+      - ./custom/kitchen-tabs.js:/app/public/utils/kitchen-tabs.js:ro
     env_file:
       - .env
     environment:
