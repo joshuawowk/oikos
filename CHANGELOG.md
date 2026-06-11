@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.1] - 2026-06-11
+
+### Fixed
+- **Calendar week and day view timeline**: hour labels on the left now respect the AM/PM time format preference. Previously the timeline always showed 24-hour labels even when AM/PM was selected in Settings.
+
+### Security
+- **Storage test endpoint**: added SSRF pre-flight check to `/storage/test` so UI-initiated connectivity tests cannot reach private, loopback, or link-local addresses.
+
 ## [0.71.0] - 2026-06-11
 
 ### Changed
