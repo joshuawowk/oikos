@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.4] - 2026-06-11
+
+### Changed
+- **Faster Settings navigation**: switching between settings pages now swaps only the content area instead of re-rendering the whole screen. The side menu stays put and pages change instantly — without a reload, an extra authentication round-trip, or a slide animation. Browser back/forward between settings pages is just as fast.
+- **Consistent Settings headings**: section headings are now larger than the cards they group, fixing an inverted type hierarchy where group titles appeared smaller than the content beneath them.
+
 ## [0.71.3] - 2026-06-11
 
 ### Changed

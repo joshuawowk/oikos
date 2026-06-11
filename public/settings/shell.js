@@ -60,6 +60,7 @@ function createNavigation(domains, user, activeLeaf) {
   for (const domain of domains) {
     const group = document.createElement('section');
     group.className = 'settings-shell__navigation-group';
+    group.dataset.domainId = domain.id;
     if (domain.id === activeLeaf?.domainId) {
       group.classList.add('settings-shell__navigation-group--active');
     }
@@ -76,6 +77,7 @@ function createNavigation(domains, user, activeLeaf) {
     for (const entry of allowedLeavesForDomain(domain.id, user)) {
       const item = document.createElement('li');
       const link = createLink(entry.path, 'settings-shell__navigation-link');
+      link.dataset.leafId = entry.id;
       link.append(
         createIcon(entry.icon, 'settings-shell__navigation-link-icon'),
         document.createTextNode(t(entry.labelKey)),
@@ -93,6 +95,30 @@ function createNavigation(domains, user, activeLeaf) {
   }
 
   return navigation;
+}
+
+// Aktualisiert nur den Aktivzustand der bestehenden Navigation, ohne die Links
+// (und ihre Icons) neu aufzubauen — Grundlage für Soft-Navigation zwischen
+// Settings-Blättern.
+function updateNavigationActiveState(navigation, activeLeaf) {
+  if (!navigation) return;
+
+  for (const group of navigation.querySelectorAll('.settings-shell__navigation-group')) {
+    group.classList.toggle(
+      'settings-shell__navigation-group--active',
+      group.dataset.domainId === activeLeaf?.domainId,
+    );
+  }
+
+  for (const link of navigation.querySelectorAll('.settings-shell__navigation-link')) {
+    const isActive = link.dataset.leafId === activeLeaf?.id;
+    link.classList.toggle('settings-shell__navigation-link--active', isActive);
+    if (isActive) {
+      link.setAttribute('aria-current', 'page');
+    } else {
+      link.removeAttribute('aria-current');
+    }
+  }
 }
 
 function createOverviewLink({ href, icon, title, description }) {
@@ -250,7 +276,7 @@ function createLeafHeader(leaf) {
   return header;
 }
 
-async function renderLeafContent(shell, content, leaf, domain, user, query) {
+async function renderLeafContent(content, leaf, domain, user, query) {
   const breadcrumb = createBreadcrumb(domain, leaf);
   const backLink = createLink(
     settingsOverviewUrl(domain.id),
@@ -283,7 +309,7 @@ async function renderLeafContent(shell, content, leaf, domain, user, query) {
       requestAnimationFrame(() => {
         heading.focus({ preventScroll: true });
       });
-      hydrateIcons(shell);
+      hydrateIcons(content);
     } catch (error) {
       console.error(`[Settings] Failed to render ${leaf.id}:`, error);
       const retryState = createRetryState({
@@ -291,7 +317,7 @@ async function renderLeafContent(shell, content, leaf, domain, user, query) {
         onRetry: () => loadAndRender({ focusRetry: true }),
       });
       leafContainer.replaceChildren(retryState);
-      hydrateIcons(shell);
+      hydrateIcons(content);
 
       if (focusRetry) {
         const retryButton = retryState.querySelector('.settings-retry-state__button');
@@ -313,28 +339,47 @@ export async function renderSettingsShell(container, {
   view = null,
   domainId = null,
   query = new URLSearchParams(),
+  incremental = false,
 }) {
   const domains = filterSettingsDomains(user);
   const activeLeaf = leaf?.path ? findSettingsLeaf(leaf.path, user) : null;
 
-  const page = document.createElement('div');
-  page.className = 'page settings-page';
+  // Inkrementell: Wenn bereits eine Shell montiert ist, bleiben Seitenkopf und
+  // Sidebar stehen — wir tauschen nur den Aktivzustand und den Detailbereich.
+  const existingShell = incremental ? container.querySelector('.settings-shell') : null;
+  let shell;
+  let content;
 
-  const pageHeader = document.createElement('header');
-  pageHeader.className = 'page__header settings-shell-header';
-  const pageTitle = document.createElement('h1');
-  pageTitle.className = 'page__title';
-  pageTitle.textContent = t('settings.title');
-  pageHeader.appendChild(pageTitle);
+  if (existingShell) {
+    shell = existingShell;
+    content = shell.querySelector('.settings-shell__content');
+    updateNavigationActiveState(
+      shell.querySelector('.settings-shell__navigation'),
+      activeLeaf,
+    );
+  } else {
+    const page = document.createElement('div');
+    page.className = 'page settings-page';
 
-  const shell = document.createElement('div');
-  shell.className = 'settings-shell';
-  const navigation = createNavigation(domains, user, activeLeaf);
-  const content = document.createElement('div');
-  content.className = 'settings-shell__content';
-  shell.append(navigation, content);
-  page.append(pageHeader, shell);
-  container.replaceChildren(page);
+    const pageHeader = document.createElement('header');
+    pageHeader.className = 'page__header settings-shell-header';
+    const pageTitle = document.createElement('h1');
+    pageTitle.className = 'page__title';
+    pageTitle.textContent = t('settings.title');
+    pageHeader.appendChild(pageTitle);
+
+    shell = document.createElement('div');
+    shell.className = 'settings-shell';
+    const navigation = createNavigation(domains, user, activeLeaf);
+    content = document.createElement('div');
+    content.className = 'settings-shell__content';
+    shell.append(navigation, content);
+    page.append(pageHeader, shell);
+    container.replaceChildren(page);
+    // Sidebar-Icons einmalig bei der Montage hydrieren; die Detail-Icons werden
+    // pro Render separat (nur im Content-Bereich) hydriert.
+    hydrateIcons(navigation);
+  }
 
   if (activeLeaf) {
     const domain = domains.find((entry) => entry.id === activeLeaf.domainId);
@@ -343,9 +388,9 @@ export async function renderSettingsShell(container, {
         `[Settings] Cannot render ${activeLeaf.id}: domain "${activeLeaf.domainId}" is not available.`,
       );
       renderDomainsOverview(content, domains);
-      hydrateIcons(shell);
+      hydrateIcons(content);
     } else {
-      await renderLeafContent(shell, content, activeLeaf, domain, user, query);
+      await renderLeafContent(content, activeLeaf, domain, user, query);
     }
   } else {
     const domain = view === 'domain'
@@ -356,6 +401,6 @@ export async function renderSettingsShell(container, {
     } else {
       renderDomainsOverview(content, domains);
     }
-    hydrateIcons(shell);
+    hydrateIcons(content);
   }
 }

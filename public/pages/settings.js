@@ -21,6 +21,9 @@ const ACCOUNT_LEAF = '/settings/personal/account';
 const SYNC_CALENDAR_LEAF = '/settings/sync/calendar';
 const OVERVIEW_VIEWS = new Set(['domains', 'domain']);
 
+// Container der zuletzt gemounteten Shell — Basis für das Soft-Update (update()).
+let mountedContainer = null;
+
 async function refreshUser(user) {
   try {
     const me = await auth.me();
@@ -49,6 +52,7 @@ function redirectTo(target) {
 
 export async function render(container, { user } = {}) {
   try {
+    mountedContainer = container;
     const currentUser = await refreshUser(user);
 
     const path = window.location.pathname;
@@ -109,4 +113,45 @@ export async function render(container, { user } = {}) {
     container.replaceChildren();
     throw error;
   }
+}
+
+// Soft-Navigation innerhalb der Einstellungen (vom Router aufgerufen): tauscht
+// nur den Detailbereich der bestehenden Shell aus — Sidebar bleibt montiert,
+// keine Slide-Transition, kein erneuter Auth-Refresh. Rückgabe false signalisiert
+// dem Router, regulär (voll) zu rendern (Root-Redirect, OAuth, unbekanntes Blatt).
+export async function update({ user, path, query } = {}) {
+  if (!mountedContainer?.isConnected) return false;
+
+  const search = query ?? new URLSearchParams();
+  const view = search.get('view');
+  const hasOAuthResult = search.has('sync_ok') || search.has('sync_error');
+
+  if (path === SETTINGS_ROOT) {
+    if (hasOAuthResult || !OVERVIEW_VIEWS.has(view)) return false;
+    const domainId = view === 'domain' ? search.get('domain') : null;
+    const domains = filterSettingsDomains(user);
+    const resolvedView = view === 'domain' && domains.some((domain) => domain.id === domainId)
+      ? 'domain'
+      : 'domains';
+    await renderSettingsShell(mountedContainer, {
+      user,
+      view: resolvedView,
+      domainId: resolvedView === 'domain' ? domainId : null,
+      query: search,
+      incremental: true,
+    });
+    return true;
+  }
+
+  const leaf = findSettingsLeaf(path, user);
+  if (!leaf) return false;
+
+  try {
+    sessionStorage.setItem(SETTINGS_STORAGE_KEY, leaf.path);
+  } catch {
+    // Persistenz ist optional; ein fehlschlagender Storage darf nichts blockieren.
+  }
+
+  await renderSettingsShell(mountedContainer, { user, leaf, query: search, incremental: true });
+  return true;
 }

@@ -857,7 +857,7 @@ test('settings shell falls back to the domains overview for orphaned active leav
   const source = read('../public/settings/shell.js');
 
   assert.match(source, /if \(!domain\)\s*\{[\s\S]*console\.error\([\s\S]*renderDomainsOverview\(content,\s*domains\)/);
-  assert.match(source, /else\s*\{[\s\S]*await renderLeafContent\(shell,\s*content,\s*activeLeaf,\s*domain,\s*user,\s*query\)/);
+  assert.match(source, /else\s*\{[\s\S]*await renderLeafContent\(content,\s*activeLeaf,\s*domain,\s*user,\s*query\)/);
 });
 
 test('router hides inactive overlays from keyboard focus', () => {

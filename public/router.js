@@ -137,6 +137,12 @@ async function importPage(pagePath) {
 let currentUser = null;
 let currentPath = null;
 let isNavigating = false;
+// Zuletzt erfolgreich gerendertes Seiten-Modul. Erlaubt Soft-Navigation
+// innerhalb desselben Moduls (z. B. Settings-Blatt → Blatt): Statt das Modul
+// komplett neu zu rendern (Teardown + Slide-Transition), tauscht das Modul über
+// seine optionale update()-Funktion nur den betroffenen Detailbereich aus.
+let _renderedModule = null;
+let _renderedModuleName = null;
 let _preferencesLoaded = false;
 let _disabledModules = new Set();
 let _thirdPartyModules = [];
@@ -423,6 +429,34 @@ async function navigate(path, userOrPushState = true, pushState = true) {
       history.pushState({ path }, '', path);
     }
 
+    // Soft-Navigation innerhalb desselben Moduls (z. B. Settings-Blatt → Blatt
+    // oder Browser-Zurück innerhalb der Einstellungen): Das bereits gerenderte
+    // Modul tauscht nur seinen Detailbereich aus — keine App-Shell-Teardown,
+    // keine Slide-Transition, kein erneuter Auth-Refresh. Gibt update() false
+    // zurück (z. B. Redirect nötig), fällt die Navigation auf das volle Rendern
+    // zurück.
+    if (
+      route.module
+      && route.module === _renderedModuleName
+      && typeof _renderedModule?.update === 'function'
+    ) {
+      let handled = false;
+      try {
+        handled = await _renderedModule.update({
+          user: currentUser,
+          path: basePath,
+          query: new URLSearchParams(path.split('?')[1] ?? ''),
+        });
+      } catch (error) {
+        console.error('[Router] Soft-Update fehlgeschlagen, vollständiges Rendern folgt:', error);
+        handled = false;
+      }
+      if (handled) {
+        updateNav(topLevelSection(basePath));
+        return;
+      }
+    }
+
     const accent = route?.thirdPartyModule?.accent || (route?.module ? getCSSToken(`--module-${route.module}`) : '');
     document.documentElement.style.setProperty('--active-module-accent', accent);
 
@@ -576,7 +610,16 @@ async function renderPage(route, previousPath = null) {
     content.replaceChildren(pageWrapper);
     style.cleanup();
 
+    // Teardown abgeschlossen: ein evtl. gemerktes Soft-Update-Ziel ist jetzt
+    // ungültig, bis das neue Modul erfolgreich gerendert hat.
+    _renderedModule = null;
+    _renderedModuleName = null;
+
     await module.render(pageWrapper, { user: currentUser });
+
+    // Ab hier kann das Modul Soft-Navigationen bedienen (sofern es update() bietet).
+    _renderedModule = module;
+    _renderedModuleName = route.module;
 
     // FAB Long Loop: Einstiegsanimation nach FAB_SEEN_MAX Views pro Modul deaktivieren
     if (pageWrapper.querySelector('.page-fab')) {
