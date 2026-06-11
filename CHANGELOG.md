@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.11] - 2026-06-11
+
+### Fixed
+- **OIDC account linking**: existing local accounts are now correctly linked to an SSO identity when the IdP omits the `email_verified` claim. Previously only an explicit `true` triggered linking; now linking proceeds unless the provider explicitly sends `false`, which is the actual account-takeover guard.
+
 ## [0.71.10] - 2026-06-11
 
 ### Fixed

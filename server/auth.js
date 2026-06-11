@@ -411,11 +411,11 @@ function setupAuthSession(req, res, user) {
  * Findet oder erstellt einen User anhand der (validierten) OIDC-Claims.
  *
  * Identität primär über den (kryptografisch validierten) `sub`. Existiert kein
- * sub-Match, wird ein bestehender lokaler Account NUR verknüpft, wenn der IdP
- * `email_verified: true` liefert UND genau ein noch nicht OIDC-gebundener Account
- * dieselbe E-Mail führt. Ohne verifizierte E-Mail (oder bei Mehrdeutigkeit) wird
- * ein separater Account angelegt — Linking auf unverifizierte E-Mails wäre ein
- * Account-Takeover-Vektor.
+ * sub-Match, wird ein bestehender lokaler Account verknüpft, wenn der IdP eine
+ * E-Mail liefert UND `email_verified` nicht explizit `false` ist UND genau ein
+ * noch nicht OIDC-gebundener Account dieselbe E-Mail führt. Fehlt der Claim
+ * (Provider sendet ihn schlicht nicht), wird er als „nicht abgelehnt" gewertet.
+ * Explizit `false` → separater Account, da Account-Takeover-Vektor.
  *
  * @param {import('better-sqlite3').Database} database
  * @param {{ sub: string, email?: string, email_verified?: boolean, name?: string, preferred_username?: string }} claims
@@ -428,12 +428,14 @@ export function findOrCreateOidcUser(database, claims) {
   const existing = database.prepare('SELECT * FROM users WHERE oidc_sub = ?').get(sub);
   if (existing) return existing;
 
-  // 2. Linking an bestehenden lokalen Account — ausschließlich bei verifizierter
-  //    E-Mail. Family-User-E-Mails hängen an contacts.email (Primär) bzw.
+  // 2. Linking an bestehenden lokalen Account — wenn der Provider email_verified
+  //    nicht sendet (undefined) gilt: „nicht abgelehnt" → Linking erlaubt.
+  //    Explizit false → Linking gesperrt (Account-Takeover-Vektor).
+  //    Family-User-E-Mails hängen an contacts.email (Primär) bzw.
   //    contact_emails.value (Sekundär). Verknüpft wird nur, wenn GENAU EIN noch
   //    nicht OIDC-gebundener Account die E-Mail führt; 0 oder >1 Treffer →
   //    sicherheitshalber neuer Account.
-  if (email && email_verified === true) {
+  if (email && email_verified !== false) {
     const matches = database.prepare(`
       SELECT DISTINCT u.id
       FROM users u

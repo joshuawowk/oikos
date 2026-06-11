@@ -255,13 +255,14 @@ test('verknüpft NICHT bei unverifizierter E-Mail (Takeover-Schutz)', () => {
   assert(local.oidc_sub === null, 'Unverifizierte E-Mail darf keinen Account übernehmen');
 });
 
-test('verknüpft NICHT wenn email_verified fehlt', () => {
+test('verknüpft bestehenden Account wenn email_verified fehlt (Provider sendet ihn nicht)', () => {
   const db = buildOidcTestDb();
   addLocalUserWithEmail(db, 'charlie', 'charlie@example.com');
   const userinfo = { sub: 'link-sub-005', email: 'charlie@example.com' }; // kein email_verified
-  findOrCreateOidcUser(db, userinfo);
+  const user = findOrCreateOidcUser(db, userinfo);
   const count = db.prepare('SELECT count(*) as n FROM users').get();
-  assert(count.n === 2, 'Fehlendes email_verified darf nicht verknüpfen');
+  assert(count.n === 1, 'Fehlendes email_verified soll bestehenden Account verknüpfen');
+  assert(user.oidc_sub === 'link-sub-005', `oidc_sub nicht gesetzt: ${user.oidc_sub}`);
 });
 
 test('verknüpft NICHT bei mehrdeutiger E-Mail (mehrere Treffer)', () => {
