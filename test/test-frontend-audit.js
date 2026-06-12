@@ -913,6 +913,51 @@ test('mobile navigation uses neutral inactive wells and one active indicator', (
   assert.doesNotMatch(layout, /\.nav-bottom__indicator\s*\{[\s\S]*?width\s+0\.45s/);
 });
 
+test('mobile navigation Quiet Precision keeps state feedback stable and accessible', () => {
+  const layout = read('../public/styles/layout.css');
+  const glass = read('../public/styles/glass.css');
+  const indicatorRule = cssRuleBody(layout, '.nav-bottom__indicator');
+  const indicatorSurfaceRule = cssRuleBody(layout, '.nav-bottom__indicator::before');
+  const focusRule = cssRuleBody(layout, '.nav-bottom .nav-item:focus-visible');
+  const pressedWellRule = cssRuleBody(layout, '.nav-bottom .nav-item:active .nav-item__icon-well');
+
+  assert.match(indicatorSurfaceRule, /inset-inline:\s*var\(--space-1\)/);
+  assert.doesNotMatch(indicatorRule, /transition:[^;]*\bwidth\b/);
+  assert.match(
+    layout,
+    /\.nav-bottom \.nav-item\[aria-current="page"\] \.nav-item__label,\s*\.nav-bottom \.nav-item--active \.nav-item__label\s*\{[\s\S]*?color:\s*var\(--item-module-accent,\s*var\(--active-module-accent,\s*var\(--color-accent\)\)\)/,
+  );
+  assert.match(
+    layout,
+    /\.nav-bottom \.nav-item\[aria-current="page"\] \.nav-item__label,\s*\.nav-bottom \.nav-item--active \.nav-item__label\s*\{[\s\S]*?font-weight:\s*var\(--font-weight-semibold\)/,
+  );
+  assert.match(focusRule, /outline:/);
+  assert.match(focusRule, /outline-offset:\s*calc\(-1 \* var\(--space-px\)\)/);
+  assert.match(pressedWellRule, /transform:\s*translateY\(var\(--space-px\)\) scale\(0\.96\)/);
+  assert.doesNotMatch(layout, /(^|\n)\.nav-item:active\s*\{[\s\S]*?transform:/);
+  assert.doesNotMatch(layout, /\.nav-bottom \.nav-item:active\s*\{[\s\S]*?transform:/);
+  assert.match(
+    glass,
+    /\.nav-bottom__indicator::before\s*\{[\s\S]*?var\(--active-module-accent,\s*var\(--color-accent\)\)[\s\S]*?var\(--glass-bg\)/,
+  );
+  assert.match(
+    glass,
+    /@media \(prefers-reduced-transparency: reduce\)[\s\S]*?\.nav-bottom__indicator::before\s*\{[\s\S]*?background:/,
+  );
+  assert.match(
+    layout,
+    /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.nav-bottom \.nav-item:active \.nav-item__icon-well\s*\{[\s\S]*?transform:\s*none/,
+  );
+  assert.match(
+    layout,
+    /@media \(prefers-contrast: more\)[\s\S]*?\.nav-item\[aria-current="page"\],\s*\.nav-item--active\s*\{[\s\S]*?text-decoration:\s*underline/,
+  );
+  assert.match(
+    layout,
+    /@media \(forced-colors: active\)[\s\S]*?\.nav-item\[aria-current="page"\],\s*\.nav-item--active\s*\{[\s\S]*?border-bottom:\s*2px solid Highlight/,
+  );
+});
+
 test('mobile bottom navigation remains visible while content scrolls', () => {
   const source = read('../public/router.js');
   const layout = read('../public/styles/layout.css');

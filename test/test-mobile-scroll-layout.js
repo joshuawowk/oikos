@@ -60,3 +60,19 @@ test('mobile bottom navigation reserves safe-area space without scroll-time root
   assert.match(tokensCss, /--nav-bottom-height:\s*calc\(var\(--nav-height-mobile\)\s*\+\s*var\(--safe-area-inset-bottom\)\)/);
   assert.equal(rootRule.includes('nav-bottom--hidden'), false);
 });
+
+test('mobile bottom navigation keeps five equal slots with inset indicator geometry', () => {
+  const itemsRule = cssRuleBody(layoutCss, '.nav-bottom__items');
+  const itemRule = cssRuleBody(layoutCss, '.nav-bottom .nav-item');
+  const baseItemRule = cssRuleBody(layoutCss, '.nav-item');
+  const indicatorRule = cssRuleBody(layoutCss, '.nav-bottom__indicator');
+  const indicatorSurfaceRule = cssRuleBody(layoutCss, '.nav-bottom__indicator::before');
+
+  assert.match(itemsRule, /display:\s*flex/);
+  assert.match(baseItemRule, /flex:\s*1/);
+  assert.match(itemRule, /min-width:\s*0/);
+  assert.match(indicatorSurfaceRule, /inset-inline:\s*var\(--space-1\)/);
+  assert.match(indicatorRule, /top:\s*var\(--space-1\)/);
+  assert.match(indicatorRule, /bottom:\s*var\(--space-1\)/);
+  assert.doesNotMatch(indicatorRule, /transition:[^;]*\bwidth\b/);
+});

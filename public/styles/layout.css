@@ -509,7 +509,7 @@
   gap: var(--space-0h);
   padding: var(--space-1) var(--space-1);
   color: var(--color-text-tertiary);
-  transition: color var(--transition-fast), transform 0.12s ease;
+  transition: color var(--transition-fast);
   -webkit-tap-highlight-color: transparent;
   min-height: var(--target-lg);
   min-width: var(--target-lg);
@@ -520,6 +520,7 @@
 .nav-bottom .nav-item {
   padding-block: var(--space-0h);
   padding-inline: var(--space-0h);
+  min-width: 0;
 }
 
 .nav-item__icon-wrap {
@@ -548,11 +549,6 @@
   right: calc(-1 * var(--space-1));
 }
 
-.nav-item:active {
-  transform: scale(0.92);
-  transition-duration: 0.06s;
-}
-
 /* ── Nav-Item: Aktiv ── */
 .nav-item[aria-current="page"] {
   color: var(--active-module-accent, var(--color-accent));
@@ -575,6 +571,11 @@
   width: var(--target-base);
   height: var(--target-sm);
   border-radius: var(--radius-full);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    transform 0.12s var(--ease-out),
+    opacity 0.12s var(--ease-out);
 }
 
 .nav-sidebar .nav-item__icon-well {
@@ -586,7 +587,7 @@
 .nav-item[aria-current="page"] .nav-item__icon-well,
 .nav-item--active .nav-item__icon-well {
   background: transparent;
-  color: var(--item-module-accent, var(--color-accent));
+  color: var(--item-module-accent, var(--active-module-accent, var(--color-accent)));
   box-shadow: none;
 }
 
@@ -612,6 +613,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.nav-bottom .nav-item[aria-current="page"] .nav-item__label,
+.nav-bottom .nav-item--active .nav-item__label {
+  color: var(--item-module-accent, var(--active-module-accent, var(--color-accent)));
+  font-weight: var(--font-weight-semibold);
+}
+
+.nav-bottom .nav-item:focus-visible {
+  outline: var(--space-0h) solid var(--item-module-accent, var(--active-module-accent, var(--color-accent)));
+  outline-offset: calc(-1 * var(--space-px));
+  border-radius: var(--radius-md);
+}
+
+.nav-bottom .nav-item:active .nav-item__icon-well {
+  transform: translateY(var(--space-px)) scale(0.96);
+  opacity: var(--opacity-glass-elevated);
 }
 
 /* --------------------------------------------------------
@@ -2566,7 +2584,8 @@ textarea.input { resize: vertical; }
   }
 
   /* Aktiver Nav-Eintrag: zusätzliche Unterstreichung als farb-unabhängiger Indikator */
-  .nav-item[aria-current="page"] {
+  .nav-item[aria-current="page"],
+  .nav-item--active {
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -2598,7 +2617,8 @@ textarea.input { resize: vertical; }
   .fab          { border: 1px solid ButtonText; }
   .card         { border: 1px solid CanvasText; }
   .modal-panel  { border: 2px solid CanvasText; }
-  .nav-item[aria-current="page"] { border-bottom: 2px solid Highlight; }
+  .nav-item[aria-current="page"],
+  .nav-item--active { border-bottom: 2px solid Highlight; }
 }
 
 /* ============================================================
@@ -2683,6 +2703,14 @@ textarea.input { resize: vertical; }
   z-index: 0;
 }
 
+.nav-bottom__indicator::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: var(--space-1);
+  border-radius: inherit;
+}
+
 /* Nav-Items im Bottom-Bar über dem Indikator */
 .nav-bottom .nav-item {
   position: relative;
@@ -2693,5 +2721,10 @@ textarea.input { resize: vertical; }
   .nav-sidebar__indicator,
   .nav-bottom__indicator {
     transition: opacity 0.01ms;
+  }
+
+  .nav-bottom .nav-item:active .nav-item__icon-well {
+    transform: none;
+    opacity: 1;
   }
 }

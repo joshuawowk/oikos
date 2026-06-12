@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.30] - 2026-06-12
+
+### Changed
+- **Mobile bottom navigation now uses a quieter, more precise active state**: the inset module-tinted indicator, flatter inactive icon wells, stable labels, focused keyboard ring, and icon-only press feedback improve clarity across light, dark, reduced-motion, reduced-transparency, high-contrast, and forced-color modes.
+
 ## [0.71.29] - 2026-06-12
 
 ### Fixed
