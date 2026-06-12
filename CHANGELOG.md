@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.24] - 2026-06-12
+
+### Fixed
+- **Dashboard scroll on Android no longer requires a tap before the first swipe**: interactive cards (`.today-cockpit-card`, `.dashboard-metric`) were missing `touch-action: pan-y`, causing Chrome to enter tap/scroll disambiguation mode on the first touch. A preliminary tap was needed to activate the scroll context. All dashboard interactive items now declare `touch-action: pan-y` consistently, so the first swipe scrolls immediately.
+
 ## [0.71.23] - 2026-06-12
 
 ### Fixed
