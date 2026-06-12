@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.29] - 2026-06-12
+
+### Fixed
+- **WebDAV document storage now works with local/private-network targets**: setting `DOCUMENT_STORAGE_WEBDAV_ALLOW_PRIVATE_NETWORK=true` lifts the SSRF block for Nextcloud or other WebDAV servers that resolve to RFC 1918 / loopback addresses (e.g. same Docker Compose stack, LAN domain via Caddy). The guard remains active by default; the opt-in is explicit and documented.
+
 ## [0.71.28] - 2026-06-12
 
 ### Fixed
