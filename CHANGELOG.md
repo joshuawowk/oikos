@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.47] - 2026-06-15
+
+### Changed
+- **Weather widget appears first on the dashboard**: the default dashboard layout now places the weather card above the tasks and calendar widgets, so it is visible at the top without scrolling. This applies to new installs and anyone who has not customised their widget order; existing custom layouts are preserved.
+
 ## [0.71.46] - 2026-06-15
 
 ### Fixed
