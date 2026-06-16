@@ -1379,7 +1379,13 @@
         "mobileNavigationEmptyOption": "Nieużywane",
         "desktopNavigationTitle": "Nawigacja internetowa",
         "desktopNavigationHint": "Włącz moduły i sortuj je w grupach Przegląd, Planowanie i Dom.",
-        "mobileNavigationSaved": "Nawigacja mobilna została zapisana."
+        "mobileNavigationSaved": "Nawigacja mobilna została zapisana.",
+        "regionTitle": "Region / Format",
+        "regionLabel": "Region",
+        "regionHint": "Ustawia walutę oraz format daty i godziny odpowiednio do regionu. Wybierz „Niestandardowy”, aby ustawić je osobno.",
+        "regionCustom": "Niestandardowy",
+        "regionSaved": "Zapisano region.",
+        "currencyMovedHint": "Walutę ustawia się teraz w Wygląd → Region / Format."
     },
     "login": {
         "tagline": "Planowanie rodziny. Bezpieczne. Chroniące prywatność. Open Source.",

@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "غير مستخدم",
         "desktopNavigationTitle": "التنقل على الويب",
         "desktopNavigationHint": "فعّل الوحدات ورتّبها داخل مجموعات النظرة العامة والتخطيط والمنزل.",
-        "mobileNavigationSaved": "تم حفظ التنقل على الهاتف."
+        "mobileNavigationSaved": "تم حفظ التنقل على الهاتف.",
+        "regionTitle": "المنطقة / التنسيق",
+        "regionLabel": "المنطقة",
+        "regionHint": "يضبط العملة وتنسيق التاريخ والوقت بما يتناسب مع المنطقة. اختر «مخصص» لضبطها بشكل فردي.",
+        "regionCustom": "مخصص",
+        "regionSaved": "تم حفظ المنطقة.",
+        "currencyMovedHint": "تُضبط العملة الآن ضمن المظهر ← المنطقة / التنسيق."
     },
     "login": {
         "tagline": "تخطيط عائلي. آمن. يحترم الخصوصية. مفتوح المصدر.",

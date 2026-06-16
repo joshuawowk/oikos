@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "Niet gebruikt",
         "desktopNavigationTitle": "Webnavigatie",
         "desktopNavigationHint": "Schakel modules in en sorteer ze binnen de groepen Overzicht, Plannen en Thuis.",
-        "mobileNavigationSaved": "Mobiele navigatie opgeslagen."
+        "mobileNavigationSaved": "Mobiele navigatie opgeslagen.",
+        "regionTitle": "Regio / Formaat",
+        "regionLabel": "Regio",
+        "regionHint": "Stelt valuta en datum- en tijdnotatie in op basis van de regio. Kies “Aangepast” om ze afzonderlijk in te stellen.",
+        "regionCustom": "Aangepast",
+        "regionSaved": "Regio opgeslagen.",
+        "currencyMovedHint": "De valuta wordt nu ingesteld onder Weergave → Regio / Formaat."
     },
     "login": {
         "tagline": "Gezinsplanning. Veilig. Privacyvriendelijk. Open source.",

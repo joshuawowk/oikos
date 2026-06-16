@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "Non usato",
         "desktopNavigationTitle": "Navigazione web",
         "desktopNavigationHint": "Attiva i moduli e ordinali nei gruppi Panoramica, Pianifica e Casa.",
-        "mobileNavigationSaved": "Navigazione mobile salvata."
+        "mobileNavigationSaved": "Navigazione mobile salvata.",
+        "regionTitle": "Regione / Formato",
+        "regionLabel": "Regione",
+        "regionHint": "Imposta valuta e formati di data e ora in base alla regione. Scegli «Personalizzato» per configurarli singolarmente.",
+        "regionCustom": "Personalizzato",
+        "regionSaved": "Regione salvata.",
+        "currencyMovedHint": "La valuta ora si imposta in Aspetto → Regione / Formato."
     },
     "login": {
         "tagline": "Pianificazione familiare. Sicura. Rispettosa della privacy. Open source.",

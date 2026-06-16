@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "Kullanılmıyor",
         "desktopNavigationTitle": "Web gezinmesi",
         "desktopNavigationHint": "Modülleri etkinleştirin ve Genel Bakış, Planlama ve Ev grupları içinde sıralayın.",
-        "mobileNavigationSaved": "Mobil gezinme kaydedildi."
+        "mobileNavigationSaved": "Mobil gezinme kaydedildi.",
+        "regionTitle": "Bölge / Biçim",
+        "regionLabel": "Bölge",
+        "regionHint": "Para birimini, tarih ve saat biçimini bölgeye göre ayarlar. Bunları ayrı ayrı yapılandırmak için „Özel“ seçeneğini seçin.",
+        "regionCustom": "Özel",
+        "regionSaved": "Bölge kaydedildi.",
+        "currencyMovedHint": "Para birimi artık Görünüm → Bölge / Biçim altında ayarlanır."
     },
     "login": {
         "tagline": "Aile planlaması. Güvenli. Gizlilik dostu. Açık kaynak.",

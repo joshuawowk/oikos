@@ -377,8 +377,8 @@ test('module-specific settings leaves only reference their owned preferences and
       ],
     },
     '../public/settings/pages/modules-budget.js': {
-      endpoints: ['/preferences'],
-      preferences: ['currency'],
+      endpoints: [],
+      preferences: [],
     },
     '../public/settings/pages/modules-housekeeping.js': {
       endpoints: ['/preferences'],
@@ -459,9 +459,12 @@ test('module-specific settings leaves preserve their required controls and behav
   );
 
   const budget = read('../public/settings/pages/modules-budget.js');
-  assert.match(budget, /id="currency-select"/);
-  assert.match(budget, /api\.put\('\/preferences', \{ currency: currencySelect\.value \}\)/);
-  assert.equal([...budget.matchAll(/<(?:input|select|textarea)\b/g)].length, 1);
+  // Currency moved to the unified Region/Format control in personal-appearance;
+  // the budget leaf is now a pointer card with no own form controls or API calls.
+  assert.doesNotMatch(budget, /id="currency-select"/);
+  assert.doesNotMatch(budget, /\bapi\./);
+  assert.match(budget, /\/settings\/personal\/appearance/);
+  assert.equal([...budget.matchAll(/<(?:input|select|textarea)\b/g)].length, 0);
 
   const housekeeping = read('../public/settings/pages/modules-housekeeping.js');
   assert.match(housekeeping, /id="housekeeping-payment-tasks"/);

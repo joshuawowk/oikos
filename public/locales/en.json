@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "Not used",
         "desktopNavigationTitle": "Web navigation",
         "desktopNavigationHint": "Enable modules and sort them within the Overview, Plan, and Home groups.",
-        "mobileNavigationSaved": "Mobile navigation saved."
+        "mobileNavigationSaved": "Mobile navigation saved.",
+        "regionTitle": "Region / Format",
+        "regionLabel": "Region",
+        "regionHint": "Sets currency, date and time format to match the region. Choose “Custom” to configure them individually.",
+        "regionCustom": "Custom",
+        "regionSaved": "Region saved.",
+        "currencyMovedHint": "The currency is now set under Appearance → Region / Format."
     },
     "login": {
         "tagline": "Family planning. Secure. Privacy-friendly. Open source.",

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.71.49] - 2026-06-16
+
+### Added
+- **Unified Region / Format setting**: a single Region dropdown in Appearance settings presets currency, date format and time format together for 24 supported locales (e.g. de-DE, en-US, pt-BR). Selecting "Custom" reveals the individual currency, date and time controls. The Region control is admin-only, matching the previous currency permission.
+
+### Changed
+- **Currency moved out of Budget settings**: the currency selector now lives in the unified Region / Format control in Appearance settings; the Budget settings page links there instead.
+
 ## [0.71.47] - 2026-06-15
 
 ### Changed

@@ -1379,7 +1379,13 @@
         "mobileNavigationEmptyOption": "Nicht belegt",
         "desktopNavigationTitle": "Web-Navigation",
         "desktopNavigationHint": "Aktiviere Module und sortiere sie innerhalb der Gruppen Übersicht, Planen und Zuhause.",
-        "mobileNavigationSaved": "Mobile Navigation gespeichert."
+        "mobileNavigationSaved": "Mobile Navigation gespeichert.",
+        "regionTitle": "Region / Format",
+        "regionLabel": "Region",
+        "regionHint": "Setzt Währung, Datums- und Zeitformat passend zur Region. Für individuelle Einstellungen „Benutzerdefiniert“ wählen.",
+        "regionCustom": "Benutzerdefiniert",
+        "regionSaved": "Region gespeichert.",
+        "currencyMovedHint": "Die Währung wird jetzt unter Darstellung → Region / Format eingestellt."
     },
     "login": {
         "tagline": "Familienplanung. Sicher. Datenschutzfreundlich. Open Source.",

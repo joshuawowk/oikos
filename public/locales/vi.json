@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "Không sử dụng",
         "desktopNavigationTitle": "Điều hướng web",
         "desktopNavigationHint": "Bật mô-đun và sắp xếp chúng trong các nhóm Tổng quan, Lập kế hoạch và Nhà.",
-        "mobileNavigationSaved": "Đã lưu điều hướng di động."
+        "mobileNavigationSaved": "Đã lưu điều hướng di động.",
+        "regionTitle": "Khu vực / Định dạng",
+        "regionLabel": "Khu vực",
+        "regionHint": "Đặt tiền tệ, định dạng ngày và giờ theo khu vực. Chọn “Tùy chỉnh” để cấu hình riêng.",
+        "regionCustom": "Tùy chỉnh",
+        "regionSaved": "Đã lưu khu vực.",
+        "currencyMovedHint": "Tiền tệ giờ được đặt trong Giao diện → Khu vực / Định dạng."
     },
     "login": {
         "tagline": "Kế hoạch gia đình. Bảo mật. Thân thiện với quyền riêng tư. Mã nguồn mở.",

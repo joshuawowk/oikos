@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "Nepoužito",
         "desktopNavigationTitle": "Webová navigace",
         "desktopNavigationHint": "Zapněte moduly a seřaďte je v rámci skupin Přehled, Plánování a Domov.",
-        "mobileNavigationSaved": "Mobilní navigace byla uložena."
+        "mobileNavigationSaved": "Mobilní navigace byla uložena.",
+        "regionTitle": "Region / Formát",
+        "regionLabel": "Region",
+        "regionHint": "Nastaví měnu a formát data a času podle regionu. Pro individuální nastavení zvolte „Vlastní“.",
+        "regionCustom": "Vlastní",
+        "regionSaved": "Region uložen.",
+        "currencyMovedHint": "Měna se nyní nastavuje v Vzhled → Region / Formát."
     },
     "login": {
         "tagline": "Rodinné plánování. Bezpečné. Soukromé. Open Source.",

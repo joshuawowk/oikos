@@ -37,7 +37,7 @@ import {
 import {
   persistCurrencySelection,
   SUPPORTED_CURRENCIES,
-} from '../public/settings/pages/modules-budget.js';
+} from '../public/settings/currency.js';
 import {
   isConnectedWeatherControl,
 } from '../public/settings/pages/modules-dashboard.js';

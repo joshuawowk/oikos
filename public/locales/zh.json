@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "未使用",
         "desktopNavigationTitle": "网页导航",
         "desktopNavigationHint": "启用模块，并在概览、计划和家庭分组内排序。",
-        "mobileNavigationSaved": "移动导航已保存。"
+        "mobileNavigationSaved": "移动导航已保存。",
+        "regionTitle": "地区 / 格式",
+        "regionLabel": "地区",
+        "regionHint": "根据地区设置货币、日期和时间格式。选择“自定义”可单独配置。",
+        "regionCustom": "自定义",
+        "regionSaved": "地区已保存。",
+        "currencyMovedHint": "货币现在在“外观 → 地区 / 格式”中设置。"
     },
     "login": {
         "tagline": "家庭规划。安全。注重隐私。开源。",

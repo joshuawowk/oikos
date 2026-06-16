@@ -1373,7 +1373,13 @@
         "mobileNavigationEmptyOption": "Används inte",
         "desktopNavigationTitle": "Webbnavigering",
         "desktopNavigationHint": "Aktivera moduler och sortera dem inom grupperna Översikt, Planera och Hem.",
-        "mobileNavigationSaved": "Mobil navigering sparad."
+        "mobileNavigationSaved": "Mobil navigering sparad.",
+        "regionTitle": "Region / Format",
+        "regionLabel": "Region",
+        "regionHint": "Ställer in valuta samt datum- och tidsformat efter regionen. Välj ”Anpassad” för att ställa in dem individuellt.",
+        "regionCustom": "Anpassad",
+        "regionSaved": "Region sparad.",
+        "currencyMovedHint": "Valutan ställs nu in under Utseende → Region / Format."
     },
     "login": {
         "tagline": "Familjeplanering. Säker. Sekretessvänlig. Öppen källkod.",
