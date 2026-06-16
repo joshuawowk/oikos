@@ -33,6 +33,7 @@
     "test:frontend-audit": "node --test test/test-frontend-audit.js",
     "test:region-presets": "node --test test/test-region-presets.js",
     "test:docker-publish": "node --test test/test-docker-publish.js",
+    "test:push": "node --experimental-sqlite test/test-push.js",
     "test:reminders": "node --experimental-sqlite test/test-reminders.js",
     "test:reminder-offset": "node test/test-reminder-offset.js",
     "test:api": "node test/test-api.js",

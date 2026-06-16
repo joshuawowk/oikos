@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import { buildRouter } from '../server/routes/push.js';
+import { processDuePushes } from '../server/services/push-scheduler.js';
 
 // --- Minimal-Schema -------------------------------------------------------
 function makeDb() {
@@ -173,4 +174,43 @@ test('POST /test forwards client-provided localized text', async () => {
   assert.equal(json.data.sent, 1);
   assert.match(webpush.calls[0].payload, /Titel/);
   await app.close();
+});
+
+function pastIso() { return new Date(Date.now() - 60_000).toISOString(); }
+function futureIso() { return new Date(Date.now() + 3_600_000).toISOString(); }
+
+test('scheduler pushes only due, undismissed, unpushed reminders and marks them', async () => {
+  const db = makeDb();
+  const webpush = makeWebpushMock();
+  const { createPushService } = await import('../server/services/push.js');
+  const pushService = createPushService({ db, webpush });
+  db.prepare("INSERT INTO tasks (id,title,created_by) VALUES (1,'Müll rausbringen',1)").run();
+  db.prepare("INSERT INTO push_subscriptions (user_id,endpoint,p256dh,auth) VALUES (1,'https://push/ok','p','a')").run();
+  // due + open  -> push
+  db.prepare("INSERT INTO reminders (entity_type,entity_id,remind_at,created_by) VALUES ('task',1,?,1)").run(pastIso());
+  // future -> skip
+  db.prepare("INSERT INTO reminders (entity_type,entity_id,remind_at,created_by) VALUES ('task',1,?,1)").run(futureIso());
+  // dismissed -> skip
+  db.prepare("INSERT INTO reminders (entity_type,entity_id,remind_at,dismissed,created_by) VALUES ('task',1,?,1,1)").run(pastIso());
+
+  const r1 = await processDuePushes({ database: db, pushService });
+  assert.equal(r1.pushed, 1);
+  assert.equal(webpush.calls.length, 1);
+  assert.match(webpush.calls[0].payload, /Müll rausbringen/);
+
+  // second run: nothing new (pushed_at set)
+  const r2 = await processDuePushes({ database: db, pushService });
+  assert.equal(r2.pushed, 0);
+  assert.equal(webpush.calls.length, 1);
+});
+
+test('scheduler marks pushed_at even when user has no subscriptions', async () => {
+  const db = makeDb();
+  const webpush = makeWebpushMock();
+  const { createPushService } = await import('../server/services/push.js');
+  const pushService = createPushService({ db, webpush });
+  db.prepare("INSERT INTO tasks (id,title,created_by) VALUES (1,'X',1)").run();
+  db.prepare("INSERT INTO reminders (entity_type,entity_id,remind_at,created_by) VALUES ('task',1,?,1)").run(pastIso());
+  await processDuePushes({ database: db, pushService });
+  assert.equal(db.prepare('SELECT pushed_at FROM reminders').get().pushed_at !== null, true);
 });
