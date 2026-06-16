@@ -6,6 +6,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
+import express from 'express';
+import { buildRouter } from '../server/routes/push.js';
 
 // --- Minimal-Schema -------------------------------------------------------
 function makeDb() {
@@ -105,4 +107,70 @@ test('sendPushToUser keeps sub on transient (500) error', async () => {
   const sent = await svc.sendPushToUser(1, { title: 'T' });
   assert.equal(sent, 0);
   assert.equal(db.prepare('SELECT COUNT(*) c FROM push_subscriptions').get().c, 1);
+});
+
+async function startApp(db, webpush, userId = 1) {
+  const app = express();
+  app.use(express.json());
+  app.use((req, _res, next) => { req.authUserId = userId; next(); });
+  const { createPushService } = await import('../server/services/push.js');
+  const pushService = createPushService({ db, webpush });
+  app.use('/', buildRouter({ pushService, database: db }));
+  const server = await new Promise((r) => { const s = app.listen(0, () => r(s)); });
+  return { baseUrl: `http://127.0.0.1:${server.address().port}`, close: () => new Promise((r) => server.close(r)) };
+}
+
+test('GET /vapid-public-key returns the key', async () => {
+  const db = makeDb();
+  const app = await startApp(db, makeWebpushMock());
+  const res = await fetch(`${app.baseUrl}/vapid-public-key`);
+  const json = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(json.data.key, 'PUB_GEN');
+  await app.close();
+});
+
+test('POST /subscribe inserts then upserts the subscription', async () => {
+  const db = makeDb();
+  const app = await startApp(db, makeWebpushMock());
+  const body = { endpoint: 'https://push/x', keys: { p256dh: 'PP', auth: 'AA' } };
+  let res = await fetch(`${app.baseUrl}/subscribe`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  assert.equal(res.status, 201);
+  res = await fetch(`${app.baseUrl}/subscribe`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, keys: { p256dh: 'PP2', auth: 'AA2' } }) });
+  assert.equal(res.status, 201);
+  const rows = db.prepare('SELECT p256dh FROM push_subscriptions WHERE endpoint = ?').all('https://push/x');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].p256dh, 'PP2');
+  await app.close();
+});
+
+test('POST /subscribe rejects missing keys', async () => {
+  const db = makeDb();
+  const app = await startApp(db, makeWebpushMock());
+  const res = await fetch(`${app.baseUrl}/subscribe`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: 'https://push/x' }) });
+  assert.equal(res.status, 400);
+  await app.close();
+});
+
+test('POST /unsubscribe removes the subscription', async () => {
+  const db = makeDb();
+  db.prepare("INSERT INTO push_subscriptions (user_id,endpoint,p256dh,auth) VALUES (1,'https://push/x','p','a')").run();
+  const app = await startApp(db, makeWebpushMock());
+  const res = await fetch(`${app.baseUrl}/unsubscribe`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: 'https://push/x' }) });
+  assert.equal(res.status, 204);
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM push_subscriptions').get().c, 0);
+  await app.close();
+});
+
+test('POST /test forwards client-provided localized text', async () => {
+  const db = makeDb();
+  const webpush = makeWebpushMock();
+  db.prepare("INSERT INTO push_subscriptions (user_id,endpoint,p256dh,auth) VALUES (1,'https://push/x','p','a')").run();
+  const app = await startApp(db, webpush);
+  const res = await fetch(`${app.baseUrl}/test`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'Titel', body: 'Inhalt' }) });
+  const json = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(json.data.sent, 1);
+  assert.match(webpush.calls[0].payload, /Titel/);
+  await app.close();
 });
