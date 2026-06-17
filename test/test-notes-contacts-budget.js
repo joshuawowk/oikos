@@ -399,13 +399,54 @@ test('Kategorie umbenennen: name wird aktualisiert, key bleibt', () => {
   assert(row.name === 'Lebensmittel', 'Name muss aktualisiert sein');
 });
 
-test('Kategorie löschen blockiert, wenn in Benutzung (Guard)', () => {
-  assert(categoryInUseCount(db, 'housing') > 0, 'housing muss in Benutzung sein -> Endpunkt liefert 409');
+test('PUT /categories/:key Konflikt-Query: erkennt Namenskollision innerhalb desselben Typs (case-insensitive)', () => {
+  db.exec(`
+    INSERT OR IGNORE INTO budget_categories (key, name, type, sort_order) VALUES
+      ('rename_a', 'Alpha', 'expense', 20),
+      ('rename_b', 'Beta', 'expense', 21),
+      ('rename_inc', 'Beta', 'income', 22);
+  `);
+
+  const conflictQuery = `
+    SELECT key FROM budget_categories WHERE type = ? AND name = ? COLLATE NOCASE AND key != ?
+  `;
+
+  // Umbenennen von rename_a -> 'beta' (case-insensitive Treffer auf rename_b, gleicher Typ) -> Konflikt.
+  const collision = db.prepare(conflictQuery).get('expense', 'beta', 'rename_a');
+  assert(collision !== undefined, 'Umbenennen auf einen bereits vergebenen Namen (case-insensitive) muss einen Konflikt liefern -> Endpunkt liefert 409');
+  assert(collision.key === 'rename_b', 'Der gemeldete Konflikt muss auf die andere Kategorie (rename_b) zeigen');
+
+  // Umbenennen von rename_a -> eigener aktueller Name 'Alpha' -> kein Konflikt (key != ? schließt sich selbst aus).
+  const selfRename = db.prepare(conflictQuery).get('expense', 'Alpha', 'rename_a');
+  assert(selfRename === undefined, 'Umbenennen auf den eigenen aktuellen Namen darf KEINEN Konflikt liefern (key != ? schließt die Kategorie selbst aus)');
+
+  // rename_inc (income) heißt ebenfalls 'Beta' -- exakt wie rename_b (expense).
+  // Beim Umbenennen von rename_inc (income) auf 'Beta' darf NUR der eigene Typ (income) geprüft werden;
+  // rename_b (expense, gleicher Name) liegt im anderen Typ und darf keinen Konflikt auslösen.
+  const crossType = db.prepare(conflictQuery).get('income', 'Beta', 'rename_inc');
+  assert(crossType === undefined, 'Gleicher Name in einem ANDEREN Typ (expense: rename_b) darf keinen Konflikt für die income-Umbenennung von rename_inc auslösen -> type-Scoping greift');
+
+  db.exec("DELETE FROM budget_categories WHERE key IN ('rename_a','rename_b','rename_inc')");
 });
 
-test('Kategorie löschen blockiert, wenn letzte ihres Typs (Guard)', () => {
-  // inc_main ist die einzige income-Kategorie -> Guard verbietet Löschen
-  assert(categoryCountByType(db, 'income') === 1, 'Nur eine income-Kategorie -> letzter-Guard greift');
+test('Kategorie löschen blockiert, wenn in Benutzung (Guard hat Priorität vor letzter-Kategorie-Check)', () => {
+  // Endpunkt-Reihenfolge (server/routes/budget.js DELETE /categories/:key):
+  // 1. inUse > 0  -> 409 "in use"      (geprüft zuerst)
+  // 2. countByType <= 1 -> 409 "last"  (nur falls inUse === 0)
+  const inUse = categoryInUseCount(db, 'housing');
+  const blockedByInUse = inUse > 0;
+  assert(blockedByInUse === true, 'housing muss in Benutzung sein -> Endpunkt liefert 409 "in use", BEVOR der letzte-Kategorie-Check überhaupt ausgewertet wird');
+  // Der in-use-Guard greift unabhängig davon, ob housing auch die letzte ihres Typs wäre.
+  assert(categoryCountByType(db, 'expense') > 1, 'Kontrolle: housing ist hier nicht die letzte expense-Kategorie, der Block kommt also wirklich vom in-use-Guard');
+});
+
+test('Kategorie löschen blockiert, wenn letzte ihres Typs (Guard greift nur wenn NICHT in Benutzung)', () => {
+  // inc_main ist frei (keine Budgeteinträge) UND die einzige income-Kategorie
+  // -> erster Guard (inUse) lässt durch, zweiter Guard (countByType<=1) blockiert -> 409 "last".
+  const inUse = categoryInUseCount(db, 'inc_main');
+  assert(inUse === 0, 'inc_main muss frei sein, sonst würde der in-use-Guard zuerst greifen, nicht der letzte-Kategorie-Guard');
+  const blockedByLastOfType = categoryCountByType(db, 'income') <= 1;
+  assert(blockedByLastOfType === true, 'Nur eine income-Kategorie -> letzter-Guard greift -> Endpunkt liefert 409 "last category"');
 });
 
 test('Kategorie löschen erlaubt, wenn frei und nicht letzte: Subkategorien per ON DELETE CASCADE entfernt', () => {
