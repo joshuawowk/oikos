@@ -2048,6 +2048,7 @@
     "manageTitle": "Kategorien verwalten",
     "manageHint": "Hinzufügen, umbenennen, sortieren oder löschen.",
     "addPlaceholder": "Neue Kategorie",
+    "addSubPlaceholder": "Neue Unterkategorie",
     "renameHint": "Zum Umbenennen tippen",
     "renamePrompt": "Neuer Name",
     "moveUp": "Nach oben",
@@ -2056,6 +2057,7 @@
     "deleteConfirm": "Kategorie „{{name}}“ löschen?",
     "added": "Kategorie hinzugefügt",
     "renamed": "Kategorie umbenannt",
-    "deleted": "Kategorie gelöscht"
+    "deleted": "Kategorie gelöscht",
+    "deleteSubConfirm": "Unterkategorie „{{name}}“ löschen?"
   }
 }

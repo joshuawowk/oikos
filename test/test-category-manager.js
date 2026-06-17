@@ -46,6 +46,10 @@ test('Escaped Nutzerdaten via esc()', () => {
 test('Zeigt Server-Fehler (in-use/last) als Toast', () => {
   assert(/showToast\(\s*err\.message/.test(comp), 'Fehlermeldung des Servers muss als Toast erscheinen');
 });
+test('Unterstützt Subkategorien unter basePath/:key/subcategories', () => {
+  assert(/subcategories/.test(comp), 'Subkategorie-Pfad muss vorkommen');
+  assert(/this\._supportsSub/.test(comp), 'supportsSubcategories muss ausgewertet werden');
+});
 
 console.log(`\n${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);

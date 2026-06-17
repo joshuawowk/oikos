@@ -2048,6 +2048,7 @@
     "manageTitle": "Manage categories",
     "manageHint": "Add, rename, reorder or delete.",
     "addPlaceholder": "New category",
+    "addSubPlaceholder": "New subcategory",
     "renameHint": "Tap to rename",
     "renamePrompt": "New name",
     "moveUp": "Move up",
@@ -2056,6 +2057,7 @@
     "deleteConfirm": "Delete category “{{name}}”?",
     "added": "Category added",
     "renamed": "Category renamed",
-    "deleted": "Category deleted"
+    "deleted": "Category deleted",
+    "deleteSubConfirm": "Delete subcategory \"{{name}}\"?"
   }
 }
