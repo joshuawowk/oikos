@@ -776,6 +776,66 @@ router.post('/categories', (req, res) => {
   }
 });
 
+router.put('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM budget_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const vName = str(req.body.name, 'Name', { max: MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM budget_categories WHERE type = ? AND name = ? COLLATE NOCASE AND key != ?
+    `).get(cat.type, vName.value, cat.key);
+    if (conflict) return res.status(409).json({ error: 'Category already exists.', code: 409 });
+
+    db.get().prepare('UPDATE budget_categories SET name = ? WHERE key = ?').run(vName.value, cat.key);
+    const updated = db.get().prepare('SELECT key, name, type, sort_order FROM budget_categories WHERE key = ?').get(cat.key);
+    res.json({ data: updated });
+  } catch (err) {
+    log.error('PUT /categories/:key error:', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
+router.delete('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM budget_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const inUse = categoryInUseCount(db.get(), cat.key);
+    if (inUse > 0) {
+      return res.status(409).json({ error: `Category is in use by ${inUse} entr${inUse === 1 ? 'y' : 'ies'}.`, code: 409, count: inUse });
+    }
+    if (categoryCountByType(db.get(), cat.type) <= 1) {
+      return res.status(409).json({ error: 'Cannot delete the last category.', code: 409 });
+    }
+    db.get().prepare('DELETE FROM budget_categories WHERE key = ?').run(cat.key);
+    res.status(204).end();
+  } catch (err) {
+    log.error('DELETE /categories/:key error:', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
+router.patch('/categories/reorder', (req, res) => {
+  try {
+    const vType = oneOf(req.body.type || 'expense', ['expense', 'income'], 'Typ');
+    if (vType.error) return res.status(400).json({ error: vType.error, code: 400 });
+    const order = Array.isArray(req.body.order) ? req.body.order : [];
+    const tx = db.get().transaction((keys) => {
+      keys.forEach((key, i) => {
+        db.get().prepare('UPDATE budget_categories SET sort_order = ? WHERE key = ? AND type = ?').run(i, key, vType.value);
+      });
+    });
+    tx(order);
+    res.json({ data: true });
+  } catch (err) {
+    log.error('PATCH /categories/reorder error:', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
 router.post('/categories/:categoryKey/subcategories', (req, res) => {
   try {
     const cat = db.get().prepare(`

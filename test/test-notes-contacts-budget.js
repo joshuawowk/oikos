@@ -392,6 +392,43 @@ test('Guard: subcategoryCountForCategory zählt Subkategorien einer Kategorie', 
   assert(subcategoryCountForCategory(db, 'food') === 1, 'food hat 1 Subkategorie');
 });
 
+// --- Endpunkte: PUT/DELETE/PATCH-reorder Kategorien (DB-Level, gespiegelt an Routen) ---
+test('Kategorie umbenennen: name wird aktualisiert, key bleibt', () => {
+  db.prepare("UPDATE budget_categories SET name = ? WHERE key = 'food'").run('Lebensmittel');
+  const row = db.prepare("SELECT name FROM budget_categories WHERE key = 'food'").get();
+  assert(row.name === 'Lebensmittel', 'Name muss aktualisiert sein');
+});
+
+test('Kategorie löschen blockiert, wenn in Benutzung (Guard)', () => {
+  assert(categoryInUseCount(db, 'housing') > 0, 'housing muss in Benutzung sein -> Endpunkt liefert 409');
+});
+
+test('Kategorie löschen blockiert, wenn letzte ihres Typs (Guard)', () => {
+  // inc_main ist die einzige income-Kategorie -> Guard verbietet Löschen
+  assert(categoryCountByType(db, 'income') === 1, 'Nur eine income-Kategorie -> letzter-Guard greift');
+});
+
+test('Kategorie löschen erlaubt, wenn frei und nicht letzte: Subkategorien per ON DELETE CASCADE entfernt', () => {
+  // Wegwerf-Kategorie mit Subkategorie anlegen, dann löschen.
+  db.exec(`
+    INSERT INTO budget_categories (key, name, type, sort_order) VALUES ('misc', 'Misc', 'expense', 9);
+    INSERT INTO budget_subcategories (key, category_key, name, sort_order) VALUES ('misc_sub', 'misc', 'Sub', 0);
+  `);
+  assert(categoryInUseCount(db, 'misc') === 0, 'misc muss frei sein');
+  assert(categoryCountByType(db, 'expense') > 1, 'misc ist nicht die letzte expense-Kategorie');
+  db.prepare('DELETE FROM budget_categories WHERE key = ?').run('misc');
+  const sub = db.prepare("SELECT COUNT(*) AS n FROM budget_subcategories WHERE category_key = 'misc'").get().n;
+  assert(sub === 0, 'Subkategorien müssen per Cascade entfernt sein');
+});
+
+test('Reorder: sort_order folgt der übergebenen Reihenfolge', () => {
+  const expense = db.prepare("SELECT key FROM budget_categories WHERE type='expense' ORDER BY sort_order").all().map(r => r.key);
+  const reversed = [...expense].reverse();
+  reversed.forEach((key, i) => db.prepare('UPDATE budget_categories SET sort_order = ? WHERE key = ? AND type = ?').run(i, key, 'expense'));
+  const after = db.prepare("SELECT key FROM budget_categories WHERE type='expense' ORDER BY sort_order").all().map(r => r.key);
+  assert(after[0] === reversed[0], 'Erste Kategorie muss der neuen Reihenfolge entsprechen');
+});
+
 // --------------------------------------------------------
 // Ergebnis
 // --------------------------------------------------------
