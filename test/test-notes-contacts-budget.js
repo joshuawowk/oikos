@@ -470,6 +470,69 @@ test('Reorder: sort_order folgt der übergebenen Reihenfolge', () => {
   assert(after[0] === reversed[0], 'Erste Kategorie muss der neuen Reihenfolge entsprechen');
 });
 
+// --- Endpunkte: PUT/DELETE/PATCH-reorder Subkategorien (DB-Level, gespiegelt an Routen) ---
+// Achtung: 'utilities' ist durch den bestehenden „Strom April"-Eintrag der Budget-Tests in Benutzung
+// -> hier 'condominium' als freie Subkategorie verwenden, NICHT 'utilities'.
+
+test('Subkategorie löschen blockiert, wenn in Benutzung (Guard)', () => {
+  assert(subcategoryInUseCount(db, 'rent_mortgage') > 0, 'rent_mortgage muss in Benutzung sein');
+});
+
+test('Subkategorie löschen erlaubt, wenn frei und nicht letzte', () => {
+  assert(subcategoryInUseCount(db, 'condominium') === 0, 'condominium muss frei sein');
+  assert(subcategoryCountForCategory(db, 'housing') > 1, 'housing muss >1 Subkategorie haben');
+  db.prepare('DELETE FROM budget_subcategories WHERE key = ?').run('condominium');
+  assert(subcategoryCountForCategory(db, 'housing') >= 1, 'housing behält >=1 Subkategorie');
+});
+
+test('Subkategorie umbenennen: name aktualisiert', () => {
+  db.prepare("UPDATE budget_subcategories SET name = ? WHERE key = 'utilities'").run('Nebenkosten neu');
+  const row = db.prepare("SELECT name FROM budget_subcategories WHERE key = 'utilities'").get();
+  assert(row.name === 'Nebenkosten neu', 'Name muss aktualisiert sein');
+});
+
+test('PUT /categories/:key/subcategories/:subKey Konflikt-Query: erkennt Namenskollision innerhalb derselben Kategorie (case-insensitive)', () => {
+  // 'rent_mortgage' (housing) heißt 'Miete'; 'groceries' (food) heißt 'Lebensmittel'.
+  db.exec(`
+    INSERT OR IGNORE INTO budget_subcategories (key, category_key, name, sort_order) VALUES
+      ('sub_rename_a', 'housing', 'Sub Alpha', 10),
+      ('sub_rename_b', 'housing', 'Sub Beta', 11),
+      ('sub_rename_food', 'food', 'Sub Beta', 0);
+  `);
+
+  const conflictQuery = `
+    SELECT key FROM budget_subcategories WHERE category_key = ? AND name = ? COLLATE NOCASE AND key != ?
+  `;
+
+  // Umbenennen von sub_rename_a -> 'sub beta' (case-insensitive Treffer auf sub_rename_b, gleiche Kategorie) -> Konflikt.
+  const collision = db.prepare(conflictQuery).get('housing', 'sub beta', 'sub_rename_a');
+  assert(collision !== undefined, 'Umbenennen auf einen bereits vergebenen Namen (case-insensitive) innerhalb derselben Kategorie muss einen Konflikt liefern -> Endpunkt liefert 409');
+  assert(collision.key === 'sub_rename_b', 'Der gemeldete Konflikt muss auf die andere Subkategorie (sub_rename_b) zeigen');
+
+  // Umbenennen von sub_rename_a -> eigener aktueller Name 'Sub Alpha' -> kein Konflikt (key != ? schließt sich selbst aus).
+  const selfRename = db.prepare(conflictQuery).get('housing', 'Sub Alpha', 'sub_rename_a');
+  assert(selfRename === undefined, 'Umbenennen auf den eigenen aktuellen Namen darf KEINEN Konflikt liefern (key != ? schließt die Subkategorie selbst aus)');
+
+  // sub_rename_food (Kategorie food) heißt ebenfalls 'Sub Beta' -- exakt wie sub_rename_b (Kategorie housing).
+  // Beim Umbenennen von sub_rename_food auf 'Sub Beta' darf NUR innerhalb der eigenen Kategorie (food) geprüft werden;
+  // sub_rename_b (housing, gleicher Name) liegt in einer anderen Kategorie und darf keinen Konflikt auslösen.
+  const crossCategory = db.prepare(conflictQuery).get('food', 'Sub Beta', 'sub_rename_food');
+  assert(crossCategory === undefined, 'Gleicher Name in einer ANDEREN Kategorie (housing: sub_rename_b) darf keinen Konflikt für die Umbenennung von sub_rename_food (food) auslösen -> category_key-Scoping greift');
+
+  db.exec("DELETE FROM budget_subcategories WHERE key IN ('sub_rename_a','sub_rename_b','sub_rename_food')");
+});
+
+test('Subkategorie-Reorder: sort_order folgt der übergebenen Reihenfolge, scoped auf category_key', () => {
+  const housingSubs = db.prepare("SELECT key FROM budget_subcategories WHERE category_key='housing' ORDER BY sort_order").all().map(r => r.key);
+  const reversed = [...housingSubs].reverse();
+  reversed.forEach((key, i) => db.prepare('UPDATE budget_subcategories SET sort_order = ? WHERE key = ? AND category_key = ?').run(i, key, 'housing'));
+  const after = db.prepare("SELECT key FROM budget_subcategories WHERE category_key='housing' ORDER BY sort_order").all().map(r => r.key);
+  assert(after[0] === reversed[0], 'Erste Subkategorie muss der neuen Reihenfolge entsprechen');
+  // food-Subkategorien dürfen vom housing-Reorder unberührt bleiben (category_key-Scoping).
+  const groceries = db.prepare("SELECT sort_order FROM budget_subcategories WHERE key = 'groceries'").get();
+  assert(groceries.sort_order === 0, 'groceries (food) darf vom housing-Reorder nicht beeinflusst werden');
+});
+
 // --------------------------------------------------------
 // Ergebnis
 // --------------------------------------------------------

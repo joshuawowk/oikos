@@ -870,6 +870,64 @@ router.post('/categories/:categoryKey/subcategories', (req, res) => {
   }
 });
 
+router.put('/categories/:key/subcategories/:subKey', (req, res) => {
+  try {
+    const sub = db.get().prepare('SELECT * FROM budget_subcategories WHERE key = ? AND category_key = ?').get(req.params.subKey, req.params.key);
+    if (!sub) return res.status(404).json({ error: 'Subcategory not found.', code: 404 });
+
+    const vName = str(req.body.name, 'Name', { max: MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM budget_subcategories WHERE category_key = ? AND name = ? COLLATE NOCASE AND key != ?
+    `).get(sub.category_key, vName.value, sub.key);
+    if (conflict) return res.status(409).json({ error: 'Subcategory already exists.', code: 409 });
+
+    db.get().prepare('UPDATE budget_subcategories SET name = ? WHERE key = ?').run(vName.value, sub.key);
+    const updated = db.get().prepare('SELECT key, category_key, name, sort_order FROM budget_subcategories WHERE key = ?').get(sub.key);
+    res.json({ data: updated });
+  } catch (err) {
+    log.error('PUT subcategory error:', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
+router.delete('/categories/:key/subcategories/:subKey', (req, res) => {
+  try {
+    const sub = db.get().prepare('SELECT * FROM budget_subcategories WHERE key = ? AND category_key = ?').get(req.params.subKey, req.params.key);
+    if (!sub) return res.status(404).json({ error: 'Subcategory not found.', code: 404 });
+
+    const inUse = subcategoryInUseCount(db.get(), sub.key);
+    if (inUse > 0) {
+      return res.status(409).json({ error: `Subcategory is in use by ${inUse} entr${inUse === 1 ? 'y' : 'ies'}.`, code: 409, count: inUse });
+    }
+    if (subcategoryCountForCategory(db.get(), sub.category_key) <= 1) {
+      return res.status(409).json({ error: 'Cannot delete the last subcategory.', code: 409 });
+    }
+    db.get().prepare('DELETE FROM budget_subcategories WHERE key = ?').run(sub.key);
+    res.status(204).end();
+  } catch (err) {
+    log.error('DELETE subcategory error:', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
+router.patch('/categories/:key/subcategories/reorder', (req, res) => {
+  try {
+    const order = Array.isArray(req.body.order) ? req.body.order : [];
+    const tx = db.get().transaction((keys) => {
+      keys.forEach((key, i) => {
+        db.get().prepare('UPDATE budget_subcategories SET sort_order = ? WHERE key = ? AND category_key = ?').run(i, key, req.params.key);
+      });
+    });
+    tx(order);
+    res.json({ data: true });
+  } catch (err) {
+    log.error('PATCH subcategory reorder error:', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
 // --------------------------------------------------------
 // CRUD-Routen
 // --------------------------------------------------------
