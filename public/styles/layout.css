@@ -654,7 +654,7 @@
   border-radius: var(--radius-full);
   background-color: var(--module-accent, var(--color-accent));
   color: var(--color-ink-on-vivid);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.10);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -677,7 +677,7 @@
 .page-fab:focus-visible {
   outline: 2px solid var(--color-bg);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--color-accent);
+  box-shadow: 0 0 0 4px var(--module-accent, var(--color-accent));
 }
 
 /* Long Loop: FAB-Animation nach N Aufrufen deaktivieren */

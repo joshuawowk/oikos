@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.74.2] - 2026-06-18
+
+### Fixed
+- **Calendar floating action button:** the keyboard focus ring now matches the active module accent color instead of always showing the global violet, and the button gets the documented top/bottom specular highlight for visual depth.
+
 ## [0.74.1] - 2026-06-18
 
 ### Security
