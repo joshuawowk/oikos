@@ -166,4 +166,13 @@ const email = {
   test: (to) => api.post('/email/test', to ? { to } : {}),
 };
 
-export { api, auth, email, ApiError };
+const notifications = {
+  providers: () => api.get('/notifications/providers'),
+  listChannels: () => api.get('/notifications/channels'),
+  createChannel: (body) => api.post('/notifications/channels', body),
+  updateChannel: (id, body) => api.put(`/notifications/channels/${id}`, body),
+  deleteChannel: (id) => api.delete(`/notifications/channels/${id}`),
+  testChannel: (id) => api.post(`/notifications/channels/${id}/test`, {}),
+};
+
+export { api, auth, email, notifications, ApiError };

@@ -170,7 +170,7 @@ Each module is independent. Use what fits, skip what doesn't.
 | ![notes](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/notes.png) | **Notes & Contacts** | Colored sticky notes with Markdown. Contact directory with CardDAV sync. |
 | ![birthdays](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/birthdays.png) | **Birthdays** | Birthday tracker with automatic calendar events, age display, and custom reminders. |
 | ![family](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/family.png) | **Family** | Member profiles with roles, photos, phone, email, and birthday — synced to Contacts and Birthdays. |
-| ![reminders](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/reminders.png) | **Reminders** | Time-based notifications on tasks and calendar events with in-app badge counter, plus opt-in Web Push that delivers due reminders as system notifications even when the app is closed (requires HTTPS). |
+| ![reminders](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/reminders.png) | **Reminders** | Time-based notifications on tasks and calendar events with in-app badge counter, opt-in per-device Web Push (requires HTTPS), and admin-configured household Gotify/ntfy channels. |
 | ![api-tokens](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/api-tokens.png) | **API Tokens** | Named Bearer / X-API-Key tokens for integrations. OpenAPI 3.0 spec included. |
 | ![backup](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/backup.png) | **Backup** | Manual and scheduled database backup and restore, with automatic pre-restore rollback. Optional WebDAV upload target (Nextcloud, ownCloud, Hetzner, etc.). |
 

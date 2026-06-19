@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.75.1] - 2026-06-20
+
+### Added
+- **Gotify and ntfy notification channels:** admins can add household notification channels for self-hosted Gotify or ntfy servers alongside existing per-device Web Push. Reminder delivery now tracks each channel independently to avoid duplicate sends and preserve retry state.
+
 ## [0.75.0] - 2026-06-19
 
 ### Added

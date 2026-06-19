@@ -48,6 +48,7 @@ import housekeepingRouter from './routes/housekeeping.js';
 import modulesRouter from './routes/modules.js';
 import pushRouter from './routes/push.js';
 import emailRouter from './routes/email.js';
+import notificationsRouter from './routes/notifications.js';
 
 const log     = createLogger('Server');
 const logSync = createLogger('Sync');
@@ -328,6 +329,7 @@ app.use('/api/v1/housekeeping', housekeepingRouter);
 app.use('/api/v1/modules', modulesRouter);
 app.use('/api/v1/push', pushRouter);
 app.use('/api/v1/email', emailRouter);
+app.use('/api/v1/notifications', notificationsRouter);
 
 // --------------------------------------------------------
 // Health-Check (für Docker)

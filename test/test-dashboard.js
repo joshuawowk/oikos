@@ -10,6 +10,7 @@ import * as nodeAssert from 'node:assert/strict';
 import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 import { hydrateBirthday, syncBirthdayArtifacts } from '../server/services/birthdays.js';
 import { getUpcomingEvents } from '../server/services/calendar-events.js';
+import { addLocalDays, toLocalDateKey } from '../public/utils/date.js';
 
 register('./test-browser-loader.mjs', import.meta.url);
 
@@ -135,8 +136,8 @@ test('Today-Highlights priorisieren dringende Aufgaben und nächsten Termin', as
 
 test('Today-Highlights filtert Termine auf den heutigen Tag', async () => {
   const { __test } = await import('../public/pages/dashboard.js');
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const todayStr = toLocalDateKey(new Date());
+  const tomorrowStr = addLocalDays(todayStr, 1);
 
   const result = __test.buildTodayHighlights({
     events: [

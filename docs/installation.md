@@ -409,6 +409,11 @@ is closed. **Requires HTTPS** (the Push API and service workers only work over a
 see [HTTPS / Reverse Proxy](#https--reverse-proxy-nginx)). Each device opts in under
 Settings → Personal → Notifications.
 
+Admins can also add household Gotify or ntfy channels on the same settings page. These channels
+are configured in the UI and do not require environment variables. The Yuvomi backend container or
+host must be able to reach the configured Gotify/ntfy base URL. HTTPS is recommended; HTTP is
+accepted for trusted internal networks such as a private LAN or container network.
+
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `VAPID_PUBLIC_KEY` | VAPID public key. Auto-generated on first use and stored in the database if unset. | auto | No |

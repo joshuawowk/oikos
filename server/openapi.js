@@ -1113,6 +1113,70 @@ function buildPaths() {
     '/api/v1/push/subscribe': { post: op({ summary: 'Register a push subscription', tag: 'Push', stateChanging: true, requestBody: jsonBody(null) }) },
     '/api/v1/push/unsubscribe': { post: op({ summary: 'Remove a push subscription', tag: 'Push', stateChanging: true, requestBody: jsonBody(null) }) },
     '/api/v1/push/test': { post: op({ summary: 'Send a test push to the current user', tag: 'Push', stateChanging: true }) },
+    '/api/v1/notifications/providers': {
+      get: op({
+        summary: 'List supported notification channel providers',
+        tag: 'Notifications',
+        admin: true,
+      }),
+    },
+    '/api/v1/notifications/channels': {
+      get: op({
+        summary: 'List household notification channels',
+        tag: 'Notifications',
+        admin: true,
+        responses: {
+          200: {
+            description: 'Notification channels with secrets omitted',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/NotificationChannelListResponse' } } },
+          },
+          403: { $ref: '#/components/responses/Forbidden' },
+          500: { $ref: '#/components/responses/InternalServerError' },
+        },
+      }),
+      post: op({
+        summary: 'Create a household notification channel',
+        tag: 'Notifications',
+        admin: true,
+        stateChanging: true,
+        requestBody: jsonBody('#/components/schemas/NotificationChannelInput'),
+        responses: {
+          201: {
+            description: 'Notification channel created',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/NotificationChannelResponse' } } },
+          },
+          400: { $ref: '#/components/responses/BadRequest' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          500: { $ref: '#/components/responses/InternalServerError' },
+        },
+      }),
+    },
+    '/api/v1/notifications/channels/{id}': {
+      put: op({
+        summary: 'Update a household notification channel',
+        tag: 'Notifications',
+        admin: true,
+        stateChanging: true,
+        params: [idParam()],
+        requestBody: jsonBody('#/components/schemas/NotificationChannelInput'),
+      }),
+      delete: op({
+        summary: 'Delete a household notification channel',
+        tag: 'Notifications',
+        admin: true,
+        stateChanging: true,
+        params: [idParam()],
+      }),
+    },
+    '/api/v1/notifications/channels/{id}/test': {
+      post: op({
+        summary: 'Send a test notification through a channel',
+        tag: 'Notifications',
+        admin: true,
+        stateChanging: true,
+        params: [idParam()],
+      }),
+    },
   };
 }
 
@@ -1148,6 +1212,7 @@ function buildOpenApiSpec(req, appVersion) {
       { name: 'Search' },
       { name: 'Push' },
       { name: 'Email' },
+      { name: 'Notifications' },
     ],
     paths: buildPaths(),
     components: {
@@ -1195,6 +1260,62 @@ function buildOpenApiSpec(req, appVersion) {
             error: { type: 'string' },
             code: { type: 'integer' },
             storage_code: { $ref: '#/components/schemas/DocumentStorageErrorCode' },
+          },
+        },
+        NotificationChannel: {
+          type: 'object',
+          description: 'A Gotify or ntfy notification channel. Secrets are write-only and never returned.',
+          properties: {
+            id: { type: 'integer' },
+            provider: { type: 'string', enum: ['gotify', 'ntfy'] },
+            name: { type: 'string' },
+            enabled: { type: 'boolean' },
+            scope: { type: 'string', enum: ['household', 'user'] },
+            userId: { type: ['integer', 'null'] },
+            config: { type: 'object', additionalProperties: true },
+            secretSet: { type: 'boolean' },
+            lastTestAt: { type: ['string', 'null'], format: 'date-time' },
+            lastSuccessAt: { type: ['string', 'null'], format: 'date-time' },
+            lastError: { type: ['string', 'null'] },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        NotificationChannelInput: {
+          type: 'object',
+          required: ['provider', 'name', 'config'],
+          properties: {
+            provider: { type: 'string', enum: ['gotify', 'ntfy'] },
+            name: { type: 'string' },
+            enabled: { type: 'boolean' },
+            config: {
+              type: 'object',
+              description: 'Provider config. Gotify uses baseUrl and priority. ntfy uses baseUrl, topic, priority, and authType.',
+              additionalProperties: true,
+            },
+            secrets: {
+              type: 'object',
+              description: 'Write-only provider credentials. Omit fields to keep stored secrets on update.',
+              additionalProperties: true,
+            },
+            clearSecrets: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Explicit secret field names to clear.',
+            },
+          },
+        },
+        NotificationChannelResponse: {
+          type: 'object',
+          properties: { data: { $ref: '#/components/schemas/NotificationChannel' } },
+        },
+        NotificationChannelListResponse: {
+          type: 'object',
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/NotificationChannel' },
+            },
           },
         },
         DocumentStorageErrorCode: {

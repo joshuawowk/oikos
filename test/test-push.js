@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import { buildRouter } from '../server/routes/push.js';
 import { processDuePushes } from '../server/services/push-scheduler.js';
+import { MIGRATIONS } from '../server/db.js';
 
 // --- Minimal-Schema -------------------------------------------------------
 function makeDb() {
@@ -39,6 +40,7 @@ function makeDb() {
       last_used_at TEXT
     );
   `);
+  db.exec(MIGRATIONS.find((m) => m.version === 60).up);
   db.prepare("INSERT INTO users (id, username) VALUES (1,'alice'),(2,'bob')").run();
   return db;
 }
