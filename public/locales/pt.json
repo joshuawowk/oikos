@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "Deixe em branco para manter a senha",
         "resetPasswordHint": "Opcional. Preencha apenas para redefinir a senha deste membro.",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "Planejamento familiar. Seguro. Privado. Código aberto.",

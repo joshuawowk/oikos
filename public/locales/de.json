@@ -1416,7 +1416,16 @@
         "resetPasswordPlaceholder": "Leer lassen, um das Passwort beizubehalten",
         "resetPasswordHint": "Optional. Nur ausfüllen, um das Passwort dieses Mitglieds zurückzusetzen.",
         "weatherAutoLocateLabel": "Standort automatisch alle 30 Minuten aktualisieren",
-        "weatherAutoLocateHint": "Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist."
+        "weatherAutoLocateHint": "Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.",
+        "pageWeather": "Mein Wetter",
+        "pageWeatherDescription": "Eigenen Standort für das Wetter-Widget festlegen",
+        "personalWeatherTitle": "Mein Standort",
+        "personalWeatherDescription": "Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.",
+        "personalWeatherUseHousehold": "Haushalts-Standard verwenden",
+        "personalWeatherSourceUser": "Eigener Standort aktiv",
+        "personalWeatherSourceHousehold": "Haushalts-Standardstandort aktiv",
+        "personalWeatherSaved": "Standort gespeichert",
+        "personalWeatherReset": "Auf Haushalts-Standard zurückgesetzt"
     },
     "login": {
         "tagline": "Familienplanung. Sicher. Datenschutzfreundlich. Open Source.",
