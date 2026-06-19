@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.74.5] - 2026-06-19
+
+### Added
+- **Calendar click-to-create time pre-fill:** clicking an empty slot in the day or week view now pre-fills the new event's start time from the clicked position (rounded to the nearest 30 minutes), with the end time set to start + 1 hour. Previously the start time was always hardcoded to 09:00.
+
 ## [0.74.4] - 2026-06-18
 
 ### Fixed
