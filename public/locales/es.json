@@ -1214,7 +1214,7 @@
         "modulesMoveDown": "Move down",
         "loading": "Cargando...",
         "sectionWeather": "Widget de clima",
-        "weatherTitle": "Open-Meteo (gratis, sin clave API)",
+        "weatherTitle": "[de: Haushalts-Standardstandort]",
         "weatherDescription": "Clima en vivo en el panel sin cuenta externa. Ingresa las coordenadas de tu ubicación.",
         "weatherCoordHint": "Encuentra coordenadas en openstreetmap.org o Google Maps.",
         "weatherLatLabel": "Latitud",
@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "Dejar en blanco para mantener la contraseña",
         "resetPasswordHint": "Opcional. Rellenar solo para restablecer la contraseña de este miembro.",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "Planificación familiar. Segura. Privada. Código abierto.",

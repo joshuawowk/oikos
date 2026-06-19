@@ -6,6 +6,7 @@
 
 import { DatabaseSync } from 'node:sqlite';
 import { register } from 'node:module';
+import * as nodeAssert from 'node:assert/strict';
 import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 import { hydrateBirthday, syncBirthdayArtifacts } from '../server/services/birthdays.js';
 import { getUpcomingEvents } from '../server/services/calendar-events.js';
@@ -611,6 +612,35 @@ test('getUpcomingEvents: ganztägiger Termin in der Zukunft erscheint (Issue #36
   const events = getUpcomingEvents(cdb, { userId: cuTheo, limit: 20, fromToday: true });
   assert(events.find((e) => e.title === 'Ganztägiger Zukunfts-Termin'),
     'Zukünftiger ganztägiger Termin muss im Dashboard erscheinen');
+});
+
+// --------------------------------------------------------
+// Tests: maybeUpdateAutoLocation (Per-User-Wetter-Standort)
+// --------------------------------------------------------
+test('maybeUpdateAutoLocation writes weather_user and ignores role', async () => {
+  const { maybeUpdateAutoLocation } = await import('../public/pages/dashboard.js');
+  const calls = [];
+  const geolocation = {
+    getCurrentPosition: (resolve) => resolve({ coords: { latitude: 52.5200, longitude: 13.4100 } }),
+  };
+  const ok = await maybeUpdateAutoLocation({
+    autoLocateEnabled: true,
+    geolocation,
+    putPreferences: (body) => { calls.push(body); return Promise.resolve(); },
+  });
+  nodeAssert.equal(ok, true);
+  nodeAssert.equal(calls.length, 1);
+  nodeAssert.deepEqual(calls[0], { weather_user: { lat: '52.5200', lon: '13.4100', city: null } });
+});
+
+test('maybeUpdateAutoLocation skips when disabled', async () => {
+  const { maybeUpdateAutoLocation } = await import('../public/pages/dashboard.js');
+  const ok = await maybeUpdateAutoLocation({
+    autoLocateEnabled: false,
+    geolocation: { getCurrentPosition: () => { throw new Error('should not be called'); } },
+    putPreferences: () => { throw new Error('should not be called'); },
+  });
+  nodeAssert.equal(ok, false);
 });
 
 // --------------------------------------------------------

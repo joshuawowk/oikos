@@ -1214,7 +1214,7 @@
         "modulesMoveDown": "Move down",
         "loading": "Loading...",
         "sectionWeather": "Weather Widget",
-        "weatherTitle": "Open-Meteo (free, no API key)",
+        "weatherTitle": "[de: Haushalts-Standardstandort]",
         "weatherDescription": "Live weather on the dashboard without an external account. Enter your location coordinates.",
         "weatherCoordHint": "Find coordinates on openstreetmap.org or Google Maps.",
         "weatherLatLabel": "Latitude",
@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "Leave blank to keep the password",
         "resetPasswordHint": "Optional. Only fill in to reset this member's password.",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "Family planning. Secure. Privacy-friendly. Open source.",

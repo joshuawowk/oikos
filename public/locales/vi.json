@@ -1191,7 +1191,7 @@
         "modulesMoveDown": "Di chuyển xuống",
         "loading": "Đang tải...",
         "sectionWeather": "Tiện ích Thời tiết",
-        "weatherTitle": "Open-Meteo (miễn phí, không cần API key)",
+        "weatherTitle": "[de: Haushalts-Standardstandort]",
         "weatherDescription": "Thời tiết trực tiếp trên bảng điều khiển mà không cần tài khoản ngoài. Nhập tọa độ vị trí của bạn.",
         "weatherCoordHint": "Tìm tọa độ trên openstreetmap.org hoặc Google Maps.",
         "weatherLatLabel": "Vĩ độ",
@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "Để trống để giữ nguyên mật khẩu",
         "resetPasswordHint": "Tùy chọn. Chỉ điền để đặt lại mật khẩu của thành viên này.",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "Kế hoạch gia đình. Bảo mật. Thân thiện với quyền riêng tư. Mã nguồn mở.",

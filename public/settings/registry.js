@@ -53,6 +53,16 @@ export const SETTINGS_LEAVES = freezeEntries([
     loader: () => import('/settings/pages/notifications.js'),
   },
   {
+    id: 'personal-weather',
+    domainId: 'personal',
+    path: '/settings/personal/weather',
+    labelKey: 'settings.pageWeather',
+    descriptionKey: 'settings.pageWeatherDescription',
+    icon: 'cloud-sun',
+    adminOnly: false,
+    loader: () => import('/settings/pages/personal-weather.js'),
+  },
+  {
     id: 'modules-navigation',
     domainId: 'modules',
     path: '/settings/modules/navigation',

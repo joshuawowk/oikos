@@ -94,7 +94,7 @@ function getTranslation(locale, key) {
 }
 
 test('settings leaves have unique IDs and paths', () => {
-  assert.equal(SETTINGS_LEAVES.length, 20);
+  assert.equal(SETTINGS_LEAVES.length, 21);
   assert.equal(new Set(SETTINGS_LEAVES.map((leaf) => leaf.id)).size, SETTINGS_LEAVES.length);
   assert.equal(new Set(SETTINGS_LEAVES.map((leaf) => leaf.path)).size, SETTINGS_LEAVES.length);
 });
@@ -111,6 +111,7 @@ test('personal settings leaf modules import without browser globals', async () =
     import('/settings/pages/personal-account.js'),
     import('/settings/pages/personal-appearance.js'),
     import('/settings/pages/personal-device.js'),
+    import('/settings/pages/personal-weather.js'),
   ]);
 
   for (const module of modules) {

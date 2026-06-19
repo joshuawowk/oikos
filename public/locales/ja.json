@@ -1214,7 +1214,7 @@
         "modulesMoveDown": "Move down",
         "loading": "読み込み中...",
         "sectionWeather": "天気ウィジェット",
-        "weatherTitle": "Open-Meteo（無料、APIキー不要）",
+        "weatherTitle": "[de: Haushalts-Standardstandort]",
         "weatherDescription": "外部アカウント不要でダッシュボードにライブ天気を表示。場所の座標を入力してください。",
         "weatherCoordHint": "openstreetmap.orgまたはGoogle Mapsで座標を確認できます。",
         "weatherLatLabel": "緯度",
@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "空欄のままにするとパスワードは変更されません",
         "resetPasswordHint": "任意。このメンバーのパスワードをリセットする場合のみ入力してください。",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "家族計画。安全。プライバシー重視。オープンソース。",

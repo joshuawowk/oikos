@@ -6,7 +6,7 @@ const BASE_ENV_KEYS = ['OPENWEATHER_API_KEY', 'OPENWEATHER_CITY', 'WEATHER_LAT',
 
 // Spin up the weather router with injected cfgGet (DB) + fetchFn (upstream).
 // Returns { baseUrl, close }.
-async function startApp({ env = {}, db = {}, fetchFn } = {}) {
+async function startApp({ env = {}, db = {}, fetchFn, userId } = {}) {
   for (const k of BASE_ENV_KEYS) delete process.env[k];
   Object.assign(process.env, env);
 
@@ -18,6 +18,7 @@ async function startApp({ env = {}, db = {}, fetchFn } = {}) {
 
   const app = express();
   app.use(express.json());
+  app.use((req, _res, next) => { if (userId) req.authUserId = userId; next(); });
   app.use('/', router);
 
   const server = await new Promise((resolve) => {
@@ -125,5 +126,34 @@ test('OWM legacy via env: provider + raw OWM icon code', async () => {
     assert.equal(body.data.provider, 'openweathermap');
     assert.equal(body.data.city, 'Hamburg');
     assert.equal(body.data.current.icon, '04d');
+  } finally { await close(); }
+});
+
+test('per-user override beats household coords', async () => {
+  const { baseUrl, close } = await startApp({
+    db: {
+      weather_provider: 'open-meteo',
+      weather_lat: '48.14', weather_lon: '11.58', weather_city: 'München',
+      'weather_lat:user:7': '52.52', 'weather_lon:user:7': '13.41', 'weather_city:user:7': 'Berlin',
+    },
+    fetchFn: OM_FETCH,
+    userId: 7,
+  });
+  try {
+    const { body } = await getJson(baseUrl);
+    assert.equal(body.data.provider, 'open-meteo');
+    assert.equal(body.data.city, 'Berlin');
+  } finally { await close(); }
+});
+
+test('falls back to household coords when user has no override', async () => {
+  const { baseUrl, close } = await startApp({
+    db: { weather_provider: 'open-meteo', weather_lat: '48.14', weather_lon: '11.58', weather_city: 'München' },
+    fetchFn: OM_FETCH,
+    userId: 7,
+  });
+  try {
+    const { body } = await getJson(baseUrl);
+    assert.equal(body.data.city, 'München');
   } finally { await close(); }
 });

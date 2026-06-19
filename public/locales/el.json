@@ -1214,7 +1214,7 @@
         "modulesMoveDown": "Move down",
         "loading": "Φόρτωση...",
         "sectionWeather": "Widget Καιρού",
-        "weatherTitle": "Open-Meteo (δωρεάν, χωρίς API κλειδί)",
+        "weatherTitle": "[de: Haushalts-Standardstandort]",
         "weatherDescription": "Ζωντανός καιρός στον πίνακα ελέγχου χωρίς εξωτερικό λογαριασμό. Εισάγετε τις συντεταγμένες της τοποθεσίας σας.",
         "weatherCoordHint": "Βρείτε συντεταγμένες στο openstreetmap.org ή Google Maps.",
         "weatherLatLabel": "Γεωγραφικό πλάτος",
@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "Αφήστε κενό για να διατηρήσετε τον κωδικό πρόσβασης",
         "resetPasswordHint": "Προαιρετικό. Συμπληρώστε μόνο για επαναφορά του κωδικού πρόσβασης αυτού του μέλους.",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "Οικογενειακός προγραμματισμός. Ασφαλής. Φιλικός προς την ιδιωτικότητα. Ανοιχτός κώδικας.",

@@ -1214,7 +1214,7 @@
         "modulesMoveDown": "Move down",
         "loading": "Завантаження...",
         "sectionWeather": "Віджет погоди",
-        "weatherTitle": "Open-Meteo (безкоштовно, без API-ключа)",
+        "weatherTitle": "[de: Haushalts-Standardstandort]",
         "weatherDescription": "Погода в реальному часі на панелі без зовнішнього акаунту. Введіть координати вашого місцезнаходження.",
         "weatherCoordHint": "Координати можна знайти на openstreetmap.org або Google Maps.",
         "weatherLatLabel": "Широта",
@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "Залиште порожнім, щоб зберегти пароль",
         "resetPasswordHint": "Необов'язково. Заповніть лише для скидання пароля цього учасника.",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "Планування для родини. Безпечно. Конфіденційно. Відкритий код.",

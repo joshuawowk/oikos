@@ -1214,7 +1214,7 @@
         "modulesMoveDown": "Move down",
         "loading": "लोड हो रहा है...",
         "sectionWeather": "मौसम विजेट",
-        "weatherTitle": "Open-Meteo (मुफ्त, कोई API कुंजी नहीं)",
+        "weatherTitle": "[de: Haushalts-Standardstandort]",
         "weatherDescription": "बिना बाहरी खाते के डैशबोर्ड पर लाइव मौसम। अपने स्थान के निर्देशांक दर्ज करें।",
         "weatherCoordHint": "openstreetmap.org या Google Maps पर निर्देशांक खोजें।",
         "weatherLatLabel": "अक्षांश",
@@ -1410,7 +1410,16 @@
         "resetPasswordPlaceholder": "पासवर्ड बनाए रखने के लिए खाली छोड़ें",
         "resetPasswordHint": "वैकल्पिक। इस सदस्य का पासवर्ड रीसेट करने के लिए ही भरें।",
         "weatherAutoLocateLabel": "[de: Standort automatisch alle 30 Minuten aktualisieren]",
-        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]"
+        "weatherAutoLocateHint": "[de: Fragt die Standortfreigabe einmalig an und aktualisiert den Standort danach automatisch, solange das Dashboard geöffnet ist.]",
+        "pageWeather": "[de: Mein Wetter]",
+        "pageWeatherDescription": "[de: Eigenen Standort für das Wetter-Widget festlegen]",
+        "personalWeatherTitle": "[de: Mein Standort]",
+        "personalWeatherDescription": "[de: Dein Wetter-Widget nutzt diesen Standort. Ist keiner gesetzt, gilt der Haushalts-Standardstandort.]",
+        "personalWeatherUseHousehold": "[de: Haushalts-Standard verwenden]",
+        "personalWeatherSourceUser": "[de: Eigener Standort aktiv]",
+        "personalWeatherSourceHousehold": "[de: Haushalts-Standardstandort aktiv]",
+        "personalWeatherSaved": "[de: Standort gespeichert]",
+        "personalWeatherReset": "[de: Auf Haushalts-Standard zurückgesetzt]"
     },
     "login": {
         "tagline": "पारिवारिक योजना। सुरक्षित। गोपनीयता-अनुकूल। ओपन सोर्स।",

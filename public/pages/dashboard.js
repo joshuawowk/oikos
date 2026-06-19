@@ -1267,18 +1267,20 @@ function updateWidgetConfig(config, id, patch) {
 // --------------------------------------------------------
 
 // Dependencies injiziert, damit die Funktion ohne DOM/`navigator`-Globals testbar ist.
-export async function maybeUpdateAutoLocation({ autoLocateEnabled, userRole, geolocation, putPreferences }) {
-  if (!autoLocateEnabled || userRole !== 'admin' || !geolocation) return false;
+export async function maybeUpdateAutoLocation({ autoLocateEnabled, geolocation, putPreferences }) {
+  if (!autoLocateEnabled || !geolocation) return false;
   try {
     const position = await new Promise((resolve, reject) => {
       geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 });
     });
     await putPreferences({
-      weather_lat: position.coords.latitude.toFixed(4),
-      weather_lon: position.coords.longitude.toFixed(4),
-      // Stadt-Label gehört zu den alten Koordinaten — löschen, damit das Widget
-      // auf die "lat, lon"-Anzeige zurückfällt statt einen veralteten Namen zu zeigen.
-      weather_city: '',
+      weather_user: {
+        lat: position.coords.latitude.toFixed(4),
+        lon: position.coords.longitude.toFixed(4),
+        // Stadt-Label gehört zu den alten Koordinaten — Override löschen, damit das Widget
+        // auf die "lat, lon"-Anzeige zurückfällt statt einen veralteten Namen zu zeigen.
+        city: null,
+      },
     });
     return true;
   } catch {
@@ -1315,7 +1317,7 @@ export async function render(container, { user }) {
     ]);
     data         = dashRes;
     weather      = weatherRes.data ?? null;
-    weatherAutoLocate = Boolean(prefsRes.data?.weather_auto_locate);
+    weatherAutoLocate = Boolean(prefsRes.data?.weather_user?.auto_locate ?? prefsRes.data?.weather_auto_locate);
     widgetConfig = normalizeDashboardConfig(prefsRes.data?.dashboard_widgets ?? DEFAULT_WIDGET_CONFIG);
     savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
     currency     = prefsRes.data?.currency ?? 'EUR';
@@ -1484,7 +1486,6 @@ export async function render(container, { user }) {
       try {
         await maybeUpdateAutoLocation({
           autoLocateEnabled: weatherAutoLocate,
-          userRole: user.role,
           geolocation: navigator.geolocation,
           putPreferences: (body) => api.put('/preferences', body),
         });
