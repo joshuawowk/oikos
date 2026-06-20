@@ -163,8 +163,10 @@ function rowControlsHtml(row) {
 function builtInRowHtml(row) {
   const statusLabel = row.enabled ? t('settings.thirdPartyModulesStatusEnabled') : t('settings.thirdPartyModulesStatusDisabled');
   const statusClass = row.enabled ? 'settings-module-status--enabled' : 'settings-module-status--disabled';
+  const stateClass = row.enabled ? 'settings-module-row--enabled' : 'settings-module-row--disabled';
+  const lockedClass = row.locked ? ' settings-module-row--locked' : '';
   return `
-    <div class="settings-module-row settings-module-row--sortable${row.sortable ? '' : ' settings-module-row--fixed'}" data-module-row-id="${esc(row.orderId)}"${row.sortable ? ` draggable="true" data-module-order-id="${esc(row.orderId)}"` : ''}>
+    <div class="settings-module-row settings-module-row--sortable ${stateClass}${lockedClass}${row.sortable ? '' : ' settings-module-row--fixed'}" data-module-row-id="${esc(row.orderId)}"${row.sortable ? ` draggable="true" data-module-order-id="${esc(row.orderId)}"` : ''}>
       ${rowControlsHtml(row)}
       <div class="settings-module-row__icon">
         <i data-lucide="${esc(row.icon)}" aria-hidden="true"></i>
@@ -178,7 +180,7 @@ function builtInRowHtml(row) {
       </div>
       <label class="toggle-row settings-module-row__toggle">
         <input type="checkbox" data-built-in-module-toggle="${esc(row.id)}"${row.enabled ? ' checked' : ''}${row.locked ? ' disabled' : ''}>
-        <span>${t('settings.thirdPartyModulesEnableLabel')}</span>
+        <span class="settings-module-row__toggle-label">${t('settings.thirdPartyModulesEnableLabel')}</span>
       </label>
     </div>
   `;
@@ -186,8 +188,9 @@ function builtInRowHtml(row) {
 
 function kitchenRowHtml(row) {
   const statusLabel = row.enabled ? t('settings.thirdPartyModulesStatusEnabled') : t('settings.thirdPartyModulesStatusDisabled');
+  const stateClass = row.enabled ? 'settings-module-row--enabled' : 'settings-module-row--disabled';
   return `
-    <div class="settings-module-row settings-module-row--sortable settings-module-row--kitchen" data-module-row-id="${esc(row.orderId)}" draggable="true" data-module-order-id="${esc(row.orderId)}">
+    <div class="settings-module-row settings-module-row--sortable settings-module-row--kitchen ${stateClass}" data-module-row-id="${esc(row.orderId)}" draggable="true" data-module-order-id="${esc(row.orderId)}">
       ${rowControlsHtml(row)}
       <div class="settings-module-row__icon">
         <i data-lucide="${esc(row.icon)}" aria-hidden="true"></i>
@@ -219,8 +222,10 @@ function thirdPartyRowHtml(row) {
   const statusClass = row.hasError
     ? 'settings-module-status--error'
     : row.enabled ? 'settings-module-status--enabled' : 'settings-module-status--disabled';
+  const stateClass = row.enabled ? 'settings-module-row--enabled' : 'settings-module-row--disabled';
+  const errorClass = row.hasError ? ' settings-module-row--error' : '';
   return `
-    <div class="settings-module-row settings-module-row--sortable${row.sortable ? '' : ' settings-module-row--fixed'}" data-module-row-id="${esc(row.orderId)}"${row.sortable ? ` draggable="true" data-module-order-id="${esc(row.orderId)}"` : ''}>
+    <div class="settings-module-row settings-module-row--sortable ${stateClass}${errorClass}${row.sortable ? '' : ' settings-module-row--fixed'}" data-module-row-id="${esc(row.orderId)}"${row.sortable ? ` draggable="true" data-module-order-id="${esc(row.orderId)}"` : ''}>
       ${rowControlsHtml(row)}
       <div class="settings-module-row__icon" style="--module-row-accent:${esc(row.accent) || DEFAULT_MODULE_ACCENT}">
         <i data-lucide="${esc(row.icon)}" aria-hidden="true"></i>
@@ -235,7 +240,7 @@ function thirdPartyRowHtml(row) {
       </div>
       <label class="toggle-row settings-module-row__toggle">
         <input type="checkbox" data-third-party-module-toggle="${esc(row.id)}"${row.enabled ? ' checked' : ''}${row.toggleDisabled ? ' disabled' : ''}>
-        <span>${t('settings.thirdPartyModulesEnableLabel')}</span>
+        <span class="settings-module-row__toggle-label">${t('settings.thirdPartyModulesEnableLabel')}</span>
       </label>
     </div>
   `;

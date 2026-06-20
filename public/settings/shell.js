@@ -100,9 +100,9 @@ function createNavigation(domains, user, activeLeaf) {
   const collapsible = domains.length > 1;
   navigation.classList.toggle('settings-shell__navigation--collapsible', collapsible);
 
-  // Single-Open: genau die aktive Domäne ist offen. Ohne aktives Blatt (Desktop-
-  // Übersicht) klappt die erste Domäne auf, damit nie alles zu ist.
-  const expandedDomainId = activeLeaf?.domainId ?? domains[0]?.id ?? null;
+  // Single-Open: genau die aktive Domäne ist offen. Ohne aktives Blatt bleibt
+  // die Root eine echte Übersicht; die lokale Navigation zeigt nur Domänen.
+  const expandedDomainId = activeLeaf?.domainId ?? null;
 
   for (const domain of domains) {
     const group = document.createElement('section');
@@ -244,9 +244,32 @@ function createOverviewHeader(title, description = null) {
   return header;
 }
 
-function renderDomainsOverview(content, domains) {
+function createDesktopLeafLink(entry) {
+  const link = createLink(entry.path, 'settings-desktop-overview__leaf');
+  link.appendChild(createIcon(entry.icon, 'settings-desktop-overview__leaf-icon'));
+
+  const copy = document.createElement('span');
+  copy.className = 'settings-desktop-overview__leaf-copy';
+
+  const label = document.createElement('span');
+  label.className = 'settings-desktop-overview__leaf-title';
+  label.textContent = t(entry.labelKey);
+
+  const description = document.createElement('span');
+  description.className = 'settings-desktop-overview__leaf-description';
+  description.textContent = t(entry.descriptionKey);
+
+  copy.append(label, description);
+  link.append(
+    copy,
+    createIcon('chevron-right', 'settings-desktop-overview__leaf-chevron'),
+  );
+  return link;
+}
+
+function renderDomainsOverview(content, domains, user) {
   const overview = document.createElement('section');
-  overview.className = 'settings-mobile-overview';
+  overview.className = 'settings-mobile-overview settings-mobile-overview--domains';
 
   const description = document.createElement('p');
   description.className = 'settings-mobile-overview__description';
@@ -264,7 +287,35 @@ function renderDomainsOverview(content, domains) {
   }
 
   overview.appendChild(links);
-  content.replaceChildren(overview);
+
+  const desktopOverview = document.createElement('section');
+  desktopOverview.className = 'settings-desktop-overview';
+
+  for (const domain of domains) {
+    const leaves = allowedLeavesForDomain(domain.id, user);
+    if (!leaves.length) continue;
+
+    const domainSection = document.createElement('section');
+    domainSection.className = 'settings-desktop-overview__domain';
+
+    const heading = document.createElement('h2');
+    heading.className = 'settings-desktop-overview__domain-title';
+    heading.append(
+      createIcon(domain.icon, 'settings-desktop-overview__domain-icon'),
+      document.createTextNode(t(domain.labelKey)),
+    );
+
+    const leafList = document.createElement('div');
+    leafList.className = 'settings-desktop-overview__leaf-list';
+    for (const entry of leaves) {
+      leafList.appendChild(createDesktopLeafLink(entry));
+    }
+
+    domainSection.append(heading, leafList);
+    desktopOverview.appendChild(domainSection);
+  }
+
+  content.replaceChildren(overview, desktopOverview);
 }
 
 function renderDomainOverview(content, domain, user) {
@@ -469,7 +520,7 @@ export async function renderSettingsShell(container, {
       console.error(
         `[Settings] Cannot render ${activeLeaf.id}: domain "${activeLeaf.domainId}" is not available.`,
       );
-      renderDomainsOverview(content, domains);
+      renderDomainsOverview(content, domains, user);
       hydrateIcons(content);
     } else {
       await renderLeafContent(content, activeLeaf, domain, user, query);
@@ -481,7 +532,7 @@ export async function renderSettingsShell(container, {
     if (domain) {
       renderDomainOverview(content, domain, user);
     } else {
-      renderDomainsOverview(content, domains);
+      renderDomainsOverview(content, domains, user);
     }
     hydrateIcons(content);
   }

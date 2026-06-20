@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.75.2] - 2026-06-20
+
+### Changed
+- **Settings overview polish:** the desktop Settings root now shows a descriptive overview instead of duplicating the local navigation, while status summaries, breadcrumbs, and mobile module rows use calmer system-aligned states and spacing.
+
 ## [0.75.1] - 2026-06-20
 
 ### Added

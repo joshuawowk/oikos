@@ -888,7 +888,7 @@ test('settings retry focus only moves to a connected replacement button after re
 test('settings shell falls back to the domains overview for orphaned active leaves', () => {
   const source = read('../public/settings/shell.js');
 
-  assert.match(source, /if \(!domain\)\s*\{[\s\S]*console\.error\([\s\S]*renderDomainsOverview\(content,\s*domains\)/);
+  assert.match(source, /if \(!domain\)\s*\{[\s\S]*console\.error\([\s\S]*renderDomainsOverview\(content,\s*domains(?:,\s*user)?\)/);
   assert.match(source, /else\s*\{[\s\S]*await renderLeafContent\(content,\s*activeLeaf,\s*domain,\s*user,\s*query\)/);
 });
 
