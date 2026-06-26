@@ -4,9 +4,13 @@
  * Ausführen: node --experimental-sqlite test-dashboard.js
  */
 
+process.env.DB_PATH = ':memory:';
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-secret';
+
 import { DatabaseSync } from 'node:sqlite';
 import { register } from 'node:module';
 import * as nodeAssert from 'node:assert/strict';
+import express from 'express';
 import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
 import { hydrateBirthday, syncBirthdayArtifacts } from '../server/services/birthdays.js';
 import { getUpcomingEvents } from '../server/services/calendar-events.js';
@@ -279,16 +283,65 @@ test('Angepinnte Notizen: nicht angepinnte werden ausgeschlossen', () => {
 // --------------------------------------------------------
 // Tests: Geburtstage
 // --------------------------------------------------------
-test('Geburtstage: nur aktueller Nutzer, sortiert nach nächstem Geburtstag', () => {
-  const rows = db.prepare('SELECT * FROM birthdays WHERE created_by = ? ORDER BY name COLLATE NOCASE ASC').all(uid1);
+test('Geburtstage: haushaltsweit, sortiert nach nächstem Geburtstag', () => {
+  const rows = db.prepare('SELECT * FROM birthdays ORDER BY name COLLATE NOCASE ASC').all();
   const birthdays = rows
     .map((row) => hydrateBirthday(row, new Date(`${today}T12:00:00Z`)))
     .sort((a, b) => a.days_until - b.days_until || a.name.localeCompare(b.name))
     .slice(0, 3);
 
-  assert(rows.length === 2, `Erwartet 2 Geburtstage, erhalten ${rows.length}`);
-  assert(birthdays[0].name === 'Heute Geburtstag', 'Heutiger Geburtstag zuerst');
-  assert(birthdays[0].days_until === 0, 'Heutiger Geburtstag hat 0 Tage Rest');
+  assert(rows.length === 3, `Erwartet 3 Geburtstage, erhalten ${rows.length}`);
+  assert(birthdays[0].days_until === 0, 'Ein heutiger Geburtstag steht zuerst');
+  assert(birthdays.some((birthday) => birthday.name === 'Heute Geburtstag' && birthday.days_until === 0),
+    'Eigener heutiger Geburtstag muss enthalten sein');
+  assert(birthdays.some((birthday) => birthday.name === 'Anderer Nutzer'), 'Geburtstag eines anderen Nutzers muss enthalten sein');
+});
+
+test('Dashboard-Geburtstagswidget lädt Geburtstage haushaltsweit (Issue #406)', async () => {
+  const { get } = await import('../server/db.js');
+  const { default: dashboardRouter } = await import('../server/routes/dashboard.js');
+  const routeDb = get();
+
+  routeDb.prepare("DELETE FROM reminders WHERE created_by IN (SELECT id FROM users WHERE username LIKE 'dashboard-birthday-%')").run();
+  routeDb.prepare("DELETE FROM calendar_events WHERE created_by IN (SELECT id FROM users WHERE username LIKE 'dashboard-birthday-%')").run();
+  routeDb.prepare("DELETE FROM birthdays WHERE created_by IN (SELECT id FROM users WHERE username LIKE 'dashboard-birthday-%')").run();
+  routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-birthday-%'").run();
+
+  const routeUser1 = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-birthday-owner', 'Owner', 'x', '#007AFF', 'admin')
+  `).run().lastInsertRowid;
+  const routeUser2 = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-birthday-other', 'Other', 'x', '#34C759', 'member')
+  `).run().lastInsertRowid;
+
+  routeDb.prepare('INSERT INTO birthdays (name, birth_date, created_by) VALUES (?, ?, ?)')
+    .run('Widget Owner Today', `2012-${today.slice(5)}`, routeUser1);
+  routeDb.prepare('INSERT INTO birthdays (name, birth_date, created_by) VALUES (?, ?, ?)')
+    .run('Widget Other Today', `2011-${today.slice(5)}`, routeUser2);
+
+  const app = express();
+  app.use((req, _res, next) => {
+    req.authUserId = routeUser1;
+    req.session = { userId: routeUser1 };
+    next();
+  });
+  app.use('/', dashboardRouter);
+
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/`);
+    const body = await response.json();
+    const names = body.birthdays.map((birthday) => birthday.name);
+
+    nodeAssert.equal(response.status, 200);
+    nodeAssert.equal(body.birthdayCount, 2);
+    nodeAssert.ok(names.includes('Widget Other Today'), 'Dashboard widget must include birthdays created by other users');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
 
 // --------------------------------------------------------

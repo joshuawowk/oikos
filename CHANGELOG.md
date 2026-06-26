@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.77.6] - 2026-06-26
+
+### Fixed
+- **Dashboard birthday widget:** the overview now shows upcoming birthdays from all household users instead of only birthdays created by the currently signed-in user. (Fixes #406)
+
 ## [0.77.5] - 2026-06-25
 
 ### Fixed

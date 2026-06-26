@@ -180,7 +180,7 @@ router.get('/', (req, res) => {
   }
 
   try {
-    const rows = d.prepare('SELECT * FROM birthdays WHERE created_by = ? ORDER BY name COLLATE NOCASE ASC').all(userId);
+    const rows = d.prepare('SELECT * FROM birthdays ORDER BY name COLLATE NOCASE ASC').all();
     result.birthdays = rows
       .map((row) => hydrateBirthday(row))
       .sort((a, b) => a.days_until - b.days_until || a.name.localeCompare(b.name))
