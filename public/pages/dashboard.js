@@ -529,8 +529,10 @@ function renderTodayMeals(meals) {
     const meal = meals.find((m) => m.meal_type === type);
     return `
       <div class="meal-slot ${meal ? 'meal-slot--filled' : ''}" data-type="${type}" data-route="/meals" role="button" tabindex="0">
-        <i data-lucide="${MEAL_ICONS[type]}" class="meal-slot__icon" aria-hidden="true"></i>
-        <div class="meal-slot__type">${mealLabels[type]}</div>
+        <div class="meal-slot__header">
+          <span class="meal-slot__type">${mealLabels[type]}</span>
+          <i data-lucide="${MEAL_ICONS[type]}" class="meal-slot__icon" aria-hidden="true"></i>
+        </div>
         <div class="meal-slot__title">${meal ? esc(meal.title) : '-'}</div>
       </div>
     `;
@@ -538,7 +540,9 @@ function renderTodayMeals(meals) {
 
   return `<div class="widget widget--meals">
     ${widgetHeader('utensils', t('dashboard.todayMeals'), null, '/meals', t('dashboard.weekLink'))}
-    <div class="meal-slots">${slots}</div>
+    <div class="meals-widget">
+      <div class="meal-slots">${slots}</div>
+    </div>
   </div>`;
 }
 
