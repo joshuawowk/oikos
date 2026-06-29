@@ -193,6 +193,16 @@ const STATS_RANGES = new Set(['week', 'month', 'year']);
 function ymd(d) { return d.toISOString().slice(0, 10); }        // YYYY-MM-DD (UTC)
 function ym(d)  { return d.toISOString().slice(0, 7);  }        // YYYY-MM   (UTC)
 
+function todayLocalDateKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function thisMonthLocalKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 /**
  * Leitet Zeitraum, Vorperiode und lückenlose Bucket-Keys aus range+anchor ab.
  * @param {'week'|'month'|'year'} range
@@ -476,7 +486,7 @@ router.get('/summary', (req, res) => {
  */
 export function resolveExportRange({ from, to, month }) {
   if (DATE_RE.test(from || '') && DATE_RE.test(to || '')) return { from, to };
-  const m = MONTH_RE.test(month || '') ? month : new Date().toISOString().slice(0, 7);
+  const m = MONTH_RE.test(month || '') ? month : thisMonthLocalKey();
   return { from: `${m}-01`, to: `${m}-31` };
 }
 
@@ -491,7 +501,7 @@ router.get('/export', (req, res) => {
     const { from, to } = resolveExportRange(req.query);
     const filename = (DATE_RE.test(req.query.from || '') && DATE_RE.test(req.query.to || ''))
       ? `budget-${from}_${to}.csv`
-      : `budget-${req.query.month || new Date().toISOString().slice(0, 7)}.csv`;
+      : `budget-${req.query.month || thisMonthLocalKey()}.csv`;
     const entries = db.get().prepare(`
       SELECT b.*, u.display_name AS creator_name
       FROM budget_entries b
@@ -1444,7 +1454,7 @@ export function computeStats(database, { range, anchor }) {
 export function statsHandler(req, res) {
   try {
     const range  = req.query.range || 'month';
-    const anchor = req.query.anchor || new Date().toISOString().slice(0, 10);
+    const anchor = req.query.anchor || todayLocalDateKey();
     if (!STATS_RANGES.has(range))
       return res.status(400).json({ error: 'range muss week|month|year sein', code: 400 });
     if (!DATE_RE.test(anchor))

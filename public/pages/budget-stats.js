@@ -4,7 +4,7 @@
  */
 import { api } from '/api.js';
 import { t } from '/i18n.js';
-import { toLocalDateKey } from '/utils/date.js';
+import { toLocalDateKey, parseLocalDateKey, addLocalDays } from '/utils/date.js';
 
 const view = { range: 'month', anchor: toLocalDateKey(new Date()), data: null, ctx: null, root: null };
 
@@ -60,11 +60,14 @@ function wire() {
 }
 
 function stepAnchor(dir) {
-  const d = new Date(`${view.anchor}T00:00:00Z`);
-  if (view.range === 'week') d.setUTCDate(d.getUTCDate() + 7 * dir);
-  else if (view.range === 'month') d.setUTCMonth(d.getUTCMonth() + dir);
-  else d.setUTCFullYear(d.getUTCFullYear() + dir);
-  view.anchor = d.toISOString().slice(0, 10);
+  if (view.range === 'week') {
+    view.anchor = addLocalDays(view.anchor, 7 * dir);
+    return;
+  }
+  const d = parseLocalDateKey(view.anchor);
+  if (view.range === 'month') d.setMonth(d.getMonth() + dir);
+  else d.setFullYear(d.getFullYear() + dir);
+  view.anchor = toLocalDateKey(d);
 }
 
 function renderBodyContent(body) {
