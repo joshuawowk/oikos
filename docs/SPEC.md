@@ -1094,7 +1094,7 @@ User management and app configuration. Logged-in users only.
 
 ### Budget (`/budget`)
 
-**Tabs:** Budget, Subscriptions, Loans, Split Expenses.
+**Tabs:** Budget, Statistics, Subscriptions, Loans, Split Expenses.
 
 **Views:**
 - Monthly overview: income vs. expenses, balance, bar chart by category (Canvas, no library)
@@ -1105,15 +1105,16 @@ User management and app configuration. Logged-in users only.
 - Subcategories: 35 predefined subcategories across expense categories; users can add custom subcategories inline; displayed alongside category in each entry's metadata line
 - Recurring entries
 - Monthly comparison (current vs. previous month)
-- CSV export includes a subcategory column and English column headers
+- CSV export includes a subcategory column and English column headers; the same endpoint accepts an arbitrary date range via `?from=YYYY-MM-DD&to=YYYY-MM-DD` (used by the Statistics tab's export button) in addition to the legacy `?month=YYYY-MM`
 - **Category bar chart accessibility:** the chart exposes a concise `.sr-only` summary (number of categories, largest category and its share) for assistive technologies (v0.55.0)
+- **Statistics tab:** dedicated range view (week, month, year) with a period stepper, summary cards for income/expense/balance plus comparison against the previous period, an SVG trend chart of income vs. expenses, category bars, an expense-share donut, and a CSV-export button for the active range. Backed by `GET /api/v1/budget/stats?range=week|month|year&anchor=YYYY-MM-DD`.
 - **Loans tab:** create instalment-based loans (borrower, total amount, number of instalments, start month); record individual payments; remaining balance and due months shown automatically; paid-off loans marked as closed; filter budget transactions by loan
 - **Subscriptions tab:** recurring service CRUD with daily/weekly/monthly/yearly cycles and exact next-renewal calculation. Every active subscription creates a linked expense on the Budget tab for its next payment; edits synchronize it, disabling removes it from calculations, and renewal preserves the paid expense while creating the next one. Includes custom sortable categories and payment methods, searchable in-modal currency/category/payment controls, uploaded logos plus redirect-aware SSRF-protected public HTTPS logo discovery from site icons and public metadata, configurable reminder timing, filtering, sorting, and responsive analytics.
 - **Subscription finances:** native billing currencies, configurable base currency and monthly budget, 12-hour exchange-rate cache with optional Fixer refresh, monthly normalization and yearly projection, remaining/over-budget status, and category/payment-method charts.
 - **Subscription reminders:** upcoming payments appear in the existing in-app reminder center according to each subscription's reminder timing.
 - **Platform inheritance:** Subscriptions uses the application's existing household multi-user authorization, OIDC/OAuth login, SQLCipher option, backup/restore, responsive PWA shell, offline shell caching, themes, and 20-locale i18n system rather than duplicating those controls inside the tab.
 - **Split Expenses tab:** shared expense tracking within named groups (household, couple, travel, event, shopping, general). Split methods: equal, exact amounts, percentage, shares. Balances derived from an immutable double-entry ledger — amounts stored as integer minor currency units (cents) to avoid floating-point errors. **Settlements:** record payments between members; a debt-simplification algorithm produces the minimal transfer set. **Recurring expenses:** daily, weekly, monthly, yearly schedule with automatic generation via hourly scheduler. **Guest accounts:** invite people outside the family as restricted users who can only access the Split module and see their invited groups. **Multi-currency:** each group has a default currency; individual expenses can use any currency with historical exchange rate snapshots. **Activity feed:** per-group log of all expense, member, and settlement events.
-- API: `GET /api/v1/budget/categories`, `GET /api/v1/budget/categories/:key/subcategories` (optional `?lang=` localisation), `POST /api/v1/budget/categories`, `POST /api/v1/budget/categories/:key/subcategories`
+- API: `GET /api/v1/budget/categories`, `GET /api/v1/budget/categories/:key/subcategories` (optional `?lang=` localisation), `POST /api/v1/budget/categories`, `POST /api/v1/budget/categories/:key/subcategories`, `GET /api/v1/budget/stats?range=week|month|year&anchor=YYYY-MM-DD` (totals, comparison vs. previous period, per-period series, per-category breakdown), `GET /api/v1/budget/export?from=YYYY-MM-DD&to=YYYY-MM-DD` (range CSV; legacy `?month=YYYY-MM` still supported)
 - Loans API: `GET /api/v1/budget/loans`, `POST /api/v1/budget/loans`, `GET /api/v1/budget/loans/:id`, `PUT /api/v1/budget/loans/:id`, `DELETE /api/v1/budget/loans/:id`, `GET /api/v1/budget/loans/:id/payments`, `POST /api/v1/budget/loans/:id/payments`, `DELETE /api/v1/budget/loans/:id/payments/:paymentId`
 - Subscriptions API: `/api/v1/budget/subscriptions` CRUD and analytics, plus `/meta`, `/settings`, and `/logo-search` for selectable logo candidates from a website URL or service name.
 - Split API: `/api/v1/split/*` — CRUD for groups, members, expenses, settlements, recurring expenses, and activity feed
