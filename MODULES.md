@@ -69,7 +69,11 @@ export async function render(container, context) {
 }
 ```
 
-Modules may import public Yuvomi browser libraries such as `/api.js`, `/i18n.js`, and utilities under `/utils/`. Modules must follow the same frontend security rules as core Yuvomi:
+Modules may import public Yuvomi browser libraries such as `/api.js`, `/i18n.js`, and utilities under `/utils/`. For calls to Yuvomi's built-in REST API, prefer `import { api } from '/api.js'`: it prefixes requests with `/api/v1`, sends the current session credentials, handles CSRF tokens, and uses non-cached fetches for user data.
+
+If a module calls a separate backend service through a reverse proxy, expose that service on a same-origin `/api/...` path whenever the response is dynamic. Yuvomi's service worker deliberately bypasses `/api/` requests, while other same-origin GET requests may be handled by the app-shell caching strategy. A dynamic proxy path such as `/ext/myservice/...` can therefore return stale cached responses unless you also change the service-worker strategy.
+
+Modules must follow the same frontend security rules as core Yuvomi:
 
 - Use `replaceChildren()` and `insertAdjacentHTML()`.
 - Escape untrusted values before inserting HTML.

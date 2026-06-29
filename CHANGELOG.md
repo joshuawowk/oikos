@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.78.2] - 2026-06-29
+
+### Changed
+- **Third-party module documentation:** clarified that module API calls should use `/api.js` for built-in Yuvomi endpoints and that reverse-proxied dynamic backend services should live under a same-origin `/api/...` path to avoid stale service-worker cache responses. (Discussion #386)
+
+### Fixed
+- **Dashboard → Today Meals widget:** hidden meal types from Settings → Modules → Kitchen are no longer rendered as empty slots in the widget. (Discussion #407)
+
 ## [0.78.1] - 2026-06-29
 
 ### Added

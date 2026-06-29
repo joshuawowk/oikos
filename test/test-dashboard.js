@@ -154,6 +154,20 @@ test('Today-Highlights filtert Termine auf den heutigen Tag', async () => {
   assert(result.nextEvent.title === 'Termin Heute', 'Erwartet "Termin Heute" als nächsten Termin');
 });
 
+test('Today-Meals-Widget rendert nur sichtbare Mahlzeit-Typen', async () => {
+  const { __test } = await import('../public/pages/dashboard.js');
+  const html = __test.renderTodayMeals([
+    { meal_type: 'breakfast', title: 'Haferbrei' },
+    { meal_type: 'dinner', title: 'Pasta' },
+    { meal_type: 'snack', title: 'Apfel' },
+  ], ['dinner', 'snack']);
+
+  nodeAssert.ok(html.includes('data-type="dinner"'));
+  nodeAssert.ok(html.includes('data-type="snack"'));
+  nodeAssert.ok(!html.includes('data-type="breakfast"'));
+  nodeAssert.ok(!html.includes('data-type="lunch"'));
+});
+
 // --------------------------------------------------------
 // Tests: Dringende Aufgaben
 // --------------------------------------------------------
@@ -341,6 +355,67 @@ test('Dashboard-Geburtstagswidget lädt Geburtstage haushaltsweit (Issue #406)',
     nodeAssert.ok(names.includes('Widget Other Today'), 'Dashboard widget must include birthdays created by other users');
   } finally {
     await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('Dashboard-Endpoint filtert heutige Mahlzeiten nach sichtbaren Typen', async () => {
+  const { get } = await import('../server/db.js');
+  const { default: dashboardRouter } = await import('../server/routes/dashboard.js');
+  const routeDb = get();
+  const previousMealTypes = routeDb.prepare('SELECT value FROM sync_config WHERE key = ?').get('visible_meal_types')?.value ?? null;
+
+  routeDb.prepare("DELETE FROM meals WHERE created_by IN (SELECT id FROM users WHERE username LIKE 'dashboard-meals-%')").run();
+  routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-meals-%'").run();
+
+  const routeUser = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-meals-owner', 'Meal Owner', 'x', '#007AFF', 'admin')
+  `).run().lastInsertRowid;
+
+  routeDb.prepare(`
+    INSERT INTO meals (date, meal_type, title, created_by)
+    VALUES (?, ?, ?, ?)
+  `).run(today, 'breakfast', 'Hidden Breakfast', routeUser);
+  routeDb.prepare(`
+    INSERT INTO meals (date, meal_type, title, created_by)
+    VALUES (?, ?, ?, ?)
+  `).run(today, 'dinner', 'Visible Dinner', routeUser);
+  routeDb.prepare(`
+    INSERT INTO sync_config (key, value)
+    VALUES ('visible_meal_types', 'dinner')
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `).run();
+
+  const app = express();
+  app.use((req, _res, next) => {
+    req.authUserId = routeUser;
+    req.session = { userId: routeUser };
+    next();
+  });
+  app.use('/', dashboardRouter);
+
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/`);
+    const body = await response.json();
+
+    nodeAssert.equal(response.status, 200);
+    nodeAssert.deepEqual(body.todayMeals.map((meal) => meal.meal_type), ['dinner']);
+    nodeAssert.equal(body.todayMeals[0].title, 'Visible Dinner');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    if (previousMealTypes === null) {
+      routeDb.prepare('DELETE FROM sync_config WHERE key = ?').run('visible_meal_types');
+    } else {
+      routeDb.prepare(`
+        INSERT INTO sync_config (key, value)
+        VALUES ('visible_meal_types', ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+      `).run(previousMealTypes);
+    }
+    routeDb.prepare("DELETE FROM meals WHERE created_by IN (SELECT id FROM users WHERE username LIKE 'dashboard-meals-%')").run();
+    routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-meals-%'").run();
   }
 });
 

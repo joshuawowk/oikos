@@ -295,6 +295,14 @@ const PRIORITY_LABELS = () => ({
   low:    t('tasks.priorityLow'),
 });
 
+const MEAL_ORDER = Object.freeze(['breakfast', 'lunch', 'dinner', 'snack']);
+
+function normalizeVisibleMealTypes(visibleMealTypes) {
+  if (!Array.isArray(visibleMealTypes)) return MEAL_ORDER;
+  const filtered = MEAL_ORDER.filter((type) => visibleMealTypes.includes(type));
+  return filtered.length ? filtered : MEAL_ORDER;
+}
+
 const MEAL_LABELS = () => ({
   breakfast: t('meals.typeBreakfast'),
   lunch:     t('meals.typeLunch'),
@@ -521,12 +529,11 @@ function renderUpcomingBirthdays(birthdays) {
   </div>`;
 }
 
-function renderTodayMeals(meals) {
-  const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
-
+function renderTodayMeals(meals, visibleMealTypes = MEAL_ORDER) {
   const mealLabels = MEAL_LABELS();
-  const slots = MEAL_ORDER.map((type) => {
-    const meal = meals.find((m) => m.meal_type === type);
+  const safeMeals = Array.isArray(meals) ? meals : [];
+  const slots = normalizeVisibleMealTypes(visibleMealTypes).map((type) => {
+    const meal = safeMeals.find((m) => m.meal_type === type);
     return `
       <div class="meal-slot ${meal ? 'meal-slot--filled' : ''}" data-type="${type}" data-route="/meals" role="button" tabindex="0">
         <div class="meal-slot__header">
@@ -740,14 +747,14 @@ function renderWidgetCustomizeControls(w) {
   `;
 }
 
-function renderDashboardLayout(cfg, data, weather, currency, { editing = false } = {}) {
+function renderDashboardLayout(cfg, data, weather, currency, { editing = false, visibleMealTypes = MEAL_ORDER } = {}) {
   const widgetById = {
     tasks: () => renderUrgentTasks(data.urgentTasks ?? []),
     calendar: () => renderUpcomingEvents(data.upcomingEvents ?? []),
     birthdays: () => renderUpcomingBirthdays(data.birthdays ?? []),
     budget: () => renderBudgetWidget(data.budget ?? {}, currency),
     family: () => renderFamilyWidget(data.users ?? []),
-    meals: () => renderTodayMeals(data.todayMeals ?? []),
+    meals: () => renderTodayMeals(data.todayMeals ?? [], visibleMealTypes),
     notes: () => renderPinnedNotes(data.pinnedNotes ?? []),
     shopping: () => renderShoppingLists(data.shoppingLists ?? []),
     weather: () => (weather ? renderWeatherWidget(weather) : ''),
@@ -1313,6 +1320,7 @@ export async function render(container, { user }) {
   let savedWidgetConfig = DEFAULT_WIDGET_CONFIG;
   let isCustomizing = false;
   let currency     = 'EUR';
+  let visibleMealTypes = MEAL_ORDER;
   try {
     const [dashRes, weatherRes, prefsRes] = await Promise.all([
       api.get('/dashboard'),
@@ -1325,6 +1333,7 @@ export async function render(container, { user }) {
     widgetConfig = normalizeDashboardConfig(prefsRes.data?.dashboard_widgets ?? DEFAULT_WIDGET_CONFIG);
     savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
     currency     = prefsRes.data?.currency ?? 'EUR';
+    visibleMealTypes = normalizeVisibleMealTypes(prefsRes.data?.visible_meal_types);
   } catch (err) {
     console.error('[Dashboard] Ladefehler:', err.message, 'Status:', err.status ?? 'network');
     window.oikos?.showToast(t('dashboard.loadError'), 'warning');
@@ -1438,7 +1447,7 @@ export async function render(container, { user }) {
     setHtml(shell, `
       ${renderDashboardOverview(user, isCustomizing)}
       ${renderTodayCockpit(data)}
-      ${renderDashboardLayout(cfg, data, weather, currency, { editing: isCustomizing })}
+      ${renderDashboardLayout(cfg, data, weather, currency, { editing: isCustomizing, visibleMealTypes })}
     `);
     wireLinks(container, rerender, { editing: isCustomizing });
     if (window.lucide) window.lucide.createIcons({ el: shell });
@@ -1508,7 +1517,7 @@ export async function render(container, { user }) {
   }
 }
 
-export const __test = { buildTodayHighlights };
+export const __test = { buildTodayHighlights, normalizeVisibleMealTypes, renderTodayMeals };
 
 function wireWeatherRefresh(container, onUpdated = null) {
   const refreshBtn = container.querySelector('#weather-refresh-btn');
