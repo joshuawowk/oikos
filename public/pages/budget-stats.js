@@ -101,6 +101,91 @@ function renderBodyContent(body) {
   `);
   updatePeriodLabel();
   renderTrendChart();
+  renderCatBars();
+  renderDonut();
+  renderExport();
+}
+
+const DONUT_COLORS = [
+  'var(--color-accent)', 'var(--color-danger)', 'var(--color-warning)',
+  'var(--color-success)', 'var(--color-info)', 'var(--text-secondary)',
+];
+
+function renderCatBars() {
+  const host = view.root.querySelector('#budget-stats-cat');
+  const cats = view.data.byCategory.filter((c) => c.total !== 0);
+  if (!host || !cats.length) return;
+  const maxAbs = Math.max(...cats.map((c) => Math.abs(c.total)), 1);
+  const rows = cats.map((c) => {
+    const isExp = c.total < 0;
+    const pct = Math.round((Math.abs(c.total) / maxAbs) * 100);
+    return `
+      <div class="budget-bar-row">
+        <div class="budget-bar-row__label">${view.ctx.esc(view.ctx.categoryLabel(c.category))}</div>
+        <div class="budget-bar-row__track">
+          <div class="budget-bar-row__fill ${isExp ? 'budget-bar-row__fill--expenses' : 'budget-bar-row__fill--income'}"
+               style="--bar-scale:${pct / 100}"></div>
+        </div>
+        <div class="budget-bar-row__amount" style="color:${isExp ? 'var(--color-danger)' : 'var(--color-success)'};">
+          ${view.ctx.formatAmount(c.total)}
+        </div>
+      </div>`;
+  }).join('');
+  host.replaceChildren();
+  host.insertAdjacentHTML('beforeend', `
+    <div class="budget-chart-section">
+      <div class="budget-chart-section__title">${t('budget.statsCategoryTitle')}</div>
+      <div class="budget-chart">${rows}</div>
+    </div>`);
+}
+
+function renderDonut() {
+  const host = view.root.querySelector('#budget-stats-donut');
+  const exp = view.data.byCategory
+    .filter((c) => c.expenses < 0)
+    .map((c) => ({ category: c.category, value: Math.abs(c.expenses) }));
+  const total = exp.reduce((s, e) => s + e.value, 0);
+  if (!host || total === 0) return;
+
+  const C = 2 * Math.PI * 60; // r=60
+  let offset = 0;
+  const segs = exp.map((e, i) => {
+    const frac = e.value / total;
+    const seg = `
+      <circle r="60" cx="80" cy="80" fill="none" stroke="${DONUT_COLORS[i % DONUT_COLORS.length]}"
+        stroke-width="22" stroke-dasharray="${(frac * C).toFixed(2)} ${C.toFixed(2)}"
+        stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 80 80)" />`;
+    offset += frac * C;
+    return seg;
+  }).join('');
+  const legend = exp.map((e, i) => `
+    <span class="budget-stats__legend-item">
+      <i class="budget-stats__swatch" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]};"></i>
+      ${view.ctx.esc(view.ctx.categoryLabel(e.category))} · ${Math.round((e.value / total) * 100)}%
+    </span>`).join('');
+
+  host.replaceChildren();
+  host.insertAdjacentHTML('beforeend', `
+    <div class="budget-chart-section">
+      <div class="budget-chart-section__title">${t('budget.statsDonutTitle')}</div>
+      <div class="budget-stats__donut-wrap">
+        <svg viewBox="0 0 160 160" class="budget-stats__donut" role="img"
+             aria-label="${t('budget.statsDonutTitle')}">${segs}</svg>
+        <div class="budget-stats__legend budget-stats__legend--wrap">${legend}</div>
+      </div>
+    </div>`);
+}
+
+function renderExport() {
+  const host = view.root.querySelector('.budget-stats__export');
+  if (!host) return;
+  const { from, to } = view.data;
+  host.replaceChildren();
+  host.insertAdjacentHTML('beforeend', `
+    <a class="btn btn--secondary" href="/api/v1/budget/export?from=${from}&to=${to}">
+      <i data-lucide="download" class="icon-md" aria-hidden="true"></i> ${t('budget.statsExport')}
+    </a>`);
+  if (window.lucide) lucide.createIcons({ el: host });
 }
 
 function renderTrendChart() {
