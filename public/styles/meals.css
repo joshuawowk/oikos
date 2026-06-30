@@ -233,6 +233,15 @@
   background-color: var(--color-accent-light);
 }
 
+/* Touch-Geräte kennen kein Hover: Button dauerhaft sichtbar und auf
+ * vollwertiges Touch-Target heben, sonst bleibt er unerreichbar. */
+@media (hover: none) {
+  .meal-slot__add-more-btn {
+    opacity: 1;
+    min-height: var(--target-md);
+  }
+}
+
 /* --------------------------------------------------------
  * Mahlzeit-Karte (innerhalb des Slots)
  * -------------------------------------------------------- */

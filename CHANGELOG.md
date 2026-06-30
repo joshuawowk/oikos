@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.78.10] - 2026-06-30
+
+### Fixed
+- **Subscription cards:** removed the 4px colored left-border stripe; the brand color now lives solely on the brand icon tile, in line with the design system's full-border convention.
+- **Touch targets:** subscription card action buttons now meet the 40px minimum target size (were 36px), and the meal planner's "add another meal" button is raised to a full touch target on touch devices.
+- **Meal planner on touch:** the "add another meal" button, previously revealed only on hover, is now permanently visible on touch devices (`hover: none`), where it was otherwise unreachable.
+
 ## [0.78.9] - 2026-06-30
 
 ### Fixed
