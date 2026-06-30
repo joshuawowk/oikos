@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-06-30
+
+### Changed
+- **Dashboard "Today at a glance" category labels** (Task, Event, Shopping, Dinner) now carry their module's accent color instead of neutral gray, reinforcing module identity at a glance. Contrast stays above WCAG AA in both light and dark themes.
+- **New installations now default to day-month-year date format** (e.g. `30.06.2026`) instead of US month-day-year, matching the existing 24-hour time and EUR currency defaults. Existing accounts keep their chosen format, and US `MM/DD/YYYY` remains selectable under Settings → Appearance.
+
+### Fixed
+- **Duplicate required-field asterisk** removed: the title field in the task, calendar and budget dialogs no longer renders a doubled marker; a single styled asterisk is shown across all 20 languages.
+- **Dashboard meal widget** empty states no longer truncate mid-word — the dinner tile shows a concise "Nothing planned", and empty meal slots use a clearer muted placeholder.
+
 ## [0.79.0] - 2026-06-30
 
 ### Changed

@@ -589,6 +589,12 @@
   color: var(--color-text-primary);
 }
 
+/* Leerer Slot: gedämpfter Em-Dash liest als bewusst leer (kein verirrter
+ * Bindestrich). Der ganze Slot ist klickbar (role=button → /meals). */
+.meal-slot__title--empty {
+  color: var(--color-text-disabled);
+}
+
 /* --------------------------------------------------------
  * Shopping-Widget
  * -------------------------------------------------------- */
@@ -1564,7 +1570,11 @@ svg.weather-forecast__icon {
 }
 
 .today-cockpit-card__label {
-  color: var(--color-text-secondary);
+  /* Kategorielabel trägt den Modulton statt Neutralgrau — eine zur Ink-Seite
+   * gemischte, dunklere Schattierung der Domänenfarbe (Regel „shade of the
+   * background's own hue"). Mix Richtung --color-text-primary hält den Kontrast
+   * in Light wie Dark, da text-primary das Theme spiegelt. */
+  color: color-mix(in srgb, var(--today-card-accent) 78%, var(--color-text-primary));
 }
 
 .today-cockpit-card__value {

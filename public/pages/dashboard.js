@@ -559,7 +559,7 @@ function renderTodayMeals(meals, visibleMealTypes = MEAL_ORDER) {
           <span class="meal-slot__type">${mealLabels[type]}</span>
           <i data-lucide="${MEAL_ICONS[type]}" class="meal-slot__icon" aria-hidden="true"></i>
         </div>
-        <div class="meal-slot__title">${meal ? esc(meal.title) : '-'}</div>
+        <div class="meal-slot__title${meal ? '' : ' meal-slot__title--empty'}">${meal ? esc(meal.title) : '—'}</div>
       </div>
     `;
   }).join('');

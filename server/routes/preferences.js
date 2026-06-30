@@ -22,7 +22,10 @@ const DEFAULT_CURRENCY = 'EUR';
 const DEFAULT_APP_NAME = 'Yuvomi';
 
 const VALID_DATE_FORMATS = ['mdy', 'dmy', 'ymd', 'mdy_dot', 'dmy_dot', 'dmy_slash', 'ymd_dot', 'ymd_slash'];
-const DEFAULT_DATE_FORMAT = 'mdy';
+// Default an die übrigen europäischen Defaults (EUR, 24h) und den Client-i18n-
+// Default (dmy) angeglichen: ein nicht konfigurierter Account zeigt 30.06.2026
+// statt 06/30/2026. US-Nutzer können in den Einstellungen weiterhin mdy wählen.
+const DEFAULT_DATE_FORMAT = 'dmy';
 const VALID_TIME_FORMATS = ['24h', '12h'];
 const DEFAULT_TIME_FORMAT = '24h';
 
