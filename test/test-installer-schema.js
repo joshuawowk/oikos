@@ -161,8 +161,8 @@ test('docker-compose.yml mappt den Host-Port über OIKOS_HTTP_PORT mit Default 3
 
 test('install.sh schreibt TZ und OIKOS_HTTP_PORT in die generierte .env', () => {
   const src = readFileSync(new URL('../install.sh', import.meta.url), 'utf8');
-  assert.match(src, /^TZ=\$\{OIKOS_TZ\}/m, 'install.sh schreibt TZ=${OIKOS_TZ} nicht in den .env-Block');
-  assert.match(src, /^OIKOS_HTTP_PORT=\$\{OIKOS_PORT\}/m, 'install.sh schreibt OIKOS_HTTP_PORT=${OIKOS_PORT} nicht in den .env-Block');
+  assert.match(src, /^TZ=\$\{YUVOMI_TZ\}/m, 'install.sh schreibt TZ=${YUVOMI_TZ} nicht in den .env-Block');
+  assert.match(src, /^OIKOS_HTTP_PORT=\$\{YUVOMI_PORT\}/m, 'install.sh schreibt OIKOS_HTTP_PORT=${YUVOMI_PORT} nicht in den .env-Block');
 });
 
 test('.env.example dokumentiert OIKOS_HTTP_PORT', () => {

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.78.6] - 2026-06-30
+
+### Fixed
+- **CI test suite:** updated the installer-schema test to expect the renamed internal shell variables (`YUVOMI_TZ`, `YUVOMI_PORT`) in `install.sh`, fixing the red `test:installer-schema` check after the Oikos→Yuvomi branding rename.
+
 ## [0.78.5] - 2026-06-30
 
 ### Changed
