@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.78.11] - 2026-06-30
+
+### Removed
+- **Dashboard stylesheet cleanup:** removed ~510 lines of dead and self-overriding CSS from `dashboard.css` — four unreferenced component generations (`.dashboard-metric`, `.dashboard-stat`, `.dashboard-kpi`, the old `.widget-greeting`/`.greeting-chip` block), an unused `.dashboard-chip`, a now-orphaned keyframe, and the redundant "Modern Skin" layer that a later block fully reverted. No visual change; rendered output is identical.
+
 ## [0.78.10] - 2026-06-30
 
 ### Fixed
