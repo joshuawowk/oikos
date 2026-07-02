@@ -668,7 +668,10 @@ export async function stageDocumentUpload({
       storage_backend: 'local',
       storage_provider: 'local',
       storage_key: null,
-      content_data: content.toString('base64'),
+      // Roh-Buffer: SQLite speichert ihn als binären BLOB (kein base64-Overhead,
+      // ~25 % weniger Speicher, kein En-/Decode beim Schreiben). Die TEXT-Affinität
+      // der Spalte lässt BLOB-Werte unverändert (nur Numerik würde zu Text konvertiert).
+      content_data: content,
     };
   }
 
@@ -730,10 +733,22 @@ export async function verifyExistingWebdavDocument(document, config) {
   }
 }
 
+/**
+ * Local-Dokumentinhalt als Buffer liefern. `content_data` liegt als binärer BLOB
+ * in SQLite (better-sqlite3 gibt BLOB-Werte direkt als Buffer zurück). Alt-Zeilen,
+ * die noch als base64-TEXT vorliegen (z. B. vor Abschluss der Migration 67 oder
+ * durch ältere Seeds), werden weiterhin toleriert, damit Downloads nicht brechen.
+ */
+function toStoredBinary(value) {
+  if (Buffer.isBuffer(value)) return value;
+  if (value === null || value === undefined || value === '') return Buffer.alloc(0);
+  return Buffer.from(String(value), 'base64');
+}
+
 export async function readDocumentContent(document, { dmsResolver } = {}) {
   if (document.storage_backend === 'local') {
     return {
-      buffer: Buffer.from(document.content_data || '', 'base64'),
+      buffer: toStoredBinary(document.content_data),
       mime: document.mime_type || 'application/octet-stream',
     };
   }

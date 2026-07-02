@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.86.0] - 2026-07-02
+
+### Changed
+- **Documents are stored more compactly (Discussion #332)** — uploaded document files and calendar attachments are now kept as raw binary (`BLOB`) inside the SQLite database instead of Base64 text. This removes the ~33 % Base64 size overhead (saving roughly 25 % of the space used by locally stored documents) and cuts CPU/RAM work on every upload and download, which is most noticeable on low-powered devices like a Raspberry Pi. Existing databases are converted automatically on first start — no manual action is required — and WebDAV/DMS-backed documents are unaffected.
+
 ## [0.85.0] - 2026-07-02
 
 ### Added

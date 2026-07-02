@@ -784,8 +784,48 @@ test('stageDocumentUpload returns local data when disabled', async () => {
     storage_backend: 'local',
     storage_provider: 'local',
     storage_key: null,
-    content_data: Buffer.from('local bytes').toString('base64'),
+    content_data: Buffer.from('local bytes'),
   });
+});
+
+test('migration 67 converts legacy base64 content_data to a binary BLOB (#332)', () => {
+  const db = buildMigratedDatabase(MIGRATIONS.filter(({ version }) => version <= 66));
+  const userId = db.prepare(`
+    INSERT INTO users (username, display_name, password_hash, role)
+    VALUES ('m67', 'M67', 'hash', 'admin')
+  `).run().lastInsertRowid;
+  const insert = db.prepare(`
+    INSERT INTO family_documents (
+      name, category, visibility, original_name, mime_type, file_size,
+      content_data, storage_provider, storage_backend, storage_key, created_by
+    ) VALUES (?, 'other', 'family', ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const bytes = Buffer.from('legacy pdf payload');
+  const localId = insert.run(
+    'Legacy local', 'legacy.pdf', 'application/pdf', bytes.length,
+    bytes.toString('base64'), 'local', 'local', null, userId
+  ).lastInsertRowid;
+  const webdavId = insert.run(
+    'Remote', 'remote.pdf', 'application/pdf', 0,
+    '', 'external', 'webdav', 'archive/remote.pdf', userId
+  ).lastInsertRowid;
+
+  // Vor der Migration ist der Wert ein base64-TEXT-String.
+  assert.equal(typeof db.prepare('SELECT content_data FROM family_documents WHERE id = ?').get(localId).content_data, 'string');
+
+  const migration = MIGRATIONS.find(({ version }) => version === 67);
+  applyMigration(db, migration);
+
+  const local = db.prepare('SELECT content_data FROM family_documents WHERE id = ?').get(localId).content_data;
+  assert.ok(Buffer.isBuffer(local), 'local content_data is stored as a BLOB after migration');
+  assert.deepEqual(local, bytes);
+  // WebDAV-Zeile (extern, content_data = '') bleibt unberührt.
+  assert.equal(db.prepare('SELECT content_data FROM family_documents WHERE id = ?').get(webdavId).content_data, '');
+
+  // Idempotent: erneuter Lauf der up-Logik lässt bereits binäre Werte unverändert.
+  migration.up(db);
+  assert.deepEqual(db.prepare('SELECT content_data FROM family_documents WHERE id = ?').get(localId).content_data, bytes);
+  db.close();
 });
 
 test('stageDocumentUpload creates WebDAV collections and uploads with Basic auth', async (t) => {
@@ -905,12 +945,21 @@ test('readDocumentContent branches on storage_backend and reads disabled WebDAV 
   });
   webdav.files.set('/documents/archive/file.pdf', Buffer.from('webdav pdf'));
 
+  // Binärer BLOB (Regelfall seit Migration 67): better-sqlite3 liefert einen Buffer.
   const local = await storage.readDocumentContent({
+    storage_backend: 'local',
+    content_data: Buffer.from('local pdf'),
+    mime_type: 'application/pdf',
+  });
+  assert.deepEqual(local, { buffer: Buffer.from('local pdf'), mime: 'application/pdf' });
+
+  // Alt-Zeile (base64-TEXT vor der Migration) wird weiterhin toleriert.
+  const localLegacy = await storage.readDocumentContent({
     storage_backend: 'local',
     content_data: Buffer.from('local pdf').toString('base64'),
     mime_type: 'application/pdf',
   });
-  assert.deepEqual(local, { buffer: Buffer.from('local pdf'), mime: 'application/pdf' });
+  assert.deepEqual(localLegacy, { buffer: Buffer.from('local pdf'), mime: 'application/pdf' });
 
   const remote = await storage.readDocumentContent({
     storage_backend: 'webdav',
@@ -1134,7 +1183,7 @@ test('document routes store local uploads and return storage_backend in create, 
     storage_provider: 'local',
     storage_backend: 'local',
     storage_key: null,
-    content_data: Buffer.from('local route bytes').toString('base64'),
+    content_data: Buffer.from('local route bytes'),
   });
 
   const listed = await routeCall(harness, 'GET', '/');
@@ -1477,7 +1526,7 @@ test('calendar stores a new local attachment once in document storage', async (t
     storage_provider: 'local',
     storage_backend: 'local',
     storage_key: null,
-    content_data: Buffer.from('local calendar bytes').toString('base64'),
+    content_data: Buffer.from('local calendar bytes'),
   });
 });
 
@@ -1637,13 +1686,13 @@ test('calendar attachment replacement links a new document and preserves the old
     ORDER BY id
   `).all(originalDocumentId, updated.body.data.attachment_document_id);
   assert.equal(documents.length, 2);
-  assert.equal(
+  assert.deepEqual(
     documents.find(({ id }) => id === originalDocumentId).content_data,
-    Buffer.from('first calendar bytes').toString('base64')
+    Buffer.from('first calendar bytes')
   );
-  assert.equal(
+  assert.deepEqual(
     documents.find(({ id }) => id === updated.body.data.attachment_document_id).content_data,
-    Buffer.from('replacement bytes').toString('base64')
+    Buffer.from('replacement bytes')
   );
 });
 

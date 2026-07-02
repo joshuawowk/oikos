@@ -598,7 +598,7 @@ Upload and manage family files with per-document access control.
 | original_name | TEXT | NOT NULL (original filename) |
 | mime_type | TEXT | NOT NULL |
 | file_size | INTEGER | NOT NULL (bytes) |
-| content_data | TEXT | NOT NULL (Base64 payload for `local`; empty string for `webdav` and `dms`) |
+| content_data | TEXT | NOT NULL — raw binary file payload stored as a BLOB for `local`; empty string for `webdav` and `dms`. Binary BLOB since migration v67 (previously Base64 text, ~33 % larger); the column keeps TEXT affinity, and legacy Base64 rows remain readable |
 | storage_provider | TEXT | Compatibility field: local (default), external |
 | storage_backend | TEXT | Authoritative backend: local (default), webdav, dms (migration v51) |
 | storage_key | TEXT | nullable (WebDAV object key or DMS document ID) |
