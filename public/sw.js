@@ -15,7 +15,7 @@
  *   → bypassCacheUntil (in-memory + Cache API für SW-Restart-Robustheit)
  */
 
-const APP_RELEASE   = '0.87.0';
+const APP_RELEASE   = '0.88.0';
 const SHELL_CACHE   = `yuvomi-shell-${APP_RELEASE}`;
 const PAGES_CACHE   = `yuvomi-pages-${APP_RELEASE}`;
 const LOCALES_CACHE = `yuvomi-locales-${APP_RELEASE}`;
@@ -81,11 +81,14 @@ const APP_LOCALES = [
   '/locales/el.json',
   '/locales/en.json',
   '/locales/es.json',
+  '/locales/fa.json',
   '/locales/fr.json',
   '/locales/hi.json',
   '/locales/hu.json',
+  '/locales/id.json',
   '/locales/it.json',
   '/locales/ja.json',
+  '/locales/ko.json',
   '/locales/nl.json',
   '/locales/pl.json',
   '/locales/pt.json',

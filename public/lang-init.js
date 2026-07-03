@@ -11,7 +11,7 @@
 //
 // Resolve-Logik gespiegelt aus i18n.js (resolveLocale): bei Änderung dort mitziehen.
 (function() {
-  var SUPPORTED = ['de', 'en', 'es', 'fr', 'it', 'sv', 'el', 'ru', 'tr', 'zh', 'ja', 'ar', 'hi', 'pt', 'uk', 'pl', 'nl', 'cs', 'vi'];
+  var SUPPORTED = ['de', 'en', 'es', 'fr', 'it', 'sv', 'el', 'ru', 'tr', 'zh', 'ja', 'ar', 'hi', 'pt', 'uk', 'pl', 'nl', 'cs', 'vi', 'hu', 'ko', 'id', 'fa'];
   var STORAGE_KEY = 'yuvomi-locale';
 
   function resolve() {
@@ -30,5 +30,5 @@
 
   var locale = resolve();
   document.documentElement.lang = locale;
-  document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.dir = (locale === 'ar' || locale === 'fa') ? 'rtl' : 'ltr';
 })();

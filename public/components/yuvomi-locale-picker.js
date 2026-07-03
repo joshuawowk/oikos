@@ -27,6 +27,10 @@ const LOCALE_LABELS = {
   nl: 'Nederlands',
   cs: 'Čeština',
   vi: 'Tiếng Việt',
+  hu: 'Magyar',
+  ko: '한국어',
+  id: 'Bahasa Indonesia',
+  fa: 'فارسی',
 };
 
 class YuvomiLocalePicker extends HTMLElement {

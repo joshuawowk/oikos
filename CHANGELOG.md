@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.88.0] - 2026-07-03
+
+### Added
+- **Three new languages** — Yuvomi is now available in Korean (`ko`), Indonesian (`id`), and Persian/Farsi (`fa`), bringing the total to 23 languages. Persian renders right-to-left (RTL), like Arabic. Each language covers the full app UI as well as the web and CLI installers, and is auto-detected from the browser or shell environment.
+- **Three new currencies** — the budget module now supports the South Korean won (`KRW`), Indonesian rupiah (`IDR`), and Iranian rial (`IRR`). Matching region presets (`ko-KR`, `id-ID`, `fa-IR`) set currency, date, and time formats in one step.
+
 ## [0.87.0] - 2026-07-02
 
 ### Added

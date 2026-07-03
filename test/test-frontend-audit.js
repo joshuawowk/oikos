@@ -220,7 +220,7 @@ test('runtime locale changes keep language and writing direction synchronized', 
   const i18n = read('../public/i18n.js');
   const router = read('../public/router.js');
 
-  assert.match(i18n, /const RTL_LOCALES\s*=\s*new Set\(\[['"]ar['"]\]\)/);
+  assert.match(i18n, /const RTL_LOCALES\s*=\s*new Set\(\[['"]ar['"],\s*['"]fa['"]\]\)/);
   assert.match(i18n, /function applyDocumentLocale\(locale\)/);
   assert.match(i18n, /document\.documentElement\.lang\s*=\s*locale/);
   assert.match(i18n, /document\.documentElement\.dir\s*=\s*RTL_LOCALES\.has\(locale\)\s*\?\s*['"]rtl['"]\s*:\s*['"]ltr['"]/);

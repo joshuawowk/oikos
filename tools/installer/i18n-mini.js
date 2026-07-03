@@ -6,9 +6,9 @@
  * de ist die Referenzlocale, en der Fallback für fehlende Schlüssel.
  */
 
-export const SUPPORTED_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'sv', 'el', 'ru', 'tr', 'zh', 'ja', 'ar', 'hi', 'pt', 'uk', 'pl', 'nl', 'cs', 'vi', 'hu'];
+export const SUPPORTED_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'sv', 'el', 'ru', 'tr', 'zh', 'ja', 'ar', 'hi', 'pt', 'uk', 'pl', 'nl', 'cs', 'vi', 'hu', 'ko', 'id', 'fa'];
 const FALLBACK_LOCALE = 'en';
-const RTL_LOCALES = ['ar'];
+const RTL_LOCALES = ['ar', 'fa'];
 
 let translations = {};
 let fallbackTranslations = {};

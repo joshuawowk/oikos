@@ -50,12 +50,12 @@ test('Region-Tag wird auf Basis-Sprache reduziert (de-AT → de)', () => {
   assert.equal(runLangInit({ languages: ['de-AT'] }), 'de');
 });
 
-test('nicht unterstützte Sprache fällt auf en zurück (ko-KR → en)', () => {
-  assert.equal(runLangInit({ languages: ['ko-KR'] }), 'en');
+test('nicht unterstützte Sprache fällt auf en zurück (th-TH → en)', () => {
+  assert.equal(runLangInit({ languages: ['th-TH'] }), 'en');
 });
 
 test('überspringt nicht unterstützte und nimmt das nächste unterstützte Tag', () => {
-  assert.equal(runLangInit({ languages: ['ko-KR', 'nl-BE'] }), 'nl');
+  assert.equal(runLangInit({ languages: ['th-TH', 'nl-BE'] }), 'nl');
 });
 
 test('navigator.language (Singular) als Fallback wenn languages fehlt', () => {

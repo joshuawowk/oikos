@@ -36,6 +36,9 @@ export const REGION_PRESETS = {
   'nl-NL': { currency: 'EUR', date_format: 'dmy', time_format: '24h' },
   'ar-AE': { currency: 'AED', date_format: 'dmy_slash', time_format: '12h' },
   'ar-SA': { currency: 'SAR', date_format: 'dmy_slash', time_format: '12h' },
+  'ko-KR': { currency: 'KRW', date_format: 'ymd', time_format: '12h' },
+  'id-ID': { currency: 'IDR', date_format: 'dmy', time_format: '24h' },
+  'fa-IR': { currency: 'IRR', date_format: 'ymd', time_format: '24h' },
 };
 
 export const REGION_CODES = Object.keys(REGION_PRESETS);

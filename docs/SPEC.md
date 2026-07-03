@@ -1624,6 +1624,9 @@ All UI strings are managed via `public/i18n.js`. No hardcoded text in JS files o
 | `uk` | Ukrainian | Full translation (added v0.19.0, completed v0.52.3 by @baragoon) |
 | `pl` | Polish | Full translation (added v0.50.0) |
 | `hu` | Hungarian | Full translation |
+| `ko` | Korean | Full translation (added v0.88.0) |
+| `id` | Indonesian | Full translation (added v0.88.0) |
+| `fa` | Persian (Farsi) | Full translation, RTL (added v0.88.0) |
 
 ### Adding a New Language
 
