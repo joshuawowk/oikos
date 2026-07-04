@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.92.2] - 2026-07-04
+
+### Changed
+- **Clearer README on catalog naming** — the README now explains that the TrueNAS and Unraid catalog listings stay registered under the legacy `oikos` slug so existing installs upgrade seamlessly, while the app itself installs and appears as Yuvomi.
+- **README Node requirement clarified** — the web installer's Node.js 18+ requirement is now noted as host-only; the app container ships its own Node 22.
+- **README polish** — unified the "See all screenshots" links and condensed the Health module row.
+
 ## [0.92.1] - 2026-07-04
 
 ### Added

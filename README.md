@@ -150,7 +150,7 @@ Each module is independent. Use what fits, skip what doesn't.
       </td>
     </tr>
   </table>
-  <a href="https://yuvomi.cloud/">View all screenshots →</a>
+  <a href="https://yuvomi.cloud/">See all screenshots →</a>
 </div>
 
 ---
@@ -167,13 +167,15 @@ Each module is independent. Use what fits, skip what doesn't.
 | ![documents](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/documents.png) | **Documents** | Upload and organize family files. Folders, tags, per-document visibility controls, in-browser preview, drag-and-drop. New files, including calendar attachments, can optionally use WebDAV storage; Paperless-ngx and Papra (DMS) linking and uploads are supported. |
 | ![budget](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/budget.png) | **Budget** | Income, expenses, recurring entries, trend charts, a statistics tab with weekly/monthly/yearly aggregates and category donut, CSV export over any date range, loans, shared expenses, and subscription tracking with renewals, budgets, currencies, alerts, and analytics. |
 | ![housekeeping](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/housekeeping.png) | **Housekeeping** | Manage household staff — schedules, check-in/out, daily or hourly billing, chores, supply requests. |
-| ![health](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/health.png) | **Health** | Per-member health tracking: vitals (blood pressure, glucose, weight, pulse) with trend charts, medications with schedules, dose logging, adherence and refill alerts (reminders via the existing push/notification channels), lab results with reference ranges, and activity logs. CSV export per area and `private`/`family` visibility per entry. Not a medical device — no diagnostic claims. Health data is sensitive; enable database encryption (`DB_ENCRYPTION_KEY`, SQLCipher). |
+| ![health](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/health.png) | **Health** | Per-member vitals, medications with dose logging and refill alerts, lab results with reference ranges, and activity logs — trend charts, CSV export, and `private`/`family` visibility per entry. |
 | ![notes](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/notes.png) | **Notes & Contacts** | Colored sticky notes with Markdown. Contact directory with CardDAV sync. |
 | ![birthdays](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/birthdays.png) | **Birthdays** | Birthday tracker with automatic calendar events, age display, and custom reminders. |
 | ![family](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/family.png) | **Family** | Member profiles with roles, photos, phone, email, and birthday — synced to Contacts and Birthdays. |
 | ![reminders](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/reminders.png) | **Reminders** | Time-based notifications on tasks and calendar events with in-app badge counter, opt-in per-device Web Push (requires HTTPS), and admin-configured household Gotify/ntfy channels. |
 | ![api-tokens](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/api-tokens.png) | **API Tokens** | Named Bearer / X-API-Key tokens for integrations. OpenAPI 3.0 spec included. The same tokens authenticate the built-in **MCP endpoint** (`/mcp`), letting AI agents (e.g. Claude Desktop) create tasks, shopping items, and calendar events via natural language. |
 | ![backup](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/backup.png) | **Backup** | Manual and scheduled database backup and restore, with automatic pre-restore rollback. Optional WebDAV upload target (Nextcloud, ownCloud, Hetzner, etc.). |
+
+> **Health is not a medical device** — no diagnostic claims. Health data is sensitive; enable database encryption (`DB_ENCRYPTION_KEY`, SQLCipher).
 
 > **WebDAV document storage needs its own backup.** SQLite/database backups contain document metadata and links, but not document binaries stored on WebDAV. Back up the WebDAV target separately.
 > WebDAV targets configured in the admin UI must resolve to public network addresses. For a trusted
@@ -204,7 +206,7 @@ git clone https://github.com/ulsklyc/yuvomi.git && cd yuvomi
 node tools/installer/install-server.js
 ```
 
-Open **http://localhost:8090**. Requires Node.js 18+ on the host.
+Open **http://localhost:8090**. Requires Node.js 18+ on the host to run the installer — the app container ships its own Node 22.
 
 ### Docker / Podman
 
@@ -248,6 +250,8 @@ Open `http://localhost:3000`. The first visit walks you through creating your ad
     <td>Community Applications template. Set <code>SESSION_SECRET</code> during install.</td>
   </tr>
 </table>
+
+> **Catalog listings are still registered under the legacy name `oikos`** (TrueNAS `oikos_community`, Unraid `oikos-…`). The app shows and installs as **Yuvomi** — the technical slug is kept so existing installations (database paths and container names) upgrade seamlessly rather than breaking. Search for **Yuvomi**; if a store still surfaces the entry as *oikos*, it's the same app.
 
 > **New to Docker or Podman?** The **[Installation Guide](docs/installation.md)** covers engine setup, HTTPS/reverse proxy, backups, and troubleshooting step by step.
 
