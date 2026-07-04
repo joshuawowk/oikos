@@ -1,13 +1,6 @@
-> ### 📣 Oikos is now **Yuvomi**
-> This project was renamed from **Oikos** to **Yuvomi** to avoid a trademark conflict with an unrelated product of the same name. **Nothing about the app changes** — same code, same data, same maintainer.
->
-> - Old links (`github.com/ulsklyc/oikos`) automatically redirect here.
-> - The Docker image moved to `ghcr.io/ulsklyc/yuvomi`; the old `ghcr.io/ulsklyc/oikos` keeps working for now — please update at your convenience.
-> - Your existing data and settings are fully preserved on upgrade.
->
-> New home: **https://yuvomi.cloud/** · Questions? Open a [discussion](https://github.com/ulsklyc/yuvomi/discussions).
-
 <div align="center">
+  <sub><b>English</b> &nbsp;·&nbsp; <a href="README.de.md">Deutsch</a></sub>
+
   <img src="docs/logo.svg" alt="Yuvomi" width="92" />
 
   <h1>Yuvomi</h1>
@@ -19,16 +12,6 @@
     <a href="https://github.com/ulsklyc/yuvomi/pkgs/container/yuvomi"><img src="https://img.shields.io/badge/ghcr.io-yuvomi-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker Image"></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%E2%89%A522-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js ≥22"></a>
     <img src="https://img.shields.io/badge/PWA-ready-5A0FC8?style=flat-square&logo=pwa&logoColor=white" alt="PWA">
-    <a href="https://github.com/ulsklyc/yuvomi/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome"></a>
-    <a href="https://apps.truenas.com/catalog/oikos_community/"><img src="https://img.shields.io/badge/TrueNAS-0095D5?style=flat-square&logo=truenas&logoColor=white" alt="TrueNAS SCALE"></a>
-    <a href="https://ca.unraid.net/apps/oikos-0s9fwat1sxc881"><img src="https://img.shields.io/badge/Unraid-F1A208?style=flat-square&logo=unraid&logoColor=white" alt="Unraid"></a>
-    <a href="https://apps.umbrel.com/app/yuvomi">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://apps.umbrel.com/api/app/yuvomi/badge-dark.svg">
-        <source media="(prefers-color-scheme: light)" srcset="https://apps.umbrel.com/api/app/yuvomi/badge-light.svg">
-        <img src="https://apps.umbrel.com/api/app/yuvomi/badge-light.svg" alt="Get Yuvomi on umbrelOS">
-      </picture>
-    </a>
   </p>
 
   <p>
@@ -44,7 +27,7 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>15</b><br><sub>modules</sub></td>
+      <td align="center"><b>16</b><br><sub>modules</sub></td>
       <td align="center"><sub>·</sub></td>
       <td align="center"><b>23</b><br><sub>languages</sub></td>
       <td align="center"><sub>·</sub></td>
@@ -80,7 +63,7 @@
       </td>
     </tr>
   </table>
-  <sub>Switch GitHub to dark mode to preview the dark theme &nbsp;·&nbsp; <a href="https://yuvomi.cloud/">See all screenshots →</a></sub>
+  <sub>Switch GitHub to dark mode to preview the dark theme.</sub>
 </div>
 
 <br>
@@ -88,6 +71,32 @@
 Yuvomi keeps your household organized — tasks, groceries, meals, calendar, budget, and more — in one private place, without cloud accounts or subscriptions. Runs as a Docker or Podman container on any home server or NAS, including rootless Podman on SELinux-enabled RHEL/Fedora/CentOS Stream systems. A polished, mobile-first PWA makes it feel native on every device.
 
 Each module is independent. Use what fits, skip what doesn't.
+
+<details>
+<summary><sub>Coming from <b>Oikos</b>? This project was renamed — nothing about the app changes.</sub></summary>
+
+<br>
+
+Yuvomi was renamed from **Oikos** to avoid a trademark conflict with an unrelated product. Same code, same data, same maintainer.
+
+- Old links (`github.com/ulsklyc/oikos`) redirect here automatically.
+- The Docker image moved to `ghcr.io/ulsklyc/yuvomi`; the old `ghcr.io/ulsklyc/oikos` keeps working — please update at your convenience.
+- Existing data and settings are fully preserved on upgrade.
+
+New home: **https://yuvomi.cloud/** · Questions? Open a [discussion](https://github.com/ulsklyc/yuvomi/discussions).
+
+</details>
+
+<div align="center">
+  <sub>
+    <a href="#app-screenshots">Screenshots</a> &nbsp;·&nbsp;
+    <a href="#modules">Modules</a> &nbsp;·&nbsp;
+    <a href="#design--technology">Design</a> &nbsp;·&nbsp;
+    <a href="#install-anywhere">Install</a> &nbsp;·&nbsp;
+    <a href="#tech-stack">Tech stack</a> &nbsp;·&nbsp;
+    <a href="#documentation">Docs</a>
+  </sub>
+</div>
 
 ---
 
@@ -159,35 +168,35 @@ Each module is independent. Use what fits, skip what doesn't.
 
 | | Module | What it does |
 |:---:|---|---|
-| ![tasks](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/tasks.png) | **Tasks** | Shared tasks with deadlines, priorities, subtasks, recurring schedules, multi-member assignment, Kanban, and mobile bulk controls. Optional CalDAV import of Apple Reminders. |
-| ![shopping](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/shopping.png) | **Shopping** | Collaborative lists organized by aisle. Touch-safe quick add, swipe gestures, and meal-plan import in one tap. Per-item notes & product links in a detail drawer. Optional CalDAV import. |
-| ![meals](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/meals.png) | **Meals** | Weekly drag-and-drop planner with multiple items per slot, weekly repeats, and direct export to shopping list. |
-| ![recipes](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/recipes.png) | **Recipes** | Create, duplicate, and scale recipes. Pre-fill meal slots or save any planned meal as a recipe. |
-| ![calendar](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/calendar.png) | **Calendar** | Google Calendar (OAuth) and CalDAV sync (iCloud, Nextcloud, Radicale). ICS subscriptions, recurring events, file attachments, public & school holiday overlays (OpenHolidays), month and agenda views. Read-only `webcal://` export feed so external apps (Apple Calendar, Google Calendar, Thunderbird) can subscribe to your Yuvomi events. |
-| ![documents](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/documents.png) | **Documents** | Upload and organize family files. Folders, tags, per-document visibility controls, in-browser preview, drag-and-drop. New files, including calendar attachments, can optionally use WebDAV storage; Paperless-ngx and Papra (DMS) linking and uploads are supported. |
-| ![budget](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/budget.png) | **Budget** | Income, expenses, recurring entries, trend charts, a statistics tab with weekly/monthly/yearly aggregates and category donut, CSV export over any date range, loans, shared expenses, and subscription tracking with renewals, budgets, currencies, alerts, and analytics. |
-| ![housekeeping](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/housekeeping.png) | **Housekeeping** | Manage household staff — schedules, check-in/out, daily or hourly billing, chores, supply requests. |
-| ![rewards](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/rewards.png) | **Rewards** | Tasks can carry point values; completing them credits the assigned members. A household reward catalog with parent-approved redemptions, opt-in participation per member, manual bonus points, and a full, auditable point ledger. |
-| ![health](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/health.png) | **Health** | Per-member vitals, medications with dose logging and refill alerts, lab results with reference ranges, and activity logs — trend charts, CSV export, and `private`/`family` visibility per entry. |
-| ![notes](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/notes.png) | **Notes & Contacts** | Colored sticky notes with Markdown. Contact directory with CardDAV sync. |
+| ![tasks](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/tasks.png) | **Tasks** | Deadlines, priorities, subtasks, recurring schedules, multi-member assignment, and a Kanban board. Optional CalDAV import of Apple Reminders. |
+| ![shopping](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/shopping.png) | **Shopping** | Collaborative lists grouped by aisle, with swipe gestures, per-item notes, and one-tap import from the meal plan. |
+| ![meals](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/meals.png) | **Meals** | Weekly drag-and-drop planner with multiple items per slot, weekly repeats, and direct export to the shopping list. |
+| ![recipes](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/recipes.png) | **Recipes** | Create, duplicate, and scale recipes; pre-fill meal slots or save any planned meal as a recipe. |
+| ![calendar](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/calendar.png) | **Calendar** | Google (OAuth) and CalDAV sync (iCloud, Nextcloud, Radicale), ICS subscriptions, recurring events, attachments, holiday overlays, and a read-only `webcal://` export feed. |
+| ![documents](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/documents.png) | **Documents** | Upload, tag, preview, and organize family files with per-document visibility. Optional WebDAV storage plus Paperless-ngx and Papra (DMS) linking. |
+| ![budget](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/budget.png) | **Budget** | Income, expenses, recurring entries, trend charts, a statistics tab, CSV export, loans, split expenses, and subscription tracking with renewals and currencies. |
+| ![housekeeping](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/housekeeping.png) | **Housekeeping** | Manage household staff — schedules, check-in/out, daily or hourly billing, chores, and supply requests. |
+| ![rewards](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/rewards.png) | **Rewards** | Point values on tasks credit assigned members; a reward catalog with parent-approved redemptions, per-member opt-in, and an auditable ledger. |
+| ![health](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/health.png) | **Health** | Per-member vitals, medications with refill alerts, lab results, and activity logs — with trend charts, CSV export, and per-entry visibility. |
+| ![notes](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/notes.png) | **Notes & Contacts** | Colored Markdown sticky notes plus a contact directory with CardDAV sync. |
 | ![birthdays](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/birthdays.png) | **Birthdays** | Birthday tracker with automatic calendar events, age display, and custom reminders. |
-| ![family](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/family.png) | **Family** | Member profiles with roles, photos, phone, email, and birthday — synced to Contacts and Birthdays. |
-| ![reminders](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/reminders.png) | **Reminders** | Time-based notifications on tasks and calendar events with in-app badge counter, opt-in per-device Web Push (requires HTTPS), and admin-configured household Gotify/ntfy channels. |
-| ![api-tokens](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/api-tokens.png) | **API Tokens** | Named Bearer / X-API-Key tokens for integrations. OpenAPI 3.0 spec included. The same tokens authenticate the built-in **MCP endpoint** (`/mcp`), letting AI agents (e.g. Claude Desktop) create tasks, shopping items, and calendar events via natural language. |
-| ![backup](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/backup.png) | **Backup** | Manual and scheduled database backup and restore, with automatic pre-restore rollback. Optional WebDAV upload target (Nextcloud, ownCloud, Hetzner, etc.). |
+| ![family](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/family.png) | **Family** | Member profiles with roles, photos, and contact details — synced to Contacts and Birthdays. |
+| ![reminders](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/reminders.png) | **Reminders** | Task and calendar reminders via in-app badges, opt-in Web Push (HTTPS), and household Gotify/ntfy channels. |
+| ![api-tokens](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/api-tokens.png) | **API Tokens** | Bearer / X-API-Key tokens with an OpenAPI 3.0 spec and a built-in MCP endpoint (`/mcp`) for AI agents like Claude Desktop. |
+| ![backup](https://raw.githubusercontent.com/ulsklyc/yuvomi/main/docs/icons/backup.png) | **Backup** | Manual and scheduled database backup/restore with pre-restore rollback. Optional WebDAV upload (Nextcloud, ownCloud, etc.). |
+
+<sub>Full data model and per-module details in the <a href="docs/SPEC.md">Spec</a>.</sub>
 
 > **Health is not a medical device** — no diagnostic claims. Health data is sensitive; enable database encryption (`DB_ENCRYPTION_KEY`, SQLCipher).
 
-> **WebDAV document storage needs its own backup.** SQLite/database backups contain document metadata and links, but not document binaries stored on WebDAV. Back up the WebDAV target separately.
-> WebDAV targets configured in the admin UI must resolve to public network addresses. For a trusted
-> LAN or loopback target, set `DOCUMENT_STORAGE_WEBDAV_URL` through the deployment environment.
+> **WebDAV document storage needs its own backup.** Database backups hold document metadata and links, not the binaries on WebDAV — back up that target separately. Admin-UI WebDAV targets must resolve to public addresses; for a trusted LAN or loopback target, set `DOCUMENT_STORAGE_WEBDAV_URL` via the deployment environment.
 
 ---
 
 ## Design & technology
 
 - **Disciplined Liquid Glass UI** — readable work surfaces, subtle translucent navigation, spring animations, and module-tinted overlays — built in pure CSS, no framework
-- **PWA** — installable on any device, works offline (read-only access to your last-seen calendar, tasks, shopping, contacts, and dashboard data), refreshes release-bound caches reliably, and stays responsive from phone to desktop with a persistent five-destination mobile bar, configurable favorites, and tuned touch targets
+- **PWA** — installable on any device, works offline (read-only access to your last-seen calendar, tasks, shopping, contacts, and dashboard), and stays responsive from phone to desktop with a persistent mobile bar, configurable favorites, and tuned touch targets
 - **Privacy first** — fully self-hosted, optional SQLCipher AES-256 database encryption (enabled in the recommended Docker setup), zero telemetry
 - **SSO / OpenID Connect** — optional single sign-on via any OIDC provider (Authentik, Keycloak, Google, Microsoft Entra) configured with four env vars; Authorization Code + PKCE flow
 - **Self-service password reset** — optional SMTP email lets users reset a forgotten password themselves via a time-limited emailed link; anti-enumeration by design
