@@ -154,6 +154,62 @@ async function importPage(pagePath) {
 }
 
 // --------------------------------------------------------
+// Prefetch: Seitenmodul + CSS auf Absicht (Hover/Touch) und im Leerlauf
+// vorwärmen. Ohne Bundler löst jeder navigate() erst beim Klick den ES-Modul-
+// Import-Wasserfall (Seite + transitive Imports) und einen frischen CSS-Fetch
+// aus — der spürbare Verzug vor dem Skeleton. `modulepreload` lädt und parst
+// den kompletten Modulgraphen vorab (ein späteres import() löst dann sofort aus
+// dem Cache auf), `prefetch` wärmt das Stylesheet ohne es anzuwenden.
+// Reine Resource-Hints: kein Modul wird vorzeitig ausgeführt.
+// --------------------------------------------------------
+const _prefetchedPages = new Set();
+const _prefetchedStyles = new Set();
+
+function prefetchRoute(path) {
+  if (!path) return;
+  const route = allRoutes().find((r) => r.path === path);
+  if (!route) return;
+
+  if (route.page && !moduleCache.has(route.page) && !_prefetchedPages.has(route.page)) {
+    _prefetchedPages.add(route.page);
+    const link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = route.page;
+    document.head.appendChild(link);
+  }
+
+  const cssHref = route.style || (route.module && !route.thirdPartyModule ? `/styles/${route.module}.css` : null);
+  if (cssHref && !_prefetchedStyles.has(cssHref)) {
+    _prefetchedStyles.add(cssHref);
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.as = 'style';
+    link.href = cssHref;
+    document.head.appendChild(link);
+  }
+}
+
+// Nach dem Mount die sichtbaren Hauptnavigations-Ziele im Leerlauf vorwärmen,
+// damit schon die erste Navigation ohne Kaltstart-Wasserfall auskommt.
+// saveData respektiert Datensparmodus; das Dashboard (currentPath) wird
+// übersprungen, da bereits geladen.
+function warmPrimaryRoutes() {
+  if (navigator.connection?.saveData) return;
+  const run = () => {
+    try {
+      navItems().forEach((item) => {
+        if (item.path && item.path !== currentPath) prefetchRoute(item.path);
+      });
+    } catch { /* Prefetch ist rein spekulativ — Fehler nie eskalieren. */ }
+  };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(run, { timeout: 2500 });
+  } else {
+    setTimeout(run, 1200);
+  }
+}
+
+// --------------------------------------------------------
 // Globaler App-State
 // --------------------------------------------------------
 let currentUser = null;
@@ -490,7 +546,20 @@ async function navigate(path, userOrPushState = true, pushState = true) {
     const accent = route?.thirdPartyModule?.accent || (route?.module ? getCSSToken(`--module-${route.module}`) : '');
     document.documentElement.style.setProperty('--active-module-accent', accent);
 
+    // Optimistisches Chrome-Feedback: aktive Nav-Markierung + Indikator-Pille und
+    // Statusbar-Farbe schon VOR dem Modul-Render setzen, sobald die Shell existiert.
+    // So quittiert der Tap sofort (Pille gleitet, Akzent wechselt), während Modul-
+    // CSS und -Daten noch laden — statt erst nach Abschluss des Renders. Beim aller-
+    // ersten Laden wird die Shell erst in renderPage gebaut; dann greift allein die
+    // autoritative Aktualisierung danach.
+    if (document.querySelector('.nav-bottom')) {
+      updateNav(topLevelSection(basePath));
+      updateThemeColorForRoute(route);
+    }
+
     await renderPage(route, previousPath);
+    // Autoritative Aktualisierung nach dem Render: deckt den Erstlade-Fall ab und
+    // markiert ggf. seiten-interne [data-route]-Links (idempotent).
     // Settings-Blätter teilen sich den /settings Nav-Eintrag (aria-current).
     updateNav(topLevelSection(basePath));
     updateThemeColorForRoute(route);
@@ -1021,6 +1090,16 @@ function renderAppShell(container) {
     });
   });
 
+  // Prefetch auf Absicht: Hover (Desktop) und Pointer-Press (feuert vor dem
+  // Klick, deckt Touch ab) wärmen Modul + CSS des Ziels vor. Delegation über
+  // bubblende Events (mouseover/pointerdown) — pointerenter würde nicht bubbeln.
+  const prefetchFromEvent = (e) => {
+    const el = e.target.closest?.('[data-route]');
+    if (el) prefetchRoute(el.dataset.navHref?.split('?')[0] ?? el.dataset.route);
+  };
+  container.addEventListener('mouseover', prefetchFromEvent);
+  container.addEventListener('pointerdown', prefetchFromEvent);
+
   const openSearch = initSearch(container);
   initMoreSheet(container, openSearch);
   initOfflineBanner();
@@ -1028,6 +1107,10 @@ function renderAppShell(container) {
   if (localStorage.getItem(SEARCH_KBD_KEY)) {
     document.documentElement.classList.add('search-kbd-done');
   }
+
+  // Hauptnavigation im Leerlauf vorwärmen — die erste Modulnavigation soll
+  // ohne Kaltstart-Wasserfall auskommen.
+  warmPrimaryRoutes();
 }
 
 const FAB_SEEN_KEY = (module) => `yuvomi:fabSeen:${module}`;

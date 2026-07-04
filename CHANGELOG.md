@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.94.2] - 2026-07-04
+
+### Changed
+- **Faster module switching** — page modules and their stylesheets are now prefetched the instant you hover or touch a navigation item, and the main modules are warmed during idle time after the app loads. Selecting a module from the menu no longer waits on a cold load, so the transition feels immediate instead of sluggish.
+- **Instant navigation feedback** — the active navigation highlight, indicator pill, and module accent colour now update the moment you tap a menu item, rather than only after the target module has finished loading.
+
 ## [0.94.1] - 2026-07-04
 
 ### Changed
