@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "선택 사항",
     "stepCounter": "{{total}}단계 중 {{n}}단계",
-    "toggleVisibility": "값 표시 또는 숨기기"
+    "toggleVisibility": "값 표시 또는 숨기기",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "기본 구성",
@@ -28,7 +30,8 @@
     "sessionHint": "브라우저 세션 쿠키에 서명합니다.",
     "dbLabel": "데이터베이스 암호화 키",
     "dbHint": "유휴 상태의 SQLite 데이터베이스를 암호화합니다.",
-    "errBoth": "두 키 모두 필요합니다."
+    "errBoth": "두 키 모두 필요합니다.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "날씨 위젯",
@@ -90,7 +93,11 @@
     "documentWebdavUsernameLabel": "사용자 이름",
     "documentWebdavPasswordLabel": "비밀번호",
     "documentWebdavPathLabel": "기본 경로",
-    "documentWebdavPathHint": "문서 파일용 원격 폴더. yuvomi-documents를 사용하려면 비워 두세요."
+    "documentWebdavPathHint": "문서 파일용 원격 폴더. yuvomi-documents를 사용하려면 비워 두세요.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   },
   "review": {
     "title": "검토",
@@ -106,7 +113,9 @@
     "saving": "저장하는 중 …",
     "errSave": ".env 저장에 실패했습니다.",
     "weatherEnabled": "활성화됨 ({{city}})",
-    "configured": "구성됨"
+    "configured": "구성됨",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Yuvomi 시작 중",
@@ -139,6 +148,7 @@
   "done": {
     "title": "Yuvomi 준비 완료!",
     "subtitle": "가족 플래너가 실행 중이며 관리자 계정이 설정되었습니다.",
-    "open": "Yuvomi 열기 →"
+    "open": "Yuvomi 열기 →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   }
 }

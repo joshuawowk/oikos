@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "اختیاری",
     "stepCounter": "گام {{n}} از {{total}}",
-    "toggleVisibility": "نمایش یا پنهان‌سازی مقدار"
+    "toggleVisibility": "نمایش یا پنهان‌سازی مقدار",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "پیکربندی پایه",
@@ -28,7 +30,8 @@
     "sessionHint": "کوکی‌های نشست مرورگر را امضا می‌کند.",
     "dbLabel": "کلید رمزنگاری پایگاه داده",
     "dbHint": "پایگاه داده SQLite را در حالت سکون رمزنگاری می‌کند.",
-    "errBoth": "هر دو کلید الزامی هستند."
+    "errBoth": "هر دو کلید الزامی هستند.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "ابزارک آب‌وهوا",
@@ -90,7 +93,11 @@
     "documentWebdavUsernameLabel": "نام کاربری",
     "documentWebdavPasswordLabel": "رمز عبور",
     "documentWebdavPathLabel": "مسیر پایه",
-    "documentWebdavPathHint": "پوشه راه دور برای فایل‌های سند. برای yuvomi-documents خالی بگذارید."
+    "documentWebdavPathHint": "پوشه راه دور برای فایل‌های سند. برای yuvomi-documents خالی بگذارید.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   },
   "review": {
     "title": "بازبینی",
@@ -106,7 +113,9 @@
     "saving": "در حال ذخیره …",
     "errSave": "ذخیره .env ناموفق بود.",
     "weatherEnabled": "فعال ({{city}})",
-    "configured": "پیکربندی‌شده"
+    "configured": "پیکربندی‌شده",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Yuvomi در حال راه‌اندازی است",
@@ -139,6 +148,7 @@
   "done": {
     "title": "Yuvomi آماده است!",
     "subtitle": "برنامه‌ریز خانوادگی شما در حال اجراست و حساب مدیر شما راه‌اندازی شده است.",
-    "open": "باز کردن Yuvomi ←"
+    "open": "باز کردن Yuvomi ←",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   }
 }

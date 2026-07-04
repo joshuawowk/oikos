@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "Opsional",
     "stepCounter": "Langkah {{n}} dari {{total}}",
-    "toggleVisibility": "Tampilkan atau sembunyikan nilai"
+    "toggleVisibility": "Tampilkan atau sembunyikan nilai",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "Konfigurasi dasar",
@@ -28,7 +30,8 @@
     "sessionHint": "Menandatangani cookie sesi browser.",
     "dbLabel": "Kunci enkripsi basis data",
     "dbHint": "Mengenkripsi basis data SQLite saat diam.",
-    "errBoth": "Kedua kunci diperlukan."
+    "errBoth": "Kedua kunci diperlukan.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "Widget cuaca",
@@ -90,7 +93,11 @@
     "documentWebdavUsernameLabel": "Nama pengguna",
     "documentWebdavPasswordLabel": "Kata sandi",
     "documentWebdavPathLabel": "Jalur dasar",
-    "documentWebdavPathHint": "Folder jarak jauh untuk file dokumen. Biarkan kosong untuk yuvomi-documents."
+    "documentWebdavPathHint": "Folder jarak jauh untuk file dokumen. Biarkan kosong untuk yuvomi-documents.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   },
   "review": {
     "title": "Tinjauan",
@@ -106,7 +113,9 @@
     "saving": "Menyimpan …",
     "errSave": "Gagal menyimpan .env.",
     "weatherEnabled": "diaktifkan ({{city}})",
-    "configured": "dikonfigurasi"
+    "configured": "dikonfigurasi",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Yuvomi sedang dimulai",
@@ -139,6 +148,7 @@
   "done": {
     "title": "Yuvomi siap!",
     "subtitle": "Perencana keluarga Anda berjalan dan akun admin Anda telah disiapkan.",
-    "open": "Buka Yuvomi →"
+    "open": "Buka Yuvomi →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   }
 }

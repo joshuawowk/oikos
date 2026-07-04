@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "Optional",
     "stepCounter": "Schritt {{n}} von {{total}}",
-    "toggleVisibility": "Wert anzeigen oder verbergen"
+    "toggleVisibility": "Wert anzeigen oder verbergen",
+    "copy": "Kopieren",
+    "copied": "Kopiert ✓"
   },
   "config": {
     "title": "Grundkonfiguration",
@@ -23,12 +25,13 @@
   },
   "secrets": {
     "title": "Sicherheitsschlüssel",
-    "subtitle": "Diese schützen deine Sitzung und verschlüsseln die Datenbank. Bewahre deine .env-Datei sicher auf — der Verlust dieser Schlüssel bedeutet den Verlust des Zugriffs auf deine Daten.",
+    "subtitle": "Diese schützen deine Sitzung und verschlüsseln die Datenbank.",
     "sessionLabel": "Session-Secret",
     "sessionHint": "Signiert die Sitzungs-Cookies des Browsers.",
     "dbLabel": "Datenbank-Verschlüsselungsschlüssel",
     "dbHint": "Verschlüsselt die SQLite-Datenbank im Ruhezustand.",
-    "errBoth": "Beide Schlüssel sind erforderlich."
+    "errBoth": "Beide Schlüssel sind erforderlich.",
+    "dangerWarn": "Speichere diese Schlüssel jetzt. Gehen sie verloren, sind deine verschlüsselten Daten unwiederbringlich — es gibt kein Zurücksetzen."
   },
   "weather": {
     "title": "Wetter-Widget",
@@ -70,7 +73,7 @@
     "proxyLabel": "Wie wird Yuvomi bereitgestellt?",
     "proxyBehindHttps": "Hinter einem Reverse-Proxy mit HTTPS (Caddy, nginx, Traefik)",
     "proxyDirect": "Direkter Zugriff über localhost / HTTP",
-    "proxyHint": "Direkter Zugriff deaktiviert reine Secure-Cookies, damit der Login ohne HTTPS funktioniert.",
+    "proxyHint": "Im Zweifel „Reverse-Proxy“: erzwingt sichere Cookies. „Direkt“ nur für lokalen HTTP-Zugriff ohne HTTPS.",
     "oidc": "Single Sign-On (OIDC)",
     "oidcHint": "Fülle alle vier Felder aus, um SSO zu aktivieren, oder lass sie leer.",
     "oidcIssuerLabel": "Issuer-URL",
@@ -90,7 +93,11 @@
     "documentWebdavUsernameLabel": "Benutzername",
     "documentWebdavPasswordLabel": "Passwort",
     "documentWebdavPathLabel": "Basispfad",
-    "documentWebdavPathHint": "Remote-Ordner für Dokumentdateien. Leer lassen für yuvomi-documents."
+    "documentWebdavPathHint": "Remote-Ordner für Dokumentdateien. Leer lassen für yuvomi-documents.",
+    "sectionNetwork": "Netzwerk",
+    "sectionIntegrations": "Integrationen & Backups",
+    "errSchedule": "Ungültiger Cron-Zeitplan (fünf durch Leerzeichen getrennte Felder erwartet, z. B. 0 2 * * *).",
+    "errKeep": "Aufzubewahrende Backups muss eine positive Zahl sein."
   },
   "review": {
     "title": "Überprüfung",
@@ -106,7 +113,9 @@
     "saving": "Wird gespeichert …",
     "errSave": "Speichern der .env fehlgeschlagen.",
     "weatherEnabled": "aktiviert ({{city}})",
-    "configured": "konfiguriert"
+    "configured": "konfiguriert",
+    "finalNote": "Dies schreibt deine .env (eine bestehende wird gesichert) und startet den Container.",
+    "confirm": "Zum Bestätigen erneut klicken"
   },
   "docker": {
     "title": "Yuvomi wird gestartet",
@@ -139,6 +148,7 @@
   "done": {
     "title": "Yuvomi ist bereit!",
     "subtitle": "Dein Familienplaner läuft und dein Admin-Konto ist eingerichtet.",
-    "open": "Yuvomi öffnen →"
+    "open": "Yuvomi öffnen →",
+    "backupReminder": "Denk daran, deine .env-Datei jetzt zu sichern — sie enthält deine Schlüssel."
   }
 }

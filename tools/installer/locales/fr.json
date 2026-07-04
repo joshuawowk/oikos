@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "Facultatif",
     "stepCounter": "Étape {{n}} sur {{total}}",
-    "toggleVisibility": "Afficher ou masquer la valeur"
+    "toggleVisibility": "Afficher ou masquer la valeur",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "Configuration de base",
@@ -28,7 +30,8 @@
     "sessionHint": "Signe les cookies de session du navigateur.",
     "dbLabel": "Clé de chiffrement de la base de données",
     "dbHint": "Chiffre la base de données SQLite au repos.",
-    "errBoth": "Les deux clés sont requises."
+    "errBoth": "Les deux clés sont requises.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "Widget Météo",
@@ -77,7 +80,9 @@
     "saving": "Enregistrement …",
     "errSave": "Échec de l'enregistrement de .env.",
     "weatherEnabled": "activé ({{city}})",
-    "configured": "configuré"
+    "configured": "configuré",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Démarrage d'Yuvomi",
@@ -110,7 +115,8 @@
   "done": {
     "title": "Yuvomi est prêt !",
     "subtitle": "Votre organiseur familial est en marche et votre compte administrateur est configuré.",
-    "open": "Ouvrir Yuvomi →"
+    "open": "Ouvrir Yuvomi →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "Avancé · facultatif",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "Nom d’utilisateur",
     "documentWebdavPasswordLabel": "Mot de passe",
     "documentWebdavPathLabel": "Chemin de base",
-    "documentWebdavPathHint": "Dossier distant des documents. Laisser vide pour utiliser yuvomi-documents."
+    "documentWebdavPathHint": "Dossier distant des documents. Laisser vide pour utiliser yuvomi-documents.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }

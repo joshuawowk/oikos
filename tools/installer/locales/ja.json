@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "任意",
     "stepCounter": "ステップ {{n}} / {{total}}",
-    "toggleVisibility": "値を表示または非表示にする"
+    "toggleVisibility": "値を表示または非表示にする",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "基本設定",
@@ -28,7 +30,8 @@
     "sessionHint": "ブラウザのセッション Cookie に署名します。",
     "dbLabel": "データベース暗号化キー",
     "dbHint": "保存時に SQLite データベースを暗号化します。",
-    "errBoth": "両方のキーが必要です。"
+    "errBoth": "両方のキーが必要です。",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "天気ウィジェット",
@@ -77,7 +80,9 @@
     "saving": "保存中 …",
     "errSave": ".env の保存に失敗しました。",
     "weatherEnabled": "有効（{{city}}）",
-    "configured": "設定済み"
+    "configured": "設定済み",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Yuvomi を起動しています",
@@ -110,7 +115,8 @@
   "done": {
     "title": "Yuvomi の準備が整いました！",
     "subtitle": "ファミリープランナーが稼働し、管理者アカウントの設定が完了しました。",
-    "open": "Yuvomi を開く →"
+    "open": "Yuvomi を開く →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "詳細設定 · 任意",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "ユーザー名",
     "documentWebdavPasswordLabel": "パスワード",
     "documentWebdavPathLabel": "ベースパス",
-    "documentWebdavPathHint": "ドキュメント用のリモートフォルダー。空の場合は yuvomi-documents を使用します。"
+    "documentWebdavPathHint": "ドキュメント用のリモートフォルダー。空の場合は yuvomi-documents を使用します。",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }

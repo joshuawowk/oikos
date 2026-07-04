@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "Volitelné",
     "stepCounter": "Krok {{n}} z {{total}}",
-    "toggleVisibility": "Zobrazit nebo skrýt hodnotu"
+    "toggleVisibility": "Zobrazit nebo skrýt hodnotu",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "Základní konfigurace",
@@ -28,7 +30,8 @@
     "sessionHint": "Podepisuje cookies relace prohlížeče.",
     "dbLabel": "Šifrovací klíč databáze",
     "dbHint": "Šifruje databázi SQLite v klidovém stavu.",
-    "errBoth": "Oba klíče jsou povinné."
+    "errBoth": "Oba klíče jsou povinné.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "Widget počasí",
@@ -90,7 +93,11 @@
     "documentWebdavUsernameLabel": "Uživatelské jméno",
     "documentWebdavPasswordLabel": "Heslo",
     "documentWebdavPathLabel": "Základní cesta",
-    "documentWebdavPathHint": "Vzdálená složka dokumentů. Ponechte prázdné pro yuvomi-documents."
+    "documentWebdavPathHint": "Vzdálená složka dokumentů. Ponechte prázdné pro yuvomi-documents.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   },
   "review": {
     "title": "Přehled",
@@ -106,7 +113,9 @@
     "saving": "Ukládá se …",
     "errSave": "Uložení .env se nezdařilo.",
     "weatherEnabled": "povoleno ({{city}})",
-    "configured": "nakonfigurováno"
+    "configured": "nakonfigurováno",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Spouštění Yuvomi",
@@ -139,6 +148,7 @@
   "done": {
     "title": "Yuvomi je připraven!",
     "subtitle": "Tvůj rodinný plánovač běží a účet správce je nastaven.",
-    "open": "Otevřít Yuvomi →"
+    "open": "Otevřít Yuvomi →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   }
 }

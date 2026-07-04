@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "Valfritt",
     "stepCounter": "Steg {{n}} av {{total}}",
-    "toggleVisibility": "Visa eller dölj värdet"
+    "toggleVisibility": "Visa eller dölj värdet",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "Grundkonfiguration",
@@ -28,7 +30,8 @@
     "sessionHint": "Signerar webbläsarens sessionscookies.",
     "dbLabel": "Krypteringsnyckel för databasen",
     "dbHint": "Krypterar SQLite-databasen i vila.",
-    "errBoth": "Båda nycklarna krävs."
+    "errBoth": "Båda nycklarna krävs.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "Väder-widget",
@@ -77,7 +80,9 @@
     "saving": "Sparar …",
     "errSave": "Det gick inte att spara .env.",
     "weatherEnabled": "aktiverat ({{city}})",
-    "configured": "konfigurerat"
+    "configured": "konfigurerat",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Startar Yuvomi",
@@ -110,7 +115,8 @@
   "done": {
     "title": "Yuvomi är klart!",
     "subtitle": "Din familjeplanerare körs och ditt administratörskonto är konfigurerat.",
-    "open": "Öppna Yuvomi →"
+    "open": "Öppna Yuvomi →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "Avancerat · valfritt",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "Användarnamn",
     "documentWebdavPasswordLabel": "Lösenord",
     "documentWebdavPathLabel": "Bassökväg",
-    "documentWebdavPathHint": "Fjärrmapp för dokument. Lämna tomt för att använda yuvomi-documents."
+    "documentWebdavPathHint": "Fjärrmapp för dokument. Lämna tomt för att använda yuvomi-documents.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }

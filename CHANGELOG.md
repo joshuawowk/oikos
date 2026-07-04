@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.92.1] - 2026-07-04
+
+### Added
+- **Reveal and copy installer secret keys** — after generating the session secret or database encryption key in the setup wizard, the value is now shown and a copy button appears, with a screen-reader-announced confirmation, so the keys can be recorded before they are saved.
+
+### Changed
+- **Stronger key-loss warning in the installer** — the security-keys step now leads with a prominent warning that losing the keys makes encrypted data unrecoverable, echoed by a backup reminder on the final screen.
+- **Grouped installer advanced step** — reverse proxy, single sign-on, backups, and WebDAV are now split into "Networking" and "Integrations & backups" sections, with the security-relevant reverse-proxy choice visually emphasized.
+- **Confirmation before the installer writes config** — the irreversible "Save & Start" action now asks for a second click before writing `.env` and starting the container.
+- **Themed visibility toggles in the installer** — show/hide controls use themed icons with pressed-state semantics instead of an emoji glyph.
+
+### Fixed
+- **Correct scheme for installer redirect links** — generated Google/OIDC redirect URIs and the final "Open Yuvomi" link now use https or http based on the reverse-proxy choice instead of always using http.
+- **Installer accessibility and mobile polish** — the wizard now respects reduced-motion, enlarges touch targets to 44px, keeps the footer reachable on mobile, and aligns correctly in right-to-left languages.
+- **Safer installer input handling** — the backup cron schedule and retention count are validated, the admin step has a Back button, text fields submit on Enter, and a failed `.env` save now surfaces the actual server error.
+
 ## [0.92.0] - 2026-07-04
 
 ### Added

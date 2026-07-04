@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "可选",
     "stepCounter": "第 {{n}} 步，共 {{total}} 步",
-    "toggleVisibility": "显示或隐藏值"
+    "toggleVisibility": "显示或隐藏值",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "基本配置",
@@ -28,7 +30,8 @@
     "sessionHint": "对浏览器会话 Cookie 进行签名。",
     "dbLabel": "数据库加密密钥",
     "dbHint": "在静态状态下加密 SQLite 数据库。",
-    "errBoth": "两个密钥都为必填项。"
+    "errBoth": "两个密钥都为必填项。",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "天气小组件",
@@ -77,7 +80,9 @@
     "saving": "正在保存 …",
     "errSave": "无法保存 .env。",
     "weatherEnabled": "已启用（{{city}}）",
-    "configured": "已配置"
+    "configured": "已配置",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "正在启动 Yuvomi",
@@ -110,7 +115,8 @@
   "done": {
     "title": "Yuvomi 已就绪！",
     "subtitle": "您的家庭规划器正在运行，管理员账户已设置完成。",
-    "open": "打开 Yuvomi →"
+    "open": "打开 Yuvomi →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "高级 · 可选",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "用户名",
     "documentWebdavPasswordLabel": "密码",
     "documentWebdavPathLabel": "基础路径",
-    "documentWebdavPathHint": "文档的远程文件夹。留空则使用 yuvomi-documents。"
+    "documentWebdavPathHint": "文档的远程文件夹。留空则使用 yuvomi-documents。",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }

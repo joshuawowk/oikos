@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "اختياري",
     "stepCounter": "الخطوة {{n}} من {{total}}",
-    "toggleVisibility": "إظهار القيمة أو إخفاؤها"
+    "toggleVisibility": "إظهار القيمة أو إخفاؤها",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "الإعداد الأساسي",
@@ -28,7 +30,8 @@
     "sessionHint": "يوقّع ملفات تعريف ارتباط جلسة المتصفح.",
     "dbLabel": "مفتاح تشفير قاعدة البيانات",
     "dbHint": "يشفّر قاعدة بيانات SQLite في حالة السكون.",
-    "errBoth": "كلا المفتاحين مطلوبان."
+    "errBoth": "كلا المفتاحين مطلوبان.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "أداة الطقس",
@@ -77,7 +80,9 @@
     "saving": "جارٍ الحفظ …",
     "errSave": "فشل حفظ ‎.env‎.",
     "weatherEnabled": "مُفعّل ({{city}})",
-    "configured": "تمت التهيئة"
+    "configured": "تمت التهيئة",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "جارٍ بدء Yuvomi",
@@ -110,7 +115,8 @@
   "done": {
     "title": "‏Yuvomi جاهز!",
     "subtitle": "مخطّط عائلتك قيد التشغيل وتم إعداد حساب المسؤول الخاص بك.",
-    "open": "افتح Yuvomi ←"
+    "open": "افتح Yuvomi ←",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "متقدّم · اختياري",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "اسم المستخدم",
     "documentWebdavPasswordLabel": "كلمة المرور",
     "documentWebdavPathLabel": "المسار الأساسي",
-    "documentWebdavPathHint": "المجلد البعيد للمستندات. اتركه فارغًا لاستخدام yuvomi-documents."
+    "documentWebdavPathHint": "المجلد البعيد للمستندات. اتركه فارغًا لاستخدام yuvomi-documents.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }

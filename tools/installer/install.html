@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/tokens.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
     body {
       font-family: var(--font-sans); background: var(--color-bg); color: var(--color-text-primary);
       min-height: 100vh; display: flex; flex-direction: column;
@@ -73,7 +74,7 @@
     .toggle-head {
       display: flex; align-items: center; justify-content: space-between;
       width: 100%; padding: 13px 16px; cursor: pointer; user-select: none;
-      font-family: var(--font-sans); font-size: 14px; font-weight: 600; text-align: left;
+      font-family: var(--font-sans); font-size: 14px; font-weight: 600; text-align: start;
       background: var(--color-surface); color: var(--color-text-primary); border: none;
     }
     .toggle-head:hover { background: var(--color-surface-2); }
@@ -93,7 +94,8 @@
     .log-box  {
       display: none; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary);
       white-space: pre-wrap; max-height: 180px; overflow-y: auto;
-      margin-top: 12px; padding: 10px; background: var(--color-bg); border-radius: 5px;
+      margin-top: 12px; padding: 10px; background: var(--color-surface-2);
+      border: 1px solid var(--color-border); border-radius: 5px;
     }
     .review-grid { display: grid; grid-template-columns: 160px 1fr; gap: 8px 12px; font-size: 14px; }
     .review-key  { color: var(--color-text-secondary); }
@@ -109,6 +111,70 @@
       transition: background .12s;
     }
     .open-link:hover { background: var(--color-accent-hover); }
+
+    /* Hochkonsequente Warnung (Schlüsselverlust, Backup-Erinnerung) — stärker als .info-banner. */
+    .danger-banner {
+      display: flex; gap: 10px; align-items: flex-start;
+      margin-bottom: 18px; padding: 12px 14px; border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--color-danger) 9%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--color-danger) 32%, transparent);
+      color: var(--color-text-primary); font-size: 13px; line-height: 1.5;
+    }
+    .danger-banner .warn-icon { color: var(--color-danger); font-size: 16px; line-height: 1.4; flex-shrink: 0; }
+    .danger-banner strong { color: var(--color-danger); }
+
+    /* Weichere Erinnerung (kein Live-Hazard, z. B. Backup-Hinweis auf „Fertig"). */
+    .warn-banner {
+      display: flex; gap: 10px; align-items: flex-start;
+      margin-bottom: 18px; padding: 12px 14px; border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+      color: var(--color-text-primary); font-size: 13px; line-height: 1.5;
+    }
+    .warn-banner .warn-icon { color: var(--color-warning); font-size: 16px; line-height: 1.4; flex-shrink: 0; }
+
+    /* Sektionsüberschrift im Advanced-Schritt — Haarlinie statt zweitem Eyebrow,
+       damit sie sich klar vom akzentfarbenen .step-tag unterscheidet. */
+    .group-label {
+      font-size: 12px; font-weight: 700; letter-spacing: .01em;
+      color: var(--color-text-secondary); margin: 22px 0 10px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--color-border);
+    }
+    .group-label:first-child { margin-top: 4px; }
+    .group-label + .field, .group-label + .toggle-card { margin-top: 0; }
+
+    /* Der Proxy-Select ist sicherheitsrelevant — visuell hervorheben. */
+    .field-emphasis {
+      padding: 14px; border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+    }
+    .field-emphasis label { color: var(--color-accent); }
+
+    /* Eye-/Copy-Icons: Lucide-SVG statt Emoji, konsistent zum App-Icon-Set. */
+    .btn .icon-svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    [data-eye] .icon-off { display: none; }
+    [data-eye][aria-pressed="true"] .icon-on  { display: none; }
+    [data-eye][aria-pressed="true"] .icon-off { display: inline; }
+    .copied-note { font-size: 11px; color: var(--color-success); }
+
+    /* Touch-Ziele ≥44px und erreichbarer Footer auf Mobilgeräten. */
+    @media (max-width: 640px) {
+      .btn-sm { min-height: 44px; min-width: 44px; padding: 8px 12px; }
+      .secret-row .btn-sm { flex: 0 0 auto; }
+      .card-foot {
+        position: sticky; bottom: 0; z-index: 10;
+        background: var(--color-surface);
+        box-shadow: 0 -1px 0 var(--color-border);
+      }
+    }
+
+    /* Reduced-Motion: alle Bewegungen zu sofortigen Zustandswechseln herabstufen. */
+    @media (prefers-reduced-motion: reduce) {
+      .step { animation: none; }
+      .spinner { animation: none; }
+      .progress-fill { transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -157,22 +223,40 @@
         <p data-i18n="secrets.subtitle">These protect your session and encrypt the database. Store your .env file safely — losing these keys means losing access to your data.</p>
       </div>
       <div class="card-body">
+        <div class="danger-banner" role="note">
+          <span class="warn-icon" aria-hidden="true">&#x26A0;</span>
+          <span data-i18n="secrets.dangerWarn">Save these keys now. If you lose them, your encrypted data cannot be recovered — there is no reset.</span>
+        </div>
         <div class="field">
           <label for="sec-session" data-i18n="secrets.sessionLabel">Session Secret</label>
           <div class="secret-row">
             <input type="password" id="sec-session" autocomplete="off" spellcheck="false">
-            <button type="button" class="btn btn-ghost btn-sm" data-eye="sec-session" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">&#x1F441;</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-eye="sec-session" aria-pressed="false" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">
+              <svg class="icon-svg icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-svg icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3.5 7 10 7a9.12 9.12 0 0 0 5.4-1.61"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" data-copy="sec-session" aria-label="Copy" data-i18n-aria="common.copy" hidden>
+              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
             <button class="btn btn-ghost btn-sm" data-gen="sec-session" data-i18n="common.generate">Generate</button>
           </div>
+          <span class="copied-note" id="sec-session-copied" role="status" aria-live="polite"></span>
           <div class="hint" data-i18n="secrets.sessionHint">Signs browser session cookies.</div>
         </div>
         <div class="field">
           <label for="sec-db" data-i18n="secrets.dbLabel">Database Encryption Key</label>
           <div class="secret-row">
             <input type="password" id="sec-db" autocomplete="off" spellcheck="false">
-            <button type="button" class="btn btn-ghost btn-sm" data-eye="sec-db" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">&#x1F441;</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-eye="sec-db" aria-pressed="false" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">
+              <svg class="icon-svg icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-svg icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3.5 7 10 7a9.12 9.12 0 0 0 5.4-1.61"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" data-copy="sec-db" aria-label="Copy" data-i18n-aria="common.copy" hidden>
+              <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
             <button class="btn btn-ghost btn-sm" data-gen="sec-db" data-i18n="common.generate">Generate</button>
           </div>
+          <span class="copied-note" id="sec-db-copied" role="status" aria-live="polite"></span>
           <div class="hint" data-i18n="secrets.dbHint">Encrypts the SQLite database at rest.</div>
         </div>
         <div class="error-banner" id="sec-err" role="alert"></div>
@@ -292,7 +376,8 @@
         <p data-i18n="advanced.subtitle">Reverse proxy, single sign-on and automatic backups. All optional — skipping is safe.</p>
       </div>
       <div class="card-body">
-        <div class="field">
+        <div class="group-label" data-i18n="advanced.sectionNetwork">Networking</div>
+        <div class="field field-emphasis">
           <label for="adv-proxy" data-i18n="advanced.proxyLabel">How is Yuvomi exposed?</label>
           <select id="adv-proxy">
             <option value="proxy" data-i18n="advanced.proxyBehindHttps">Behind a reverse proxy with HTTPS (Caddy, nginx, Traefik)</option>
@@ -301,6 +386,7 @@
           <div class="hint" data-i18n="advanced.proxyHint">Direct access disables secure-only cookies so login works without HTTPS.</div>
         </div>
 
+        <div class="group-label" data-i18n="advanced.sectionIntegrations">Integrations &amp; backups</div>
         <div class="toggle-card">
           <button type="button" class="toggle-head" data-toggle="oidc-body" aria-expanded="false" aria-controls="oidc-body">
             <span data-i18n="advanced.oidc">Single Sign-On (OIDC)</span>
@@ -370,7 +456,10 @@
               <label for="adv-document-webdav-password" data-i18n="advanced.documentWebdavPasswordLabel">Password</label>
               <div class="secret-row">
                 <input type="password" id="adv-document-webdav-password" autocomplete="new-password">
-                <button type="button" class="btn btn-ghost btn-sm" data-eye="adv-document-webdav-password" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">&#x1F441;</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-eye="adv-document-webdav-password" aria-pressed="false" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">
+                  <svg class="icon-svg icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="icon-svg icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3.5 7 10 7a9.12 9.12 0 0 0 5.4-1.61"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
               </div>
             </div>
             <div class="field">
@@ -397,6 +486,7 @@
         <p data-i18n="review.subtitle">Check your settings before writing .env and starting the container.</p>
       </div>
       <div class="card-body">
+        <div class="info-banner" data-i18n="review.finalNote">This writes your .env (an existing one is backed up) and starts the container.</div>
         <div class="review-grid">
           <div class="review-key" data-i18n="review.host">Host</div>           <div id="rv-host"></div>
           <div class="review-key" data-i18n="review.port">Port</div>           <div id="rv-port"></div>
@@ -461,7 +551,10 @@
           <label for="adm-pass" data-i18n="admin.passLabel">Password</label>
           <div class="secret-row">
             <input type="password" id="adm-pass" placeholder="At least 8 characters" data-i18n-ph="admin.passPlaceholder" autocomplete="new-password">
-            <button type="button" class="btn btn-ghost btn-sm" data-eye="adm-pass" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">&#x1F441;</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-eye="adm-pass" aria-pressed="false" aria-label="Show or hide value" data-i18n-aria="common.toggleVisibility">
+              <svg class="icon-svg icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-svg icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3.5 7 10 7a9.12 9.12 0 0 0 5.4-1.61"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+            </button>
           </div>
         </div>
         <div class="field">
@@ -471,6 +564,7 @@
         <div class="error-banner" id="adm-err" role="alert"></div>
       </div>
       <div class="card-foot">
+        <button class="btn btn-ghost" data-back data-i18n="common.back">Back</button>
         <button class="btn btn-primary" id="adm-next" data-i18n="admin.create">Create Account</button>
       </div>
     </div>
@@ -482,6 +576,10 @@
           <div class="icon">&#x1F389;</div>
           <h2 tabindex="-1" data-i18n="done.title">Yuvomi is ready!</h2>
           <p data-i18n="done.subtitle">Your family planner is running and your admin account is set up.</p>
+          <div class="warn-banner" role="note" style="text-align:start">
+            <span class="warn-icon" aria-hidden="true">&#x26A0;</span>
+            <span data-i18n="done.backupReminder">Remember to back up your .env file now — it holds your keys.</span>
+          </div>
           <a id="done-link" class="open-link" href="#" target="_blank" rel="noopener" data-i18n="done.open">Open Yuvomi &#x2192;</a>
         </div>
       </div>
@@ -608,16 +706,42 @@ document.addEventListener('click', async e => {
     btn.textContent = t('common.generating');
     const r = await fetch('/api/generate-secret', { method: 'POST' });
     const d = await r.json();
-    $(genId).value = d.secret;
+    const inp = $(genId);
+    inp.value = d.secret;
     btn.disabled = false;
     btn.textContent = t('common.generate');
+    // Nach dem Generieren den Wert sichtbar machen und Kopieren anbieten —
+    // dies ist der einzige Moment, in dem der Nutzer den Schlüssel notieren kann.
+    inp.type = 'text';
+    const eyeBtn = document.querySelector(`[data-eye="${genId}"]`);
+    if (eyeBtn) eyeBtn.setAttribute('aria-pressed', 'true');
+    const copyBtn = document.querySelector(`[data-copy="${genId}"]`);
+    if (copyBtn) copyBtn.hidden = false;
     return;
   }
 
-  const eyeId = e.target.closest('[data-eye]')?.dataset.eye;
-  if (eyeId) {
-    const inp = $(eyeId);
-    inp.type = inp.type === 'password' ? 'text' : 'password';
+  const eyeBtn = e.target.closest('[data-eye]');
+  if (eyeBtn) {
+    const inp = $(eyeBtn.dataset.eye);
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    eyeBtn.setAttribute('aria-pressed', show ? 'true' : 'false');
+    return;
+  }
+
+  const copyBtn = e.target.closest('[data-copy]');
+  if (copyBtn) {
+    const inp = $(copyBtn.dataset.copy);
+    if (!inp.value) return;
+    try { await navigator.clipboard.writeText(inp.value); } catch { /* Clipboard kann blockiert sein */ }
+    const note = $(`${copyBtn.dataset.copy}-copied`);
+    if (note) {
+      // In die Live-Region schreiben (statt nur einblenden), damit Screenreader
+      // die Bestätigung ansagen. Nach kurzer Zeit wieder leeren.
+      note.textContent = t('common.copied');
+      clearTimeout(note._t);
+      note._t = setTimeout(() => { note.textContent = ''; }, 1800);
+    }
     return;
   }
 
@@ -713,6 +837,17 @@ $('adv-next').addEventListener('click', () => {
     S.TRUST_PROXY = '1';            // trust one proxy hop (Caddy/nginx/Traefik)
   }
 
+  // Das finale Schema steht erst hier fest (nach der Proxy-Wahl) — davon abgeleitete
+  // Redirect-URIs neu berechnen, damit sie nicht fälschlich http:// bleiben.
+  S.scheme = S.SESSION_SECURE === 'true' ? 'https' : 'http';
+  const origin = `${S.scheme}://${S.host}:${S.port}`;
+  if (S.GOOGLE_CLIENT_ID) S.GOOGLE_REDIRECT_URI = `${origin}/api/v1/calendar/google/callback`;
+  const oidcRedirectField = $('oidc-redirect');
+  const redirectVal = oidcRedirectField.value.trim();
+  if (!redirectVal || /\/api\/v1\/auth\/oidc\/callback$/.test(redirectVal)) {
+    oidcRedirectField.value = `${origin}/api/v1/auth/oidc/callback`;
+  }
+
   // OIDC: the server requires all four values or none — enforce that here.
   const oidc = {
     OIDC_ISSUER: $('oidc-issuer').value.trim(),
@@ -726,10 +861,16 @@ $('adv-next').addEventListener('click', () => {
   Object.assign(S, oidc);
   showErr('adv-err', '');
 
-  // Backups: only persist BACKUP_ENABLED=false when explicitly disabled.
-  S.BACKUP_ENABLED = $('adv-backup-enable').checked ? '' : 'false';
-  S.BACKUP_SCHEDULE = $('adv-backup-enable').checked ? $('adv-backup-schedule').value.trim() : '';
-  S.BACKUP_KEEP = $('adv-backup-enable').checked ? $('adv-backup-keep').value.trim() : '';
+  // Backups: validate optional schedule/retention before persisting.
+  const backupOn = $('adv-backup-enable').checked;
+  const schedule = backupOn ? $('adv-backup-schedule').value.trim() : '';
+  const keep = backupOn ? $('adv-backup-keep').value.trim() : '';
+  if (schedule && schedule.split(/\s+/).length !== 5) { showErr('adv-err', t('advanced.errSchedule')); return; }
+  if (keep && !/^[1-9]\d*$/.test(keep)) { showErr('adv-err', t('advanced.errKeep')); return; }
+  // only persist BACKUP_ENABLED=false when explicitly disabled.
+  S.BACKUP_ENABLED = backupOn ? '' : 'false';
+  S.BACKUP_SCHEDULE = schedule;
+  S.BACKUP_KEEP = keep;
 
   S.DOCUMENT_STORAGE_WEBDAV_ENABLED = $('adv-document-webdav-enable').checked ? 'true' : 'false';
   S.DOCUMENT_STORAGE_WEBDAV_URL = $('adv-document-webdav-url').value.trim();
@@ -749,11 +890,23 @@ $('adv-next').addEventListener('click', () => {
     ? (S.DOCUMENT_STORAGE_WEBDAV_URL || t('review.configured'))
     : '-';
 
+  // Bestätigungszustand zurücksetzen, falls der Nutzer erneut hierher navigiert.
+  reviewConfirmed = false;
+  $('rev-next').textContent = t('review.save');
+
   showStep(5);
 });
 
+let reviewConfirmed = false;
 $('rev-next').addEventListener('click', async () => {
   const btn = $('rev-next');
+  // Irreversibler Schritt: erster Klick fordert Bestätigung, zweiter führt aus.
+  if (!reviewConfirmed) {
+    reviewConfirmed = true;
+    btn.textContent = t('review.confirm');
+    showErr('rev-err', '');
+    return;
+  }
   btn.disabled = true; btn.textContent = t('review.saving');
   const env = {
     SESSION_SECRET: S.SESSION_SECRET, DB_ENCRYPTION_KEY: S.DB_ENCRYPTION_KEY,
@@ -781,11 +934,14 @@ $('rev-next').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ env }),
     });
-    if (!r.ok) throw new Error(t('review.errSave'));
+    if (!r.ok) {
+      const d = await r.json().catch(() => null);
+      throw new Error(d?.error || t('review.errSave'));
+    }
     showStep(6);
     startDocker();
   } catch (e) {
-    btn.disabled = false; btn.textContent = t('review.save');
+    btn.disabled = false; btn.textContent = t('review.save'); reviewConfirmed = false;
     showErr('rev-err', e.message);
   }
 });
@@ -866,7 +1022,7 @@ async function createAdmin() {
     });
     const d = await r.json();
     if (r.status === 201 || r.status === 403) {
-      const appUrl = new URL('http://placeholder');
+      const appUrl = new URL(`${S.scheme || 'http'}://placeholder`);
       appUrl.hostname = S.host;
       appUrl.port = S.port;
       $('done-link').href = appUrl.href;
@@ -880,6 +1036,15 @@ async function createAdmin() {
     showErr('adm-err', e.message);
   }
 }
+
+// Enter in einem Textfeld löst die primäre Aktion des aktuellen Schritts aus.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const el = e.target;
+  if (el.tagName !== 'INPUT' || el.type === 'checkbox') return;
+  const primary = $(`step-${STEPS[currentStep]}`)?.querySelector('.card-foot .btn-primary');
+  if (primary && !primary.disabled) { e.preventDefault(); primary.click(); }
+});
 
 showStep(0);
 </script>

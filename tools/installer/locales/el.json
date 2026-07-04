@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "Προαιρετικό",
     "stepCounter": "Βήμα {{n}} από {{total}}",
-    "toggleVisibility": "Εμφάνιση ή απόκρυψη της τιμής"
+    "toggleVisibility": "Εμφάνιση ή απόκρυψη της τιμής",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "Βασική διαμόρφωση",
@@ -28,7 +30,8 @@
     "sessionHint": "Υπογράφει τα cookie συνεδρίας του προγράμματος περιήγησης.",
     "dbLabel": "Κλειδί κρυπτογράφησης βάσης δεδομένων",
     "dbHint": "Κρυπτογραφεί τη βάση δεδομένων SQLite σε ηρεμία.",
-    "errBoth": "Απαιτούνται και τα δύο κλειδιά."
+    "errBoth": "Απαιτούνται και τα δύο κλειδιά.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "Widget Καιρού",
@@ -77,7 +80,9 @@
     "saving": "Αποθήκευση …",
     "errSave": "Αποτυχία αποθήκευσης του .env.",
     "weatherEnabled": "ενεργοποιημένο ({{city}})",
-    "configured": "διαμορφωμένο"
+    "configured": "διαμορφωμένο",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Εκκίνηση του Yuvomi",
@@ -110,7 +115,8 @@
   "done": {
     "title": "Το Yuvomi είναι έτοιμο!",
     "subtitle": "Ο οικογενειακός σας προγραμματιστής εκτελείται και ο λογαριασμός διαχειριστή σας έχει ρυθμιστεί.",
-    "open": "Άνοιγμα Yuvomi →"
+    "open": "Άνοιγμα Yuvomi →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "Για προχωρημένους · προαιρετικό",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "Όνομα χρήστη",
     "documentWebdavPasswordLabel": "Κωδικός πρόσβασης",
     "documentWebdavPathLabel": "Βασική διαδρομή",
-    "documentWebdavPathHint": "Απομακρυσμένος φάκελος εγγράφων. Αφήστε κενό για yuvomi-documents."
+    "documentWebdavPathHint": "Απομακρυσμένος φάκελος εγγράφων. Αφήστε κενό για yuvomi-documents.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }

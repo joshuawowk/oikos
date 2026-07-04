@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "वैकल्पिक",
     "stepCounter": "चरण {{n}} / {{total}}",
-    "toggleVisibility": "मान दिखाएँ या छिपाएँ"
+    "toggleVisibility": "मान दिखाएँ या छिपाएँ",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "बुनियादी कॉन्फ़िगरेशन",
@@ -28,7 +30,8 @@
     "sessionHint": "ब्राउज़र सत्र कुकीज़ पर हस्ताक्षर करता है।",
     "dbLabel": "डेटाबेस एन्क्रिप्शन कुंजी",
     "dbHint": "SQLite डेटाबेस को विश्राम अवस्था में एन्क्रिप्ट करता है।",
-    "errBoth": "दोनों कुंजियाँ आवश्यक हैं।"
+    "errBoth": "दोनों कुंजियाँ आवश्यक हैं।",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "मौसम विजेट",
@@ -77,7 +80,9 @@
     "saving": "सहेजा जा रहा है …",
     "errSave": ".env सहेजने में विफल।",
     "weatherEnabled": "सक्षम ({{city}})",
-    "configured": "कॉन्फ़िगर किया गया"
+    "configured": "कॉन्फ़िगर किया गया",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Yuvomi शुरू हो रहा है",
@@ -110,7 +115,8 @@
   "done": {
     "title": "Yuvomi तैयार है!",
     "subtitle": "आपका पारिवारिक प्लानर चल रहा है और आपका व्यवस्थापक खाता सेट हो गया है।",
-    "open": "Yuvomi खोलें →"
+    "open": "Yuvomi खोलें →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "उन्नत · वैकल्पिक",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "उपयोगकर्ता नाम",
     "documentWebdavPasswordLabel": "पासवर्ड",
     "documentWebdavPathLabel": "मूल पथ",
-    "documentWebdavPathHint": "दस्तावेज़ों का दूरस्थ फ़ोल्डर। yuvomi-documents के लिए खाली छोड़ें।"
+    "documentWebdavPathHint": "दस्तावेज़ों का दूरस्थ फ़ोल्डर। yuvomi-documents के लिए खाली छोड़ें।",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }

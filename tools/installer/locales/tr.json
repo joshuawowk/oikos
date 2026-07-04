@@ -7,7 +7,9 @@
     "generating": "…",
     "optional": "İsteğe bağlı",
     "stepCounter": "Adım {{n}} / {{total}}",
-    "toggleVisibility": "Değeri göster veya gizle"
+    "toggleVisibility": "Değeri göster veya gizle",
+    "copy": "Copy",
+    "copied": "Copied ✓"
   },
   "config": {
     "title": "Temel Yapılandırma",
@@ -28,7 +30,8 @@
     "sessionHint": "Tarayıcı oturum çerezlerini imzalar.",
     "dbLabel": "Veritabanı Şifreleme Anahtarı",
     "dbHint": "SQLite veritabanını beklemede şifreler.",
-    "errBoth": "Her iki anahtar da gereklidir."
+    "errBoth": "Her iki anahtar da gereklidir.",
+    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
   },
   "weather": {
     "title": "Hava Durumu Widget",
@@ -77,7 +80,9 @@
     "saving": "Kaydediliyor …",
     "errSave": ".env kaydedilemedi.",
     "weatherEnabled": "etkin ({{city}})",
-    "configured": "yapılandırıldı"
+    "configured": "yapılandırıldı",
+    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
+    "confirm": "Click again to confirm"
   },
   "docker": {
     "title": "Yuvomi başlatılıyor",
@@ -110,7 +115,8 @@
   "done": {
     "title": "Yuvomi hazır!",
     "subtitle": "Aile planlayıcınız çalışıyor ve yönetici hesabınız ayarlandı.",
-    "open": "Yuvomi'u aç →"
+    "open": "Yuvomi'u aç →",
+    "backupReminder": "Remember to back up your .env file now — it holds your keys."
   },
   "advanced": {
     "tag": "Gelişmiş · isteğe bağlı",
@@ -139,6 +145,10 @@
     "documentWebdavUsernameLabel": "Kullanıcı adı",
     "documentWebdavPasswordLabel": "Parola",
     "documentWebdavPathLabel": "Temel yol",
-    "documentWebdavPathHint": "Belgeler için uzak klasör. yuvomi-documents kullanmak için boş bırakın."
+    "documentWebdavPathHint": "Belgeler için uzak klasör. yuvomi-documents kullanmak için boş bırakın.",
+    "sectionNetwork": "Networking",
+    "sectionIntegrations": "Integrations & backups",
+    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
+    "errKeep": "Backups to keep must be a positive number."
   }
 }
