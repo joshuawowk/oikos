@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.90.0] - 2026-07-04
+
+### Added
+- **Notes now render everything the editor toolbar offers** — the sticky-note cards (and the dashboard pinboard preview) previously showed only bold and italic; any heading, list, checklist, link, code span, block quote, divider, strikethrough, or underline you added via the editor appeared as raw Markdown text on the card. Cards now render the full set: headings (`#`–`###`), ordered and unordered lists, checklists with checkboxes, block quotes, dividers, inline code, safe links, **bold**, *italic*, ~~strikethrough~~, and underline.
+- **Clear button in the notes search field** — a × control clears the current filter in one tap.
+
+### Changed
+- **Notes editor formatting toolbar wraps on small screens** — on a phone the 13 formatting buttons no longer squeeze below finger size in the note dialog; the toolbar now wraps to a second row and the buttons keep a 44px touch target on touch devices.
+- **Clearer notes surface details** — the search field no longer shows a visible label that duplicated its placeholder (the label is kept for screen readers), pinned notes carry a clearer ring, and white notes get a visible edge on the warm background.
+
 ## [0.89.0] - 2026-07-04
 
 ### Fixed

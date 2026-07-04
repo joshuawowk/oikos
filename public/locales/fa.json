@@ -608,7 +608,8 @@
         "colorBlue": "آبی",
         "colorPurple": "بنفش",
         "colorOrange": "نارنجی",
-        "colorWhite": "سفید"
+        "colorWhite": "سفید",
+        "searchClear": "پاک کردن جستجو"
     },
     "contacts": {
         "title": "مخاطبین",

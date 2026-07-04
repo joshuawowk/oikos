@@ -608,7 +608,8 @@
         "colorBlue": "Niebieski",
         "colorPurple": "Fioletowy",
         "colorOrange": "Pomarańczowy",
-        "colorWhite": "Biały"
+        "colorWhite": "Biały",
+        "searchClear": "Wyczyść wyszukiwanie"
     },
     "contacts": {
         "title": "Kontakty",

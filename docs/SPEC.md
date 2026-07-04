@@ -1146,8 +1146,8 @@ Responsive grid with colored sticky notes. Phones use one readable column; wider
 - CRUD: title (optional), content, color
 - Pin → appears at top + on dashboard
 - Creator shown (profile photo if set, else coloured avatar with initials)
-- Markdown-light: bold, italic, lists (regex-based)
-- Full-text search: client-side filter bar, filters instantly by title + content
+- Markdown rendering: the card renders the full set the editor toolbar offers — headings (`#`–`###`), ordered/unordered lists, checklists (`- [ ]` / `- [x]`), blockquotes, dividers, inline code, links (safe schemes only), **bold**, *italic*, ~~strikethrough~~, and underline. Shared renderer (`renderMarkdownLight`), so the dashboard pinboard preview shows the same formatting
+- Full-text search: client-side filter bar, filters instantly by title + content, with a clear (×) control
 
 ### Contacts (`/contacts`)
 

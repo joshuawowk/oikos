@@ -608,7 +608,8 @@
         "colorBlue": "Blau",
         "colorPurple": "Lila",
         "colorOrange": "Orange",
-        "colorWhite": "Weiß"
+        "colorWhite": "Weiß",
+        "searchClear": "Suche leeren"
     },
     "contacts": {
         "title": "Kontakte",

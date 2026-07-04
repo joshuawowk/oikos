@@ -608,7 +608,8 @@
         "colorBlue": "파랑",
         "colorPurple": "보라",
         "colorOrange": "주황",
-        "colorWhite": "흰색"
+        "colorWhite": "흰색",
+        "searchClear": "검색 지우기"
     },
     "contacts": {
         "title": "연락처",

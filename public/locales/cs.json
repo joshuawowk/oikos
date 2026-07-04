@@ -602,7 +602,8 @@
         "colorPurple": "Fialová",
         "colorTeal": "Teal",
         "colorWhite": "Bílá",
-        "colorYellow": "Žlutá"
+        "colorYellow": "Žlutá",
+        "searchClear": "Vymazat hledání"
     },
     "contacts": {
         "title": "Kontakty",

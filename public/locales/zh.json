@@ -602,7 +602,8 @@
         "colorPurple": "紫色",
         "colorTeal": "青绿色",
         "colorWhite": "白色",
-        "colorYellow": "黄色"
+        "colorYellow": "黄色",
+        "searchClear": "清除搜索"
     },
     "contacts": {
         "title": "联系人",

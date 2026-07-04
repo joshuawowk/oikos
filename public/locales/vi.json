@@ -602,7 +602,8 @@
         "colorPurple": "Tím",
         "colorTeal": "Mòng két",
         "colorWhite": "Trắng",
-        "colorYellow": "Vàng"
+        "colorYellow": "Vàng",
+        "searchClear": "Xóa tìm kiếm"
     },
     "contacts": {
         "title": "Liên hệ",

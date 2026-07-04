@@ -768,6 +768,26 @@
   overflow: hidden;
 }
 
+/* Die Notiz-Vorschau ist eine 2-Zeilen-Zusammenfassung: Markdown-Blöcke auf
+ * kompakte Inline-Darstellung reduzieren, damit Überschriften/Listen/Zitate
+ * den geklammerten Preview nicht sprengen. */
+.note-item__content .note-md-p,
+.note-item__content .note-md-h1,
+.note-item__content .note-md-h2,
+.note-item__content .note-md-h3,
+.note-item__content .note-md-ul,
+.note-item__content .note-md-ol,
+.note-item__content .note-md-checklist,
+.note-item__content .note-md-quote {
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  background: none;
+}
+.note-item__content .note-md-hr { display: none; }
+
 /* --------------------------------------------------------
  * Wetter-Widget
  *

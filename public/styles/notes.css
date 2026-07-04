@@ -38,17 +38,9 @@
  * justify-content:space-between des bespoke Toolbars). */
 .notes-toolbar__search {
   flex: 1 1 0;
-  display: grid;
-  gap: var(--space-1);
   max-width: 280px;
   min-width: 0;
   margin-inline-start: auto;
-}
-
-.notes-toolbar__search-label {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
 }
 
 .notes-toolbar__search-control {
@@ -73,7 +65,7 @@
 
 .notes-toolbar__search-input {
   width: 100%;
-  padding: var(--space-2) var(--space-2) var(--space-2) calc(var(--space-2) * 2 + 16px);
+  padding: var(--space-2) calc(var(--space-2) + 24px) var(--space-2) calc(var(--space-2) * 2 + 16px);
   border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-glass-button);
   background: var(--color-surface);
@@ -82,11 +74,52 @@
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+/* Native Clear-Kreuz von type=search unterdrücken — wir liefern ein
+ * eigenes, konsistent gestyltes und lokalisiertes Clear-Control. */
+.notes-toolbar__search-input::-webkit-search-cancel-button { display: none; }
+
 .notes-toolbar__search-input:focus {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
+
+.notes-toolbar__search-clear {
+  position: absolute;
+  inset-inline-end: var(--space-1);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.notes-toolbar__search-clear > i { width: 14px; height: 14px; }
+
+/* Trefferfläche auf Fingergröße erweitern, ohne die visuelle Größe zu ändern
+ * (gleiches Muster wie .note-card__pin/__delete). */
+.notes-toolbar__search-clear::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+.notes-toolbar__search-clear:hover,
+.notes-toolbar__search-clear:focus-visible {
+  background: var(--color-overlay-light);
+  color: var(--color-text-primary);
+}
+
+.notes-toolbar__search-clear[hidden] { display: none; }
 
 /* --------------------------------------------------------
  * Masonry-Grid
@@ -129,6 +162,15 @@
   grid-column: 1 / -1;
 }
 
+/* Progressive Enhancement: echtes Masonry-Packing ohne ragged Zeilen-Lücken,
+ * sobald der Browser natives CSS-Masonry unterstützt. Baseline bleibt das
+ * getestete, overflow-sichere Grid (minmax(0,1fr)); nicht-unterstützende
+ * Browser sehen exakt das bisherige Verhalten — kein JS, kein Multicol,
+ * kein Intrinsic-Width-Risiko. */
+@supports (grid-template-rows: masonry) {
+  .notes-grid { grid-template-rows: masonry; }
+}
+
 /* --------------------------------------------------------
  * Notiz-Karte
  * -------------------------------------------------------- */
@@ -139,6 +181,9 @@
   cursor: pointer;
   position: relative;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  /* Hairline aus der eigenen Textfarbe: gibt auch dem weißen Zettel auf
+   * warm-paper eine definierte Kante, ohne Design-Werte hartzukodieren. */
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
   box-shadow: var(--shadow-sm);
 }
 
@@ -147,8 +192,10 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Gepinnt: voller Ring (kein Seitenstreifen) aus der eigenen Textfarbe —
+ * deutlich sichtbar auf jeder Zettelfarbe, zusätzlich zum stärkeren Schatten. */
 .note-card--pinned {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, currentColor 22%, transparent);
 }
 
 .note-card__pin {
@@ -207,12 +254,10 @@
   line-height: var(--line-height-relaxed);
   color: inherit;
   word-break: break-word;
-  white-space: pre-wrap;
+  /* Renderer emittiert jetzt Blockstruktur (<p>/<ul>/<h*>) + explizite <br>,
+   * daher normal statt pre-wrap — sonst doppelte Umbrüche/Whitespace. */
+  white-space: normal;
 }
-
-/* Markdown-light: fett, kursiv, Listen */
-.note-card__content strong { font-weight: var(--font-weight-bold); }
-.note-card__content em     { font-style: italic; }
 
 .note-card__footer {
   display: flex;
@@ -328,6 +373,7 @@
  * -------------------------------------------------------- */
 .note-format-toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   border: 1.5px solid var(--color-border);
@@ -345,6 +391,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Nicht schrumpfen: bei 13 Buttons in einem ~340px-Modal bricht die Leiste
+   * jetzt um (flex-wrap), statt die Buttons unter die Fingergröße zu quetschen. */
+  flex: 0 0 auto;
   width: 32px;
   height: 32px;
   border: none;
@@ -355,6 +404,14 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
   font-size: var(--text-sm);
   padding: 0;
+}
+
+/* Touch: volle 44px-Targets (iOS-Minimum, --target-base) */
+@media (pointer: coarse) {
+  .note-format-btn {
+    width: var(--target-base);
+    height: var(--target-base);
+  }
 }
 
 .note-format-btn:hover {

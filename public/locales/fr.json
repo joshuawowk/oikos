@@ -602,7 +602,8 @@
         "colorPurple": "Violet",
         "colorTeal": "Sarcelle",
         "colorWhite": "Blanc",
-        "colorYellow": "Jaune"
+        "colorYellow": "Jaune",
+        "searchClear": "Effacer la recherche"
     },
     "contacts": {
         "title": "Contacts",

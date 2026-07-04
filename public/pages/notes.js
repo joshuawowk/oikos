@@ -8,7 +8,7 @@ import { api } from '/api.js';
 import { openModal as openSharedModal, closeModal, btnError, advancedSection } from '/components/modal.js';
 import { stagger, vibrate } from '/utils/ux.js';
 import { t } from '/i18n.js';
-import { esc } from '/utils/html.js';
+import { esc, renderMarkdownLight } from '/utils/html.js';
 import { getReadableTextColor } from '/utils/color.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 
@@ -40,19 +40,6 @@ let state = { notes: [], user: null, filterQuery: '' };
 let _container = null;
 
 // --------------------------------------------------------
-// Markdown-Light Renderer
-// --------------------------------------------------------
-
-function renderMarkdownLight(text) {
-  if (!text) return '';
-  return esc(text)
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
-    .replace(/^- (.+)$/gm,     '• $1')
-    .replace(/\n/g,            '<br>');
-}
-
-// --------------------------------------------------------
 // Entry Point
 // --------------------------------------------------------
 
@@ -66,12 +53,16 @@ export async function render(container, { user }) {
       <div class="page-toolbar notes-toolbar">
         <h1 class="page-toolbar__title">${t('notes.title')}</h1>
         <label class="notes-toolbar__search" for="notes-search">
-          <span class="notes-toolbar__search-label">${t('notes.searchPlaceholder')}</span>
+          <span class="sr-only">${t('notes.searchPlaceholder')}</span>
           <span class="notes-toolbar__search-control">
             <i data-lucide="search" class="notes-toolbar__search-icon" aria-hidden="true"></i>
             <input type="search" id="notes-search" class="notes-toolbar__search-input"
                    placeholder="${t('notes.searchPlaceholder')}" autocomplete="off"
                    value="${esc(state.filterQuery)}">
+            <button type="button" class="notes-toolbar__search-clear" id="notes-search-clear"
+                    aria-label="${t('notes.searchClear')}" ${state.filterQuery ? '' : 'hidden'}>
+              <i data-lucide="x" aria-hidden="true"></i>
+            </button>
           </span>
         </label>
         <button class="btn btn--primary toolbar-new-btn" id="notes-add-btn">
@@ -113,12 +104,25 @@ export async function render(container, { user }) {
   renderGrid();
 
   const addHandler = () => openNoteModal({ mode: 'create' });
+  // #notes-add-btn ist per .toolbar-new-btn global ausgeblendet (FAB übernimmt),
+  // bleibt aber als einheitliches Modul-Muster erhalten (frontend-audit 1.9).
   _container.querySelector('#notes-add-btn').addEventListener('click', addHandler);
   _container.querySelector('#fab-new-note').addEventListener('click', addHandler);
 
-  _container.querySelector('#notes-search').addEventListener('input', (e) => {
+  const searchInput = _container.querySelector('#notes-search');
+  const searchClear = _container.querySelector('#notes-search-clear');
+  const syncClear = () => { searchClear.hidden = !searchInput.value; };
+  searchInput.addEventListener('input', (e) => {
     state.filterQuery = e.target.value;
+    syncClear();
     renderGrid();
+  });
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    state.filterQuery = '';
+    syncClear();
+    renderGrid();
+    searchInput.focus();
   });
 }
 
@@ -143,7 +147,7 @@ function renderGrid() {
     const isFiltered = q.length > 0;
     grid.replaceChildren();
     grid.insertAdjacentHTML('beforeend', `
-      <div class="empty-state" style="column-span:all;">
+      <div class="empty-state">
         <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
@@ -407,7 +411,7 @@ function openNoteModal({ mode, note = null }) {
           ${NOTE_COLORS.map((c) => `
             <div class="note-color-swatch ${c === selColor ? 'note-color-swatch--active' : ''}"
                  data-color="${c}"
-                 style="background-color:${c};border:2px solid ${c === '#FFFFFF' ? '#E5E5EA' : c};"
+                 style="background-color:${c};border:2px solid ${c === '#FFFFFF' ? 'var(--color-border)' : c};"
                  role="radio"
                  tabindex="${c === selColor ? '0' : '-1'}"
                  aria-checked="${c === selColor ? 'true' : 'false'}"

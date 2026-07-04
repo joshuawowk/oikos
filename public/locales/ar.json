@@ -602,7 +602,8 @@
         "colorPurple": "بنفسجي",
         "colorTeal": "أخضر مزرق",
         "colorWhite": "أبيض",
-        "colorYellow": "أصفر"
+        "colorYellow": "أصفر",
+        "searchClear": "مسح البحث"
     },
     "contacts": {
         "title": "جهات الاتصال",

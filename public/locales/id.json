@@ -608,7 +608,8 @@
         "colorBlue": "Biru",
         "colorPurple": "Ungu",
         "colorOrange": "Oranye",
-        "colorWhite": "Putih"
+        "colorWhite": "Putih",
+        "searchClear": "Hapus pencarian"
     },
     "contacts": {
         "title": "Kontak",

@@ -602,7 +602,8 @@
         "colorPurple": "Lila",
         "colorTeal": "Türkiz",
         "colorWhite": "Fehér",
-        "colorYellow": "Sárga"
+        "colorYellow": "Sárga",
+        "searchClear": "Keresés törlése"
     },
     "contacts": {
         "title": "Kapcsolatok",
