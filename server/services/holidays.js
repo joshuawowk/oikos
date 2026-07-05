@@ -294,14 +294,19 @@ function getForRange(from, to) {
 
   const placeholders = types.map(() => '?').join(', ');
 
+  // GROUP BY kollabiert identische Feiertage, die aus mehreren Scopes im Cache
+  // liegen (z. B. länderweite NULL-Zeilen aus der Zeit vor #434 neben dem heutigen
+  // Regions-Scope). So sieht der Kalender nie Duplikate, selbst wenn ein alter
+  // Cache-Bestand nie sauber neu synchronisiert wurde. (#434)
   const rows = db.get().prepare(`
-    SELECT id, type, start_date, end_date, name
+    SELECT MIN(id) AS id, type, start_date, end_date, name
     FROM holiday_cache
     WHERE country = ?
       AND (subdivision IS NULL OR subdivision = ? OR subdivision = '')
       AND type IN (${placeholders})
       AND start_date <= ?
       AND end_date   >= ?
+    GROUP BY type, start_date, end_date, name
     ORDER BY start_date ASC
   `).all(country, subdivision ?? '', ...types, to, from);
 

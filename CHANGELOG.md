@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.96.3] - 2026-07-05
+
+### Fixed
+- **Duplicate holidays that survived a resync** — the calendar now de-duplicates holidays when reading them, so identical public or school holidays never appear twice even if leftover cache rows from a previously selected region remain from before the v0.96.1 fix. Affected users no longer need a perfect re-sync to clear old duplicates.
+
 ## [0.96.2] - 2026-07-05
 
 ### Fixed

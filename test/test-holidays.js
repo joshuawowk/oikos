@@ -157,6 +157,19 @@ test('getForRange: subdivision – national + matching region shown, other regio
   assert.deepEqual(names, ['Bavaria only', 'National']);
 });
 
+test('getForRange: collapses identical holidays left over from an old scope – no duplicates (#434)', () => {
+  // Simuliert einen Alt-Cache aus der Zeit vor dem DELETE-all-Fix: derselbe
+  // Feiertag liegt sowohl im länderweiten (NULL-) als auch im heutigen
+  // Regions-Scope. Der Kalender darf ihn trotzdem nur einmal anzeigen.
+  setConfig({ holiday_country: 'DE', holiday_subdivision: 'DE-SH', holiday_show_public: '1' });
+  seedHoliday({ type: 'public', subdivision: null,    start: '2026-01-01', end: '2026-01-01', name: 'Neujahr' });
+  seedHoliday({ type: 'public', subdivision: 'DE-SH', start: '2026-01-01', end: '2026-01-01', name: 'Neujahr' });
+  seedHoliday({ type: 'public', subdivision: '',      start: '2026-01-01', end: '2026-01-01', name: 'Neujahr' });
+  const rows = getForRange('2026-01-01', '2026-12-31');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].name, 'Neujahr');
+});
+
 // ---- sync --------------------------------------------------------------------
 
 test('sync: no country → no fetch, synced 0', async () => {
