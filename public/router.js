@@ -873,10 +873,10 @@ function renderAppShell(container) {
   sidebarItems.setAttribute('role', 'list');
   sidebarNavItems().forEach((item) => sidebarItems.appendChild(item));
 
-  // Hover-Delegation: Indikator-Pille zeigt Vorschau wohin sie gleiten würde
-  sidebarItems.addEventListener('mouseover', (ev) => {
-    const item = ev.target.closest('.nav-item');
-    if (!item) return;
+  // Indikator-Pille zeigt Vorschau, wohin sie gleiten würde — für Maus (hover)
+  // UND Tastatur (focus). Ohne Fokus-Parität wäre der Signature-Moment
+  // maus-exklusiv und Keyboard-Nutzer sähen nur den Outline.
+  const previewIndicator = (item) => {
     const ind = sidebarItems.querySelector('.nav-sidebar__indicator');
     if (!ind) return;
     const cr = sidebarItems.getBoundingClientRect();
@@ -885,8 +885,21 @@ function renderAppShell(container) {
     const centerOffset = (ir.height - ind.getBoundingClientRect().height) / 2;
     ind.style.transform = `translateY(${ir.top - cr.top + sidebarItems.scrollTop + centerOffset}px)`;
     ind.style.opacity = '0.5';
+  };
+  sidebarItems.addEventListener('mouseover', (ev) => {
+    const item = ev.target.closest('.nav-item');
+    if (item) previewIndicator(item);
   });
   sidebarItems.addEventListener('mouseleave', () => positionSidebarIndicator());
+  // Tastatur-Fokus treibt dieselbe Gleit-Vorschau; verlässt der Fokus die Liste
+  // ganz, kehrt die Pille zum aktiven Item zurück.
+  sidebarItems.addEventListener('focusin', (ev) => {
+    const item = ev.target.closest('.nav-item');
+    if (item) previewIndicator(item);
+  });
+  sidebarItems.addEventListener('focusout', (ev) => {
+    if (!sidebarItems.contains(ev.relatedTarget)) positionSidebarIndicator();
+  });
 
   sidebar.appendChild(sidebarLogo);
   sidebar.appendChild(sidebarToggle);
@@ -1600,7 +1613,12 @@ function sidebarNavItems() {
       }
       return;
     }
-    elements.push(navItemEl(item));
+    const el = navItemEl(item);
+    // Settings ans Sidebar-Ende pinnen — über eine explizite Klasse statt
+    // ":last-child a": ein Third-Party-Modul, das als letztes <a> rendert,
+    // würde sonst fälschlich nach unten gedrückt.
+    if (item.module === 'settings') el.classList.add('nav-item--pinned-end');
+    elements.push(el);
   });
   return elements;
 }

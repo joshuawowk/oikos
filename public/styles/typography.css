@@ -100,15 +100,29 @@
 .day-header__name,
 .meal-slot__type-label,
 .item-category__header,
-.documents-folder-browser__title,
+.documents-folder-browser__title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+ * Navigations-Gruppierungslabel — normale Schreibweise.
+ * Sidebar-Sektionen und Settings-Domänen gruppieren die Navigation. Im
+ * Gegensatz zu den Overline-Mikro-Labels (oben) rendern sie ganze Phrasen
+ * ("Benutzerdefinierte Module") und würden in Versal + Tracking als
+ * geschriene Eyebrow lesen — gegen den warmen Familien-Ton. Daher Sentence-
+ * Case, ruhiges Tracking; Größe/Weight halten die Header-Hierarchie.
+ * ------------------------------------------------------------------------ */
 .nav-section-label,
 .settings-shell__navigation-heading,
 .settings-shell__navigation-toggle {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
+  letter-spacing: var(--tracking-normal);
 }
 
 /* --------------------------------------------------------------------------

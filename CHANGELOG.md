@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.96.7] - 2026-07-05
+
+### Changed
+- **Calmer sidebar section labels (desktop)** — the navigation group headings ("Overview", "Plan", "Home") now use sentence case instead of small tracked uppercase, so they read more clearly and match the warm family-planner tone.
+- **Collapsed sidebar reveals labels on demand (desktop)** — hovering or keyboard-focusing the collapsed icon rail now expands it to show the labels, so items stay identifiable without permanently widening the sidebar.
+- **Sidebar highlight follows keyboard focus (desktop)** — the sliding active-item indicator now previews on keyboard focus, not only on mouse hover.
+
+### Fixed
+- **Sidebar focus outline no longer clipped (desktop)** — the keyboard focus ring on navigation items and the collapse toggle now sits inside the sidebar edge instead of being cut off.
+- **Settings stays pinned to the bottom of the sidebar (desktop)** — pinning uses an explicit marker, so a custom module rendered last can no longer push Settings out of place.
+
 ## [0.96.6] - 2026-07-05
 
 ### Changed

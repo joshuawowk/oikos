@@ -983,12 +983,8 @@ html.fab-anim-done .page-fab {
   }
 
   /* ── Einstellungen ans Ende ── */
-  .nav-sidebar__items > a:last-child:not(:only-child) {
+  .nav-sidebar__items > .nav-item--pinned-end:not(:only-child) {
     margin-top: auto;
-  }
-
-  .nav-sidebar__items > a:only-child {
-    margin-top: 0;
   }
 
   /* ── Sidebar Toggle ── */
@@ -1041,6 +1037,42 @@ html.fab-anim-done .page-fab {
 
   html.sidebar-collapsed .nav-sidebar .nav-section-label {
     display: none;
+  }
+
+  /* ── Eingeklappt: Rail expandiert bei Hover/Fokus und zeigt Labels ──
+   * Wandelt den Icon-only-Recall in Recognition-on-demand für Maus (hover) und
+   * Tastatur (focus-within). Touch ist bewusst NICHT abgedeckt: ein Tap
+   * navigiert sofort und verweilt nicht im Fokus — auf Touch bleibt der
+   * eingeklappte Rail icon-only (bei ≥1024px jedoch selten). Die Sidebar ist
+   * fixed und überlagert Inhalt beim Aufklappen wie ein Flyout — --sidebar-width
+   * (und damit der .app-content-Margin) bleibt 56px, also kein Reflow. Die
+   * Breite animiert über die bestehende width-Transition. */
+  html.sidebar-collapsed .nav-sidebar:hover,
+  html.sidebar-collapsed .nav-sidebar:focus-within {
+    width: var(--sidebar-width-expanded);
+    box-shadow: var(--shadow-lg);
+  }
+
+  html.sidebar-collapsed .nav-sidebar:hover .nav-sidebar__brand-text,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-sidebar__brand-text {
+    display: flex;
+  }
+
+  html.sidebar-collapsed .nav-sidebar:hover .nav-item__label,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-item__label,
+  html.sidebar-collapsed .nav-sidebar:hover .nav-section-label,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-section-label {
+    display: block;
+  }
+
+  /* ── Fokus-Ring der Nav-Items/Toggle nach innen versetzt ──
+   * Die Items sitzen flush-links an der geclippten Sidebar-Kante
+   * (.nav-sidebar overflow:hidden, .nav-sidebar__items overflow-y:auto → auch
+   * horizontal beschnitten). Der globale outline-offset:3px würde den Ring an
+   * der linken Kante abschneiden; ein Inset-Ring bleibt vollständig sichtbar. */
+  .nav-sidebar .nav-item:focus-visible,
+  .nav-sidebar__toggle:focus-visible {
+    outline-offset: -2px;
   }
 }
 
@@ -2838,9 +2870,13 @@ textarea.input { resize: vertical; }
   box-shadow: none !important;
 }
 
-/* ── Sidebar: Abschnittsbezeichnung (z.B. "Haushalt") ── */
+/* ── Sidebar: Abschnittsbezeichnung (z.B. "Haushalt") ──
+ * Sentence-Case Gruppierungslabel (Typo-Rolle in typography.css). Tertiär
+ * gefärbt, damit es als ruhige Über-Beschriftung liest und nicht mit den
+ * Nav-Item-Labels (secondary, 14px) um Gewicht konkurriert. #6A6964 auf
+ * --sidebar-bg ≈ 5:1 (AA ✓). */
 .nav-section-label {
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   padding: var(--space-3) var(--space-3) var(--space-1);
   user-select: none;
   pointer-events: none;
