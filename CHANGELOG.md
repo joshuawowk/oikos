@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.96.8] - 2026-07-05
+
+### Fixed
+- **Living background no longer burns the GPU** — the animated backdrop blobs (`.lg-backdrop`) now drift with a translate-only animation on their own compositor layer instead of also scaling, which forced the 90px blur to re-rasterise every frame. Idle pages drop from 25–50% continuous GPU usage to negligible compositing, while the drift effect is preserved (#443).
+
 ## [0.96.7] - 2026-07-05
 
 ### Changed

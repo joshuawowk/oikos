@@ -957,6 +957,11 @@ html.navigating .app-content *::after {
   opacity: var(--lg-blob-opacity);
   animation: lg-drift 26s ease-in-out infinite alternate;
   transition: background 0.6s var(--ease-out);
+  /* Auf eigenen Compositor-Layer heben: die geblurrte Textur wird EINMAL
+   * gerastert und pro Frame nur verschoben. Zusammen mit der translate-only-
+   * Keyframe (kein scale → keine Blur-Neuberechnung) fällt die GPU-Dauerlast
+   * von ~25–50 % (Issue #443) auf reines Compositing. */
+  will-change: transform;
 }
 
 .lg-blob--1 {
@@ -982,10 +987,14 @@ html.navigating .app-content *::after {
   opacity: calc(var(--lg-blob-opacity) * 0.5);
 }
 
+/* translate-only: bewusst KEIN scale(). Ein Skalierungswechsel würde den
+ * blur(90px) pro Frame neu rastern (GPU-Dauerlast, Issue #443); reines
+ * Verschieben einer bereits geblurrten Layer-Textur ist ein Compositor-Nop.
+ * Translate-Bereich leicht erweitert, um das entfallene „Atmen" auszugleichen. */
 @keyframes lg-drift {
-  0%   { transform: translate(0, 0) scale(1); }
-  50%  { transform: translate(4vw, -3vw) scale(1.12); }
-  100% { transform: translate(-3vw, 2vw) scale(0.94); }
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(5vw, -4vw); }
+  100% { transform: translate(-4vw, 3vw); }
 }
 
 @media (prefers-reduced-motion: reduce) {
