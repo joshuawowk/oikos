@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.96.5] - 2026-07-05
+
+### Fixed
+- **Italian translation** — UI strings across tasks, meals, calendar, settings, API tokens, CalDAV/CardDAV, backups, and housekeeping that were still showing English (or German) placeholders are now fully translated.
+
 ## [0.96.4] - 2026-07-05
 
 ### Added
