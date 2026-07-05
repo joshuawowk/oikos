@@ -1,5 +1,5 @@
 <div align="center">
-  <sub><b>English</b> &nbsp;·&nbsp; <img src="docs/logo.svg" alt="Yuvomi" width="92" /><a href="README.de.md">Deutsch</a></sub>
+  <sub><img src="docs/logo.svg" alt="Yuvomi" width="92" /><a href="README.de.md"></sub>
 
   <h1>Yuvomi</h1>
   <p><strong>The self-hosted family planner. Private, offline-capable, and beautiful.</strong></p>
