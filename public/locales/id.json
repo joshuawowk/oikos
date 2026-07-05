@@ -162,7 +162,21 @@
         "loadErrorSession": "Sesi Anda telah berakhir. Harap masuk kembali.",
         "loadErrorServer": "Server sedang tidak merespons. Coba lagi nanti.",
         "allWidgetsHidden": "Semua widget disembunyikan — tampilkan lagi melalui „Sesuaikan\".",
-        "customizeReorderHandle": "Susun ulang widget (seret atau gunakan tombol panah atas/bawah)"
+        "customizeReorderHandle": "Susun ulang widget (seret atau gunakan tombol panah atas/bawah)",
+        "noRewards": "Belum ada hadiah",
+        "rewardsPending": "{{count}} menunggu persetujuan",
+        "healthNoMeds": "Tidak ada obat bersama",
+        "healthNoDosesToday": "Tidak ada dosis hari ini",
+        "healthAllTaken": "Semua dosis diminum",
+        "healthDosesProgress": "{{taken}} dari {{total}} dosis diminum",
+        "healthRefill": "{{count}} perlu dipesan ulang",
+        "housekeepingNone": "Belum ada asisten rumah tangga",
+        "housekeepingPresent": "Sedang di sini",
+        "housekeepingSince": "sejak {{time}}",
+        "housekeepingLastVisit": "Kunjungan terakhir: {{date}}",
+        "housekeepingNoVisits": "Belum ada kunjungan",
+        "housekeepingVisitsMonth": "{{count}} kunjungan bulan ini",
+        "housekeepingUnpaid": "{{amount}} belum dibayar"
     },
     "tasks": {
         "title": "Tugas",

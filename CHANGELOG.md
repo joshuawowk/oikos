@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.96.0] - 2026-07-05
+
+### Added
+- **Rewards dashboard widget** — a family points leaderboard showing the top participants by ledger balance, the leader subtly highlighted, plus a badge for redemptions still awaiting parental approval.
+- **Health dashboard widget** — today's medication doses as a "taken / total" progress bar with the next open dose and a low-stock reorder hint. Only family-visible medications are shown, so private medications never appear on a shared dashboard.
+- **Housekeeping dashboard widget** — a compact status showing whether the helper is currently present (with the arrival time), this month's visit count, and any outstanding payment.
+- Localised in all 23 languages.
+
+### Changed
+- The three new widgets (Rewards, Health, Housekeeping) start hidden by default and are offered as opt-ins in Customize, so existing dashboards are not changed and fresh dashboards are not crowded with empty tiles.
+
 ## [0.95.1] - 2026-07-05
 
 ### Fixed

@@ -156,7 +156,21 @@
         "loadErrorSession": "Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.",
         "loadErrorServer": "Sunucu şu anda yanıt vermiyor. Lütfen daha sonra tekrar deneyin.",
         "allWidgetsHidden": "Tüm widget’lar gizli — \"Özelleştir\" ile yeniden gösterin.",
-        "customizeReorderHandle": "Widget’ı yeniden sırala (sürükle veya yukarı/aşağı ok tuşları)"
+        "customizeReorderHandle": "Widget’ı yeniden sırala (sürükle veya yukarı/aşağı ok tuşları)",
+        "noRewards": "Henüz ödül tanımlanmadı",
+        "rewardsPending": "{{count}} onay bekliyor",
+        "healthNoMeds": "Paylaşılan ilaç yok",
+        "healthNoDosesToday": "Bugün doz yok",
+        "healthAllTaken": "Tüm dozlar alındı",
+        "healthDosesProgress": "{{total}} dozdan {{taken}} alındı",
+        "healthRefill": "{{count}} yeniden sipariş",
+        "housekeepingNone": "Kayıtlı ev yardımcısı yok",
+        "housekeepingPresent": "Şu anda burada",
+        "housekeepingSince": "{{time}}’den beri",
+        "housekeepingLastVisit": "Son ziyaret: {{date}}",
+        "housekeepingNoVisits": "Henüz ziyaret yok",
+        "housekeepingVisitsMonth": "Bu ay {{count}} ziyaret",
+        "housekeepingUnpaid": "{{amount}} ödenmemiş"
     },
     "tasks": {
         "title": "Görevler",

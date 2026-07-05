@@ -156,7 +156,21 @@
         "loadErrorSession": "Tu sesión ha caducado. Inicia sesión de nuevo.",
         "loadErrorServer": "El servidor no responde en este momento. Inténtalo más tarde.",
         "allWidgetsHidden": "Todos los widgets están ocultos: vuelve a activarlos en «Personalizar».",
-        "customizeReorderHandle": "Reordenar widget (arrastra o flechas arriba/abajo)"
+        "customizeReorderHandle": "Reordenar widget (arrastra o flechas arriba/abajo)",
+        "noRewards": "Sin recompensas configuradas",
+        "rewardsPending": "{{count}} por aprobar",
+        "healthNoMeds": "Sin medicamentos compartidos",
+        "healthNoDosesToday": "Sin dosis para hoy",
+        "healthAllTaken": "Todas las dosis tomadas",
+        "healthDosesProgress": "{{taken}} de {{total}} dosis tomadas",
+        "healthRefill": "{{count}} por reponer",
+        "housekeepingNone": "Sin servicio doméstico registrado",
+        "housekeepingPresent": "Presente ahora",
+        "housekeepingSince": "desde {{time}}",
+        "housekeepingLastVisit": "Última visita: {{date}}",
+        "housekeepingNoVisits": "Aún sin visitas",
+        "housekeepingVisitsMonth": "{{count}} visitas este mes",
+        "housekeepingUnpaid": "{{amount}} pendiente"
     },
     "tasks": {
         "title": "Tareas",

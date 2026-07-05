@@ -162,7 +162,21 @@
         "loadErrorSession": "Twoja sesja wygasła. Zaloguj się ponownie.",
         "loadErrorServer": "Serwer teraz nie odpowiada. Spróbuj ponownie później.",
         "allWidgetsHidden": "Wszystkie widżety są ukryte — włącz je ponownie w „Dostosuj\".",
-        "customizeReorderHandle": "Zmień kolejność widżetu (przeciągnij lub strzałki góra/dół)"
+        "customizeReorderHandle": "Zmień kolejność widżetu (przeciągnij lub strzałki góra/dół)",
+        "noRewards": "Brak skonfigurowanych nagród",
+        "rewardsPending": "{{count}} do zatwierdzenia",
+        "healthNoMeds": "Brak udostępnionych leków",
+        "healthNoDosesToday": "Brak dawek na dziś",
+        "healthAllTaken": "Wszystkie dawki przyjęte",
+        "healthDosesProgress": "Przyjęto {{taken}} z {{total}} dawek",
+        "healthRefill": "{{count}} do zamówienia",
+        "housekeepingNone": "Brak zapisanej pomocy domowej",
+        "housekeepingPresent": "Obecnie na miejscu",
+        "housekeepingSince": "od {{time}}",
+        "housekeepingLastVisit": "Ostatnia wizyta: {{date}}",
+        "housekeepingNoVisits": "Brak wizyt",
+        "housekeepingVisitsMonth": "{{count}} wizyt w tym miesiącu",
+        "housekeepingUnpaid": "{{amount}} do zapłaty"
     },
     "tasks": {
         "title": "Zadania",

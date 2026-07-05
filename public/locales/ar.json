@@ -156,7 +156,21 @@
         "loadErrorSession": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.",
         "loadErrorServer": "الخادم لا يستجيب حاليًا. حاول مرة أخرى لاحقًا.",
         "allWidgetsHidden": "جميع العناصر مخفية — أعد إظهارها عبر «تخصيص».",
-        "customizeReorderHandle": "إعادة ترتيب العنصر (اسحب أو استخدم مفاتيح الأسهم لأعلى/لأسفل)"
+        "customizeReorderHandle": "إعادة ترتيب العنصر (اسحب أو استخدم مفاتيح الأسهم لأعلى/لأسفل)",
+        "noRewards": "لا توجد مكافآت مُعدّة بعد",
+        "rewardsPending": "{{count}} بانتظار الموافقة",
+        "healthNoMeds": "لا أدوية مشتركة",
+        "healthNoDosesToday": "لا جرعات اليوم",
+        "healthAllTaken": "تم تناول جميع الجرعات",
+        "healthDosesProgress": "تم تناول {{taken}} من {{total}} جرعة",
+        "healthRefill": "{{count}} لإعادة الطلب",
+        "housekeepingNone": "لا توجد مساعِدة منزلية مُسجّلة",
+        "housekeepingPresent": "حاضرة الآن",
+        "housekeepingSince": "منذ {{time}}",
+        "housekeepingLastVisit": "آخر زيارة: {{date}}",
+        "housekeepingNoVisits": "لا زيارات بعد",
+        "housekeepingVisitsMonth": "{{count}} زيارة هذا الشهر",
+        "housekeepingUnpaid": "{{amount}} مستحقة"
     },
     "tasks": {
         "title": "المهام",

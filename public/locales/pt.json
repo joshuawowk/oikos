@@ -156,7 +156,21 @@
         "loadErrorSession": "A sua sessão expirou. Inicie sessão novamente.",
         "loadErrorServer": "O servidor não está a responder agora. Tente novamente mais tarde.",
         "allWidgetsHidden": "Todos os widgets estão ocultos — reative-os em «Personalizar».",
-        "customizeReorderHandle": "Reordenar widget (arraste ou setas para cima/baixo)"
+        "customizeReorderHandle": "Reordenar widget (arraste ou setas para cima/baixo)",
+        "noRewards": "Nenhuma recompensa configurada",
+        "rewardsPending": "{{count}} para aprovar",
+        "healthNoMeds": "Sem medicamentos partilhados",
+        "healthNoDosesToday": "Sem doses para hoje",
+        "healthAllTaken": "Todas as doses tomadas",
+        "healthDosesProgress": "{{taken}} de {{total}} doses tomadas",
+        "healthRefill": "{{count}} para repor",
+        "housekeepingNone": "Nenhuma ajudante registada",
+        "housekeepingPresent": "Presente agora",
+        "housekeepingSince": "desde {{time}}",
+        "housekeepingLastVisit": "Última visita: {{date}}",
+        "housekeepingNoVisits": "Ainda sem visitas",
+        "housekeepingVisitsMonth": "{{count}} visitas este mês",
+        "housekeepingUnpaid": "{{amount}} em aberto"
     },
     "tasks": {
         "title": "Tarefas",

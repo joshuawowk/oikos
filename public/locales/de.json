@@ -162,7 +162,21 @@
         "loadErrorSession": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
         "loadErrorServer": "Der Server antwortet gerade nicht. Bitte später erneut versuchen.",
         "allWidgetsHidden": "Alle Widgets ausgeblendet — über „Anpassen\" wieder einblenden.",
-        "customizeReorderHandle": "Widget umsortieren (ziehen oder Pfeiltasten hoch/runter)"
+        "customizeReorderHandle": "Widget umsortieren (ziehen oder Pfeiltasten hoch/runter)",
+        "noRewards": "Noch keine Belohnungen eingerichtet",
+        "rewardsPending": "{{count}} zu bestätigen",
+        "healthNoMeds": "Keine geteilten Medikamente",
+        "healthNoDosesToday": "Heute keine Dosen fällig",
+        "healthAllTaken": "Alle Dosen genommen",
+        "healthDosesProgress": "{{taken}} von {{total}} Dosen genommen",
+        "healthRefill": "{{count}} nachbestellen",
+        "housekeepingNone": "Keine Haushaltshilfe erfasst",
+        "housekeepingPresent": "Gerade im Haus",
+        "housekeepingSince": "seit {{time}}",
+        "housekeepingLastVisit": "Zuletzt: {{date}}",
+        "housekeepingNoVisits": "Noch keine Besuche",
+        "housekeepingVisitsMonth": "{{count}} Besuche im Monat",
+        "housekeepingUnpaid": "{{amount}} offen"
     },
     "tasks": {
         "title": "Aufgaben",

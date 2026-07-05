@@ -156,7 +156,21 @@
         "loadErrorSession": "Ваш сеанс завершився. Будь ласка, увійдіть знову.",
         "loadErrorServer": "Сервер зараз не відповідає. Спробуйте пізніше.",
         "allWidgetsHidden": "Усі віджети приховані — увімкніть їх через «Налаштувати».",
-        "customizeReorderHandle": "Перемістити віджет (перетягніть або стрілки вгору/вниз)"
+        "customizeReorderHandle": "Перемістити віджет (перетягніть або стрілки вгору/вниз)",
+        "noRewards": "Винагороди ще не налаштовані",
+        "rewardsPending": "{{count}} на підтвердження",
+        "healthNoMeds": "Немає спільних ліків",
+        "healthNoDosesToday": "На сьогодні прийомів немає",
+        "healthAllTaken": "Усі дози прийнято",
+        "healthDosesProgress": "Прийнято {{taken}} з {{total}} доз",
+        "healthRefill": "{{count}} дозамовити",
+        "housekeepingNone": "Помічницю не додано",
+        "housekeepingPresent": "Зараз тут",
+        "housekeepingSince": "з {{time}}",
+        "housekeepingLastVisit": "Останній візит: {{date}}",
+        "housekeepingNoVisits": "Ще немає візитів",
+        "housekeepingVisitsMonth": "{{count}} візитів цього місяця",
+        "housekeepingUnpaid": "{{amount}} до сплати"
     },
     "tasks": {
         "title": "Завдання",

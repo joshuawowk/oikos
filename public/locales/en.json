@@ -156,7 +156,21 @@
         "loadErrorSession": "Your session has expired. Please sign in again.",
         "loadErrorServer": "The server is not responding right now. Please try again later.",
         "allWidgetsHidden": "All widgets are hidden — re-enable them via \"Customize\".",
-        "customizeReorderHandle": "Reorder widget (drag or arrow keys up/down)"
+        "customizeReorderHandle": "Reorder widget (drag or arrow keys up/down)",
+        "noRewards": "No rewards set up yet",
+        "rewardsPending": "{{count}} to approve",
+        "healthNoMeds": "No shared medications",
+        "healthNoDosesToday": "No doses due today",
+        "healthAllTaken": "All doses taken",
+        "healthDosesProgress": "{{taken}} of {{total}} doses taken",
+        "healthRefill": "{{count}} to reorder",
+        "housekeepingNone": "No housekeeper recorded",
+        "housekeepingPresent": "Currently here",
+        "housekeepingSince": "since {{time}}",
+        "housekeepingLastVisit": "Last visit: {{date}}",
+        "housekeepingNoVisits": "No visits yet",
+        "housekeepingVisitsMonth": "{{count}} visits this month",
+        "housekeepingUnpaid": "{{amount}} outstanding"
     },
     "tasks": {
         "title": "Tasks",

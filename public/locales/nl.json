@@ -156,7 +156,21 @@
         "loadErrorSession": "Je sessie is verlopen. Meld je opnieuw aan.",
         "loadErrorServer": "De server reageert momenteel niet. Probeer het later opnieuw.",
         "allWidgetsHidden": "Alle widgets zijn verborgen — schakel ze weer in via \"Aanpassen\".",
-        "customizeReorderHandle": "Widget herschikken (sleep of pijltoetsen omhoog/omlaag)"
+        "customizeReorderHandle": "Widget herschikken (sleep of pijltoetsen omhoog/omlaag)",
+        "noRewards": "Nog geen beloningen ingesteld",
+        "rewardsPending": "{{count}} goed te keuren",
+        "healthNoMeds": "Geen gedeelde medicijnen",
+        "healthNoDosesToday": "Vandaag geen doses gepland",
+        "healthAllTaken": "Alle doses ingenomen",
+        "healthDosesProgress": "{{taken}} van {{total}} doses ingenomen",
+        "healthRefill": "{{count}} bijbestellen",
+        "housekeepingNone": "Geen huishoudelijke hulp geregistreerd",
+        "housekeepingPresent": "Nu aanwezig",
+        "housekeepingSince": "sinds {{time}}",
+        "housekeepingLastVisit": "Laatste bezoek: {{date}}",
+        "housekeepingNoVisits": "Nog geen bezoeken",
+        "housekeepingVisitsMonth": "{{count}} bezoeken deze maand",
+        "housekeepingUnpaid": "{{amount}} openstaand"
     },
     "tasks": {
         "title": "Taken",

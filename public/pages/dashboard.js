@@ -167,7 +167,7 @@ function maybeHintCustomize(container) {
 // Reihenfolge = Standard-Layout. Die primären Inhalte (tasks, calendar) führen,
 // damit sie beim Wieder-Einblenden oben stehen; das einzige passive Widget
 // (weather) steht bewusst am Ende, statt die sichtbare Grid-Spitze zu belegen.
-const WIDGET_IDS = ['tasks', 'calendar', 'meals', 'shopping', 'birthdays', 'budget', 'family', 'notes', 'weather'];
+const WIDGET_IDS = ['tasks', 'calendar', 'meals', 'shopping', 'birthdays', 'budget', 'rewards', 'health', 'housekeeping', 'family', 'notes', 'weather'];
 
 const WIDGET_SIZE_PRESETS = [
   { value: '1x1', labelKey: 'dashboard.widgetSizeTiny'     },
@@ -206,8 +206,8 @@ function defaultWidgetSize(id) {
   // „Heute"-Liste braucht Höhe, nicht Breite — 1×2 halbiert die Grundfläche und
   // packt sich sauber neben andere Widgets, statt als 2-spaltige Kachel eine
   // ganze Rasterzeile zu belegen (löst die Masonry-Imbalance an der Wurzel).
-  if (['tasks', 'calendar'].includes(id)) return '1x2';
-  if (['weather', 'shopping'].includes(id)) return '2x1';
+  if (['tasks', 'calendar', 'rewards'].includes(id)) return '1x2';
+  if (['weather', 'shopping', 'health'].includes(id)) return '2x1';
   if (id === 'notes') return '2x1';
   return '1x1';
 }
@@ -217,8 +217,15 @@ function defaultWidgetSize(id) {
 // Über „Anpassen" jederzeit wieder einblendbar; Bestandskonfigurationen bleiben unberührt.
 const COCKPIT_COVERED_WIDGETS = new Set(['tasks', 'calendar', 'shopping', 'meals']);
 
+// Standardmäßig ausgeblendet: die vier vom Cockpit abgedeckten Domänen (kein Echo)
+// plus die drei neueren Module (rewards, health, housekeeping). Letztere sind
+// spezialisiert und nicht in jedem Haushalt aktiv — sie erscheinen als Opt-in im
+// „Anpassen"-Panel, statt frische Dashboards mit leeren Kacheln zu überladen
+// (PRODUCT.md: „Power wird auf Abruf enthüllt, nicht in einem Raster ausgebreitet").
+const DEFAULT_HIDDEN_WIDGETS = new Set([...COCKPIT_COVERED_WIDGETS, 'rewards', 'health', 'housekeeping']);
+
 function defaultWidgetVisible(id) {
-  return !COCKPIT_COVERED_WIDGETS.has(id);
+  return !DEFAULT_HIDDEN_WIDGETS.has(id);
 }
 
 const DEFAULT_WIDGET_CONFIG = WIDGET_IDS.map((id, i) => ({ id, visible: defaultWidgetVisible(id), order: i, size: defaultWidgetSize(id) }));
@@ -237,7 +244,10 @@ function normalizeDashboardConfig(input) {
   const presentIds = new Set(valid.map((w) => w.id));
   for (const id of WIDGET_IDS) {
     if (!presentIds.has(id)) {
-      valid.push({ id, visible: true, order: valid.length, size: defaultWidgetSize(id) });
+      // Neu hinzugekommene Widget-IDs (bei bestehenden, gespeicherten Layouts) erben den
+      // Standard-Sichtbarkeitswert ihrer Domäne — Opt-in-Module (rewards/health/housekeeping)
+      // erscheinen also nicht ungefragt, sondern bleiben im „Anpassen"-Panel angeboten.
+      valid.push({ id, visible: defaultWidgetVisible(id), order: valid.length, size: defaultWidgetSize(id) });
     }
   }
   return valid
@@ -266,13 +276,16 @@ function widgetLabel(id) {
     weather:  () => t('dashboard.weather'),
     birthdays: () => t('nav.birthdays'),
     budget:   () => t('nav.budget'),
+    rewards:  () => t('nav.rewards'),
+    health:   () => t('nav.health'),
+    housekeeping: () => t('nav.housekeeping'),
     family:   () => t('dashboard.familyMembers'),
   };
   return (map[id] ?? (() => id))();
 }
 
 function widgetIcon(id) {
-  const map = { tasks: 'check-square', calendar: 'calendar', birthdays: 'cake', budget: 'wallet', family: 'users', shopping: 'shopping-cart', meals: 'utensils', notes: 'pin', weather: 'cloud-sun' };
+  const map = { tasks: 'check-square', calendar: 'calendar', birthdays: 'cake', budget: 'wallet', rewards: 'award', health: 'heart-pulse', housekeeping: 'paintbrush', family: 'users', shopping: 'shopping-cart', meals: 'utensils', notes: 'pin', weather: 'cloud-sun' };
   return map[id] ?? 'layout-dashboard';
 }
 
@@ -406,6 +419,10 @@ function formatCurrency(amount, currency = 'EUR') {
     currency,
     maximumFractionDigits: Math.abs(amount) >= 1000 ? 0 : 2,
   }).format(amount || 0);
+}
+
+function formatPoints(value) {
+  return new Intl.NumberFormat(getLocale()).format(Number(value) || 0);
 }
 
 function widgetHeader(icon, title, count, linkHref, linkLabel) {
@@ -749,6 +766,164 @@ function renderBudgetWidget(budget, currency) {
   </div>`;
 }
 
+// --------------------------------------------------------
+// Belohnungen-Widget (Familien-Punktestand)
+// --------------------------------------------------------
+
+function renderRewardsWidget(rewards) {
+  const standings = Array.isArray(rewards?.standings) ? rewards.standings : [];
+  if (!standings.length) {
+    return `<div class="widget widget--rewards">
+      ${widgetHeader('award', t('nav.rewards'), 0, '/rewards')}
+      <div class="widget__empty">
+        <i data-lucide="award" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.noRewards')}</div>
+        ${emptyStateCta('/rewards', t('common.create'))}
+      </div>
+    </div>`;
+  }
+
+  const rows = standings.map((m, i) => {
+    const color = m.avatar_color || AVATAR_FALLBACK_COLOR;
+    const avatarInner = m.avatar_data
+      ? `<img src="${esc(m.avatar_data)}" alt="" loading="lazy">`
+      : esc(initials(m.display_name));
+    return `
+      <div class="rewards-widget-row${i === 0 ? ' rewards-widget-row--leader' : ''}" data-route="/rewards" role="button" tabindex="0">
+        <span class="rewards-widget-row__rank" aria-hidden="true">${i + 1}</span>
+        <span class="rewards-widget-row__avatar" style="background:${esc(color)};color:${getReadableTextColor(color)}">${avatarInner}</span>
+        <span class="rewards-widget-row__name">${esc(m.display_name)}</span>
+        <span class="rewards-widget-row__points"><strong>${esc(formatPoints(m.balance))}</strong> ${esc(t('rewards.pointsUnit'))}</span>
+      </div>
+    `;
+  }).join('');
+
+  const pending = Number(rewards?.pending) || 0;
+  const footer = pending > 0
+    ? `<div class="rewards-widget__footer" data-route="/rewards" role="button" tabindex="0">
+        <i data-lucide="clock" aria-hidden="true"></i>
+        <span>${t('dashboard.rewardsPending', { count: pending })}</span>
+      </div>`
+    : '';
+
+  const badge = Number(rewards?.participantCount) || standings.length;
+  return `<div class="widget widget--rewards">
+    ${widgetHeader('award', t('nav.rewards'), badge, '/rewards')}
+    <div class="widget__body">
+      <div class="rewards-widget">${rows}</div>
+      ${footer}
+    </div>
+  </div>`;
+}
+
+// --------------------------------------------------------
+// Gesundheit-Widget (heutige Medikamenten-Dosen)
+// --------------------------------------------------------
+
+function renderHealthWidget(health) {
+  if (!health?.hasMeds) {
+    return `<div class="widget widget--health">
+      ${widgetHeader('heart-pulse', t('nav.health'), null, '/health')}
+      <div class="widget__empty">
+        <i data-lucide="heart-pulse" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.healthNoMeds')}</div>
+        ${emptyStateCta('/health', t('common.create'))}
+      </div>
+    </div>`;
+  }
+
+  const total = Number(health?.dosesTotal) || 0;
+  const taken = Number(health?.dosesTaken) || 0;
+  const lowStock = Number(health?.lowStockCount) || 0;
+  const pct = total > 0 ? Math.max(0, Math.min(1, taken / total)) : 0;
+  const allTaken = total > 0 && taken >= total;
+
+  const lowChip = lowStock > 0
+    ? `<div class="health-widget__refill"><i data-lucide="package" aria-hidden="true"></i><span>${t('dashboard.healthRefill', { count: lowStock })}</span></div>`
+    : '';
+
+  let main;
+  if (total === 0) {
+    main = `<div class="health-widget__none">
+      <i data-lucide="coffee" class="health-widget__none-icon" aria-hidden="true"></i>
+      <span>${t('dashboard.healthNoDosesToday')}</span>
+    </div>`;
+  } else {
+    const status = allTaken
+      ? `<div class="health-widget__status health-widget__status--done"><i data-lucide="check" aria-hidden="true"></i>${t('dashboard.healthAllTaken')}</div>`
+      : health?.nextDose
+        ? `<div class="health-widget__next">
+            <span class="health-widget__next-time">${esc(health.nextDose.time)}</span>
+            <span class="health-widget__next-name">${esc(health.nextDose.name)}</span>
+          </div>`
+        : '';
+    main = `
+      <div class="health-widget__progress">
+        <div class="health-widget__bar" role="img" aria-label="${t('dashboard.healthDosesProgress', { taken, total })}">
+          <div class="health-widget__bar-fill${allTaken ? ' health-widget__bar-fill--done' : ''}" style="--dose-scale:${pct}"></div>
+        </div>
+        <div class="health-widget__count"><strong>${taken}</strong>/${total}</div>
+      </div>
+      ${status}
+    `;
+  }
+
+  return `<div class="widget widget--health">
+    ${widgetHeader('heart-pulse', t('nav.health'), null, '/health')}
+    <div class="widget__body">
+      <div class="health-widget">${main}${lowChip}</div>
+    </div>
+  </div>`;
+}
+
+// --------------------------------------------------------
+// Haushaltshilfe-Widget (Anwesenheit + offene Zahlung)
+// --------------------------------------------------------
+
+function renderHousekeepingWidget(hk, currency) {
+  if (!hk?.configured) {
+    return `<div class="widget widget--housekeeping">
+      ${widgetHeader('paintbrush', t('nav.housekeeping'), null, '/housekeeping')}
+      <div class="widget__empty">
+        <i data-lucide="paintbrush" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.housekeepingNone')}</div>
+        ${emptyStateCta('/housekeeping', t('common.create'))}
+      </div>
+    </div>`;
+  }
+
+  const unpaid = Number(hk.unpaidAmount) || 0;
+  const visits = Number(hk.visitsThisMonth) || 0;
+  const present = Boolean(hk.present);
+
+  const statusBlock = present
+    ? `<div class="housekeeping-widget__status housekeeping-widget__status--present">
+        <span class="housekeeping-widget__dot" aria-hidden="true"></span>
+        <div class="housekeeping-widget__lines">
+          <div class="housekeeping-widget__state">${t('dashboard.housekeepingPresent')}</div>
+          <div class="housekeeping-widget__sub">${hk.workerName ? `${esc(hk.workerName)} · ` : ''}${hk.presentSince ? t('dashboard.housekeepingSince', { time: formatTime(new Date(hk.presentSince)) }) : ''}</div>
+        </div>
+      </div>`
+    : `<div class="housekeeping-widget__status">
+        <span class="housekeeping-widget__dot housekeeping-widget__dot--idle" aria-hidden="true"></span>
+        <div class="housekeeping-widget__lines">
+          <div class="housekeeping-widget__state">${hk.lastVisit ? t('dashboard.housekeepingLastVisit', { date: formatDate(new Date(hk.lastVisit)) }) : t('dashboard.housekeepingNoVisits')}</div>
+          <div class="housekeeping-widget__sub">${t('dashboard.housekeepingVisitsMonth', { count: visits })}</div>
+        </div>
+      </div>`;
+
+  const unpaidChip = unpaid > 0
+    ? `<div class="housekeeping-widget__unpaid"><i data-lucide="banknote" aria-hidden="true"></i><span>${t('dashboard.housekeepingUnpaid', { amount: formatCurrency(unpaid, currency) })}</span></div>`
+    : '';
+
+  return `<div class="widget widget--housekeeping">
+    ${widgetHeader('paintbrush', t('nav.housekeeping'), null, '/housekeeping')}
+    <div class="widget__body">
+      <div class="housekeeping-widget">${statusBlock}${unpaidChip}</div>
+    </div>
+  </div>`;
+}
+
 function renderTodayCard(icon, label, value, route, tone, count = null) {
   const badge = Number.isFinite(count) && count > 0
     ? `<span class="today-cockpit-card__count">${count}</span>`
@@ -891,6 +1066,9 @@ function renderDashboardLayout(cfg, data, weather, currency, { editing = false, 
     calendar: () => renderUpcomingEvents(data.upcomingEvents ?? []),
     birthdays: () => renderUpcomingBirthdays(data.birthdays ?? []),
     budget: () => renderBudgetWidget(data.budget ?? {}, currency),
+    rewards: () => renderRewardsWidget(data.rewards ?? {}),
+    health: () => renderHealthWidget(data.health ?? {}),
+    housekeeping: () => renderHousekeepingWidget(data.housekeeping ?? {}, currency),
     family: () => renderFamilyWidget(data.users ?? []),
     meals: () => renderTodayMeals(data.todayMeals ?? [], visibleMealTypes),
     notes: () => renderPinnedNotes(data.pinnedNotes ?? []),
@@ -898,7 +1076,7 @@ function renderDashboardLayout(cfg, data, weather, currency, { editing = false, 
     weather: () => (weather ? renderWeatherWidget(weather) : ''),
   };
 
-  const MODULE_FOR_WIDGET = { tasks: 'tasks', calendar: 'calendar', shopping: 'shopping', meals: 'meals', notes: 'notes', birthdays: 'birthdays', budget: 'budget' };
+  const MODULE_FOR_WIDGET = { tasks: 'tasks', calendar: 'calendar', shopping: 'shopping', meals: 'meals', notes: 'notes', birthdays: 'birthdays', budget: 'budget', rewards: 'rewards', health: 'health', housekeeping: 'housekeeping' };
   const tiles = cfg
     .filter((w) => {
       if (!w.visible || !widgetById[w.id]) return false;
@@ -1465,7 +1643,7 @@ export async function render(container, { user }) {
     ${renderFab()}
   `);
 
-  let data         = { upcomingEvents: [], urgentTasks: [], todayMeals: [], pinnedNotes: [], shoppingLists: [], birthdays: [], users: [], budget: {} };
+  let data         = { upcomingEvents: [], urgentTasks: [], todayMeals: [], pinnedNotes: [], shoppingLists: [], birthdays: [], users: [], budget: {}, rewards: {}, health: {}, housekeeping: {} };
   let weather      = null;
   let weatherAutoLocate = false;
   let widgetConfig = DEFAULT_WIDGET_CONFIG;

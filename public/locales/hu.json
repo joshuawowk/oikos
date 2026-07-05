@@ -156,7 +156,21 @@
         "loadErrorSession": "A munkamenet lejárt. Jelentkezz be újra.",
         "loadErrorServer": "A szerver most nem válaszol. Próbáld újra később.",
         "allWidgetsHidden": "Minden widget rejtve — kapcsold vissza a „Testreszabás\" alatt.",
-        "customizeReorderHandle": "Widget átrendezése (húzd vagy nyíl fel/le)"
+        "customizeReorderHandle": "Widget átrendezése (húzd vagy nyíl fel/le)",
+        "noRewards": "Nincs jutalom beállítva",
+        "rewardsPending": "{{count}} jóváhagyásra vár",
+        "healthNoMeds": "Nincs megosztott gyógyszer",
+        "healthNoDosesToday": "Mára nincs adag",
+        "healthAllTaken": "Minden adag bevéve",
+        "healthDosesProgress": "{{taken}} / {{total}} adag bevéve",
+        "healthRefill": "{{count}} újrarendelése",
+        "housekeepingNone": "Nincs rögzített háztartási segítő",
+        "housekeepingPresent": "Jelenleg itt",
+        "housekeepingSince": "{{time}} óta",
+        "housekeepingLastVisit": "Utolsó látogatás: {{date}}",
+        "housekeepingNoVisits": "Még nincs látogatás",
+        "housekeepingVisitsMonth": "{{count}} látogatás e hónapban",
+        "housekeepingUnpaid": "{{amount}} rendezendő"
     },
     "tasks": {
         "title": "Feladatok",

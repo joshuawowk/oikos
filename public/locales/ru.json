@@ -156,7 +156,21 @@
         "loadErrorSession": "Сессия истекла. Пожалуйста, войдите снова.",
         "loadErrorServer": "Сервер сейчас не отвечает. Попробуйте позже.",
         "allWidgetsHidden": "Все виджеты скрыты — включите их через «Настроить».",
-        "customizeReorderHandle": "Переместить виджет (перетащите или стрелки вверх/вниз)"
+        "customizeReorderHandle": "Переместить виджет (перетащите или стрелки вверх/вниз)",
+        "noRewards": "Награды ещё не настроены",
+        "rewardsPending": "{{count}} на утверждение",
+        "healthNoMeds": "Нет общих лекарств",
+        "healthNoDosesToday": "На сегодня приёмов нет",
+        "healthAllTaken": "Все дозы приняты",
+        "healthDosesProgress": "Принято {{taken}} из {{total}} доз",
+        "healthRefill": "{{count}} дозаказать",
+        "housekeepingNone": "Помощница не добавлена",
+        "housekeepingPresent": "Сейчас здесь",
+        "housekeepingSince": "с {{time}}",
+        "housekeepingLastVisit": "Последний визит: {{date}}",
+        "housekeepingNoVisits": "Пока нет визитов",
+        "housekeepingVisitsMonth": "{{count}} визитов в этом месяце",
+        "housekeepingUnpaid": "{{amount}} к оплате"
     },
     "tasks": {
         "title": "Задачи",

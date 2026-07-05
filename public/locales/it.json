@@ -156,7 +156,21 @@
         "loadErrorSession": "La sessione è scaduta. Accedi di nuovo.",
         "loadErrorServer": "Il server non risponde al momento. Riprova più tardi.",
         "allWidgetsHidden": "Tutti i widget sono nascosti: riattivali da «Personalizza».",
-        "customizeReorderHandle": "Riordina widget (trascina o frecce su/giù)"
+        "customizeReorderHandle": "Riordina widget (trascina o frecce su/giù)",
+        "noRewards": "Nessuna ricompensa configurata",
+        "rewardsPending": "{{count}} da approvare",
+        "healthNoMeds": "Nessun farmaco condiviso",
+        "healthNoDosesToday": "Nessuna dose prevista oggi",
+        "healthAllTaken": "Tutte le dosi assunte",
+        "healthDosesProgress": "{{taken}} di {{total}} dosi assunte",
+        "healthRefill": "{{count}} da riordinare",
+        "housekeepingNone": "Nessuna collaboratrice registrata",
+        "housekeepingPresent": "Attualmente presente",
+        "housekeepingSince": "dalle {{time}}",
+        "housekeepingLastVisit": "Ultima visita: {{date}}",
+        "housekeepingNoVisits": "Ancora nessuna visita",
+        "housekeepingVisitsMonth": "{{count}} visite questo mese",
+        "housekeepingUnpaid": "{{amount}} da pagare"
     },
     "tasks": {
         "title": "Compiti",

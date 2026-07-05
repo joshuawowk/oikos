@@ -156,7 +156,21 @@
         "loadErrorSession": "Votre session a expiré. Veuillez vous reconnecter.",
         "loadErrorServer": "Le serveur ne répond pas pour le moment. Réessayez plus tard.",
         "allWidgetsHidden": "Tous les widgets sont masqués — réactivez-les via « Personnaliser ».",
-        "customizeReorderHandle": "Réorganiser le widget (glisser ou flèches haut/bas)"
+        "customizeReorderHandle": "Réorganiser le widget (glisser ou flèches haut/bas)",
+        "noRewards": "Aucune récompense configurée",
+        "rewardsPending": "{{count}} à valider",
+        "healthNoMeds": "Aucun médicament partagé",
+        "healthNoDosesToday": "Aucune prise prévue aujourd’hui",
+        "healthAllTaken": "Toutes les prises effectuées",
+        "healthDosesProgress": "{{taken}} prises sur {{total}}",
+        "healthRefill": "{{count}} à recommander",
+        "housekeepingNone": "Aucune aide ménagère enregistrée",
+        "housekeepingPresent": "Présente actuellement",
+        "housekeepingSince": "depuis {{time}}",
+        "housekeepingLastVisit": "Dernière visite : {{date}}",
+        "housekeepingNoVisits": "Aucune visite",
+        "housekeepingVisitsMonth": "{{count}} visites ce mois-ci",
+        "housekeepingUnpaid": "{{amount}} à payer"
     },
     "tasks": {
         "title": "Tâches",

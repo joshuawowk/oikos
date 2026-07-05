@@ -156,7 +156,21 @@
         "loadErrorSession": "Din session har gått ut. Logga in igen.",
         "loadErrorServer": "Servern svarar inte just nu. Försök igen senare.",
         "allWidgetsHidden": "Alla widgetar är dolda — aktivera dem igen via \"Anpassa\".",
-        "customizeReorderHandle": "Ordna om widget (dra eller piltangenter upp/ner)"
+        "customizeReorderHandle": "Ordna om widget (dra eller piltangenter upp/ner)",
+        "noRewards": "Inga belöningar konfigurerade",
+        "rewardsPending": "{{count}} att godkänna",
+        "healthNoMeds": "Inga delade mediciner",
+        "healthNoDosesToday": "Inga doser idag",
+        "healthAllTaken": "Alla doser tagna",
+        "healthDosesProgress": "{{taken}} av {{total}} doser tagna",
+        "healthRefill": "{{count}} att beställa",
+        "housekeepingNone": "Ingen hushållshjälp registrerad",
+        "housekeepingPresent": "Här just nu",
+        "housekeepingSince": "sedan {{time}}",
+        "housekeepingLastVisit": "Senaste besök: {{date}}",
+        "housekeepingNoVisits": "Inga besök än",
+        "housekeepingVisitsMonth": "{{count}} besök denna månad",
+        "housekeepingUnpaid": "{{amount}} obetalt"
     },
     "tasks": {
         "title": "Uppgifter",

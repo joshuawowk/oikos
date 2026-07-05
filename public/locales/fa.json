@@ -162,7 +162,21 @@
         "loadErrorSession": "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.",
         "loadErrorServer": "سرور در حال حاضر پاسخ نمی‌دهد. لطفاً بعداً دوباره تلاش کنید.",
         "allWidgetsHidden": "همه ابزارک‌ها پنهان شدند — از طریق «سفارشی‌سازی» دوباره نمایش دهید.",
-        "customizeReorderHandle": "مرتب‌سازی مجدد ابزارک (بکشید یا از کلیدهای بالا/پایین استفاده کنید)"
+        "customizeReorderHandle": "مرتب‌سازی مجدد ابزارک (بکشید یا از کلیدهای بالا/پایین استفاده کنید)",
+        "noRewards": "هنوز پاداشی تنظیم نشده",
+        "rewardsPending": "{{count}} در انتظار تأیید",
+        "healthNoMeds": "داروی مشترکی نیست",
+        "healthNoDosesToday": "امروز دوزی نیست",
+        "healthAllTaken": "همه دوزها مصرف شد",
+        "healthDosesProgress": "{{taken}} از {{total}} دوز مصرف شد",
+        "healthRefill": "{{count}} برای سفارش مجدد",
+        "housekeepingNone": "کمک‌کار خانه ثبت نشده",
+        "housekeepingPresent": "اکنون حاضر است",
+        "housekeepingSince": "از {{time}}",
+        "housekeepingLastVisit": "آخرین بازدید: {{date}}",
+        "housekeepingNoVisits": "هنوز بازدیدی نیست",
+        "housekeepingVisitsMonth": "{{count}} بازدید این ماه",
+        "housekeepingUnpaid": "{{amount}} پرداخت‌نشده"
     },
     "tasks": {
         "title": "کارها",

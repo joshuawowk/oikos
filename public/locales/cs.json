@@ -156,7 +156,21 @@
         "loadErrorSession": "Vaše relace vypršela. Přihlaste se prosím znovu.",
         "loadErrorServer": "Server právě neodpovídá. Zkuste to prosím později.",
         "allWidgetsHidden": "Všechny widgety jsou skryté — znovu je zapněte přes „Přizpůsobit\".",
-        "customizeReorderHandle": "Přeuspořádat widget (přetáhněte nebo šipky nahoru/dolů)"
+        "customizeReorderHandle": "Přeuspořádat widget (přetáhněte nebo šipky nahoru/dolů)",
+        "noRewards": "Zatím žádné odměny",
+        "rewardsPending": "{{count}} ke schválení",
+        "healthNoMeds": "Žádné sdílené léky",
+        "healthNoDosesToday": "Dnes žádné dávky",
+        "healthAllTaken": "Všechny dávky užity",
+        "healthDosesProgress": "Užito {{taken}} z {{total}} dávek",
+        "healthRefill": "{{count}} k doobjednání",
+        "housekeepingNone": "Žádná výpomoc v domácnosti",
+        "housekeepingPresent": "Právě přítomna",
+        "housekeepingSince": "od {{time}}",
+        "housekeepingLastVisit": "Poslední návštěva: {{date}}",
+        "housekeepingNoVisits": "Zatím žádné návštěvy",
+        "housekeepingVisitsMonth": "{{count}} návštěv tento měsíc",
+        "housekeepingUnpaid": "{{amount}} k úhradě"
     },
     "tasks": {
         "title": "Úkoly",

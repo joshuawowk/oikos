@@ -156,7 +156,21 @@
         "loadErrorSession": "आपका सत्र समाप्त हो गया है. कृपया फिर से साइन इन करें.",
         "loadErrorServer": "सर्वर अभी जवाब नहीं दे रहा है. कृपया बाद में पुनः प्रयास करें.",
         "allWidgetsHidden": "सभी विजेट छिपे हैं — उन्हें \"अनुकूलित करें\" से फिर से दिखाएँ.",
-        "customizeReorderHandle": "विजेट पुनः क्रमित करें (खींचें या ऊपर/नीचे तीर कुंजियाँ)"
+        "customizeReorderHandle": "विजेट पुनः क्रमित करें (खींचें या ऊपर/नीचे तीर कुंजियाँ)",
+        "noRewards": "अभी कोई पुरस्कार सेट नहीं",
+        "rewardsPending": "{{count}} स्वीकृति हेतु",
+        "healthNoMeds": "कोई साझा दवा नहीं",
+        "healthNoDosesToday": "आज कोई खुराक नहीं",
+        "healthAllTaken": "सभी खुराक ले ली गईं",
+        "healthDosesProgress": "{{total}} में से {{taken}} खुराक ली",
+        "healthRefill": "{{count}} पुनः ऑर्डर करें",
+        "housekeepingNone": "कोई घरेलू सहायक दर्ज नहीं",
+        "housekeepingPresent": "अभी मौजूद",
+        "housekeepingSince": "{{time}} से",
+        "housekeepingLastVisit": "पिछली विज़िट: {{date}}",
+        "housekeepingNoVisits": "अभी कोई विज़िट नहीं",
+        "housekeepingVisitsMonth": "इस माह {{count}} विज़िट",
+        "housekeepingUnpaid": "{{amount}} बकाया"
     },
     "tasks": {
         "title": "कार्य",

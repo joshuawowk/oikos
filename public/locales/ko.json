@@ -162,7 +162,21 @@
         "loadErrorSession": "세션이 만료되었습니다. 다시 로그인해 주세요.",
         "loadErrorServer": "서버가 지금 응답하지 않습니다. 나중에 다시 시도해 주세요.",
         "allWidgetsHidden": "모든 위젯이 숨겨졌습니다 — „맞춤 설정\"에서 다시 표시하세요.",
-        "customizeReorderHandle": "위젯 순서 변경 (끌거나 위/아래 화살표 사용)"
+        "customizeReorderHandle": "위젯 순서 변경 (끌거나 위/아래 화살표 사용)",
+        "noRewards": "설정된 보상이 없습니다",
+        "rewardsPending": "{{count}}건 승인 대기",
+        "healthNoMeds": "공유된 약이 없습니다",
+        "healthNoDosesToday": "오늘 복용 예정 없음",
+        "healthAllTaken": "모든 복용 완료",
+        "healthDosesProgress": "{{total}}회 중 {{taken}}회 복용",
+        "healthRefill": "{{count}}개 재주문",
+        "housekeepingNone": "기록된 가사도우미 없음",
+        "housekeepingPresent": "현재 방문 중",
+        "housekeepingSince": "{{time}}부터",
+        "housekeepingLastVisit": "마지막 방문: {{date}}",
+        "housekeepingNoVisits": "아직 방문 없음",
+        "housekeepingVisitsMonth": "이번 달 {{count}}회 방문",
+        "housekeepingUnpaid": "{{amount}} 미결제"
     },
     "tasks": {
         "title": "할 일",

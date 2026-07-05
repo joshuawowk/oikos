@@ -156,7 +156,21 @@
         "loadErrorSession": "您的会话已过期。请重新登录。",
         "loadErrorServer": "服务器暂时无响应。请稍后再试。",
         "allWidgetsHidden": "所有小组件已隐藏——通过\"自定义\"重新启用。",
-        "customizeReorderHandle": "重新排序小组件（拖动或使用上/下箭头键）"
+        "customizeReorderHandle": "重新排序小组件（拖动或使用上/下箭头键）",
+        "noRewards": "尚未设置奖励",
+        "rewardsPending": "{{count}} 项待批准",
+        "healthNoMeds": "没有共享的药物",
+        "healthNoDosesToday": "今天无需服药",
+        "healthAllTaken": "已全部服用",
+        "healthDosesProgress": "已服用 {{total}} 剂中的 {{taken}} 剂",
+        "healthRefill": "{{count}} 项待补货",
+        "housekeepingNone": "未记录家政人员",
+        "housekeepingPresent": "目前在场",
+        "housekeepingSince": "自 {{time}}",
+        "housekeepingLastVisit": "上次：{{date}}",
+        "housekeepingNoVisits": "暂无到访",
+        "housekeepingVisitsMonth": "本月 {{count}} 次到访",
+        "housekeepingUnpaid": "{{amount}} 待付"
     },
     "tasks": {
         "title": "任务",

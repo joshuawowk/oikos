@@ -156,7 +156,21 @@
         "loadErrorSession": "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.",
         "loadErrorServer": "Máy chủ hiện không phản hồi. Vui lòng thử lại sau.",
         "allWidgetsHidden": "Tất cả widget đã ẩn — bật lại qua \"Tùy chỉnh\".",
-        "customizeReorderHandle": "Sắp xếp lại widget (kéo hoặc phím mũi tên lên/xuống)"
+        "customizeReorderHandle": "Sắp xếp lại widget (kéo hoặc phím mũi tên lên/xuống)",
+        "noRewards": "Chưa thiết lập phần thưởng",
+        "rewardsPending": "{{count}} chờ duyệt",
+        "healthNoMeds": "Không có thuốc chung",
+        "healthNoDosesToday": "Hôm nay không có liều",
+        "healthAllTaken": "Đã uống hết các liều",
+        "healthDosesProgress": "Đã uống {{taken}}/{{total}} liều",
+        "healthRefill": "{{count}} cần đặt thêm",
+        "housekeepingNone": "Chưa ghi nhận người giúp việc",
+        "housekeepingPresent": "Hiện đang ở đây",
+        "housekeepingSince": "từ {{time}}",
+        "housekeepingLastVisit": "Lần cuối: {{date}}",
+        "housekeepingNoVisits": "Chưa có lượt nào",
+        "housekeepingVisitsMonth": "{{count}} lượt tháng này",
+        "housekeepingUnpaid": "Còn nợ {{amount}}"
     },
     "tasks": {
         "title": "Nhiệm vụ",

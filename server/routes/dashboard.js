@@ -55,6 +55,12 @@ router.get('/', (req, res) => {
   const currentMonth = todayStr.slice(0, 7);
   const deadline48h = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString();
 
+  // Lokaler Datums-/Wochentagsschlüssel für das Health-Widget: die Fälligkeit einer
+  // Dosis hängt am lokalen Kalendertag (nicht UTC), sonst driftet die days_mask westlich
+  // von UTC um einen Tag. Konvention wie public/utils/health-meds.js: Montag = 0 … Sonntag = 6.
+  const todayLocalKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const localWeekdayIdx = (now.getDay() + 6) % 7;
+
   // Anstehende Termine (nächste 5, ab jetzt).
   // Geteilte Logik mit /calendar/upcoming: expandiert wiederkehrende Serien,
   // sodass auch Termine erscheinen, deren Master-Start in der Vergangenheit liegt.
@@ -234,6 +240,126 @@ router.get('/', (req, res) => {
       topExpenseCategory: null,
       topExpenseAmount: 0,
     };
+  }
+
+  // Belohnungen: Familien-Punktestand (Top 5 aktive Teilnehmer nach Ledger-Saldo)
+  // plus offene Freigaben — ein glanceable Mini-Ranking für den Familienalltag.
+  try {
+    const MEMBER_FILTER = 'NOT EXISTS (SELECT 1 FROM housekeeping_workers hw WHERE hw.user_id = u.id)';
+    const standings = d.prepare(`
+      SELECT u.id, u.display_name, u.avatar_color, u.avatar_data, u.family_role,
+             COALESCE((SELECT SUM(delta) FROM reward_ledger l WHERE l.user_id = u.id), 0) AS balance
+      FROM users u
+      JOIN reward_participants rp ON rp.user_id = u.id AND rp.enabled = 1
+      WHERE ${MEMBER_FILTER}
+      ORDER BY balance DESC, u.display_name COLLATE NOCASE ASC
+      LIMIT 5
+    `).all();
+    const participantCount = d.prepare('SELECT COUNT(*) AS n FROM reward_participants WHERE enabled = 1').get().n;
+    const pending = d.prepare("SELECT COUNT(*) AS n FROM reward_redemptions WHERE status = 'pending'").get().n;
+    result.rewards = { standings, participantCount, pending };
+  } catch (err) {
+    log.error('rewards error:', err.message);
+    result.rewards = { standings: [], participantCount: 0, pending: 0 };
+  }
+
+  // Gesundheit: heute fällige Dosen (nur familiensichtbare Medikamente — private
+  // bleiben auf einem ggf. geteilten Familienbildschirm bewusst außen vor) plus
+  // Nachbestell-Hinweis. Fälligkeit inline berechnet (days_mask, Zeitraum, Log-Status),
+  // da public/utils/health-meds.js browser-Pfade importiert und serverseitig nicht ladbar ist.
+  try {
+    const meds = d.prepare(`
+      SELECT id, name, stock_qty, refill_threshold
+      FROM medications
+      WHERE active = 1 AND visibility = 'family'
+    `).all();
+    const scheduleStmt = d.prepare(`
+      SELECT time_of_day, days_mask, start_date, end_date
+      FROM medication_schedules
+      WHERE medication_id = ? AND active = 1
+    `);
+    const logStmt = d.prepare(`
+      SELECT status FROM medication_logs
+      WHERE medication_id = ? AND substr(scheduled_at, 1, 10) = ? AND substr(scheduled_at, 12, 5) = ?
+      ORDER BY id DESC LIMIT 1
+    `);
+    let dosesTotal = 0;
+    let dosesTaken = 0;
+    let dosesSkipped = 0;
+    let lowStockCount = 0;
+    let nextDose = null;
+    for (const med of meds) {
+      if (med.stock_qty != null && Number.isFinite(Number(med.stock_qty))) {
+        const stock = Number(med.stock_qty);
+        const thr = med.refill_threshold != null && Number.isFinite(Number(med.refill_threshold))
+          ? Number(med.refill_threshold)
+          : null;
+        if (stock <= 0 || (thr != null && stock <= thr)) lowStockCount += 1;
+      }
+      for (const s of scheduleStmt.all(med.id)) {
+        if (s.start_date && todayLocalKey < s.start_date) continue;
+        if (s.end_date && todayLocalKey > s.end_date) continue;
+        const mask = s.days_mask;
+        const matches = mask === null || mask === undefined
+          ? true
+          : (Number(mask) & (1 << localWeekdayIdx)) !== 0;
+        if (!matches) continue;
+        dosesTotal += 1;
+        const time = s.time_of_day || '00:00';
+        const logRow = logStmt.get(med.id, todayLocalKey, time);
+        if (logRow?.status === 'taken') dosesTaken += 1;
+        else if (logRow?.status === 'skipped') dosesSkipped += 1;
+        else if (!nextDose || time < nextDose.time) nextDose = { name: med.name, time };
+      }
+    }
+    result.health = {
+      hasMeds: meds.length > 0,
+      dosesTotal,
+      dosesTaken,
+      dosesSkipped,
+      nextDose,
+      lowStockCount,
+    };
+  } catch (err) {
+    log.error('health error:', err.message);
+    result.health = { hasMeds: false, dosesTotal: 0, dosesTaken: 0, dosesSkipped: 0, nextDose: null, lowStockCount: 0 };
+  }
+
+  // Haushaltshilfe: Anwesenheitsstatus (offene Sitzung), Besuche im laufenden Monat,
+  // offener Zahlbetrag und letzter Besuch — ein kompakter Status statt einer Liste.
+  try {
+    const openSession = d.prepare(`
+      SELECT hws.check_in, u.display_name AS worker_name
+      FROM housekeeping_work_sessions hws
+      LEFT JOIN housekeeping_workers hw ON hw.id = hws.worker_id
+      LEFT JOIN users u ON u.id = hw.user_id
+      WHERE hws.check_out IS NULL
+      ORDER BY hws.check_in DESC LIMIT 1
+    `).get();
+    const monthRow = d.prepare(`
+      SELECT COUNT(*) AS visits,
+             COALESCE(SUM(CASE WHEN paid_at IS NULL THEN daily_rate + COALESCE(extras, 0) ELSE 0 END), 0) AS unpaid
+      FROM housekeeping_work_sessions
+      WHERE substr(check_in, 1, 7) = ? AND check_out IS NOT NULL
+    `).get(currentMonth);
+    const lastRow = d.prepare(`
+      SELECT check_in FROM housekeeping_work_sessions
+      WHERE check_out IS NOT NULL ORDER BY check_in DESC LIMIT 1
+    `).get();
+    const anyRow = d.prepare('SELECT 1 FROM housekeeping_work_sessions LIMIT 1').get()
+      || d.prepare('SELECT 1 FROM housekeeping_workers LIMIT 1').get();
+    result.housekeeping = {
+      configured: Boolean(anyRow),
+      present: Boolean(openSession),
+      presentSince: openSession?.check_in || null,
+      workerName: openSession?.worker_name || null,
+      visitsThisMonth: monthRow?.visits || 0,
+      unpaidAmount: monthRow?.unpaid || 0,
+      lastVisit: lastRow?.check_in || null,
+    };
+  } catch (err) {
+    log.error('housekeeping error:', err.message);
+    result.housekeeping = { configured: false, present: false, presentSince: null, workerName: null, visitsThisMonth: 0, unpaidAmount: 0, lastVisit: null };
   }
 
   res.json(result);

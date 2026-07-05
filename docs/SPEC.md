@@ -1101,7 +1101,13 @@ Responsive grid: 1 column on mobile, 2 on tablet, 3 on desktop.
 - Urgent tasks: priority urgent/high + due_date ≤48h
 - Today's meals: meals for the current day
 - Pinboard preview: 2–3 pinned notes (Markdown formatting rendered)
+- Birthdays, Budget (monthly balance/savings-rate), Family members
+- Rewards (v0.96.0): family points leaderboard — top 5 enabled participants by ledger balance, the leader row subtly tinted (no medal/emoji), plus a "N to approve" footer when redemptions are pending
+- Health (v0.96.0): today's medication doses as a "taken/total" progress bar with the next open dose and a low-stock reorder chip. Only **family-visible** medications are aggregated — private meds never surface on the (possibly shared) dashboard
+- Housekeeping (v0.96.0): compact status — currently-present indicator (worker + since-time) or last visit + this-month visit count, plus an outstanding-amount chip
 - FAB (quick actions): + Task, + Event, + Shopping list item, + Note
+
+The three newer modules (Rewards, Health, Housekeeping) start **hidden** by default — they are specialised and not active in every household, so they are offered as opt-ins in **Customize** rather than adding empty tiles to a fresh dashboard. Existing saved layouts are untouched.
 
 **Widget sizes:** each widget has a configurable size using named presets (Tiny, Narrow, Tall, Standard, Large, Full) that map to `columns × rows` in the CSS grid. List widgets (tasks, calendar) default to the tall/narrow **Tall** (1×2) preset so a short list keeps useful height without occupying a full two-column row. Sizes are persisted in user preferences and survive page reloads.
 

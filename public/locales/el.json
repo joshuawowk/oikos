@@ -156,7 +156,21 @@
         "loadErrorSession": "Η συνεδρία σας έληξε. Συνδεθείτε ξανά.",
         "loadErrorServer": "Ο διακομιστής δεν αποκρίνεται αυτή τη στιγμή. Δοκιμάστε ξανά αργότερα.",
         "allWidgetsHidden": "Όλα τα widget είναι κρυμμένα — εμφανίστε τα ξανά μέσω «Προσαρμογή».",
-        "customizeReorderHandle": "Αναδιάταξη widget (σύρετε ή βέλη πάνω/κάτω)"
+        "customizeReorderHandle": "Αναδιάταξη widget (σύρετε ή βέλη πάνω/κάτω)",
+        "noRewards": "Δεν έχουν οριστεί ανταμοιβές",
+        "rewardsPending": "{{count}} προς έγκριση",
+        "healthNoMeds": "Καμία κοινόχρηστη φαρμακευτική αγωγή",
+        "healthNoDosesToday": "Καμία δόση για σήμερα",
+        "healthAllTaken": "Όλες οι δόσεις ελήφθησαν",
+        "healthDosesProgress": "{{taken}} από {{total}} δόσεις",
+        "healthRefill": "{{count}} για παραγγελία",
+        "housekeepingNone": "Δεν έχει καταχωρηθεί βοηθός",
+        "housekeepingPresent": "Παρούσα τώρα",
+        "housekeepingSince": "από {{time}}",
+        "housekeepingLastVisit": "Τελευταία επίσκεψη: {{date}}",
+        "housekeepingNoVisits": "Καμία επίσκεψη ακόμη",
+        "housekeepingVisitsMonth": "{{count}} επισκέψεις αυτόν τον μήνα",
+        "housekeepingUnpaid": "{{amount}} οφειλόμενα"
     },
     "tasks": {
         "title": "Εργασίες",

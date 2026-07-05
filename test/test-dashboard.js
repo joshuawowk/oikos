@@ -452,6 +452,150 @@ test('Dashboard-Endpoint filtert heutige Mahlzeiten nach sichtbaren Typen', asyn
   }
 });
 
+test('Dashboard-Endpoint: Belohnungen liefert Punktestand, Teilnehmerzahl und offene Freigaben', async () => {
+  const { get } = await import('../server/db.js');
+  const { default: dashboardRouter } = await import('../server/routes/dashboard.js');
+  const routeDb = get();
+
+  routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-rewards-%'").run();
+
+  const parent = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-rewards-parent', 'Rewards Parent', 'x', '#007AFF', 'admin')
+  `).run().lastInsertRowid;
+  const kidA = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-rewards-kid-a', 'Kid A', 'x', '#34C759', 'member')
+  `).run().lastInsertRowid;
+  const kidB = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-rewards-kid-b', 'Kid B', 'x', '#FF9500', 'member')
+  `).run().lastInsertRowid;
+
+  for (const uid of [kidA, kidB]) {
+    routeDb.prepare('INSERT INTO reward_participants (user_id, enabled) VALUES (?, 1)').run(uid);
+  }
+  routeDb.prepare("INSERT INTO reward_ledger (user_id, delta, type) VALUES (?, 30, 'earn')").run(kidA);
+  routeDb.prepare("INSERT INTO reward_ledger (user_id, delta, type) VALUES (?, 80, 'earn')").run(kidB);
+  routeDb.prepare(`INSERT INTO reward_redemptions (user_id, reward_name, cost, status)
+    VALUES (?, 'Kino', 50, 'pending')`).run(kidB);
+
+  const app = express();
+  app.use((req, _res, next) => { req.authUserId = parent; req.session = { userId: parent }; next(); });
+  app.use('/', dashboardRouter);
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const body = await (await fetch(`http://127.0.0.1:${server.address().port}/`)).json();
+    const names = body.rewards.standings.map((s) => s.display_name);
+    nodeAssert.equal(names[0], 'Kid B', 'höchster Saldo führt das Ranking an');
+    nodeAssert.ok(names.includes('Kid A'), 'zweiter Teilnehmer ist enthalten');
+    nodeAssert.ok(!names.includes('Rewards Parent'), 'Nicht-Teilnehmer erscheinen nicht');
+    nodeAssert.equal(body.rewards.standings.find((s) => s.display_name === 'Kid B').balance, 80);
+    nodeAssert.equal(body.rewards.participantCount, 2);
+    nodeAssert.equal(body.rewards.pending, 1);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-rewards-%'").run();
+  }
+});
+
+test('Dashboard-Endpoint: Gesundheit zählt heute fällige familiensichtbare Dosen und Nachbestellungen', async () => {
+  const { get } = await import('../server/db.js');
+  const { default: dashboardRouter } = await import('../server/routes/dashboard.js');
+  const routeDb = get();
+
+  routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-health-%'").run();
+  const owner = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-health-owner', 'Health Owner', 'x', '#007AFF', 'admin')
+  `).run().lastInsertRowid;
+
+  // Familiensichtbares Medikament mit täglichem Plan (days_mask NULL) → heute fällig.
+  const famMed = routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility) VALUES (?, 'Vitamin D', 1, 'family')
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare(`
+    INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, active) VALUES (?, '08:00', NULL, 1)
+  `).run(famMed);
+  // Familiensichtbar, niedriger Bestand, ohne Plan → zählt als Nachbestellung, nicht als Dosis.
+  routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility, stock_qty, refill_threshold)
+    VALUES (?, 'Ibuprofen', 1, 'family', 2, 5)
+  `).run(owner);
+  // Privates Medikament mit Plan → darf NICHT auf dem geteilten Dashboard erscheinen.
+  const privMed = routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility) VALUES (?, 'Privat-Med', 1, 'private')
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare(`
+    INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, active) VALUES (?, '09:00', NULL, 1)
+  `).run(privMed);
+
+  const app = express();
+  app.use((req, _res, next) => { req.authUserId = owner; req.session = { userId: owner }; next(); });
+  app.use('/', dashboardRouter);
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const body = await (await fetch(`http://127.0.0.1:${server.address().port}/`)).json();
+    nodeAssert.equal(body.health.hasMeds, true);
+    nodeAssert.equal(body.health.dosesTotal, 1, 'nur die familiensichtbare Dosis zählt (privat ausgeschlossen)');
+    nodeAssert.equal(body.health.dosesTaken, 0);
+    nodeAssert.equal(body.health.nextDose.name, 'Vitamin D');
+    nodeAssert.equal(body.health.lowStockCount, 1, 'niedriger Bestand wird gezählt');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-health-%'").run();
+  }
+});
+
+test('Dashboard-Endpoint: Haushaltshilfe meldet Anwesenheit, Monatsbesuche und offenen Betrag', async () => {
+  const { get } = await import('../server/db.js');
+  const { default: dashboardRouter } = await import('../server/routes/dashboard.js');
+  const routeDb = get();
+
+  routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-hk-%'").run();
+  const owner = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-hk-owner', 'HK Owner', 'x', '#007AFF', 'admin')
+  `).run().lastInsertRowid;
+  const helperUser = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-hk-helper', 'Maria', 'x', '#34C759', 'member')
+  `).run().lastInsertRowid;
+  const workerId = routeDb.prepare(`
+    INSERT INTO housekeeping_workers (user_id, daily_rate) VALUES (?, 40)
+  `).run(helperUser).lastInsertRowid;
+
+  // Offene Sitzung heute → Anwesenheit. check_in mit lokalem Monat.
+  routeDb.prepare(`
+    INSERT INTO housekeeping_work_sessions (check_in, check_out, daily_rate, extras, worker_id, created_by)
+    VALUES (?, NULL, 40, 0, ?, ?)
+  `).run(`${today}T09:00:00`, workerId, owner);
+  // Abgeschlossene, unbezahlte Sitzung diesen Monat.
+  routeDb.prepare(`
+    INSERT INTO housekeeping_work_sessions (check_in, check_out, daily_rate, extras, paid_at, worker_id, created_by)
+    VALUES (?, ?, 40, 10, NULL, ?, ?)
+  `).run(`${currentMonth}-01T09:00:00`, `${currentMonth}-01T13:00:00`, workerId, owner);
+
+  const app = express();
+  app.use((req, _res, next) => { req.authUserId = owner; req.session = { userId: owner }; next(); });
+  app.use('/', dashboardRouter);
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const body = await (await fetch(`http://127.0.0.1:${server.address().port}/`)).json();
+    nodeAssert.equal(body.housekeeping.configured, true);
+    nodeAssert.equal(body.housekeeping.present, true);
+    nodeAssert.equal(body.housekeeping.workerName, 'Maria');
+    nodeAssert.equal(body.housekeeping.visitsThisMonth, 1, 'nur abgeschlossene Sitzungen zählen als Besuch');
+    nodeAssert.equal(body.housekeeping.unpaidAmount, 50, 'daily_rate 40 + extras 10, unbezahlt');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-hk-%'").run();
+  }
+});
+
 // --------------------------------------------------------
 // Tests: Budget
 // --------------------------------------------------------
