@@ -9,6 +9,7 @@ import { t, formatDate, formatTime, getLocale } from '/i18n.js';
 import { getReadableTextColor, AVATAR_FALLBACK_COLOR } from '/utils/color.js';
 import { esc, fmtLocation, renderMarkdownLight } from '/utils/html.js';
 import { toLocalDateKey } from '/utils/date.js';
+import { predictCycle, PHASE } from '/utils/health-cycle.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
 import { renderAvatarStack } from '/components/user-multi-select.js';
 
@@ -167,7 +168,7 @@ function maybeHintCustomize(container) {
 // Reihenfolge = Standard-Layout. Die primären Inhalte (tasks, calendar) führen,
 // damit sie beim Wieder-Einblenden oben stehen; das einzige passive Widget
 // (weather) steht bewusst am Ende, statt die sichtbare Grid-Spitze zu belegen.
-const WIDGET_IDS = ['tasks', 'calendar', 'meals', 'shopping', 'birthdays', 'budget', 'rewards', 'health', 'housekeeping', 'family', 'notes', 'weather'];
+const WIDGET_IDS = ['tasks', 'calendar', 'meals', 'shopping', 'birthdays', 'budget', 'rewards', 'health', 'cycle', 'housekeeping', 'family', 'notes', 'weather'];
 
 // Vier kuratierte Formen statt sechs: über vier Auswahlmöglichkeiten pro Widget
 // (× bis zu 12 Widgets) kippt der Anpassen-Modus in Mikro-Entscheidungs-Overhead
@@ -221,7 +222,7 @@ function defaultWidgetSize(id) {
   // packt sich sauber neben andere Widgets, statt als 2-spaltige Kachel eine
   // ganze Rasterzeile zu belegen (löst die Masonry-Imbalance an der Wurzel).
   if (['tasks', 'calendar', 'rewards'].includes(id)) return '1x2';
-  if (['weather', 'shopping', 'health'].includes(id)) return '2x1';
+  if (['weather', 'shopping', 'health', 'cycle'].includes(id)) return '2x1';
   if (id === 'notes') return '2x1';
   return '1x1';
 }
@@ -236,7 +237,7 @@ const COCKPIT_COVERED_WIDGETS = new Set(['tasks', 'calendar', 'shopping', 'meals
 // spezialisiert und nicht in jedem Haushalt aktiv — sie erscheinen als Opt-in im
 // „Anpassen"-Panel, statt frische Dashboards mit leeren Kacheln zu überladen
 // (PRODUCT.md: „Power wird auf Abruf enthüllt, nicht in einem Raster ausgebreitet").
-const DEFAULT_HIDDEN_WIDGETS = new Set([...COCKPIT_COVERED_WIDGETS, 'rewards', 'health', 'housekeeping']);
+const DEFAULT_HIDDEN_WIDGETS = new Set([...COCKPIT_COVERED_WIDGETS, 'rewards', 'health', 'cycle', 'housekeeping']);
 
 function defaultWidgetVisible(id) {
   return !DEFAULT_HIDDEN_WIDGETS.has(id);
@@ -306,6 +307,7 @@ function widgetLabel(id) {
     budget:   () => t('nav.budget'),
     rewards:  () => t('nav.rewards'),
     health:   () => t('nav.health'),
+    cycle:    () => t('health.cycle.title'),
     housekeeping: () => t('nav.housekeeping'),
     family:   () => t('dashboard.familyMembers'),
   };
@@ -313,7 +315,7 @@ function widgetLabel(id) {
 }
 
 function widgetIcon(id) {
-  const map = { tasks: 'check-square', calendar: 'calendar', birthdays: 'cake', budget: 'wallet', rewards: 'award', health: 'heart-pulse', housekeeping: 'paintbrush', family: 'users', shopping: 'shopping-cart', meals: 'utensils', notes: 'pin', weather: 'cloud-sun' };
+  const map = { tasks: 'check-square', calendar: 'calendar', birthdays: 'cake', budget: 'wallet', rewards: 'award', health: 'heart-pulse', cycle: 'calendar-heart', housekeeping: 'paintbrush', family: 'users', shopping: 'shopping-cart', meals: 'utensils', notes: 'pin', weather: 'cloud-sun' };
   return map[id] ?? 'layout-dashboard';
 }
 
@@ -914,6 +916,92 @@ function renderHealthWidget(health) {
 }
 
 // --------------------------------------------------------
+// Zyklus-Widget (owner-only, opt-in)
+// --------------------------------------------------------
+// Strikt privat: Die Vorhersage wird client-seitig aus den nutzer-eigenen
+// /health/cycle/*-Endpunkten berechnet (siehe render()) und fließt NIE in den
+// familienweiten /dashboard-Payload. Zeigt Phase + Zyklustag (Mini-Ring) und die
+// nächste Periode als Countdown — die eine glanceable Zahl für den Alltag.
+
+const CYCLE_WIDGET_PHASE_KEYS = {
+  [PHASE.MENSTRUATION]: 'health.cycle.phase.menstruation',
+  [PHASE.FOLLICULAR]:   'health.cycle.phase.follicular',
+  [PHASE.FERTILE]:      'health.cycle.phase.fertile',
+  [PHASE.OVULATION]:    'health.cycle.phase.ovulation',
+  [PHASE.LUTEAL]:       'health.cycle.phase.luteal',
+};
+
+// Phasenfarbe für den Ring-Bogen; Follikel-/Lutealphase tragen den Modul-Akzent.
+const CYCLE_WIDGET_PHASE_COLOR = {
+  [PHASE.MENSTRUATION]: 'var(--cycle-period)',
+  [PHASE.FERTILE]:      'var(--cycle-fertile)',
+  [PHASE.OVULATION]:    'var(--cycle-ovulation)',
+};
+
+function cycleWidgetCountdown(prediction) {
+  const d = prediction.daysUntilNext;
+  if (d === 0) return t('health.cycle.status.today');
+  if (d < 0) return t('health.cycle.status.overdue', { count: Math.abs(d) });
+  return t('health.cycle.status.inDays', { count: d });
+}
+
+function renderCycleWidget(cycle) {
+  // cycle: { periods, settings } (owner-only) | null (Ladefehler) | undefined (Kachel versteckt)
+  const prediction = cycle
+    ? predictCycle(cycle.periods || [], cycle.settings || {})
+    : { hasData: false };
+
+  // Ohne Historie: Onboarding-Empty statt Fehlerkachel — führt in den Zyklus-Flow.
+  if (!prediction.hasData) {
+    return `<div class="widget widget--cycle">
+      ${widgetHeader('calendar-heart', t('health.cycle.title'), null, '/health/cycle')}
+      <div class="widget__empty">
+        <i data-lucide="calendar-heart" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('health.cycle.emptyTitle')}</div>
+        ${emptyStateCta('/health/cycle', t('common.create'))}
+      </div>
+    </div>`;
+  }
+
+  const phaseLabel = t(CYCLE_WIDGET_PHASE_KEYS[prediction.phase] || CYCLE_WIDGET_PHASE_KEYS[PHASE.FOLLICULAR]);
+  const dayText = t('health.cycle.ring.cycleDay', { day: prediction.cycleDay });
+  const countdown = cycleWidgetCountdown(prediction);
+  const phaseColor = CYCLE_WIDGET_PHASE_COLOR[prediction.phase] || 'var(--module-health)';
+
+  // Mini-Fortschrittsring: Zyklustag / Ø-Zyklus als einzelner Bogen in Phasenfarbe.
+  const R = 26;
+  const C = 2 * Math.PI * R;
+  const frac = Math.min(1, Math.max(0, prediction.cycleDay / Math.max(1, prediction.avgCycle)));
+  const lit = (frac * C).toFixed(2);
+  const gap = (C - frac * C).toFixed(2);
+
+  const ring = `
+    <svg class="cycle-widget__ring" viewBox="0 0 64 64" role="img" aria-label="${esc(`${phaseLabel} · ${dayText}`)}">
+      <circle class="cycle-widget__ring-track" cx="32" cy="32" r="${R}" fill="none" stroke-width="6" />
+      <circle class="cycle-widget__ring-arc" cx="32" cy="32" r="${R}" fill="none" stroke="${phaseColor}"
+        stroke-width="6" stroke-linecap="round" stroke-dasharray="${lit} ${gap}" transform="rotate(-90 32 32)" />
+      <text class="cycle-widget__ring-num" x="32" y="32" text-anchor="middle" dominant-baseline="central">${esc(prediction.cycleDay)}</text>
+    </svg>`;
+
+  return `<div class="widget widget--cycle">
+    ${widgetHeader('calendar-heart', t('health.cycle.title'), null, '/health/cycle')}
+    <div class="widget__body">
+      <div class="cycle-widget" data-phase="${esc(prediction.phase)}">
+        ${ring}
+        <div class="cycle-widget__info">
+          <span class="cycle-widget__phase">${esc(phaseLabel)}</span>
+          <span class="cycle-widget__next">
+            <span class="cycle-widget__next-label">${esc(t('health.cycle.status.nextPeriod'))}</span>
+            <span class="cycle-widget__countdown">${esc(countdown)}</span>
+          </span>
+          <span class="cycle-widget__date">${esc(formatDate(prediction.nextStart))}</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// --------------------------------------------------------
 // Haushaltshilfe-Widget (Anwesenheit + offene Zahlung)
 // --------------------------------------------------------
 
@@ -1105,6 +1193,7 @@ function renderDashboardLayout(cfg, data, weather, currency, { editing = false, 
     budget: () => renderBudgetWidget(data.budget ?? {}, currency),
     rewards: () => renderRewardsWidget(data.rewards ?? {}),
     health: () => renderHealthWidget(data.health ?? {}),
+    cycle: () => renderCycleWidget(data.cycle),
     housekeeping: () => renderHousekeepingWidget(data.housekeeping ?? {}, currency),
     family: () => renderFamilyWidget(data.users ?? []),
     meals: () => renderTodayMeals(data.todayMeals ?? [], visibleMealTypes),
@@ -1113,7 +1202,7 @@ function renderDashboardLayout(cfg, data, weather, currency, { editing = false, 
     weather: () => (weather ? renderWeatherWidget(weather) : ''),
   };
 
-  const MODULE_FOR_WIDGET = { tasks: 'tasks', calendar: 'calendar', shopping: 'shopping', meals: 'meals', notes: 'notes', birthdays: 'birthdays', budget: 'budget', rewards: 'rewards', health: 'health', housekeeping: 'housekeeping' };
+  const MODULE_FOR_WIDGET = { tasks: 'tasks', calendar: 'calendar', shopping: 'shopping', meals: 'meals', notes: 'notes', birthdays: 'birthdays', budget: 'budget', rewards: 'rewards', health: 'health', cycle: 'health', housekeeping: 'housekeeping' };
   const tiles = cfg
     .filter((w) => {
       if (!w.visible || !widgetById[w.id]) return false;
@@ -1744,6 +1833,31 @@ export async function render(container, { user }) {
     loadErrorStatus = Number.isFinite(err?.status) ? err.status : null;
   }
 
+  // Zyklus-Slice strikt owner-only nachladen: Zyklusdaten sind privat und dürfen
+  // nicht in den familienweiten /dashboard-Payload. Genau einmal (data.cycle bleibt
+  // sonst undefined = „noch nie geladen"). Ein Fehler lässt die Kachel auf ihren
+  // Onboarding-Empty fallen, statt das Dashboard zu kippen.
+  async function ensureCycleSlice() {
+    if (data.cycle !== undefined) return;
+    if (window.yuvomi?.isModuleDisabled('health')) return;
+    try {
+      const [periodsRes, settingsRes] = await Promise.all([
+        api.get('/health/cycle/periods'),
+        api.get('/health/cycle/settings').catch(() => ({ data: {} })),
+      ]);
+      data.cycle = { periods: periodsRes.data || [], settings: settingsRes.data || {} };
+    } catch (err) {
+      console.error('[Dashboard] Zyklus-Slice Ladefehler:', err?.message);
+      data.cycle = null;
+    }
+  }
+
+  // Nur wenn die opt-in-Kachel sichtbar ist — die Mehrheit ohne aktivierte Kachel
+  // löst keinen Request aus.
+  if (!loadFailed && widgetConfig.some((w) => w.id === 'cycle' && w.visible)) {
+    await ensureCycleSlice();
+  }
+
   const rerender = () => render(container, { user });
 
   // Einziger Persist-Pfad für Inline- UND Modal-Speichern. Legt vor dem Schreiben
@@ -1755,6 +1869,9 @@ export async function render(container, { user }) {
     await api.put('/preferences', { dashboard_widgets: widgetConfig });
     savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
     isCustomizing = false;
+    // Wird die Zyklus-Kachel gerade erst eingeblendet, ihren owner-only Slice
+    // nachladen — sonst zeigte sie fälschlich den Empty-State bis zum Reload.
+    if (widgetConfig.some((w) => w.id === 'cycle' && w.visible)) await ensureCycleSlice();
     rebuildDashboard(widgetConfig);
 
     const changed = !sameWidgetConfig(previousConfig, widgetConfig);

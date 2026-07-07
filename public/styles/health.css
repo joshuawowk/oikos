@@ -1458,9 +1458,36 @@ button.health-med-card:hover {
    ======================================================== */
 
 .health-cycle__loading {
-  padding: var(--space-8) 0;
-  text-align: center;
-  color: var(--color-text-secondary);
+  padding: var(--space-4) 0;
+}
+
+/* Lade-Skeleton: spiegelt die Hero-Silhouette (Ring + Statistikspalte). */
+.cycle-skeleton {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cycle-skeleton__ring {
+  width: 220px;
+  height: 220px;
+  border-radius: var(--radius-full);
+  flex: 0 0 auto;
+  margin-inline: auto;
+}
+
+.cycle-skeleton__side {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (max-width: 560px) {
+  .cycle-skeleton { flex-direction: column; }
+  .cycle-skeleton__ring { width: 200px; height: 200px; }
 }
 
 /* ---- Hero: Ring + Statistik ---- */
@@ -1524,7 +1551,9 @@ button.health-med-card:hover {
 .cycle-ring__now {
   transform-box: fill-box;
   transform-origin: center;
-  animation: cycle-pulse 2.4s ease-in-out infinite;
+  /* Puls nur beim Mount (3 Schläge) statt endlos — zieht den Blick beim Betreten
+     des Tabs auf „heute" und beruhigt sich dann (Critique: Dauerpuls lenkt ab). */
+  animation: cycle-pulse 2.4s ease-in-out 3;
 }
 
 @keyframes cycle-pulse {
@@ -1561,6 +1590,28 @@ button.health-med-card:hover {
 .cycle-stat__head svg { width: 14px; height: 14px; }
 .cycle-stat__value { font-weight: 700; font-size: var(--text-sm); color: var(--color-text-primary); }
 .cycle-stat__sub { font-size: var(--text-2xs); color: var(--color-text-secondary); }
+
+/* Ø-Kachel: volle Breite, zwei Werte nebeneinander mit dünnem Trenner. Bricht die
+   gleichförmige 2×2-Kartenwiederholung und spart einen doppelten Rahmen. */
+.cycle-stat--dual {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  gap: 0;
+}
+
+.cycle-stat__pair-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cycle-stat__pair-item + .cycle-stat__pair-item {
+  padding-inline-start: var(--space-3);
+  margin-inline-start: var(--space-3);
+  border-inline-start: 1px solid var(--color-border);
+}
 
 /* ---- Schnellerfassung „Heute" ---- */
 
@@ -1619,6 +1670,9 @@ button.health-med-card:hover {
 .cycle-cal__day {
   position: relative;
   aspect-ratio: 1;
+  /* Daumen-Ziel: nie unter ~40px fallen, auch wenn die Spaltenbreite auf schmalen
+     Phones kleiner würde (jeder Tag ist ein Log-Button). */
+  min-height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1636,9 +1690,31 @@ button.health-med-card:hover {
 button.cycle-cal__day:not(:disabled):hover { background: var(--color-surface-2); }
 .cycle-cal__num { position: relative; z-index: 1; }
 
+/* Phasen tragen je einen NON-COLOR-Marker (nicht nur Farbton), damit sie auch bei
+   Farbschwäche unterscheidbar sind (WCAG 1.4.1): Menstruation = Vollfläche,
+   fruchtbar = Diagonal-Schraffur (Textur), Eisprung = kräftiger Rand-Ring (Form),
+   vorhergesagt = weicher Umriss statt Füllung. */
 .cycle-cal__day.is-menstruation { background: color-mix(in oklab, var(--cycle-period) 22%, transparent); }
-.cycle-cal__day.is-fertile       { background: color-mix(in oklab, var(--cycle-fertile) 18%, transparent); }
-.cycle-cal__day.is-ovulation     { background: color-mix(in oklab, var(--cycle-ovulation) 28%, transparent); font-weight: 700; }
+
+.cycle-cal__day.is-fertile {
+  background-color: color-mix(in oklab, var(--cycle-fertile) 12%, transparent);
+  background-image: repeating-linear-gradient(45deg,
+    color-mix(in oklab, var(--cycle-fertile) 42%, transparent) 0 1.5px,
+    transparent 1.5px 5px);
+}
+
+.cycle-cal__day.is-ovulation {
+  background: color-mix(in oklab, var(--cycle-ovulation) 20%, transparent);
+  font-weight: 700;
+}
+.cycle-cal__day.is-ovulation::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 2px solid var(--cycle-ovulation);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
 
 /* Vorhergesagte Periode: Umriss statt Füllung (grenzt sie von geloggten Tagen ab). */
 .cycle-cal__day.is-menstruation.is-predicted {
@@ -1690,13 +1766,23 @@ button.cycle-cal__day:not(:disabled):hover { background: var(--color-surface-2);
   display: inline-block;
 }
 
+/* Swatches spiegeln die Kalender-Marker 1:1 (dieselben Non-color-Cues), damit die
+   Legende die Textur/Form lehrt, nicht nur die Farbe. */
 .cycle-legend__swatch.is-menstruation { background: color-mix(in oklab, var(--cycle-period) 22%, transparent); }
 .cycle-legend__swatch.is-menstruation.is-predicted {
   background: color-mix(in oklab, var(--cycle-period) 8%, transparent);
   box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--cycle-period) 55%, transparent);
 }
-.cycle-legend__swatch.is-fertile { background: color-mix(in oklab, var(--cycle-fertile) 20%, transparent); }
-.cycle-legend__swatch.is-ovulation { background: color-mix(in oklab, var(--cycle-ovulation) 30%, transparent); }
+.cycle-legend__swatch.is-fertile {
+  background-color: color-mix(in oklab, var(--cycle-fertile) 12%, transparent);
+  background-image: repeating-linear-gradient(45deg,
+    color-mix(in oklab, var(--cycle-fertile) 42%, transparent) 0 1.5px,
+    transparent 1.5px 5px);
+}
+.cycle-legend__swatch.is-ovulation {
+  background: color-mix(in oklab, var(--cycle-ovulation) 20%, transparent);
+  border: 2px solid var(--cycle-ovulation);
+}
 .cycle-legend__swatch.is-today { box-shadow: inset 0 0 0 2px var(--module-accent); }
 
 /* ---- Verlauf ---- */
@@ -1792,6 +1878,13 @@ button.cycle-cal__day:not(:disabled):hover { background: var(--color-surface-2);
 @media (max-width: 560px) {
   .cycle-hero { flex-direction: column; }
   .cycle-ring { width: 200px; height: 200px; }
+}
+
+/* Schmale Phones: Grid-Gap verdichten, damit die Kalender-Zellen so breit wie
+   möglich werden und näher an ein komfortables Daumen-Ziel kommen. */
+@media (max-width: 380px) {
+  .cycle-cal__weekdays,
+  .cycle-cal__grid { gap: 2px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

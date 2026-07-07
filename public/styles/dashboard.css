@@ -2754,6 +2754,83 @@ svg.weather-forecast__icon {
   height: 16px;
 }
 
+/* Zyklus-Widget (owner-only, opt-in): Mini-Fortschrittsring + Phase + nächste Periode.
+   Kompakte Vorhersage-Kachel — bewusst horizontal (2×1), analog zum Health-Widget. */
+.cycle-widget {
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.cycle-widget__ring {
+  width: 60px;
+  height: 60px;
+  flex: 0 0 auto;
+}
+
+.cycle-widget__ring-track {
+  stroke: color-mix(in oklab, var(--color-border) 75%, transparent);
+}
+
+.cycle-widget__ring-arc {
+  transition: stroke-dasharray var(--transition-base);
+}
+
+.cycle-widget__ring-num {
+  fill: var(--color-text-primary);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cycle-widget__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cycle-widget__phase {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Phasenfarbe für den Namen — spiegelt den Ringbogen (Follikel/Luteal: Standard-Ink). */
+.cycle-widget[data-phase="menstruation"] .cycle-widget__phase { color: var(--cycle-period); }
+.cycle-widget[data-phase="fertile"]      .cycle-widget__phase { color: var(--cycle-fertile); }
+.cycle-widget[data-phase="ovulation"]    .cycle-widget__phase { color: var(--cycle-ovulation); }
+
+.cycle-widget__next {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.cycle-widget__next-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.cycle-widget__countdown {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--module-health);
+  font-variant-numeric: tabular-nums;
+}
+
+.cycle-widget__date {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cycle-widget__ring-arc { transition: none; }
+}
+
 .health-widget__none {
   display: flex;
   align-items: center;

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.98.0] - 2026-07-07
+
+### Added
+- **Cycle glance on the dashboard** — an opt-in, owner-only dashboard tile surfaces the signed-in user's current cycle phase, the cycle day (as a mini progress ring), and the next period as a countdown and date. It is strictly private: unlike the family-visible widgets, cycle data is never aggregated into the shared dashboard payload — the tile fetches the user's own cycle data client-side, and only when it is enabled. Default-hidden and offered as an opt-in in Customize; hidden when the Health module is disabled (#450).
+
+### Changed
+- **Cycle calendar is legible without colour (WCAG 1.4.1)** — the month calendar now distinguishes phases with non-colour cues (solid fill for logged periods, a diagonal hatch for the fertile window, a ringed ovulation day, an outline for predicted periods) in addition to colour, and the legend mirrors each cue. Calendar day cells keep a comfortable minimum tap size on small phones.
+- **Tidier cycle overview** — the prediction hero no longer repeats the next-period countdown (it already sits in the ring), the two averages (Ø cycle / Ø period) share one tile instead of two near-identical cards, and the tab loads with a skeleton instead of a text spinner.
+
 ## [0.97.0] - 2026-07-07
 
 ### Added

@@ -3098,9 +3098,26 @@ function maybeMountCycle(activeRoute) {
   mountCycle();
 }
 
+function cycleSkeletonMarkup() {
+  // Skeleton statt Spinner/Text: spiegelt die Hero-Silhouette (Ring + Statistik),
+  // damit der Layout-Sprung beim Laden ausbleibt (Product-Register).
+  return `
+    <div class="cycle-skeleton" aria-hidden="true">
+      <div class="cycle-skeleton__ring skeleton"></div>
+      <div class="cycle-skeleton__side">
+        <div class="skeleton skeleton-line skeleton-line--title"></div>
+        <div class="skeleton skeleton-line skeleton-line--medium"></div>
+        <div class="skeleton skeleton-line skeleton-line--short"></div>
+      </div>
+    </div>`;
+}
+
 async function mountCycle() {
   cycle.root.replaceChildren();
-  cycle.root.insertAdjacentHTML('beforeend', `<div class="health-cycle__loading">${esc(t('common.loading'))}</div>`);
+  cycle.root.insertAdjacentHTML('beforeend', `<div class="health-cycle__loading" role="status">
+    <span class="sr-only">${esc(t('common.loading'))}</span>
+    ${cycleSkeletonMarkup()}
+  </div>`);
 
   try {
     if (!cycle.members.length) {
@@ -3287,50 +3304,57 @@ function cycleCountdownText(prediction) {
 // Vorhersage-Statistik (Karten)
 // --------------------------------------------------------
 
+function cycleStatCardMarkup({ icon, labelKey, value, sub }) {
+  return `
+    <div class="cycle-stat">
+      <span class="cycle-stat__head"><i data-lucide="${esc(icon)}" aria-hidden="true"></i>${esc(t(labelKey))}</span>
+      <span class="cycle-stat__value">${esc(value)}</span>
+      ${sub ? `<span class="cycle-stat__sub">${esc(sub)}</span>` : ''}
+    </div>`;
+}
+
 function cycleStatsMarkup(prediction) {
   const stats = prediction.stats;
-  const cards = [];
+  const tiles = [];
 
-  cards.push({
+  // Nächste Periode: nur das Datum — der Countdown steht bereits im Ring-Zentrum,
+  // die Karte würde ihn sonst dublieren (Critique).
+  tiles.push(cycleStatCardMarkup({
     icon: 'calendar-heart',
     labelKey: 'health.cycle.status.nextPeriod',
     value: formatDate(prediction.nextStart),
-    sub: cycleCountdownText(prediction),
-  });
+    sub: '',
+  }));
 
   if (prediction.trackFertility) {
-    cards.push({
+    tiles.push(cycleStatCardMarkup({
       icon: 'sparkles',
       labelKey: 'health.cycle.status.fertileWindow',
       value: `${formatDate(prediction.fertileStart)} – ${formatDate(prediction.fertileEnd)}`,
       sub: `${t('health.cycle.status.ovulation')}: ${formatDate(prediction.ovulationDate)}`,
-    });
+    }));
   } else {
     const reg = stats.regular === null
       ? t('health.cycle.status.notEnoughData')
       : t(stats.regular ? 'health.cycle.status.regular' : 'health.cycle.status.irregular');
-    cards.push({ icon: 'activity', labelKey: 'health.cycle.status.regularity', value: reg, sub: '' });
+    tiles.push(cycleStatCardMarkup({ icon: 'activity', labelKey: 'health.cycle.status.regularity', value: reg, sub: '' }));
   }
 
-  cards.push({
-    icon: 'repeat',
-    labelKey: 'health.cycle.status.avgCycle',
-    value: t('health.cycle.unit.days', { value: fmtNum(stats.avgCycle) }),
-    sub: '',
-  });
-  cards.push({
-    icon: 'droplet',
-    labelKey: 'health.cycle.status.avgPeriod',
-    value: t('health.cycle.unit.days', { value: fmtNum(stats.avgPeriod) }),
-    sub: '',
-  });
+  // Ø Zyklus + Ø Periode teilen sich EINE volle-Breite-Kachel statt zweier fast
+  // identischer Tiles — bricht die „identical card grid"-Wiederholung auf.
+  tiles.push(`
+    <div class="cycle-stat cycle-stat--dual">
+      <div class="cycle-stat__pair-item">
+        <span class="cycle-stat__head"><i data-lucide="repeat" aria-hidden="true"></i>${esc(t('health.cycle.status.avgCycle'))}</span>
+        <span class="cycle-stat__value">${esc(t('health.cycle.unit.days', { value: fmtNum(stats.avgCycle) }))}</span>
+      </div>
+      <div class="cycle-stat__pair-item">
+        <span class="cycle-stat__head"><i data-lucide="droplet" aria-hidden="true"></i>${esc(t('health.cycle.status.avgPeriod'))}</span>
+        <span class="cycle-stat__value">${esc(t('health.cycle.unit.days', { value: fmtNum(stats.avgPeriod) }))}</span>
+      </div>
+    </div>`);
 
-  return `<div class="cycle-stats">${cards.map((c) => `
-    <div class="cycle-stat">
-      <span class="cycle-stat__head"><i data-lucide="${esc(c.icon)}" aria-hidden="true"></i>${esc(t(c.labelKey))}</span>
-      <span class="cycle-stat__value">${esc(c.value)}</span>
-      ${c.sub ? `<span class="cycle-stat__sub">${esc(c.sub)}</span>` : ''}
-    </div>`).join('')}</div>`;
+  return `<div class="cycle-stats">${tiles.join('')}</div>`;
 }
 
 // --------------------------------------------------------
