@@ -149,13 +149,19 @@
     .legal-disclaimer {
       background: var(--bg-alt);
       border: 1px solid var(--border-strong);
-      border-left: 4px solid var(--accent);
       border-radius: var(--r-md);
       padding: 16px 20px;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
       font-size: 14px;
       color: var(--text-2);
     }
+    .en-summary {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-3);
+      margin-bottom: 40px;
+    }
+    .en-summary strong { color: var(--text-2); }
     .legal-disclaimer strong { color: var(--text-1); }
     .legal-disclaimer code { font-family: ui-monospace, 'SF Mono', monospace; font-size: 13px; }
 
@@ -194,7 +200,8 @@
     }
     footer.bot a { color: var(--text-2); text-decoration: none; }
     footer.bot a:hover { color: var(--accent); }
-    footer.bot nav { display: flex; gap: 18px; flex-wrap: wrap; }
+    footer.bot nav { display: flex; gap: 14px; flex-wrap: wrap; }
+    footer.bot nav a { padding: 6px 2px; }
   </style>
 </head>
 <body>
@@ -231,6 +238,13 @@
       <a href="https://github.com/ulsklyc/yuvomi">github.com/ulsklyc/yuvomi</a>. Die hier genannten
       Kontaktdaten dienen ausschließlich der Erfüllung der Pflichten nach § 5 DDG und § 18 Medienstaatsvertrag (MStV).
     </div>
+
+    <p lang="en" class="en-summary">
+      <strong>In English:</strong> This page is the provider identification (Impressum) legally required for
+      <code>yuvomi.cloud</code> under German law (§ 5 DDG) and applies to this website and its open-source project.
+      The contact details below exist solely to meet that obligation. For how data is handled, see the
+      <a href="datenschutz.html">Privacy Policy</a>.
+    </p>
 
     <h2>Anbieter / Diensteanbieter</h2>
     <div class="info-block">

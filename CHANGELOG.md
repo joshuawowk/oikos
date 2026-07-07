@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.101.1] - 2026-07-07
+
+### Changed
+- Refreshed the landing page and install guide: solid accent headings (no gradient text), fewer decorative section labels, a distinct problem section, automatic browser-language default, `yuvomi-*` preference keys (with legacy `oikos-*` fallback), and English summaries on the German legal pages.
+- Clarified the install guide's hero copy and "Web Installer" recommendation so the stated effort matches the actual steps, and pointed non-technical users to the one-click app-store installs.
+
+### Fixed
+- The landing page now renders fully without JavaScript (reveal-animated sections previously risked shipping blank).
+- The homepage and README now report the same module count (sixteen).
+- Mobile landing-page usability: 44px touch targets, a thumb-zone Install button, no horizontal overflow at small widths, and WCAG AA small-text contrast in light mode.
+
 ## [0.101.0] - 2026-07-07
 
 ### Added
