@@ -29,6 +29,10 @@ import {
   ACTIVITY_TYPES, activityType, weekSummary, activityTotals,
 } from '/utils/health-activity.js';
 import { upcomingDoses, computeAdherenceStreak } from '/utils/health-overview.js';
+import {
+  FLOW_LEVELS, flowLevel, SYMPTOM_TYPES, symptomType, MOOD_TYPES, PHASE,
+  predictCycle, cycleStats, buildCycleCalendar, cycleRing,
+} from '/utils/health-cycle.js';
 import { HEALTH_ROUTES, renderHealthTabsBar } from '/utils/health-tabs.js';
 
 let _container = null;
@@ -74,6 +78,13 @@ const PANELS = () => [
     emptyDescKey: 'health.vitals.emptyDesc',
   },
   {
+    route: '/health/cycle',
+    icon: 'droplet',
+    titleKey: 'health.cycle.title',
+    emptyTitleKey: 'health.cycle.emptyTitle',
+    emptyDescKey: 'health.cycle.emptyDesc',
+  },
+  {
     route: '/health/meds',
     icon: 'pill',
     titleKey: 'health.meds.title',
@@ -108,6 +119,8 @@ function panelMarkup(panel, activeRoute) {
     ? '<div class="health-overview" data-overview-root></div>'
     : panel.route === '/health/vitals'
     ? '<div class="health-vitals" data-vitals-root></div>'
+    : panel.route === '/health/cycle'
+    ? '<div class="health-cycle" data-cycle-root></div>'
     : panel.route === '/health/meds'
     ? '<div class="health-meds" data-meds-root></div>'
     : panel.route === '/health/labs'
@@ -155,6 +168,8 @@ function updateHealthFab(activeRoute) {
   switch (activeRoute) {
     case '/health/vitals':
       setPageFabAction(_fab, { hidden: !isOwnView(), label: t('health.vitals.add'), onClick: () => openVitalModal() }); break;
+    case '/health/cycle':
+      setPageFabAction(_fab, { hidden: !isOwnCycleView(), label: t('health.cycle.add'), onClick: () => openPeriodModal(null) }); break;
     case '/health/meds':
       setPageFabAction(_fab, { hidden: !isOwnMedsView(), label: t('health.meds.add'), onClick: () => openMedModal(null) }); break;
     case '/health/labs':
@@ -185,6 +200,9 @@ export async function render(container, ctx = {}) {
   activity.meId = ctx.user?.id ?? activity.meId;
   activity.root = null;
   activity.loaded = false;
+  cycle.meId = ctx.user?.id ?? cycle.meId;
+  cycle.root = null;
+  cycle.loaded = false;
   overview.meId = ctx.user?.id ?? overview.meId;
   overview.root = null;
   overview.loaded = false;
@@ -207,6 +225,7 @@ export async function render(container, ctx = {}) {
   updateHealthFab(activeRoute);
   maybeMountOverview(activeRoute);
   maybeMountVitals(activeRoute);
+  maybeMountCycle(activeRoute);
   maybeMountMeds(activeRoute);
   maybeMountLabs(activeRoute);
   maybeMountActivity(activeRoute);
@@ -217,7 +236,7 @@ export async function render(container, ctx = {}) {
 // + Panel-Sync) aus — kein Full-Reload. Rückgabe false erzwingt volles Rendern.
 export async function update({ path, user } = {}) {
   if (!_container?.isConnected) return false;
-  if (user?.id) { vitals.meId = user.id; meds.meId = user.id; labs.meId = user.id; activity.meId = user.id; overview.meId = user.id; }
+  if (user?.id) { vitals.meId = user.id; meds.meId = user.id; labs.meId = user.id; activity.meId = user.id; cycle.meId = user.id; overview.meId = user.id; }
   const activeRoute = normalizeHealthPath(path || window.location.pathname);
 
   showPanel(activeRoute);
@@ -226,6 +245,7 @@ export async function update({ path, user } = {}) {
   updateHealthFab(activeRoute);
   maybeMountOverview(activeRoute);
   maybeMountVitals(activeRoute);
+  maybeMountCycle(activeRoute);
   maybeMountMeds(activeRoute);
   maybeMountLabs(activeRoute);
   maybeMountActivity(activeRoute);
@@ -3026,4 +3046,765 @@ function wireOverview() {
   const toEl = overview.root.querySelector('#ov-export-to');
   fromEl?.addEventListener('change', () => { overview.exportRange.from = fromEl.value || null; rerenderExportButtons(); });
   toEl?.addEventListener('change', () => { overview.exportRange.to = toEl.value || null; rerenderExportButtons(); });
+}
+
+// ========================================================
+// ZYKLUS-TAB (Menstruation)
+// ========================================================
+//
+// Ein Personen-gescopter Tab wie Vitalwerte/Aktivität: Personen-Umschalter,
+// Hero-„Zyklus-Ring" (SVG), Vorhersage-Statistik, Schnellerfassung, Monatskalender
+// und Perioden-Verlauf. Vorhersagen (nächste Periode, Eisprung, fruchtbares
+// Fenster) sind rein clientseitig (health-cycle.js). Zyklusdaten sind sensibel →
+// Default-Sichtbarkeit privat; Fremd-Person-Ansicht ist read-only.
+
+const cycle = {
+  meId: null,
+  personId: null,
+  members: [],
+  periods: [],
+  logs: [],
+  settings: null,
+  anchor: toLocalDateKey(new Date()),
+  loaded: false,
+  error: false,
+  root: null,
+};
+
+// Wochentags-/Phasen-Label-Keys als vollständige Konstanten (Frontend-Audit:
+// niemals Präfix + Variable konkatenieren).
+const CYCLE_WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const CYCLE_WEEKDAY_LABEL_KEYS = CYCLE_WEEKDAY_KEYS.map((k) => `health.cycle.weekday.${k}`);
+const CYCLE_PHASE_LABEL_KEYS = {
+  [PHASE.MENSTRUATION]: 'health.cycle.phase.menstruation',
+  [PHASE.FOLLICULAR]:   'health.cycle.phase.follicular',
+  [PHASE.FERTILE]:      'health.cycle.phase.fertile',
+  [PHASE.OVULATION]:    'health.cycle.phase.ovulation',
+  [PHASE.LUTEAL]:       'health.cycle.phase.luteal',
+};
+// Bogenfarben je Phase (Token-Referenzen, keine Hardcodes).
+const CYCLE_PHASE_COLOR = {
+  [PHASE.MENSTRUATION]: 'var(--cycle-period)',
+  [PHASE.FERTILE]:      'var(--cycle-fertile)',
+  [PHASE.OVULATION]:    'var(--cycle-ovulation)',
+};
+
+function maybeMountCycle(activeRoute) {
+  if (activeRoute !== '/health/cycle') return;
+  const root = _container?.querySelector('[data-cycle-root]');
+  if (!root) return;
+  if (cycle.root === root && cycle.loaded) return;
+  cycle.root = root;
+  mountCycle();
+}
+
+async function mountCycle() {
+  cycle.root.replaceChildren();
+  cycle.root.insertAdjacentHTML('beforeend', `<div class="health-cycle__loading">${esc(t('common.loading'))}</div>`);
+
+  try {
+    if (!cycle.members.length) {
+      const res = await api.get('/family/members');
+      cycle.members = res.data || [];
+    }
+    if (!cycle.personId) cycle.personId = cycle.meId ?? cycle.members[0]?.id ?? null;
+    await loadCycle();
+    cycle.error = false;
+  } catch (err) {
+    console.error('[Health] cycle mount error:', err);
+    cycle.error = true;
+  }
+  cycle.loaded = true;
+  renderCycleShell();
+}
+
+async function loadCycle() {
+  const query = cycle.personId ? `?user_id=${encodeURIComponent(cycle.personId)}` : '';
+  const [periodsRes, logsRes] = await Promise.all([
+    api.get(`/health/cycle/periods${query}`),
+    api.get(`/health/cycle/logs${query}`),
+  ]);
+  cycle.periods = periodsRes.data || [];
+  cycle.logs = logsRes.data || [];
+  // Einstellungen (und damit persönliche Vorhersage-Parameter) nur in der eigenen
+  // Ansicht; für fremde Personen greifen die aus deren Historie abgeleiteten Werte.
+  if (isOwnCycleView()) {
+    try { cycle.settings = (await api.get('/health/cycle/settings')).data || {}; }
+    catch { cycle.settings = {}; }
+  } else {
+    cycle.settings = null;
+  }
+}
+
+function isOwnCycleView() {
+  return cycle.personId != null && cycle.personId === cycle.meId;
+}
+
+function cycleSettings() {
+  return (isOwnCycleView() && cycle.settings) ? cycle.settings : {};
+}
+
+async function switchCyclePerson() {
+  cycle.anchor = toLocalDateKey(new Date());
+  try { await loadCycle(); cycle.error = false; }
+  catch (err) { console.error('[Health] cycle load error:', err); cycle.error = true; }
+  renderCycleShell();
+}
+
+async function reloadCycle() {
+  try { await loadCycle(); cycle.error = false; }
+  catch (err) { console.error('[Health] cycle reload error:', err); cycle.error = true; }
+  renderCycleShell();
+}
+
+function stepCycleMonth(dir) {
+  const d = parseLocalDateKey(`${cycle.anchor.slice(0, 7)}-01`);
+  d.setMonth(d.getMonth() + dir);
+  cycle.anchor = toLocalDateKey(d);
+}
+
+function renderCycleShell() {
+  if (!cycle.root?.isConnected) return;
+  cycle.root.replaceChildren();
+
+  if (cycle.error) {
+    cycle.root.insertAdjacentHTML('beforeend', `
+      <div class="empty-state">
+        <i data-lucide="cloud-off" class="empty-state__icon" aria-hidden="true"></i>
+        <div class="empty-state__title">${esc(t('health.cycle.loadError'))}</div>
+        <div class="empty-state__description">${esc(t('health.cycle.loadErrorDesc'))}</div>
+        <button class="btn btn--primary empty-state__cta" data-action="cycle-retry">
+          <i data-lucide="refresh-cw" class="icon-md" aria-hidden="true"></i>
+          ${esc(t('health.cycle.retry'))}
+        </button>
+      </div>`);
+    if (window.lucide) window.lucide.createIcons({ el: cycle.root });
+    cycle.root.querySelector('[data-action="cycle-retry"]')?.addEventListener('click', () => mountCycle());
+    return;
+  }
+
+  const own = isOwnCycleView();
+  const prediction = predictCycle(cycle.periods, cycleSettings());
+
+  const persons = `
+    <div class="health-persons" role="tablist" aria-label="${esc(t('health.cycle.personsLabel'))}">
+      ${personChipsMarkup(cycle.members, cycle.personId, cycle.meId)}
+    </div>
+    ${readOnlyBannerMarkup(cycle.members, cycle.personId, own)}`;
+
+  if (!prediction.hasData) {
+    cycle.root.insertAdjacentHTML('beforeend', `
+      ${persons}
+      <div class="empty-state health-empty">
+        <div class="health-empty__icon" aria-hidden="true"><i data-lucide="droplet"></i></div>
+        <div class="empty-state__title">${esc(t('health.cycle.emptyTitle'))}</div>
+        <div class="empty-state__description">${esc(t('health.cycle.emptyDesc'))}</div>
+        ${own ? `<button class="btn btn--primary empty-state__cta" data-action="cycle-first">
+          <i data-lucide="plus" class="icon-md" aria-hidden="true"></i>${esc(t('health.cycle.emptyCta'))}</button>` : ''}
+      </div>`);
+    if (window.lucide) window.lucide.createIcons({ el: cycle.root });
+    wireCycle();
+    refreshHealthFab();
+    return;
+  }
+
+  cycle.root.insertAdjacentHTML('beforeend', `
+    ${persons}
+    <div class="cycle-hero">
+      ${cycleRingMarkup(prediction)}
+      <div class="cycle-hero__side">
+        ${cycleStatsMarkup(prediction)}
+        ${prediction.trackFertility ? `<p class="health-disclaimer">${esc(t('health.cycle.fertilityDisclaimer'))}</p>` : ''}
+      </div>
+    </div>
+    ${own ? cycleTodayActionsMarkup(prediction) : ''}
+    ${cycleCalendarMarkup(own)}
+    ${cycleHistoryMarkup(own)}
+    ${cycleFooterMarkup(own)}
+  `);
+  if (window.lucide) window.lucide.createIcons({ el: cycle.root });
+  wireCycle();
+  refreshHealthFab();
+}
+
+// --------------------------------------------------------
+// Hero: Zyklus-Ring (SVG-Donut mit Phasen-Bögen + Markern)
+// --------------------------------------------------------
+
+function cyclePolar(cx, cy, r, frac) {
+  const a = (frac * 360 - 90) * (Math.PI / 180);
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+}
+
+function cycleRingMarkup(prediction) {
+  const ring = cycleRing(prediction);
+  const CX = 110, CY = 110, R = 86, SW = 20;
+  const C = 2 * Math.PI * R;
+
+  const arcs = ring.segments.map((s) => {
+    const len = Math.max(0, (s.end - s.start)) * C;
+    if (len <= 0.01) return '';
+    const color = CYCLE_PHASE_COLOR[s.phase] || 'var(--module-health)';
+    return `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${color}" stroke-width="${SW}"
+      stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-s.start * C).toFixed(2)}"
+      transform="rotate(-90 ${CX} ${CY})" />`;
+  }).join('');
+
+  let markers = '';
+  if (ring.ovulationFrac != null) {
+    const [ox, oy] = cyclePolar(CX, CY, R, ring.ovulationFrac);
+    markers += `<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="5.5" fill="var(--cycle-ovulation)" stroke="var(--color-surface)" stroke-width="2.5" />`;
+  }
+  const [tx, ty] = cyclePolar(CX, CY, R, ring.currentFrac);
+  markers += `<circle class="cycle-ring__now" cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="7.5" fill="var(--module-health)" stroke="var(--color-surface)" stroke-width="3" />`;
+
+  const phaseLabel = t(CYCLE_PHASE_LABEL_KEYS[prediction.phase] || CYCLE_PHASE_LABEL_KEYS[PHASE.FOLLICULAR]);
+  const ringAria = `${phaseLabel} · ${t('health.cycle.ring.cycleDay', { day: prediction.cycleDay })}`;
+
+  return `
+    <div class="cycle-ring" data-phase="${esc(prediction.phase)}">
+      <svg class="cycle-ring__svg" viewBox="0 0 220 220" role="img" aria-label="${esc(ringAria)}">
+        <circle class="cycle-ring__track" cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke-width="${SW}" />
+        ${arcs}
+        ${markers}
+      </svg>
+      <div class="cycle-ring__center">
+        <span class="cycle-ring__phase">${esc(phaseLabel)}</span>
+        <span class="cycle-ring__day">${esc(t('health.cycle.ring.cycleDay', { day: prediction.cycleDay }))}</span>
+        <span class="cycle-ring__status">${esc(cycleCountdownText(prediction))}</span>
+      </div>
+    </div>`;
+}
+
+function cycleCountdownText(prediction) {
+  const d = prediction.daysUntilNext;
+  if (d === 0) return t('health.cycle.status.today');
+  if (d < 0) return t('health.cycle.status.overdue', { count: Math.abs(d) });
+  return t('health.cycle.status.inDays', { count: d });
+}
+
+// --------------------------------------------------------
+// Vorhersage-Statistik (Karten)
+// --------------------------------------------------------
+
+function cycleStatsMarkup(prediction) {
+  const stats = prediction.stats;
+  const cards = [];
+
+  cards.push({
+    icon: 'calendar-heart',
+    labelKey: 'health.cycle.status.nextPeriod',
+    value: formatDate(prediction.nextStart),
+    sub: cycleCountdownText(prediction),
+  });
+
+  if (prediction.trackFertility) {
+    cards.push({
+      icon: 'sparkles',
+      labelKey: 'health.cycle.status.fertileWindow',
+      value: `${formatDate(prediction.fertileStart)} – ${formatDate(prediction.fertileEnd)}`,
+      sub: `${t('health.cycle.status.ovulation')}: ${formatDate(prediction.ovulationDate)}`,
+    });
+  } else {
+    const reg = stats.regular === null
+      ? t('health.cycle.status.notEnoughData')
+      : t(stats.regular ? 'health.cycle.status.regular' : 'health.cycle.status.irregular');
+    cards.push({ icon: 'activity', labelKey: 'health.cycle.status.regularity', value: reg, sub: '' });
+  }
+
+  cards.push({
+    icon: 'repeat',
+    labelKey: 'health.cycle.status.avgCycle',
+    value: t('health.cycle.unit.days', { value: fmtNum(stats.avgCycle) }),
+    sub: '',
+  });
+  cards.push({
+    icon: 'droplet',
+    labelKey: 'health.cycle.status.avgPeriod',
+    value: t('health.cycle.unit.days', { value: fmtNum(stats.avgPeriod) }),
+    sub: '',
+  });
+
+  return `<div class="cycle-stats">${cards.map((c) => `
+    <div class="cycle-stat">
+      <span class="cycle-stat__head"><i data-lucide="${esc(c.icon)}" aria-hidden="true"></i>${esc(t(c.labelKey))}</span>
+      <span class="cycle-stat__value">${esc(c.value)}</span>
+      ${c.sub ? `<span class="cycle-stat__sub">${esc(c.sub)}</span>` : ''}
+    </div>`).join('')}</div>`;
+}
+
+// --------------------------------------------------------
+// Schnellerfassung „Heute"
+// --------------------------------------------------------
+
+function cycleOpenPeriod() {
+  // Jüngste laufende Periode (kein Enddatum), deren Start nicht in der Zukunft liegt.
+  const today = toLocalDateKey(new Date());
+  return [...cycle.periods]
+    .filter((p) => !p.end_date && String(p.start_date).slice(0, 10) <= today)
+    .sort((a, b) => (a.start_date < b.start_date ? 1 : -1))[0] || null;
+}
+
+function cycleTodayActionsMarkup() {
+  const open = cycleOpenPeriod();
+  const primary = open
+    ? `<button class="btn btn--secondary" data-action="cycle-end-period"><i data-lucide="check" aria-hidden="true"></i>${esc(t('health.cycle.today.endPeriod'))}</button>`
+    : `<button class="btn btn--primary" data-action="cycle-start-period"><i data-lucide="droplet" aria-hidden="true"></i>${esc(t('health.cycle.today.startPeriod'))}</button>`;
+  return `
+    <div class="cycle-today">
+      <span class="cycle-today__label">${esc(t('health.cycle.today.title'))}</span>
+      <div class="cycle-today__actions">
+        ${primary}
+        <button class="btn btn--ghost" data-action="cycle-log-today"><i data-lucide="pencil-line" aria-hidden="true"></i>${esc(t('health.cycle.today.logDay'))}</button>
+      </div>
+    </div>`;
+}
+
+async function cycleStartPeriodToday() {
+  const today = toLocalDateKey(new Date());
+  try {
+    await api.post('/health/cycle/periods', { start_date: today });
+    cycle.anchor = today;
+    window.yuvomi?.showToast(t('health.cycle.today.startedToast'), 'success');
+    await reloadCycle();
+  } catch (err) {
+    console.error('[Health] cycle start error:', err);
+    window.yuvomi?.showToast(err?.data?.error || t('health.cycle.saveError'), 'danger');
+  }
+}
+
+async function cycleEndPeriodToday() {
+  const open = cycleOpenPeriod();
+  if (!open) { window.yuvomi?.showToast(t('health.cycle.today.noOpenPeriod'), 'info'); return; }
+  try {
+    await api.patch(`/health/cycle/periods/${open.id}`, { end_date: toLocalDateKey(new Date()) });
+    window.yuvomi?.showToast(t('health.cycle.today.endedToast'), 'success');
+    await reloadCycle();
+  } catch (err) {
+    console.error('[Health] cycle end error:', err);
+    window.yuvomi?.showToast(err?.data?.error || t('health.cycle.saveError'), 'danger');
+  }
+}
+
+// --------------------------------------------------------
+// Monatskalender
+// --------------------------------------------------------
+
+function cycleMonthLabel(anchorKey) {
+  const d = parseLocalDateKey(`${anchorKey.slice(0, 7)}-01`);
+  try {
+    return new Intl.DateTimeFormat(getLocale(), { month: 'long', year: 'numeric' }).format(d);
+  } catch {
+    return anchorKey.slice(0, 7);
+  }
+}
+
+function cycleCalendarMarkup(own) {
+  const cal = buildCycleCalendar(cycle.anchor, {
+    periods: cycle.periods, logs: cycle.logs, settings: cycleSettings(), weekStartsOn: 1,
+  });
+
+  const weekdays = CYCLE_WEEKDAY_LABEL_KEYS
+    .map((k) => `<span class="cycle-cal__wd">${esc(t(k))}</span>`).join('');
+
+  const cells = cal.weeks.flat().map((c) => {
+    const cls = ['cycle-cal__day'];
+    if (!c.inMonth) cls.push('is-out');
+    if (c.isToday) cls.push('is-today');
+    if (c.phase) cls.push(`is-${c.phase}`);
+    if (c.predicted) cls.push('is-predicted');
+    if (c.hasLog) cls.push('has-log');
+    const flowAttr = c.flow ? ` data-flow="${esc(c.flow)}"` : '';
+    const tag = own ? 'button' : 'div';
+    const attrs = own
+      ? `type="button" data-cycle-day="${esc(c.dateKey)}" aria-label="${esc(formatDate(c.dateKey))}"`
+      : 'aria-hidden="true"';
+    return `<${tag} class="${cls.join(' ')}"${flowAttr} ${attrs}>
+      <span class="cycle-cal__num">${esc(c.day)}</span>
+      ${c.hasLog ? '<span class="cycle-cal__dot" aria-hidden="true"></span>' : ''}
+    </${tag}>`;
+  }).join('');
+
+  return `
+    <section class="cycle-cal">
+      <div class="cycle-cal__head">
+        <h3 class="cycle-section__title u-toolbar-title">${esc(t('health.cycle.calendar.title'))}</h3>
+        <div class="cycle-cal__nav">
+          <button class="btn btn--icon" data-cycle-month="-1" aria-label="${esc(t('health.cycle.calendar.prevMonth'))}"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
+          <span class="cycle-cal__month">${esc(cycleMonthLabel(cycle.anchor))}</span>
+          <button class="btn btn--icon" data-cycle-month="1" aria-label="${esc(t('health.cycle.calendar.nextMonth'))}"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="cycle-cal__weekdays" aria-hidden="true">${weekdays}</div>
+      <div class="cycle-cal__grid" role="grid">${cells}</div>
+      ${cycleLegendMarkup()}
+    </section>`;
+}
+
+function cycleLegendMarkup() {
+  const items = [
+    { cls: 'is-menstruation', key: 'health.cycle.legend.period' },
+    { cls: 'is-menstruation is-predicted', key: 'health.cycle.legend.predicted' },
+    { cls: 'is-fertile', key: 'health.cycle.legend.fertile' },
+    { cls: 'is-ovulation', key: 'health.cycle.legend.ovulation' },
+    { cls: 'is-today', key: 'health.cycle.legend.today' },
+  ];
+  return `<div class="cycle-legend">${items.map((i) => `
+    <span class="cycle-legend__item"><span class="cycle-legend__swatch ${i.cls}"></span>${esc(t(i.key))}</span>`).join('')}</div>`;
+}
+
+// --------------------------------------------------------
+// Perioden-Verlauf
+// --------------------------------------------------------
+
+function cycleHistoryMarkup(own) {
+  const asc = [...cycle.periods].sort((a, b) => (a.start_date < b.start_date ? -1 : 1));
+  const nextStartById = new Map();
+  for (let i = 0; i < asc.length - 1; i += 1) nextStartById.set(asc[i].id, asc[i + 1].start_date);
+  const rows = [...asc].reverse();
+
+  if (!rows.length) return '';
+
+  return `
+    <section class="cycle-history">
+      <h3 class="cycle-section__title u-toolbar-title">${esc(t('health.cycle.history.title'))}</h3>
+      <ul class="cycle-history__list">${rows.map((p) => {
+        const start = String(p.start_date).slice(0, 10);
+        const end = p.end_date ? String(p.end_date).slice(0, 10) : null;
+        const rangeLabel = end ? `${formatDate(start)} – ${formatDate(end)}` : formatDate(start);
+        const lenDays = end ? (Math.round((Date.parse(`${end}T00:00Z`) - Date.parse(`${start}T00:00Z`)) / 86400000) + 1) : null;
+        const nextStart = nextStartById.get(p.id);
+        const cycleLen = nextStart ? Math.round((Date.parse(`${String(nextStart).slice(0, 10)}T00:00Z`) - Date.parse(`${start}T00:00Z`)) / 86400000) : null;
+        const meta = [];
+        if (lenDays != null) meta.push(t('health.cycle.unit.days', { value: fmtNum(lenDays) }));
+        else meta.push(t('health.cycle.history.ongoing'));
+        if (cycleLen != null) meta.push(t('health.cycle.history.cycleLength', { value: fmtNum(cycleLen) }));
+        const editBtn = own
+          ? `<button type="button" class="btn btn--icon btn--sm" data-cycle-edit="${esc(p.id)}" aria-label="${esc(t('health.cycle.period.edit'))}"><i data-lucide="pencil" aria-hidden="true"></i></button>`
+          : '';
+        return `
+          <li class="cycle-history__row">
+            <span class="cycle-history__dot" aria-hidden="true"></span>
+            <span class="cycle-history__body">
+              <span class="cycle-history__range">${esc(rangeLabel)}</span>
+              <span class="cycle-history__meta">${meta.map((m) => `<span class="cycle-history__chip">${esc(m)}</span>`).join('')}</span>
+            </span>
+            ${editBtn}
+          </li>`;
+      }).join('')}</ul>
+    </section>`;
+}
+
+function cycleFooterMarkup(own) {
+  const q = cycle.personId ? `?user_id=${encodeURIComponent(cycle.personId)}` : '';
+  return `
+    <div class="cycle-footer">
+      <a class="btn btn--ghost btn--sm" href="/api/v1/health/export/cycle${q}" download>
+        <i data-lucide="download" aria-hidden="true"></i>${esc(t('health.cycle.export.csv'))}
+      </a>
+      ${own ? `<button class="btn btn--ghost btn--sm" data-action="cycle-settings"><i data-lucide="settings-2" aria-hidden="true"></i>${esc(t('health.cycle.settings.open'))}</button>` : ''}
+    </div>
+    ${disclaimerMarkup()}`;
+}
+
+// --------------------------------------------------------
+// Verdrahtung
+// --------------------------------------------------------
+
+function wireCycle() {
+  wireTablistKeys(cycle.root);
+  cycle.root.querySelectorAll('.health-person-chip').forEach((chip) =>
+    chip.addEventListener('click', () => {
+      const id = Number(chip.dataset.personId);
+      if (id === cycle.personId) return;
+      cycle.personId = id;
+      switchCyclePerson();
+    }));
+
+  cycle.root.querySelectorAll('[data-cycle-month]').forEach((btn) =>
+    btn.addEventListener('click', () => { stepCycleMonth(Number(btn.dataset.cycleMonth)); renderCycleShell(); }));
+
+  cycle.root.querySelectorAll('[data-cycle-day]').forEach((btn) =>
+    btn.addEventListener('click', () => openDayLogModal(btn.dataset.cycleDay)));
+
+  cycle.root.querySelectorAll('[data-cycle-edit]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const p = cycle.periods.find((x) => x.id === Number(btn.dataset.cycleEdit));
+      if (p) openPeriodModal(p);
+    }));
+
+  cycle.root.querySelector('[data-action="cycle-first"]')?.addEventListener('click', () => openPeriodModal(null));
+  cycle.root.querySelector('[data-action="cycle-start-period"]')?.addEventListener('click', () => cycleStartPeriodToday());
+  cycle.root.querySelector('[data-action="cycle-end-period"]')?.addEventListener('click', () => cycleEndPeriodToday());
+  cycle.root.querySelector('[data-action="cycle-log-today"]')?.addEventListener('click', () => openDayLogModal(toLocalDateKey(new Date())));
+  cycle.root.querySelector('[data-action="cycle-settings"]')?.addEventListener('click', () => openCycleSettingsModal());
+}
+
+// --------------------------------------------------------
+// Perioden-Modal (Anlegen/Bearbeiten inkl. Löschen)
+// --------------------------------------------------------
+
+function openPeriodModal(period) {
+  const isEdit = Boolean(period && period.id);
+  const startVal = isEdit ? String(period.start_date).slice(0, 10) : toLocalDateKey(new Date());
+  const endVal = isEdit && period.end_date ? String(period.end_date).slice(0, 10) : '';
+
+  openModal({
+    title: isEdit ? t('health.cycle.period.edit') : t('health.cycle.period.add'),
+    size: 'sm',
+    content: `
+      <form id="cycle-period-form" class="form-stack">
+        <div class="modal-grid modal-grid--2">
+          <div class="form-field">
+            <label class="label" for="cycle-start">${esc(t('health.cycle.field.startDate'))}</label>
+            <input class="input" id="cycle-start" type="date" required value="${esc(startVal)}">
+          </div>
+          <div class="form-field">
+            <label class="label" for="cycle-end">${esc(t('health.cycle.field.endDate'))}</label>
+            <input class="input" id="cycle-end" type="date" value="${esc(endVal)}">
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="label" for="cycle-visibility">${esc(t('health.cycle.field.visibility'))}</label>
+          <select class="input" id="cycle-visibility">
+            <option value="private" ${period?.visibility === 'family' ? '' : 'selected'}>${esc(t('health.cycle.visibility.private'))}</option>
+            <option value="family" ${period?.visibility === 'family' ? 'selected' : ''}>${esc(t('health.cycle.visibility.family'))}</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="label" for="cycle-note">${esc(t('health.cycle.field.note'))}</label>
+          <textarea class="input" id="cycle-note" rows="2" maxlength="2000">${esc(period?.note || '')}</textarea>
+        </div>
+        <div class="modal-actions">
+          ${isEdit ? `<button type="button" class="btn btn--danger btn--ghost" data-action="cycle-delete-period">${esc(t('common.delete'))}</button>` : ''}
+          <button type="button" class="btn btn--ghost" data-action="cancel">${esc(t('common.cancel'))}</button>
+          <button type="submit" class="btn btn--primary">${esc(t('common.save'))}</button>
+        </div>
+      </form>`,
+    onSave(panel) {
+      panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => closeModal({ force: true }));
+      panel.querySelector('[data-action="cycle-delete-period"]')?.addEventListener('click', () => deletePeriod(period));
+      panel.querySelector('#cycle-period-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = panel.querySelector('[type="submit"]');
+        const start = panel.querySelector('#cycle-start').value;
+        const end = panel.querySelector('#cycle-end').value;
+        if (!start) { window.yuvomi?.showToast(t('health.cycle.invalid'), 'danger'); return; }
+        if (end && end < start) { window.yuvomi?.showToast(t('health.cycle.invalid'), 'danger'); return; }
+        const body = {
+          start_date: start,
+          end_date: end || null,
+          visibility: panel.querySelector('#cycle-visibility').value || 'private',
+          note: panel.querySelector('#cycle-note').value.trim() || null,
+        };
+        submitBtn.disabled = true;
+        try {
+          if (isEdit) await api.patch(`/health/cycle/periods/${period.id}`, body);
+          else { await api.post('/health/cycle/periods', body); cycle.anchor = start; }
+          closeModal({ force: true });
+          window.yuvomi?.showToast(t('health.cycle.saved'), 'success');
+          await reloadCycle();
+        } catch (err) {
+          console.error('[Health] cycle period save error:', err);
+          submitBtn.disabled = false;
+          window.yuvomi?.showToast(err?.data?.error || t('health.cycle.saveError'), 'danger');
+        }
+      });
+    },
+  });
+}
+
+async function deletePeriod(period) {
+  if (!period?.id) return;
+  if (!(await confirmModal(t('health.cycle.deleteConfirm'), { danger: true, confirmLabel: t('common.delete') }))) return;
+  try {
+    await api.delete(`/health/cycle/periods/${period.id}`);
+    closeModal({ force: true });
+    window.yuvomi?.showToast(t('health.cycle.deleted'), 'success');
+    await reloadCycle();
+  } catch (err) {
+    console.error('[Health] cycle period delete error:', err);
+    window.yuvomi?.showToast(err?.data?.error || t('health.cycle.deleteError'), 'danger');
+  }
+}
+
+// --------------------------------------------------------
+// Tages-Log-Modal (Flow, Symptome, Stimmung)
+// --------------------------------------------------------
+
+function openDayLogModal(dateKey) {
+  const key = String(dateKey).slice(0, 10);
+  const existing = cycle.logs.find((l) => String(l.log_date).slice(0, 10) === key) || null;
+  const activeSymptoms = new Set((existing?.symptoms ? String(existing.symptoms).split(',') : []).filter(Boolean));
+  const currentFlow = existing?.flow || '';
+  const currentMood = existing?.mood || '';
+
+  const flowButtons = [{ value: '', labelKey: 'health.cycle.flow.none' }, ...FLOW_LEVELS.map((f) => ({ value: f.value, labelKey: f.labelKey }))]
+    .map((f) => `<button type="button" class="cycle-choice" data-flow="${esc(f.value)}" aria-pressed="${f.value === currentFlow}">${esc(t(f.labelKey))}</button>`).join('');
+
+  const symptomButtons = SYMPTOM_TYPES.map((s) =>
+    `<button type="button" class="cycle-choice cycle-choice--chip" data-symptom="${esc(s.value)}" aria-pressed="${activeSymptoms.has(s.value)}">
+      <i data-lucide="${esc(s.icon)}" aria-hidden="true"></i>${esc(t(s.labelKey))}</button>`).join('');
+
+  const moodOptions = [`<option value="" ${currentMood ? '' : 'selected'}>${esc(t('health.cycle.mood.none'))}</option>`,
+    ...MOOD_TYPES.map((m) => `<option value="${esc(m.value)}" ${m.value === currentMood ? 'selected' : ''}>${esc(t(m.labelKey))}</option>`)].join('');
+
+  openModal({
+    title: `${t('health.cycle.dayLog.title')} · ${formatDate(key)}`,
+    size: 'md',
+    content: `
+      <form id="cycle-log-form" class="form-stack">
+        <div class="form-field">
+          <span class="label">${esc(t('health.cycle.flow.label'))}</span>
+          <div class="cycle-choices" data-group="flow" role="group" aria-label="${esc(t('health.cycle.flow.label'))}">${flowButtons}</div>
+        </div>
+        <div class="form-field">
+          <span class="label">${esc(t('health.cycle.symptom.label'))}</span>
+          <div class="cycle-choices cycle-choices--wrap" data-group="symptoms">${symptomButtons}</div>
+        </div>
+        <div class="modal-grid modal-grid--2">
+          <div class="form-field">
+            <label class="label" for="cycle-mood">${esc(t('health.cycle.mood.label'))}</label>
+            <select class="input" id="cycle-mood">${moodOptions}</select>
+          </div>
+          <div class="form-field">
+            <label class="label" for="cycle-log-visibility">${esc(t('health.cycle.field.visibility'))}</label>
+            <select class="input" id="cycle-log-visibility">
+              <option value="private" ${existing?.visibility === 'family' ? '' : 'selected'}>${esc(t('health.cycle.visibility.private'))}</option>
+              <option value="family" ${existing?.visibility === 'family' ? 'selected' : ''}>${esc(t('health.cycle.visibility.family'))}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="label" for="cycle-log-note">${esc(t('health.cycle.field.note'))}</label>
+          <textarea class="input" id="cycle-log-note" rows="2" maxlength="2000">${esc(existing?.note || '')}</textarea>
+        </div>
+        <div class="modal-actions">
+          ${existing ? `<button type="button" class="btn btn--danger btn--ghost" data-action="cycle-delete-log">${esc(t('common.delete'))}</button>` : ''}
+          <button type="button" class="btn btn--ghost" data-action="cancel">${esc(t('common.cancel'))}</button>
+          <button type="submit" class="btn btn--primary">${esc(t('common.save'))}</button>
+        </div>
+      </form>`,
+    onSave(panel) {
+      // Flow: Einfachauswahl (Toggle). Symptome: Mehrfachauswahl.
+      panel.querySelectorAll('[data-group="flow"] .cycle-choice').forEach((btn) =>
+        btn.addEventListener('click', () => {
+          const on = btn.getAttribute('aria-pressed') === 'true';
+          panel.querySelectorAll('[data-group="flow"] .cycle-choice').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+          btn.setAttribute('aria-pressed', on ? 'false' : 'true');
+        }));
+      panel.querySelectorAll('[data-symptom]').forEach((btn) =>
+        btn.addEventListener('click', () => btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true')));
+
+      panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => closeModal({ force: true }));
+      panel.querySelector('[data-action="cycle-delete-log"]')?.addEventListener('click', () => deleteDayLog(existing));
+
+      panel.querySelector('#cycle-log-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = panel.querySelector('[type="submit"]');
+        const flowBtn = panel.querySelector('[data-group="flow"] .cycle-choice[aria-pressed="true"]');
+        const symptoms = [...panel.querySelectorAll('[data-symptom][aria-pressed="true"]')].map((b) => b.dataset.symptom);
+        const body = {
+          log_date: key,
+          flow: flowBtn?.dataset.flow || '',
+          symptoms,
+          mood: panel.querySelector('#cycle-mood').value || null,
+          visibility: panel.querySelector('#cycle-log-visibility').value || 'private',
+          note: panel.querySelector('#cycle-log-note').value.trim() || null,
+        };
+        submitBtn.disabled = true;
+        try {
+          await api.post('/health/cycle/logs', body);
+          closeModal({ force: true });
+          window.yuvomi?.showToast(t('health.cycle.saved'), 'success');
+          await reloadCycle();
+        } catch (err) {
+          console.error('[Health] cycle log save error:', err);
+          submitBtn.disabled = false;
+          window.yuvomi?.showToast(err?.data?.error || t('health.cycle.saveError'), 'danger');
+        }
+      });
+    },
+  });
+}
+
+async function deleteDayLog(log) {
+  if (!log?.id) return;
+  if (!(await confirmModal(t('health.cycle.deleteConfirm'), { danger: true, confirmLabel: t('common.delete') }))) return;
+  try {
+    await api.delete(`/health/cycle/logs/${log.id}`);
+    closeModal({ force: true });
+    window.yuvomi?.showToast(t('health.cycle.deleted'), 'success');
+    await reloadCycle();
+  } catch (err) {
+    console.error('[Health] cycle log delete error:', err);
+    window.yuvomi?.showToast(err?.data?.error || t('health.cycle.deleteError'), 'danger');
+  }
+}
+
+// --------------------------------------------------------
+// Einstellungs-Modal (persönliche Vorhersage-Parameter)
+// --------------------------------------------------------
+
+function openCycleSettingsModal() {
+  const s = cycle.settings || {};
+  const val = (v) => (v == null ? '' : String(v));
+  const stats = cycleStats(cycle.periods, s);
+
+  openModal({
+    title: t('health.cycle.settings.title'),
+    size: 'sm',
+    content: `
+      <form id="cycle-settings-form" class="form-stack">
+        <div class="form-field">
+          <label class="label" for="cs-cycle">${esc(t('health.cycle.settings.cycleLength'))}</label>
+          <input class="input" id="cs-cycle" type="number" inputmode="numeric" min="15" max="60" step="1"
+            placeholder="${esc(fmtNum(stats.avgCycle))}" value="${esc(val(s.cycle_length_avg))}">
+        </div>
+        <div class="form-field">
+          <label class="label" for="cs-period">${esc(t('health.cycle.settings.periodLength'))}</label>
+          <input class="input" id="cs-period" type="number" inputmode="numeric" min="1" max="15" step="1"
+            placeholder="${esc(fmtNum(stats.avgPeriod))}" value="${esc(val(s.period_length_avg))}">
+        </div>
+        <div class="form-field">
+          <label class="label" for="cs-luteal">${esc(t('health.cycle.settings.lutealLength'))}</label>
+          <input class="input" id="cs-luteal" type="number" inputmode="numeric" min="8" max="18" step="1"
+            value="${esc(val(s.luteal_length ?? 14))}">
+        </div>
+        <label class="cycle-toggle">
+          <input type="checkbox" id="cs-fertility" ${s.track_fertility === 0 ? '' : 'checked'}>
+          <span>${esc(t('health.cycle.settings.trackFertility'))}</span>
+        </label>
+        <p class="cycle-hint">${esc(t('health.cycle.settings.autoHint'))}</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn--ghost" data-action="cancel">${esc(t('common.cancel'))}</button>
+          <button type="submit" class="btn btn--primary">${esc(t('common.save'))}</button>
+        </div>
+      </form>`,
+    onSave(panel) {
+      panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => closeModal({ force: true }));
+      panel.querySelector('#cycle-settings-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = panel.querySelector('[type="submit"]');
+        const numOr = (sel) => { const raw = panel.querySelector(sel).value.trim(); return raw === '' ? null : Number(raw); };
+        const body = {
+          cycle_length_avg: numOr('#cs-cycle'),
+          period_length_avg: numOr('#cs-period'),
+          luteal_length: numOr('#cs-luteal') ?? 14,
+          track_fertility: panel.querySelector('#cs-fertility').checked,
+        };
+        submitBtn.disabled = true;
+        try {
+          cycle.settings = (await api.put('/health/cycle/settings', body)).data || body;
+          closeModal({ force: true });
+          window.yuvomi?.showToast(t('health.cycle.settings.saved'), 'success');
+          renderCycleShell();
+        } catch (err) {
+          console.error('[Health] cycle settings save error:', err);
+          submitBtn.disabled = false;
+          window.yuvomi?.showToast(err?.data?.error || t('health.cycle.saveError'), 'danger');
+        }
+      });
+    },
+  });
 }

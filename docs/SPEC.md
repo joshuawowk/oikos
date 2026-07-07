@@ -973,10 +973,10 @@ like `apple_app_password` and Google OAuth tokens; encryption-at-rest is via the
 
 ### Health (migration 65)
 
-The Health module stores personal medical data per family member across seven tables. Every
-owner-scoped table carries `user_id` (the owning member) and a `visibility` of `private` (owner
-only) or `family` (all members). Nested tables (schedules, logs, results) inherit visibility from
-their parent record. Health data is sensitive — encryption-at-rest via the optional
+The Health module stores personal medical data per family member across seven tables (migration
+65) plus three menstrual-cycle tables (migration 71). Every owner-scoped table carries `user_id`
+(the owning member) and a `visibility` of `private` (owner only) or `family` (all members). Nested
+tables (schedules, logs, results) inherit visibility from their parent record. Health data is sensitive — encryption-at-rest via the optional
 `DB_ENCRYPTION_KEY` (SQLCipher) is strongly recommended. Yuvomi is **not** a medical device and
 makes **no diagnostic claims**; reference ranges and flags are neutral, user-supplied values.
 
@@ -1070,6 +1070,43 @@ makes **no diagnostic claims**; reference ranges and flags are neutral, user-sup
 | performed_at | TEXT | NOT NULL |
 | note | TEXT | |
 | visibility | TEXT | `private` \| `family`, default `private` |
+| created_at / updated_at | TEXT | ISO 8601, default now |
+
+**Menstrual cycle (migration 71).** Three tables back the Cycle tab; predictions are computed
+client-side (calendar method), the server only stores.
+
+**`cycle_periods`** — one row per menstrual period episode.
+
+| Column | Type | Constraint |
+|--------|------|-----------|
+| user_id | INTEGER | FK → Users (CASCADE delete), NOT NULL |
+| start_date | TEXT | NOT NULL — YYYY-MM-DD |
+| end_date | TEXT | nullable — NULL while the period is ongoing |
+| note | TEXT | |
+| visibility | TEXT | `private` \| `family`, default `private` |
+| created_at / updated_at | TEXT | ISO 8601, default now |
+
+**`cycle_day_logs`** — one row per person and day (`UNIQUE(user_id, log_date)` → upsert).
+
+| Column | Type | Constraint |
+|--------|------|-----------|
+| user_id | INTEGER | FK → Users (CASCADE delete), NOT NULL |
+| log_date | TEXT | NOT NULL — YYYY-MM-DD |
+| flow | TEXT | `spotting` \| `light` \| `medium` \| `heavy` (nullable) |
+| symptoms | TEXT | comma-separated stable symptom keys |
+| mood | TEXT | |
+| note | TEXT | |
+| visibility | TEXT | `private` \| `family`, default `private` |
+| created_at / updated_at | TEXT | ISO 8601, default now |
+
+**`cycle_settings`** — per-member prediction parameters (`user_id` primary key).
+
+| Column | Type | Constraint |
+|--------|------|-----------|
+| user_id | INTEGER | PK, FK → Users (CASCADE delete) |
+| cycle_length_avg / period_length_avg | INTEGER | nullable — NULL derives the average from history |
+| luteal_length | INTEGER | default 14 |
+| track_fertility | INTEGER | 0/1, default 1 |
 | created_at / updated_at | TEXT | ISO 8601, default now |
 
 Medication reminders reuse the existing push/notification-channel layer (no dedicated reminder
@@ -1251,17 +1288,18 @@ Module for managing household staff workflows. Navigation uses violet accent the
 
 ### Health (`/health`)
 
-One page module with five deep-link routes (pattern like Settings, not like the Kitchen cluster), sharing a sub-tab bar: Overview (`/health`), Vitals (`/health/vitals`), Medications (`/health/meds`), Labs (`/health/labs`), Activity (`/health/activity`). Toggleable like any module; disabled → router redirects to the dashboard. Health data is sensitive — enable `DB_ENCRYPTION_KEY` (SQLCipher). **Not a medical device; no diagnostic claims.**
+One page module with six deep-link routes (pattern like Settings, not like the Kitchen cluster), sharing a sub-tab bar: Overview (`/health`), Vitals (`/health/vitals`), Cycle (`/health/cycle`), Medications (`/health/meds`), Labs (`/health/labs`), Activity (`/health/activity`). Toggleable like any module; disabled → router redirects to the dashboard. Health data is sensitive — enable `DB_ENCRYPTION_KEY` (SQLCipher). **Not a medical device; no diagnostic claims.**
 
 - **Per-member scoping:** a person switcher (chip row) filters to one family member; each row is `private` (owner only) or `family` (all members). Editing is limited to the owner's own view; foreign members show family-visible rows read-only.
 - **Vitals:** capture blood pressure (sys/dia/pulse), glucose, weight, pulse, optional SpO₂/temperature; per-metric cards with last value + delta; native SVG trend charts with selectable range.
 - **Medications:** medication list (name, dose, form, active/PRN), schedule editor (time slots + weekday mask + dose), "due today" view with take/skip, 7-day adherence bar, and stock/refill warnings. Reminders are delivered through the existing push/notification-channel layer (`server/services/medication-scheduler.js`) — no separate reminder table.
 - **Labs:** reports with multiple analytes (value, unit, reference low/high); `low`/`normal`/`high` flag derived from value + range and colour-coded via tokens; per-analyte trend chart with a reference band; neutral medical disclaimer.
 - **Activity:** training log (preset or custom type, duration, optional distance/intensity/calories, note); weekly summary cards and a native SVG bar chart per weekday.
+- **Cycle:** menstrual cycle tracking. Period episodes (start/end + flow), per-day logs (flow intensity, symptoms, mood), and calendar-method predictions of the next period, ovulation, and fertile window (luteal length, cycle/period averages derived from history or overridden in settings). A native **SVG cycle-ring** shows the current phase, cycle day, and countdown; a month calendar colour-codes logged and predicted periods, the fertile window, and ovulation; plus prediction stat cards, a period history, and CSV export. Cycle data defaults to `private`; the fertile window carries a clear disclaimer that it is not contraception and no substitute for medical advice.
 - **Overview:** aggregated landing view — due-today medications with inline take/skip, latest vitals cards (deep-link to the Vitals tab), adherence rate + streak, quick-capture buttons, upcoming reminders, and a **CSV export** bar (one download per area — vitals, activities, labs, medication logs — with optional date range).
 - **Search & shortcuts:** medications and activities appear in global search (FTS5) with the same visibility scoping and deep-link to the Meds/Activity tab; the `g h` keyboard shortcut jumps to the last-visited Health tab.
 - **Accessibility:** sub-tab bar and person/range chip rows expose `role="tablist"`/`tab` with arrow-key navigation and roving tabindex; SVG charts carry `role="img"` + `aria-label`; take/skip/save actions announce via the polite/assertive live regions; modals trap focus and restore it on close.
-- **API:** `GET/POST/PATCH/DELETE /api/v1/health/{vitals,medications,labs,activities}` (+ nested `…/medications/:id/schedules|logs`, `…/logs/:id/take|skip`, lab results) and `GET /api/v1/health/export/{vitals,activities,labs,meds-logs}` (text/csv). All handlers apply `user_id` scoping and `visibility` filtering.
+- **API:** `GET/POST/PATCH/DELETE /api/v1/health/{vitals,medications,labs,activities}` (+ nested `…/medications/:id/schedules|logs`, `…/logs/:id/take|skip`, lab results), cycle endpoints `…/cycle/periods`, `…/cycle/logs` (upsert per day), `GET/PUT …/cycle/settings`, and `GET /api/v1/health/export/{vitals,activities,labs,meds-logs,cycle}` (text/csv). All handlers apply `user_id` scoping and `visibility` filtering.
 
 ### First-run setup (`/setup`) (v0.58.0)
 

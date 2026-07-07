@@ -1278,6 +1278,28 @@ function buildPaths() {
     '/api/v1/health/export/meds-logs': {
       get: op({ summary: 'Export medication dose logs as CSV', tag: 'Health', description: 'Scoped to the viewer; `?user_id=`, `from`, `to` filters supported. Returns `text/csv`.' }),
     },
+    '/api/v1/health/cycle/periods': {
+      get: op({ summary: 'List menstrual period episodes', tag: 'Health', description: 'Scoped to the viewer; `?user_id=`, `from`, `to` filters supported.' }),
+      post: op({ summary: 'Log a menstrual period episode', tag: 'Health', stateChanging: true, requestBody: jsonBody(null) }),
+    },
+    '/api/v1/health/cycle/periods/{id}': {
+      patch: op({ summary: 'Update a period episode', tag: 'Health', params: [idParam()], stateChanging: true, requestBody: jsonBody(null) }),
+      delete: op({ summary: 'Delete a period episode', tag: 'Health', params: [idParam()], stateChanging: true }),
+    },
+    '/api/v1/health/cycle/logs': {
+      get: op({ summary: 'List cycle day logs (flow, symptoms, mood)', tag: 'Health', description: 'Scoped to the viewer; `?user_id=`, `from`, `to` filters supported.' }),
+      post: op({ summary: 'Upsert a cycle day log (one per person and day)', tag: 'Health', stateChanging: true, requestBody: jsonBody(null) }),
+    },
+    '/api/v1/health/cycle/logs/{id}': {
+      delete: op({ summary: 'Delete a cycle day log', tag: 'Health', params: [idParam()], stateChanging: true }),
+    },
+    '/api/v1/health/cycle/settings': {
+      get: op({ summary: 'Get the viewer\'s cycle prediction settings', tag: 'Health' }),
+      put: op({ summary: 'Update the viewer\'s cycle prediction settings', tag: 'Health', stateChanging: true, requestBody: jsonBody(null) }),
+    },
+    '/api/v1/health/export/cycle': {
+      get: op({ summary: 'Export period history as CSV', tag: 'Health', description: 'Scoped to the viewer; `?user_id=`, `from`, `to` filters supported. Returns `text/csv`.' }),
+    },
   };
 }
 

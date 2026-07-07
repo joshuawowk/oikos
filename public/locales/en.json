@@ -2332,7 +2332,8 @@
             "vitals": "Vitals",
             "meds": "Medications",
             "labs": "Lab values",
-            "activity": "Activity"
+            "activity": "Activity",
+            "cycle": "Cycle"
         },
         "overview": {
             "title": "Overview",
@@ -2652,7 +2653,155 @@
             "hint": "Downloads the selected date range as a CSV file."
         },
         "disclaimer": "For personal record-keeping only. Not a substitute for professional medical advice, diagnosis or treatment.",
-        "readOnlyBanner": "You are viewing {{name}}’s data — read-only."
+        "readOnlyBanner": "You are viewing {{name}}’s data — read-only.",
+        "cycle": {
+            "title": "Cycle",
+            "emptyTitle": "No cycle data yet",
+            "emptyDesc": "Log your first period to see predictions, calendar and statistics.",
+            "emptyCta": "Log first period",
+            "personsLabel": "Person",
+            "add": "Log period",
+            "loadError": "Cycle data could not be loaded.",
+            "loadErrorDesc": "Please try again later.",
+            "retry": "Try again",
+            "saved": "Saved.",
+            "saveError": "Could not be saved.",
+            "deleted": "Deleted.",
+            "deleteError": "Could not be deleted.",
+            "deleteConfirm": "Really delete this entry?",
+            "invalid": "Please enter valid values.",
+            "fertilityDisclaimer": "Fertile window and ovulation are estimated with the calendar method. They are not a form of contraception and no substitute for medical advice.",
+            "ring": {
+                "label": "Cycle ring",
+                "cycleDay": "Cycle day {{day}}",
+                "of": "of {{total}}"
+            },
+            "phase": {
+                "menstruation": "Menstruation",
+                "follicular": "Follicular phase",
+                "fertile": "Fertile window",
+                "ovulation": "Ovulation",
+                "luteal": "Luteal phase"
+            },
+            "status": {
+                "today": "expected today",
+                "inDays": "in {{count}} days",
+                "overdue": "{{count}} days late",
+                "nextPeriod": "Next period",
+                "fertileWindow": "Fertile window",
+                "ovulation": "Ovulation",
+                "avgCycle": "Avg. cycle length",
+                "avgPeriod": "Avg. period length",
+                "regularity": "Regularity",
+                "regular": "Regular",
+                "irregular": "Irregular",
+                "notEnoughData": "Not enough data",
+                "noPrediction": "Log a period to see predictions."
+            },
+            "unit": {
+                "days": "{{value}} days"
+            },
+            "today": {
+                "title": "Today",
+                "startPeriod": "Period started",
+                "endPeriod": "Period ended",
+                "logDay": "Log day",
+                "startedToast": "Period logged for today.",
+                "endedToast": "Period ended.",
+                "noOpenPeriod": "No ongoing period to end."
+            },
+            "calendar": {
+                "title": "Calendar",
+                "prevMonth": "Previous month",
+                "nextMonth": "Next month"
+            },
+            "weekday": {
+                "mon": "Mon",
+                "tue": "Tue",
+                "wed": "Wed",
+                "thu": "Thu",
+                "fri": "Fri",
+                "sat": "Sat",
+                "sun": "Sun"
+            },
+            "legend": {
+                "period": "Period",
+                "predicted": "Predicted",
+                "fertile": "Fertile",
+                "ovulation": "Ovulation",
+                "today": "Today",
+                "logged": "Entry"
+            },
+            "history": {
+                "title": "History",
+                "ongoing": "ongoing",
+                "empty": "No periods logged yet.",
+                "cycleLength": "Cycle {{value}} days"
+            },
+            "flow": {
+                "label": "Flow",
+                "none": "None",
+                "spotting": "Spotting",
+                "light": "Light",
+                "medium": "Medium",
+                "heavy": "Heavy"
+            },
+            "symptom": {
+                "label": "Symptoms",
+                "cramps": "Cramps",
+                "headache": "Headache",
+                "backache": "Back pain",
+                "bloating": "Bloating",
+                "tenderBreasts": "Tender breasts",
+                "acne": "Acne",
+                "fatigue": "Fatigue",
+                "nausea": "Nausea",
+                "cravings": "Cravings",
+                "insomnia": "Insomnia"
+            },
+            "mood": {
+                "label": "Mood",
+                "none": "Not specified",
+                "great": "Great",
+                "good": "Good",
+                "neutral": "Neutral",
+                "sensitive": "Sensitive",
+                "sad": "Sad",
+                "irritable": "Irritable",
+                "anxious": "Anxious"
+            },
+            "field": {
+                "startDate": "Start",
+                "endDate": "End (optional)",
+                "note": "Note",
+                "visibility": "Visibility"
+            },
+            "visibility": {
+                "private": "Private",
+                "family": "Family"
+            },
+            "period": {
+                "add": "Log period",
+                "edit": "Edit period"
+            },
+            "dayLog": {
+                "title": "Log day",
+                "date": "Date"
+            },
+            "export": {
+                "csv": "Export as CSV"
+            },
+            "settings": {
+                "open": "Settings",
+                "title": "Cycle settings",
+                "cycleLength": "Average cycle length",
+                "periodLength": "Average period length",
+                "lutealLength": "Luteal phase length",
+                "trackFertility": "Show fertile window",
+                "autoHint": "Leave empty to calculate automatically from your history.",
+                "saved": "Settings saved."
+            }
+        }
     },
     "rewards": {
         "title": "Rewards",

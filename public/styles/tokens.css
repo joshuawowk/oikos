@@ -223,6 +223,12 @@
   --module-housekeeping:  var(--_module-housekeeping); /* Violet - focused service workflow */
   --_module-health:    #9E1E88;
   --module-health:     var(--_module-health);      /* Beeren-Fuchsia (310°) — Gesundheit. ≥20° Hue-Abstand zu allen Nachbarn (danger 0° · birthdays 339° · shopping 333°); 7.0:1 auf weiß (WCAG AAA). Bewusst KEIN Rot: trennt den Akzent vom semantischen --color-danger der Lab-„high"-Flags. */
+  /* Zyklus-Phasenfarben — nur im Zyklus-Tab (/health/cycle). Getrennt vom Modul-
+     Akzent und vom semantischen --color-danger der Lab-Flags; weiche Flächen werden
+     im CSS via color-mix aus diesen Grundfarben abgeleitet. */
+  --cycle-period:    #C81E5A;   /* Menstruation/Blutung — Rosé-Rot (~5.0:1 auf weiß) */
+  --cycle-fertile:   #0E8C74;   /* Fruchtbares Fenster — Teal-Grün (~4.5:1 auf weiß) */
+  --cycle-ovulation: #0E7FB0;   /* Eisprung-Spitzentag — Cyan-Blau (~4.8:1 auf weiß) */
   --_module-settings:   #6E7781;
   --module-settings:    var(--_module-settings);   /* Grau - Konfiguration */
   --_module-reminders:  #0E7490;
@@ -669,6 +675,9 @@
     --_module-documents:   #7E9BCC;
     --_module-housekeeping: #C4B5FD;
     --_module-health:      #DB60CB;   /* Beeren-Fuchsia — Dark-Override (5.3:1 auf #1C1C1A, ≥20° zu birthdays/shopping dark) */
+    --cycle-period:    #F871A0;   /* Zyklus-Phasenfarben — Dark-Overrides (≥4.5:1 auf #1C1C1A) */
+    --cycle-fertile:   #34D3B0;
+    --cycle-ovulation: #56C7F5;
     --_module-settings:    #94A3B8;
     --_module-reminders:   #22D3EE;   /* Cyan-400 */
     --_module-rewards:     #E68CA6;   /* Rosé-Kupfer — Dark-Override (7.0:1 auf #1C1C1A) */
@@ -804,6 +813,9 @@
     --_module-documents:   #7E9BCC;   /* Stahlblau — Dark-Override (vorher fehlend, erbte 2.38:1) */
     --_module-housekeeping: #C4B5FD;
     --_module-health:      #DB60CB;   /* Beeren-Fuchsia — Dark-Override (5.3:1 auf #1C1C1A, ≥20° zu birthdays/shopping dark) */
+    --cycle-period:    #F871A0;   /* Zyklus-Phasenfarben — Dark-Overrides (≥4.5:1 auf #1C1C1A) */
+    --cycle-fertile:   #34D3B0;
+    --cycle-ovulation: #56C7F5;
 
     /* Greeting-Gradienten Dark: hellere/höher-chromatische Stops (≥5.5:1 auf #1C1C1A) */
     --greeting-morning-from: #FB923C;

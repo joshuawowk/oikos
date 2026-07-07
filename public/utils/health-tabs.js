@@ -8,6 +8,7 @@ import { renderSubTabs } from '/utils/sub-tabs.js';
 export const HEALTH_ROUTES = Object.freeze([
   '/health',
   '/health/vitals',
+  '/health/cycle',
   '/health/meds',
   '/health/labs',
   '/health/activity',
@@ -17,6 +18,7 @@ export const HEALTH_STORAGE_KEY = 'yuvomi-health-tab';
 export const HEALTH_TABS = () => [
   { route: '/health',          labelKey: 'health.tabs.overview', icon: 'heart-pulse'    },
   { route: '/health/vitals',   labelKey: 'health.tabs.vitals',   icon: 'activity'       },
+  { route: '/health/cycle',    labelKey: 'health.tabs.cycle',    icon: 'droplet'        },
   { route: '/health/meds',     labelKey: 'health.tabs.meds',     icon: 'pill'           },
   { route: '/health/labs',     labelKey: 'health.tabs.labs',     icon: 'flask-conical'  },
   { route: '/health/activity', labelKey: 'health.tabs.activity', icon: 'dumbbell'       },

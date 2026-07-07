@@ -462,4 +462,101 @@ test('Export labs: eine Zeile je Analyt', async () => {
   assert.ok(res.text.includes('ExpGlc'));
 });
 
+// ========================================================
+// ZYKLUS (Menstruation)
+// ========================================================
+
+test('Cycle: Periode anlegen, lesen, patchen, löschen', async () => {
+  asA();
+  const created = await call('POST', '/cycle/periods', { start_date: '2026-05-01', end_date: '2026-05-05', note: 'cycle-marker-A' });
+  assert.equal(created.status, 201);
+  const id = created.body.data.id;
+  assert.equal(created.body.data.visibility, 'private');
+
+  const list = await call('GET', '/cycle/periods');
+  assert.ok(list.body.data.some((p) => p.id === id));
+
+  const patched = await call('PATCH', `/cycle/periods/${id}`, { end_date: '2026-05-06' });
+  assert.equal(patched.body.data.end_date, '2026-05-06');
+
+  const del = await call('DELETE', `/cycle/periods/${id}`);
+  assert.equal(del.status, 204);
+});
+
+test('Cycle: end_date vor start_date wird abgelehnt', async () => {
+  asA();
+  const res = await call('POST', '/cycle/periods', { start_date: '2026-05-10', end_date: '2026-05-01' });
+  assert.equal(res.status, 400);
+});
+
+test('Cycle: Scoping — Bob sieht Alices private Periode nicht, family schon', async () => {
+  asA();
+  const priv = await call('POST', '/cycle/periods', { start_date: '2026-06-01', note: 'cycle-priv-A' });
+  const fam = await call('POST', '/cycle/periods', { start_date: '2026-06-02', visibility: 'family', note: 'cycle-fam-A' });
+  asB();
+  const asBob = await call('GET', `/cycle/periods?user_id=${userA}`);
+  const ids = asBob.body.data.map((p) => p.id);
+  assert.ok(ids.includes(fam.body.data.id));
+  assert.ok(!ids.includes(priv.body.data.id));
+  // Fremde Periode darf Bob nicht ändern/löschen (404 statt Fremdzugriff).
+  const forbidden = await call('PATCH', `/cycle/periods/${priv.body.data.id}`, { note: 'hack' });
+  assert.equal(forbidden.status, 404);
+});
+
+test('Cycle-Log: Upsert je Person/Tag (zweiter POST aktualisiert)', async () => {
+  asA();
+  const first = await call('POST', '/cycle/logs', { log_date: '2026-05-02', flow: 'light', symptoms: ['cramps', 'fatigue'], mood: 'sad' });
+  assert.equal(first.status, 201);
+  assert.equal(first.body.data.flow, 'light');
+  assert.equal(first.body.data.symptoms, 'cramps,fatigue');
+  const firstId = first.body.data.id;
+
+  const second = await call('POST', '/cycle/logs', { log_date: '2026-05-02', flow: 'heavy', symptoms: ['cramps'] });
+  assert.equal(second.body.data.id, firstId); // gleiche Zeile
+  assert.equal(second.body.data.flow, 'heavy');
+  assert.equal(second.body.data.symptoms, 'cramps');
+
+  const list = await call('GET', '/cycle/logs');
+  assert.equal(list.body.data.filter((l) => l.log_date === '2026-05-02').length, 1);
+});
+
+test('Cycle-Log: ungültiger Flow-Wert wird abgelehnt', async () => {
+  asA();
+  const res = await call('POST', '/cycle/logs', { log_date: '2026-05-03', flow: 'gushing' });
+  assert.equal(res.status, 400);
+});
+
+test('Cycle-Settings: Default ohne Zeile, dann Upsert', async () => {
+  asB();
+  const def = await call('GET', '/cycle/settings');
+  assert.equal(def.status, 200);
+  assert.equal(def.body.data.luteal_length, 14);
+  assert.equal(def.body.data.cycle_length_avg, null);
+
+  const saved = await call('PUT', '/cycle/settings', { cycle_length_avg: 30, period_length_avg: 6, luteal_length: 13, track_fertility: false });
+  assert.equal(saved.body.data.cycle_length_avg, 30);
+  assert.equal(saved.body.data.track_fertility, 0);
+
+  const reread = await call('GET', '/cycle/settings');
+  assert.equal(reread.body.data.cycle_length_avg, 30);
+});
+
+test('Cycle-Settings: Werte außerhalb des Bereichs werden abgelehnt', async () => {
+  asA();
+  const res = await call('PUT', '/cycle/settings', { cycle_length_avg: 99 });
+  assert.equal(res.status, 400);
+});
+
+test('Export cycle: CSV mit Perioden- und Zykluslänge', async () => {
+  asA();
+  await call('POST', '/cycle/periods', { start_date: '2026-01-05', end_date: '2026-01-09', note: 'exp-cyc-1' });
+  await call('POST', '/cycle/periods', { start_date: '2026-02-02', end_date: '2026-02-06', note: 'exp-cyc-2' });
+  const res = await callCsv('/export/cycle');
+  assert.equal(res.status, 200);
+  assert.match(res.contentType, /text\/csv/);
+  assert.ok(res.text.includes('"start_date","end_date","period_length_days","cycle_length_days"'));
+  assert.ok(res.text.includes('exp-cyc-1'));
+  assert.ok(res.text.includes('"28"')); // Abstand 05.01 → 02.02
+});
+
 test.after(() => { server.close(); });

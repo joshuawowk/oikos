@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.97.0] - 2026-07-07
+
+### Added
+- **Menstrual cycle tracking in the Health module** — a new "Cycle" tab (`/health/cycle`, the sixth Health sub-tab) records period episodes (start/end + flow) and per-day logs (bleeding intensity, symptoms, mood, note), and computes calendar-method predictions of the next period, ovulation, and the fertile window. A native SVG **cycle ring** shows the current phase, cycle day, and countdown; a month calendar colour-codes logged and predicted periods, the fertile window, and ovulation; prediction stat cards, a "today" quick-capture bar, a period history, per-member prediction settings (cycle/period/luteal length, fertility toggle), and CSV export round it out. Cycle data defaults to `private` visibility and shares the module's person switcher and read-only foreign views. The fertile window carries a clear disclaimer that it is not contraception and no substitute for medical advice; cycle data is deliberately kept out of global search and the shared dashboard (#450).
+
 ## [0.96.11] - 2026-07-07
 
 ### Fixed

@@ -2332,7 +2332,8 @@
             "vitals": "Parametry życiowe",
             "meds": "Leki",
             "labs": "Wyniki badań",
-            "activity": "Aktywność"
+            "activity": "Aktywność",
+            "cycle": "Zyklus"
         },
         "overview": {
             "title": "Przegląd",
@@ -2652,7 +2653,155 @@
             "hint": "Pobiera dane wybranego okresu jako plik CSV."
         },
         "disclaimer": "Wyłącznie do dokumentacji osobistej. Nie zastępuje porady, diagnozy ani leczenia lekarskiego.",
-        "readOnlyBanner": "Przeglądasz dane osoby {{name}} — tylko do odczytu."
+        "readOnlyBanner": "Przeglądasz dane osoby {{name}} — tylko do odczytu.",
+        "cycle": {
+            "title": "Zyklus",
+            "emptyTitle": "Noch keine Zyklusdaten",
+            "emptyDesc": "Erfasse deine erste Periode, um Vorhersagen, Kalender und Statistik zu sehen.",
+            "emptyCta": "Erste Periode erfassen",
+            "personsLabel": "Person",
+            "add": "Periode erfassen",
+            "loadError": "Zyklusdaten konnten nicht geladen werden.",
+            "loadErrorDesc": "Bitte versuche es später erneut.",
+            "retry": "Erneut versuchen",
+            "saved": "Gespeichert.",
+            "saveError": "Konnte nicht gespeichert werden.",
+            "deleted": "Gelöscht.",
+            "deleteError": "Konnte nicht gelöscht werden.",
+            "deleteConfirm": "Diesen Eintrag wirklich löschen?",
+            "invalid": "Bitte gültige Werte eingeben.",
+            "fertilityDisclaimer": "Die Angaben zu fruchtbarem Fenster und Eisprung beruhen auf der Kalendermethode. Sie ersetzen keine Verhütung und keine ärztliche Beratung.",
+            "ring": {
+                "label": "Zyklus-Ring",
+                "cycleDay": "Zyklustag {{day}}",
+                "of": "von {{total}}"
+            },
+            "phase": {
+                "menstruation": "Menstruation",
+                "follicular": "Follikelphase",
+                "fertile": "Fruchtbares Fenster",
+                "ovulation": "Eisprung",
+                "luteal": "Lutealphase"
+            },
+            "status": {
+                "today": "heute erwartet",
+                "inDays": "in {{count}} Tagen",
+                "overdue": "{{count}} Tage überfällig",
+                "nextPeriod": "Nächste Periode",
+                "fertileWindow": "Fruchtbares Fenster",
+                "ovulation": "Eisprung",
+                "avgCycle": "Ø Zykluslänge",
+                "avgPeriod": "Ø Periodenlänge",
+                "regularity": "Regelmäßigkeit",
+                "regular": "Regelmäßig",
+                "irregular": "Unregelmäßig",
+                "notEnoughData": "Zu wenig Daten",
+                "noPrediction": "Erfasse eine Periode für Vorhersagen."
+            },
+            "unit": {
+                "days": "{{value}} Tage"
+            },
+            "today": {
+                "title": "Heute",
+                "startPeriod": "Periode gestartet",
+                "endPeriod": "Periode beendet",
+                "logDay": "Tag protokollieren",
+                "startedToast": "Periode für heute erfasst.",
+                "endedToast": "Periode beendet.",
+                "noOpenPeriod": "Keine laufende Periode zum Beenden."
+            },
+            "calendar": {
+                "title": "Kalender",
+                "prevMonth": "Vorheriger Monat",
+                "nextMonth": "Nächster Monat"
+            },
+            "weekday": {
+                "mon": "Mo",
+                "tue": "Di",
+                "wed": "Mi",
+                "thu": "Do",
+                "fri": "Fr",
+                "sat": "Sa",
+                "sun": "So"
+            },
+            "legend": {
+                "period": "Periode",
+                "predicted": "Vorhergesagt",
+                "fertile": "Fruchtbar",
+                "ovulation": "Eisprung",
+                "today": "Heute",
+                "logged": "Eintrag"
+            },
+            "history": {
+                "title": "Verlauf",
+                "ongoing": "laufend",
+                "empty": "Noch keine Perioden erfasst.",
+                "cycleLength": "Zyklus {{value}} Tage"
+            },
+            "flow": {
+                "label": "Blutungsstärke",
+                "none": "Keine",
+                "spotting": "Schmierblutung",
+                "light": "Leicht",
+                "medium": "Mittel",
+                "heavy": "Stark"
+            },
+            "symptom": {
+                "label": "Symptome",
+                "cramps": "Krämpfe",
+                "headache": "Kopfschmerz",
+                "backache": "Rückenschmerz",
+                "bloating": "Blähbauch",
+                "tenderBreasts": "Spannen der Brust",
+                "acne": "Unreine Haut",
+                "fatigue": "Müdigkeit",
+                "nausea": "Übelkeit",
+                "cravings": "Heißhunger",
+                "insomnia": "Schlaflosigkeit"
+            },
+            "mood": {
+                "label": "Stimmung",
+                "none": "Keine Angabe",
+                "great": "Sehr gut",
+                "good": "Gut",
+                "neutral": "Neutral",
+                "sensitive": "Empfindlich",
+                "sad": "Traurig",
+                "irritable": "Gereizt",
+                "anxious": "Ängstlich"
+            },
+            "field": {
+                "startDate": "Beginn",
+                "endDate": "Ende (optional)",
+                "note": "Notiz",
+                "visibility": "Sichtbarkeit"
+            },
+            "visibility": {
+                "private": "Privat",
+                "family": "Familie"
+            },
+            "period": {
+                "add": "Periode erfassen",
+                "edit": "Periode bearbeiten"
+            },
+            "dayLog": {
+                "title": "Tag protokollieren",
+                "date": "Datum"
+            },
+            "export": {
+                "csv": "Als CSV exportieren"
+            },
+            "settings": {
+                "open": "Einstellungen",
+                "title": "Zyklus-Einstellungen",
+                "cycleLength": "Durchschnittliche Zykluslänge",
+                "periodLength": "Durchschnittliche Periodenlänge",
+                "lutealLength": "Länge der Lutealphase",
+                "trackFertility": "Fruchtbares Fenster anzeigen",
+                "autoHint": "Leer lassen = automatisch aus deiner Historie berechnen.",
+                "saved": "Einstellungen gespeichert."
+            }
+        }
     },
     "rewards": {
         "title": "Nagrody",

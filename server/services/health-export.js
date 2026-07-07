@@ -36,6 +36,16 @@ const VITALS_HEADER = ['measured_at', 'type', 'value_num', 'value_num2', 'value_
 const ACTIVITIES_HEADER = ['performed_at', 'type', 'duration_min', 'distance_km', 'intensity', 'calories', 'note', 'visibility'];
 const LABS_HEADER = ['report_date', 'lab_name', 'analyte', 'value_num', 'unit', 'ref_low', 'ref_high', 'flag', 'visibility', 'note'];
 const MED_LOGS_HEADER = ['scheduled_at', 'medication', 'status', 'taken_at', 'dose_qty', 'note'];
+const CYCLE_HEADER = ['start_date', 'end_date', 'period_length_days', 'cycle_length_days', 'note', 'visibility'];
+
+/** Inklusive Tagesdifferenz zweier YYYY-MM-DD-Schlüssel (b − a), sonst ''. */
+function daySpan(aKey, bKey, inclusive = false) {
+  if (!aKey || !bKey) return '';
+  const a = Date.parse(`${String(aKey).slice(0, 10)}T00:00:00Z`);
+  const b = Date.parse(`${String(bKey).slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return '';
+  return Math.round((b - a) / 86400000) + (inclusive ? 1 : 0);
+}
 
 /** Vitalwerte-Zeilen → CSV. */
 export function vitalsToCsv(rows) {
@@ -80,9 +90,33 @@ export function medLogsToCsv(logs) {
   ]));
 }
 
+/**
+ * Perioden-Episoden → CSV. Erwartet chronologisch aufsteigende Zeilen (älteste
+ * zuerst), damit die Zykluslänge = Abstand zum jeweils nächsten Periodenstart
+ * berechnet werden kann; die letzte (jüngste) Periode hat keine Folge-Periode und
+ * bleibt in der Zykluslänge leer.
+ * @param {Array<Object>} periods - Zeilen mit start_date/end_date/note/visibility.
+ */
+export function cycleToCsv(periods) {
+  const list = periods || [];
+  const rows = list.map((p, i) => {
+    const next = list[i + 1];
+    return [
+      p.start_date,
+      p.end_date || '',
+      p.end_date ? daySpan(p.start_date, p.end_date, true) : '',
+      next ? daySpan(p.start_date, next.start_date) : '',
+      p.note,
+      p.visibility,
+    ];
+  });
+  return toCsv(CYCLE_HEADER, rows);
+}
+
 export const HEALTH_EXPORT_HEADERS = Object.freeze({
   vitals: VITALS_HEADER,
   activities: ACTIVITIES_HEADER,
   labs: LABS_HEADER,
   medLogs: MED_LOGS_HEADER,
+  cycle: CYCLE_HEADER,
 });
