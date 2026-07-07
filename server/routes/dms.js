@@ -118,8 +118,9 @@ router.get('/search', async (req, res) => {
     if (!isAdmin(req)) return res.status(403).json({ error: 'Not authorized.', code: 403 });
     const account = getAccount(Number(req.query.account_id));
     if (!account) return res.status(404).json({ error: 'DMS account not found.', code: 404 });
+    // Leerer Query ist erlaubt: er listet alle Dokumente des DMS, damit der Nutzer
+    // durchblättern und verlinken kann, ohne exakte Suchbegriffe zu kennen (Issue #449).
     const q = String(req.query.q || '').trim();
-    if (!q) return res.status(400).json({ error: 'Query is required.', code: 400 });
     const results = await adapterFactory(account).search(q, { limit: 20 });
     res.json({ data: results });
   } catch (err) {

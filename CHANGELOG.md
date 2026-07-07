@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.96.11] - 2026-07-07
+
+### Fixed
+- **Papra/Paperless DMS documents did not appear until an exact search term was typed** — the "Link from DMS" dialog required a non-empty query, and an empty query was rejected at the adapter, route, and frontend layers, so a correctly configured DMS looked empty. The dialog now lists all documents from the connected DMS on open (empty query), and clearing the search field lists everything again. Both Papra (`searchQuery` omitted) and Paperless-ngx (`query` omitted) natively return the full document list in that case (#449).
+
 ## [0.96.10] - 2026-07-06
 
 ### Fixed

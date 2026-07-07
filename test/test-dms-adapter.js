@@ -39,7 +39,7 @@ test('search: baut Query-URL, setzt Token-Header, mappt Treffer', async () => {
   const adapter = new PaperlessAdapter(account);
   const results = await adapter.search('strom', { limit: 10 });
 
-  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?query=strom&page_size=10');
+  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?page_size=10&query=strom');
   assert.equal(calls[0].opts.headers.Authorization, 'Token tok123');
   assert.equal(results.length, 1);
   assert.deepEqual(results[0], {
@@ -49,11 +49,16 @@ test('search: baut Query-URL, setzt Token-Header, mappt Treffer', async () => {
   });
 });
 
-test('search: leerer Query liefert leeres Array ohne fetch', async () => {
-  mockFetch(() => { throw new Error('should not fetch'); });
+test('search: leerer Query listet alle Dokumente (ohne query-Param)', async () => {
+  mockFetch(() => jsonResponse({
+    count: 1,
+    results: [{ id: 42, title: 'A', original_file_name: 'a.pdf', created: null }],
+  }));
   const adapter = new PaperlessAdapter(account);
-  assert.deepEqual(await adapter.search('   '), []);
-  assert.equal(calls.length, 0);
+  const results = await adapter.search('   ', { limit: 20 });
+
+  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?page_size=20');
+  assert.equal(results.length, 1);
 });
 
 test('search: HTTP-Fehler wirft mit Statuscode', async () => {

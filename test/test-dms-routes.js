@@ -147,11 +147,17 @@ test('GET /search: mappt Adapter-Treffer durch', async () => {
   assert.equal(res.body.data[0].title, 'T:brief');
 });
 
-test('GET /search: 400 ohne Query', async () => {
+test('GET /search: leerer Query listet alle Dokumente (Issue #449)', async () => {
   session = { userId: adminId, role: 'admin' };
+  let receivedQuery;
+  _setAdapterFactory(() => ({
+    async search(q) { receivedQuery = q; return [{ id: '9', title: 'All', created: null, filename: 'a.pdf', url: 'https://t/d/9' }]; },
+  }));
   const list = await call('GET', '/accounts');
   const res = await call('GET', `/search?account_id=${list.body.data[0].id}&q=`);
-  assert.equal(res.status, 400);
+  assert.equal(res.status, 200);
+  assert.equal(receivedQuery, '');
+  assert.equal(res.body.data[0].title, 'All');
 });
 
 test('GET /search: Member bekommt 403', async () => {

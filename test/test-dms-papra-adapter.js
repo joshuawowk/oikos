@@ -51,7 +51,7 @@ test('search: baut Query-URL, setzt Bearer-Header, mappt Treffer', async () => {
   const adapter = new PapraAdapter(account);
   const results = await adapter.search('strom', { limit: 10 });
 
-  assert.equal(calls[0].url, 'https://papra.example.com/api/organizations/org_abc/documents?searchQuery=strom&pageSize=10');
+  assert.equal(calls[0].url, 'https://papra.example.com/api/organizations/org_abc/documents?pageSize=10&searchQuery=strom');
   assert.equal(calls[0].opts.headers.Authorization, 'Bearer tok123');
   assert.equal(results.length, 1);
   assert.deepEqual(results[0], {
@@ -63,11 +63,16 @@ test('search: baut Query-URL, setzt Bearer-Header, mappt Treffer', async () => {
   });
 });
 
-test('search: leerer Query liefert leeres Array ohne fetch', async () => {
-  mockFetch(() => { throw new Error('should not fetch'); });
+test('search: leerer Query listet alle Dokumente (ohne searchQuery-Param)', async () => {
+  mockFetch(() => jsonResponse({
+    documents: [{ id: 'doc_1', name: 'A', originalName: 'a.pdf', createdAt: null }],
+    documentsCount: 1,
+  }));
   const adapter = new PapraAdapter(account);
-  assert.deepEqual(await adapter.search('   '), []);
-  assert.equal(calls.length, 0);
+  const results = await adapter.search('   ', { limit: 20 });
+
+  assert.equal(calls[0].url, 'https://papra.example.com/api/organizations/org_abc/documents?pageSize=20');
+  assert.equal(results.length, 1);
 });
 
 test('search: HTTP-Fehler wirft mit Statuscode', async () => {

@@ -780,11 +780,8 @@ function openDmsLinkModal() {
 
         accountSelect.addEventListener('change', () => {
           selectedAccountId = accountSelect.value;
-          // Clear results and re-run search with new account
-          results.replaceChildren();
-          if (input.value.trim()) {
-            input.dispatchEvent(new Event('input'));
-          }
+          // Re-run listing for the new account (empty query lists all documents).
+          runDmsSearch(input.value.trim());
         });
 
         root.append(accountLabel, accountSelect);
@@ -802,24 +799,29 @@ function openDmsLinkModal() {
 
       root.append(input, results);
 
+      const runDmsSearch = async (q) => {
+        results.replaceChildren();
+        try {
+          const res = await api.get(`/documents/dms/search?account_id=${selectedAccountId}&q=${encodeURIComponent(q)}`);
+          renderDmsResults(results, res.data, selectedAccountId);
+        } catch {
+          const li = document.createElement('li');
+          li.className = 'form-hint';
+          li.textContent = t('documents.dmsNoResults');
+          results.appendChild(li);
+        }
+      };
+
       let dmsSearchTimer;
       input.addEventListener('input', () => {
         clearTimeout(dmsSearchTimer);
-        dmsSearchTimer = setTimeout(async () => {
-          const q = input.value.trim();
-          results.replaceChildren();
-          if (!q) return;
-          try {
-            const res = await api.get(`/documents/dms/search?account_id=${selectedAccountId}&q=${encodeURIComponent(q)}`);
-            renderDmsResults(results, res.data, selectedAccountId);
-          } catch {
-            const li = document.createElement('li');
-            li.className = 'form-hint';
-            li.textContent = t('documents.dmsNoResults');
-            results.appendChild(li);
-          }
-        }, 300);
+        // Leere Eingabe listet alle Dokumente (statt zu leeren), damit der Nutzer
+        // ohne exakte Suchbegriffe durchblättern kann (Issue #449).
+        dmsSearchTimer = setTimeout(() => runDmsSearch(input.value.trim()), 300);
       });
+
+      // Beim Öffnen bereits die volle Dokumentliste zeigen.
+      runDmsSearch('');
 
       setTimeout(() => input.focus(), 60);
     },

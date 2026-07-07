@@ -1004,9 +1004,9 @@ function buildPaths() {
           {
             name: 'q',
             in: 'query',
-            required: true,
+            required: false,
             schema: { type: 'string' },
-            description: 'Search query string',
+            description: 'Search query string. When empty, all documents in the DMS account are listed.',
           },
         ],
         responses: {

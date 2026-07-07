@@ -60,8 +60,10 @@ export class PaperlessAdapter {
 
   async search(query, { limit = 20 } = {}) {
     const q = String(query || '').trim();
-    if (!q) return [];
-    const params = new URLSearchParams({ query: q, page_size: String(limit) });
+    // Leerer Query listet alle Dokumente (Paperless: /api/documents/ ohne query
+    // liefert die volle Liste) — ermöglicht Durchblättern statt exaktes Raten.
+    const params = new URLSearchParams({ page_size: String(limit) });
+    if (q) params.set('query', q);
     const res = await this.#request(`/api/documents/?${params.toString()}`);
     const body = await res.json();
     return (body.results || []).map((r) => ({

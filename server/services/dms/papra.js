@@ -43,8 +43,10 @@ export class PapraAdapter {
 
   async search(query, { limit = 20 } = {}) {
     const q = String(query || '').trim();
-    if (!q) return [];
-    const params = new URLSearchParams({ searchQuery: q, pageSize: String(limit) });
+    // Leerer Query listet alle Dokumente (Papra: searchQuery optional, ohne ihn
+    // werden alle Dokumente zurückgegeben) — ermöglicht Durchblättern statt Raten.
+    const params = new URLSearchParams({ pageSize: String(limit) });
+    if (q) params.set('searchQuery', q);
     const res = await this.#request(`${this.#orgPath()}/documents?${params.toString()}`);
     const body = await res.json();
     return (body.documents || []).map((r) => ({
