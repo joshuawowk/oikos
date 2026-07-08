@@ -2,6 +2,8 @@
 
 Self-hosted family planner web app for a single household (2–6 people). No app store, no public access. Deployment via Docker or Podman (rootless, SELinux-ready) on a private Linux server behind an Nginx reverse proxy with SSL.
 
+> **See also:** [Architecture — God-Nodes: Constraint-Brücken vs. organische Hubs](architecture-hubs.md) — warum `esc()` und `toLocalDateKey()` die zentralsten Frontend-Utilities sind (erzwungen durch das `innerHTML`- bzw. UTC-Slice-Verbot).
+
 ---
 
 ## Data Model
