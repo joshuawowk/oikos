@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-07-08
+
+### Changed
+- API Tokens: the token-scope UI (permission labels, module names, read/write toggles) now ships real translations in all 21 remaining locales, reusing each locale's existing navigation module names for consistency; previously these strings fell back to English.
+
 ## [1.2.0] - 2026-07-08
 
 ### Added
