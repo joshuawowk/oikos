@@ -1075,7 +1075,19 @@ function renderTodayCockpit(data, cfg = []) {
   // Cockpit-Karte — jede Domäne hat genau eine Repräsentation (Cockpit ODER
   // Widget), statt dieselbe Aufgabe/Termin doppelt zu zeigen.
   const widgetShown = (id) => Array.isArray(cfg) && cfg.some((w) => w.id === id && w.visible);
-  const showCard = (module) => !window.yuvomi?.isModuleDisabled(module) && !widgetShown(module);
+
+  // Leere Karten ausblenden: eine Domäne ohne Inhalt (kein Termin, keine offene
+  // Aufgabe, kein geplantes Essen …) bekommt keine Cockpit-Karte, statt einen
+  // „Nichts geplant"-Platzhalter zu zeigen. Betraf zuvor „Heute Essen", weil
+  // dessen Widget standardmäßig ausgeblendet ist und die Karte so ohne Mahlzeit
+  // sichtbar blieb.
+  const hasContent = {
+    tasks:    Boolean(highlights.urgentTask),
+    calendar: Boolean(highlights.nextEvent),
+    shopping: highlights.openShoppingCount > 0,
+    meals:    Boolean(highlights.meal),
+  };
+  const showCard = (module) => !window.yuvomi?.isModuleDisabled(module) && !widgetShown(module) && hasContent[module];
 
   const cards = [
     showCard('tasks')    ? renderTodayCard('check-square', t('dashboard.todayTask'),     taskTitle, '/tasks', 'task', highlights.taskCount) : '',

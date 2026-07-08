@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.101.3] - 2026-07-08
+
+### Fixed
+- Empty "Today" cockpit cards on the dashboard are now hidden: a domain with no content (no urgent task, no upcoming event, nothing on the shopping list, no planned meal) no longer shows a placeholder card. Previously the "Today's meal" card stayed visible with a "no dinner" fallback even when nothing was planned.
+
 ## [0.101.2] - 2026-07-08
 
 ### Fixed
