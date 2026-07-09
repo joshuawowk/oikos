@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Henüz ziyaret yok",
         "housekeepingVisitsMonth": "Bu ay {{count}} ziyaret",
         "housekeepingUnpaid": "{{amount}} ödenmemiş",
-        "widgetError": "Yüklenemedi"
+        "widgetError": "Yüklenemedi",
+        "savingsGoal": "Tasarruf hedefi"
     },
     "tasks": {
         "title": "Görevler",
@@ -912,7 +913,30 @@
         "prevPeriod": "Önceki dönem",
         "nextPeriod": "Sonraki dönem",
         "recurringInstanceLabel": "Bir serinin parçası",
-        "loanProgressLabel": "Geri ödeme ilerlemesi"
+        "loanProgressLabel": "Geri ödeme ilerlemesi",
+        "planTab": "Plan",
+        "planCategoryBudgets": "Kategori bütçeleri",
+        "planAddBudget": "Bütçe belirle",
+        "planSavingsSetTitle": "Tasarruf hedefi belirle",
+        "planSavingsSetDesc": "Aylık tasarruf hedefi belirle ve ilerlemeni izle",
+        "planSetGoal": "Hedef belirle",
+        "planSavingsGoal": "Tasarruf hedefi",
+        "planSavingsMet": "Hedefe ulaşıldı",
+        "planSavingsNegative": "Bu ay ekside",
+        "planSavingsShort": "Hedefe {{amount}} kaldı",
+        "planSavingsHint": "Tasarruf hedefi, planlanan tasarrufu bu ayın gelir eksi giderleriyle karşılaştırır.",
+        "planEmptyTitle": "Henüz bütçe yok",
+        "planEmptyDesc": "Harcamaları kontrol altında tutmak için her kategoriye aylık bütçe belirleyin.",
+        "planOverBy": "{{amount}} bütçe aşımı",
+        "planLeft": "{{amount}} kaldı",
+        "planAllCategoriesBudgeted": "Tüm kategorilerin zaten bir bütçesi var.",
+        "planMonthlyAmount": "Aylık tutar",
+        "planSavedToast": "Bütçe kaydedildi",
+        "planRemovedToast": "Bütçe kaldırıldı",
+        "planTarget": "Hedef: {{amount}}",
+        "planEditAction": "Düzenle",
+        "planDeleteConfirm": "“{{category}}” bütçesi silinsin mi?",
+        "planSavingsDeleteConfirm": "Tasarruf hedefi silinsin mi?"
     },
     "settings": {
         "pageHealthModule": "Sağlık",

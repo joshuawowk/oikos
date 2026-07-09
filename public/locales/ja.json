@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "まだ訪問がありません",
         "housekeepingVisitsMonth": "今月 {{count}} 回訪問",
         "housekeepingUnpaid": "{{amount}} 未払い",
-        "widgetError": "読み込めませんでした"
+        "widgetError": "読み込めませんでした",
+        "savingsGoal": "貯蓄目標"
     },
     "tasks": {
         "title": "タスク",
@@ -912,7 +913,30 @@
         "prevPeriod": "前の期間",
         "nextPeriod": "次の期間",
         "recurringInstanceLabel": "シリーズの一部",
-        "loanProgressLabel": "返済の進捗"
+        "loanProgressLabel": "返済の進捗",
+        "planTab": "予算計画",
+        "planCategoryBudgets": "カテゴリ別予算",
+        "planAddBudget": "予算を設定",
+        "planSavingsSetTitle": "貯蓄目標を設定",
+        "planSavingsSetDesc": "毎月の貯蓄目標を設定して進捗を確認",
+        "planSetGoal": "目標を設定",
+        "planSavingsGoal": "貯蓄目標",
+        "planSavingsMet": "目標を達成",
+        "planSavingsNegative": "今月は赤字",
+        "planSavingsShort": "目標まであと {{amount}}",
+        "planSavingsHint": "貯蓄目標は、計画した貯蓄額と今月の収入から支出を引いた額を比較します。",
+        "planEmptyTitle": "予算がまだありません",
+        "planEmptyDesc": "支出を管理するため、カテゴリごとに月次予算を設定しましょう。",
+        "planOverBy": "予算超過 {{amount}}",
+        "planLeft": "残り {{amount}}",
+        "planAllCategoriesBudgeted": "すべてのカテゴリに予算が設定済みです。",
+        "planMonthlyAmount": "月額",
+        "planSavedToast": "予算を保存しました",
+        "planRemovedToast": "予算を削除しました",
+        "planTarget": "目標: {{amount}}",
+        "planEditAction": "編集",
+        "planDeleteConfirm": "「{{category}}」の予算を削除しますか？",
+        "planSavingsDeleteConfirm": "貯蓄目標を削除しますか？"
     },
     "settings": {
         "pageHealthModule": "健康",

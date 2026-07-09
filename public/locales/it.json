@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Ancora nessuna visita",
         "housekeepingVisitsMonth": "{{count}} visite questo mese",
         "housekeepingUnpaid": "{{amount}} da pagare",
-        "widgetError": "Impossibile caricare"
+        "widgetError": "Impossibile caricare",
+        "savingsGoal": "Obiettivo di risparmio"
     },
     "tasks": {
         "title": "Compiti",
@@ -912,7 +913,30 @@
         "prevPeriod": "Periodo precedente",
         "nextPeriod": "Periodo successivo",
         "recurringInstanceLabel": "Parte di una serie",
-        "loanProgressLabel": "Avanzamento del rimborso"
+        "loanProgressLabel": "Avanzamento del rimborso",
+        "planTab": "Piano",
+        "planCategoryBudgets": "Budget per categoria",
+        "planAddBudget": "Imposta budget",
+        "planSavingsSetTitle": "Imposta un obiettivo di risparmio",
+        "planSavingsSetDesc": "Imposta un obiettivo di risparmio mensile e monitora i progressi",
+        "planSetGoal": "Imposta obiettivo",
+        "planSavingsGoal": "Obiettivo di risparmio",
+        "planSavingsMet": "Obiettivo raggiunto",
+        "planSavingsNegative": "In rosso questo mese",
+        "planSavingsShort": "Mancano {{amount}}",
+        "planSavingsHint": "L’obiettivo di risparmio confronta il risparmio pianificato con entrate meno spese del mese.",
+        "planEmptyTitle": "Nessun budget",
+        "planEmptyDesc": "Imposta un budget mensile per categoria per tenere sotto controllo le spese.",
+        "planOverBy": "{{amount}} oltre il budget",
+        "planLeft": "{{amount}} rimanenti",
+        "planAllCategoriesBudgeted": "Tutte le categorie hanno già un budget.",
+        "planMonthlyAmount": "Importo mensile",
+        "planSavedToast": "Budget salvato",
+        "planRemovedToast": "Budget rimosso",
+        "planTarget": "Obiettivo: {{amount}}",
+        "planEditAction": "Modifica",
+        "planDeleteConfirm": "Eliminare il budget di «{{category}}»?",
+        "planSavingsDeleteConfirm": "Eliminare l’obiettivo di risparmio?"
     },
     "settings": {
         "pageHealthModule": "Salute",

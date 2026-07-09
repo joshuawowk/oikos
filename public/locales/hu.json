@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Még nincs látogatás",
         "housekeepingVisitsMonth": "{{count}} látogatás e hónapban",
         "housekeepingUnpaid": "{{amount}} rendezendő",
-        "widgetError": "Nem sikerült betölteni"
+        "widgetError": "Nem sikerült betölteni",
+        "savingsGoal": "Megtakarítási cél"
     },
     "tasks": {
         "title": "Feladatok",
@@ -912,7 +913,30 @@
         "prevPeriod": "Előző időszak",
         "nextPeriod": "Következő időszak",
         "recurringInstanceLabel": "Egy sorozat része",
-        "loanProgressLabel": "Törlesztés állása"
+        "loanProgressLabel": "Törlesztés állása",
+        "planTab": "Terv",
+        "planCategoryBudgets": "Kategória-költségkeretek",
+        "planAddBudget": "Költségkeret megadása",
+        "planSavingsSetTitle": "Adjon meg megtakarítási célt",
+        "planSavingsSetDesc": "Állítson be havi megtakarítási célt, és kövesse a haladást",
+        "planSetGoal": "Cél megadása",
+        "planSavingsGoal": "Megtakarítási cél",
+        "planSavingsMet": "Cél elérve",
+        "planSavingsNegative": "Ebben a hónapban mínuszban",
+        "planSavingsShort": "Még {{amount}} a célig",
+        "planSavingsHint": "A megtakarítási cél a tervezett megtakarítást veti össze a havi bevétel és kiadás különbségével.",
+        "planEmptyTitle": "Még nincsenek költségkeretek",
+        "planEmptyDesc": "Adjon meg havi költségkeretet kategóriánként, hogy kézben tartsa a kiadásokat.",
+        "planOverBy": "{{amount}} túllépés",
+        "planLeft": "{{amount}} maradt",
+        "planAllCategoriesBudgeted": "Minden kategóriának már van költségkerete.",
+        "planMonthlyAmount": "Havi összeg",
+        "planSavedToast": "Költségkeret mentve",
+        "planRemovedToast": "Költségkeret törölve",
+        "planTarget": "Cél: {{amount}}",
+        "planEditAction": "Szerkesztés",
+        "planDeleteConfirm": "Törli a(z) „{{category}}” költségkeretét?",
+        "planSavingsDeleteConfirm": "Törli a megtakarítási célt?"
     },
     "settings": {
         "pageHealthModule": "Egészség",

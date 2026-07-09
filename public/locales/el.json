@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Καμία επίσκεψη ακόμη",
         "housekeepingVisitsMonth": "{{count}} επισκέψεις αυτόν τον μήνα",
         "housekeepingUnpaid": "{{amount}} οφειλόμενα",
-        "widgetError": "Δεν ήταν δυνατή η φόρτωση"
+        "widgetError": "Δεν ήταν δυνατή η φόρτωση",
+        "savingsGoal": "Στόχος αποταμίευσης"
     },
     "tasks": {
         "title": "Εργασίες",
@@ -912,7 +913,30 @@
         "prevPeriod": "Προηγούμενη περίοδος",
         "nextPeriod": "Επόμενη περίοδος",
         "recurringInstanceLabel": "Μέρος μιας σειράς",
-        "loanProgressLabel": "Πρόοδος αποπληρωμής"
+        "loanProgressLabel": "Πρόοδος αποπληρωμής",
+        "planTab": "Πλάνο",
+        "planCategoryBudgets": "Προϋπολογισμοί κατηγοριών",
+        "planAddBudget": "Ορισμός προϋπολογισμού",
+        "planSavingsSetTitle": "Ορίστε στόχο αποταμίευσης",
+        "planSavingsSetDesc": "Ορίστε μηνιαίο στόχο αποταμίευσης και παρακολουθήστε την πρόοδο",
+        "planSetGoal": "Ορισμός στόχου",
+        "planSavingsGoal": "Στόχος αποταμίευσης",
+        "planSavingsMet": "Ο στόχος επιτεύχθηκε",
+        "planSavingsNegative": "Στο κόκκινο αυτόν τον μήνα",
+        "planSavingsShort": "Απομένουν {{amount}}",
+        "planSavingsHint": "Ο στόχος αποταμίευσης συγκρίνει τη σχεδιασμένη αποταμίευση με τα έσοδα μείον τα έξοδα του μήνα.",
+        "planEmptyTitle": "Δεν υπάρχουν προϋπολογισμοί",
+        "planEmptyDesc": "Ορίστε μηνιαίο προϋπολογισμό ανά κατηγορία για να ελέγχετε τα έξοδα.",
+        "planOverBy": "{{amount}} πάνω από τον προϋπολογισμό",
+        "planLeft": "Απομένουν {{amount}}",
+        "planAllCategoriesBudgeted": "Όλες οι κατηγορίες έχουν ήδη προϋπολογισμό.",
+        "planMonthlyAmount": "Μηνιαίο ποσό",
+        "planSavedToast": "Ο προϋπολογισμός αποθηκεύτηκε",
+        "planRemovedToast": "Ο προϋπολογισμός αφαιρέθηκε",
+        "planTarget": "Στόχος: {{amount}}",
+        "planEditAction": "Επεξεργασία",
+        "planDeleteConfirm": "Διαγραφή του προϋπολογισμού για «{{category}}»;",
+        "planSavingsDeleteConfirm": "Διαγραφή του στόχου αποταμίευσης;"
     },
     "settings": {
         "pageHealthModule": "Υγεία",

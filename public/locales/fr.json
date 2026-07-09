@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Aucune visite",
         "housekeepingVisitsMonth": "{{count}} visites ce mois-ci",
         "housekeepingUnpaid": "{{amount}} à payer",
-        "widgetError": "Impossible à charger"
+        "widgetError": "Impossible à charger",
+        "savingsGoal": "Objectif d’épargne"
     },
     "tasks": {
         "title": "Tâches",
@@ -912,7 +913,30 @@
         "prevPeriod": "Période précédente",
         "nextPeriod": "Période suivante",
         "recurringInstanceLabel": "Fait partie d'une série",
-        "loanProgressLabel": "Progression du remboursement"
+        "loanProgressLabel": "Progression du remboursement",
+        "planTab": "Plan",
+        "planCategoryBudgets": "Budgets par catégorie",
+        "planAddBudget": "Définir un budget",
+        "planSavingsSetTitle": "Définir un objectif d’épargne",
+        "planSavingsSetDesc": "Fixez un objectif d’épargne mensuel et suivez votre progression",
+        "planSetGoal": "Définir l’objectif",
+        "planSavingsGoal": "Objectif d’épargne",
+        "planSavingsMet": "Objectif atteint",
+        "planSavingsNegative": "Dans le rouge ce mois-ci",
+        "planSavingsShort": "Encore {{amount}}",
+        "planSavingsHint": "L’objectif d’épargne compare votre épargne prévue aux revenus moins les dépenses du mois.",
+        "planEmptyTitle": "Aucun budget pour l’instant",
+        "planEmptyDesc": "Définissez un budget mensuel par catégorie pour maîtriser les dépenses.",
+        "planOverBy": "{{amount}} de dépassement",
+        "planLeft": "{{amount}} restants",
+        "planAllCategoriesBudgeted": "Toutes les catégories ont déjà un budget.",
+        "planMonthlyAmount": "Montant mensuel",
+        "planSavedToast": "Budget enregistré",
+        "planRemovedToast": "Budget supprimé",
+        "planTarget": "Objectif : {{amount}}",
+        "planEditAction": "Modifier",
+        "planDeleteConfirm": "Supprimer le budget de « {{category}} » ?",
+        "planSavingsDeleteConfirm": "Supprimer l’objectif d’épargne ?"
     },
     "settings": {
         "pageHealthModule": "Santé",

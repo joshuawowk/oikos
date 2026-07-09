@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Inga besök än",
         "housekeepingVisitsMonth": "{{count}} besök denna månad",
         "housekeepingUnpaid": "{{amount}} obetalt",
-        "widgetError": "Kunde inte laddas"
+        "widgetError": "Kunde inte laddas",
+        "savingsGoal": "Sparmål"
     },
     "tasks": {
         "title": "Uppgifter",
@@ -912,7 +913,30 @@
         "prevPeriod": "Föregående period",
         "nextPeriod": "Nästa period",
         "recurringInstanceLabel": "Del av en serie",
-        "loanProgressLabel": "Återbetalningsförlopp"
+        "loanProgressLabel": "Återbetalningsförlopp",
+        "planTab": "Plan",
+        "planCategoryBudgets": "Kategoribudgetar",
+        "planAddBudget": "Ange budget",
+        "planSavingsSetTitle": "Ange ett sparmål",
+        "planSavingsSetDesc": "Ange ett månatligt sparmål och följ din utveckling",
+        "planSetGoal": "Ange mål",
+        "planSavingsGoal": "Sparmål",
+        "planSavingsMet": "Målet nått",
+        "planSavingsNegative": "Minus den här månaden",
+        "planSavingsShort": "{{amount}} kvar",
+        "planSavingsHint": "Sparmålet jämför ditt planerade sparande med månadens inkomster minus utgifter.",
+        "planEmptyTitle": "Inga budgetar ännu",
+        "planEmptyDesc": "Ange en månadsbudget per kategori för att hålla koll på utgifterna.",
+        "planOverBy": "{{amount}} över budget",
+        "planLeft": "{{amount}} kvar",
+        "planAllCategoriesBudgeted": "Alla kategorier har redan en budget.",
+        "planMonthlyAmount": "Månadsbelopp",
+        "planSavedToast": "Budget sparad",
+        "planRemovedToast": "Budget borttagen",
+        "planTarget": "Mål: {{amount}}",
+        "planEditAction": "Redigera",
+        "planDeleteConfirm": "Ta bort budgeten för ”{{category}}”?",
+        "planSavingsDeleteConfirm": "Ta bort sparmålet?"
     },
     "settings": {
         "pageHealthModule": "Hälsa",

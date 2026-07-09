@@ -181,7 +181,8 @@
         "housekeepingNoVisits": "هنوز بازدیدی نیست",
         "housekeepingVisitsMonth": "{{count}} بازدید این ماه",
         "housekeepingUnpaid": "{{amount}} پرداخت‌نشده",
-        "widgetError": "بارگذاری نشد"
+        "widgetError": "بارگذاری نشد",
+        "savingsGoal": "هدف پس‌انداز"
     },
     "tasks": {
         "title": "کارها",
@@ -328,9 +329,9 @@
         "catDrugstore": "بهداشتی",
         "catMisc": "متفرقه",
         "importMeals": "از برنامه غذایی",
-        "importMealsTitle": "درون\u200cریزی از برنامه غذایی",
-        "importMealsAction": "درون\u200cریزی",
-        "importMealsEmpty": "هیچ ماده غذایی از برنامه غذایی در بازه انتخاب\u200cشده پیدا نشد.",
+        "importMealsTitle": "درون‌ریزی از برنامه غذایی",
+        "importMealsAction": "درون‌ریزی",
+        "importMealsEmpty": "هیچ ماده غذایی از برنامه غذایی در بازه انتخاب‌شده پیدا نشد.",
         "manageCategories": "مدیریت دسته‌ها"
     },
     "meals": {
@@ -918,7 +919,30 @@
         "prevPeriod": "بازه قبلی",
         "nextPeriod": "بازه بعدی",
         "recurringInstanceLabel": "بخشی از یک سری",
-        "loanProgressLabel": "پیشرفت بازپرداخت"
+        "loanProgressLabel": "پیشرفت بازپرداخت",
+        "planTab": "برنامه",
+        "planCategoryBudgets": "بودجهٔ دسته‌ها",
+        "planAddBudget": "تعیین بودجه",
+        "planSavingsSetTitle": "هدف پس‌انداز تعیین کنید",
+        "planSavingsSetDesc": "یک هدف پس‌انداز ماهانه تعیین کنید و پیشرفت خود را دنبال کنید",
+        "planSetGoal": "تعیین هدف",
+        "planSavingsGoal": "هدف پس‌انداز",
+        "planSavingsMet": "به هدف رسیدید",
+        "planSavingsNegative": "این ماه در ضرر",
+        "planSavingsShort": "{{amount}} تا هدف مانده",
+        "planSavingsHint": "هدف پس‌انداز، پس‌انداز برنامه‌ریزی‌شده را با درآمد منهای هزینه‌های این ماه مقایسه می‌کند.",
+        "planEmptyTitle": "هنوز بودجه‌ای نیست",
+        "planEmptyDesc": "برای هر دسته یک بودجهٔ ماهانه تعیین کنید تا هزینه‌ها را کنترل کنید.",
+        "planOverBy": "{{amount}} بیش از بودجه",
+        "planLeft": "{{amount}} باقی‌مانده",
+        "planAllCategoriesBudgeted": "همهٔ دسته‌ها از قبل بودجه دارند.",
+        "planMonthlyAmount": "مبلغ ماهانه",
+        "planSavedToast": "بودجه ذخیره شد",
+        "planRemovedToast": "بودجه حذف شد",
+        "planTarget": "هدف: {{amount}}",
+        "planEditAction": "ویرایش",
+        "planDeleteConfirm": "بودجهٔ «{{category}}» حذف شود؟",
+        "planSavingsDeleteConfirm": "هدف پس‌انداز حذف شود؟"
     },
     "settings": {
         "pageHealthModule": "سلامت",
@@ -1818,7 +1842,7 @@
         "duplicate": "تکثیر",
         "duplicated": "دستور غذا تکثیر شد.",
         "copySuffix": "کپی",
-        "dragToMealsHint": "برای برنامه\u200cریزی سریع، دستورها را روی خانه\u200cهای وعده بکشید."
+        "dragToMealsHint": "برای برنامه‌ریزی سریع، دستورها را روی خانه‌های وعده بکشید."
     },
     "onboarding": {
         "step1Title": "به {{name}} خوش آمدید",

@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "No visits yet",
         "housekeepingVisitsMonth": "{{count}} visits this month",
         "housekeepingUnpaid": "{{amount}} outstanding",
-        "widgetError": "Couldn’t be loaded"
+        "widgetError": "Couldn’t be loaded",
+        "savingsGoal": "Savings goal"
     },
     "tasks": {
         "title": "Tasks",
@@ -912,7 +913,30 @@
         "prevPeriod": "Previous period",
         "nextPeriod": "Next period",
         "recurringInstanceLabel": "Part of a series",
-        "loanProgressLabel": "Repayment progress"
+        "loanProgressLabel": "Repayment progress",
+        "planTab": "Plan",
+        "planCategoryBudgets": "Category budgets",
+        "planAddBudget": "Set budget",
+        "planSavingsSetTitle": "Set a savings goal",
+        "planSavingsSetDesc": "Set a monthly savings goal and track your progress",
+        "planSetGoal": "Set goal",
+        "planSavingsGoal": "Savings goal",
+        "planSavingsMet": "Goal reached",
+        "planSavingsNegative": "In the red this month",
+        "planSavingsShort": "{{amount}} to go",
+        "planSavingsHint": "The savings goal compares your planned savings with this month’s income minus expenses.",
+        "planEmptyTitle": "No budgets yet",
+        "planEmptyDesc": "Set a monthly budget per category to keep spending in check.",
+        "planOverBy": "{{amount}} over budget",
+        "planLeft": "{{amount}} left",
+        "planAllCategoriesBudgeted": "Every category already has a budget.",
+        "planMonthlyAmount": "Monthly amount",
+        "planSavedToast": "Budget saved",
+        "planRemovedToast": "Budget removed",
+        "planTarget": "Target: {{amount}}",
+        "planEditAction": "Edit",
+        "planDeleteConfirm": "Delete the budget for “{{category}}”?",
+        "planSavingsDeleteConfirm": "Delete the savings goal?"
     },
     "settings": {
         "pageHealthModule": "Health",

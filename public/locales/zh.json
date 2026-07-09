@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "暂无到访",
         "housekeepingVisitsMonth": "本月 {{count}} 次到访",
         "housekeepingUnpaid": "{{amount}} 待付",
-        "widgetError": "无法加载"
+        "widgetError": "无法加载",
+        "savingsGoal": "储蓄目标"
     },
     "tasks": {
         "title": "任务",
@@ -912,7 +913,30 @@
         "prevPeriod": "上一期",
         "nextPeriod": "下一期",
         "recurringInstanceLabel": "系列的一部分",
-        "loanProgressLabel": "还款进度"
+        "loanProgressLabel": "还款进度",
+        "planTab": "预算计划",
+        "planCategoryBudgets": "分类预算",
+        "planAddBudget": "设置预算",
+        "planSavingsSetTitle": "设置储蓄目标",
+        "planSavingsSetDesc": "设置每月储蓄目标并跟踪进度",
+        "planSetGoal": "设置目标",
+        "planSavingsGoal": "储蓄目标",
+        "planSavingsMet": "已达成目标",
+        "planSavingsNegative": "本月为负",
+        "planSavingsShort": "距目标还差 {{amount}}",
+        "planSavingsHint": "储蓄目标将你计划的储蓄与本月收入减去支出进行比较。",
+        "planEmptyTitle": "尚无预算",
+        "planEmptyDesc": "为每个类别设置月度预算，以掌控支出。",
+        "planOverBy": "超支 {{amount}}",
+        "planLeft": "剩余 {{amount}}",
+        "planAllCategoriesBudgeted": "所有类别都已有预算。",
+        "planMonthlyAmount": "每月金额",
+        "planSavedToast": "预算已保存",
+        "planRemovedToast": "预算已删除",
+        "planTarget": "目标：{{amount}}",
+        "planEditAction": "编辑",
+        "planDeleteConfirm": "删除“{{category}}”的预算？",
+        "planSavingsDeleteConfirm": "删除储蓄目标？"
     },
     "settings": {
         "pageHealthModule": "健康",

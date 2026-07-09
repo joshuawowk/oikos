@@ -181,7 +181,8 @@
         "housekeepingNoVisits": "Brak wizyt",
         "housekeepingVisitsMonth": "{{count}} wizyt w tym miesiącu",
         "housekeepingUnpaid": "{{amount}} do zapłaty",
-        "widgetError": "Nie udało się załadować"
+        "widgetError": "Nie udało się załadować",
+        "savingsGoal": "Cel oszczędności"
     },
     "tasks": {
         "title": "Zadania",
@@ -918,7 +919,30 @@
         "prevPeriod": "Poprzedni okres",
         "nextPeriod": "Następny okres",
         "recurringInstanceLabel": "Część serii",
-        "loanProgressLabel": "Postęp spłaty"
+        "loanProgressLabel": "Postęp spłaty",
+        "planTab": "Plan",
+        "planCategoryBudgets": "Budżety kategorii",
+        "planAddBudget": "Ustaw budżet",
+        "planSavingsSetTitle": "Ustaw cel oszczędności",
+        "planSavingsSetDesc": "Ustaw miesięczny cel oszczędności i śledź postępy",
+        "planSetGoal": "Ustaw cel",
+        "planSavingsGoal": "Cel oszczędności",
+        "planSavingsMet": "Cel osiągnięty",
+        "planSavingsNegative": "Na minusie w tym miesiącu",
+        "planSavingsShort": "Jeszcze {{amount}}",
+        "planSavingsHint": "Cel oszczędności porównuje planowane oszczędności z przychodami minus wydatki w tym miesiącu.",
+        "planEmptyTitle": "Brak budżetów",
+        "planEmptyDesc": "Ustaw miesięczny budżet na kategorię, aby kontrolować wydatki.",
+        "planOverBy": "{{amount}} ponad budżet",
+        "planLeft": "Pozostało {{amount}}",
+        "planAllCategoriesBudgeted": "Wszystkie kategorie mają już budżet.",
+        "planMonthlyAmount": "Kwota miesięczna",
+        "planSavedToast": "Budżet zapisany",
+        "planRemovedToast": "Budżet usunięty",
+        "planTarget": "Cel: {{amount}}",
+        "planEditAction": "Edytuj",
+        "planDeleteConfirm": "Usunąć budżet dla „{{category}}”?",
+        "planSavingsDeleteConfirm": "Usunąć cel oszczędności?"
     },
     "settings": {
         "pageHealthModule": "Zdrowie",

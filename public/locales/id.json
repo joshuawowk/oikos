@@ -181,7 +181,8 @@
         "housekeepingNoVisits": "Belum ada kunjungan",
         "housekeepingVisitsMonth": "{{count}} kunjungan bulan ini",
         "housekeepingUnpaid": "{{amount}} belum dibayar",
-        "widgetError": "Tidak dapat dimuat"
+        "widgetError": "Tidak dapat dimuat",
+        "savingsGoal": "Target tabungan"
     },
     "tasks": {
         "title": "Tugas",
@@ -918,7 +919,30 @@
         "prevPeriod": "Periode sebelumnya",
         "nextPeriod": "Periode berikutnya",
         "recurringInstanceLabel": "Bagian dari seri",
-        "loanProgressLabel": "Progres pelunasan"
+        "loanProgressLabel": "Progres pelunasan",
+        "planTab": "Rencana",
+        "planCategoryBudgets": "Anggaran kategori",
+        "planAddBudget": "Tetapkan anggaran",
+        "planSavingsSetTitle": "Tetapkan target tabungan",
+        "planSavingsSetDesc": "Tetapkan target tabungan bulanan dan pantau kemajuannya",
+        "planSetGoal": "Tetapkan target",
+        "planSavingsGoal": "Target tabungan",
+        "planSavingsMet": "Target tercapai",
+        "planSavingsNegative": "Minus bulan ini",
+        "planSavingsShort": "Kurang {{amount}} lagi",
+        "planSavingsHint": "Target tabungan membandingkan tabungan rencana dengan pemasukan dikurangi pengeluaran bulan ini.",
+        "planEmptyTitle": "Belum ada anggaran",
+        "planEmptyDesc": "Tetapkan anggaran bulanan per kategori untuk mengendalikan pengeluaran.",
+        "planOverBy": "{{amount}} melebihi anggaran",
+        "planLeft": "Sisa {{amount}}",
+        "planAllCategoriesBudgeted": "Semua kategori sudah memiliki anggaran.",
+        "planMonthlyAmount": "Jumlah bulanan",
+        "planSavedToast": "Anggaran disimpan",
+        "planRemovedToast": "Anggaran dihapus",
+        "planTarget": "Target: {{amount}}",
+        "planEditAction": "Edit",
+        "planDeleteConfirm": "Hapus anggaran untuk “{{category}}”?",
+        "planSavingsDeleteConfirm": "Hapus target tabungan?"
     },
     "settings": {
         "pageHealthModule": "Kesehatan",

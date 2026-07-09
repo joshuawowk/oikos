@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.5.0] - 2026-07-09
+## [1.6.0] - 2026-07-09
+
+### Added
+- Budget: a new **Plan** tab for planned/estimated budgets, so a household can see whether its spending and savings targets are being met. Set a monthly savings goal (shown as a progress ring comparing planned savings against the month's income minus expenses, with a reached/short/negative status) and a monthly budget per expense category (shown as planned-vs-actual progress bars that turn amber near the limit and red when over budget, each with a plain-text "X left"/"X over budget" label so status never relies on colour alone). Budgets and the goal are set, edited, and removed from a modal; deleting is confirmation-gated. The Statistics tab draws a target marker on each category bar at its planned amount (month range), and the dashboard Budget widget shows savings-goal progress when a goal is set. (#468)
 
 ### Added
 - Calendar: one-time import of events from an `.ics` file or a shared calendar feed URL into editable local events, under Settings → Sync → Calendar → "Import calendar". Unlike an ICS subscription (which stays read-only and auto-synced), imported events become your own editable events and are not synced afterwards — the migration path when moving from another calendar. Recurring events are kept as a series (the recurrence rule is reduced to the supported daily/weekly/monthly/yearly subset), all-day and timed events are preserved, and re-importing the same feed skips events that were already imported. The URL path reuses the SSRF-protected fetch (10 MB / 15 s limits) used by subscriptions. (#437)

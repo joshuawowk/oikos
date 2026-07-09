@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Zatím žádné návštěvy",
         "housekeepingVisitsMonth": "{{count}} návštěv tento měsíc",
         "housekeepingUnpaid": "{{amount}} k úhradě",
-        "widgetError": "Nepodařilo se načíst"
+        "widgetError": "Nepodařilo se načíst",
+        "savingsGoal": "Cíl úspor"
     },
     "tasks": {
         "title": "Úkoly",
@@ -912,7 +913,30 @@
         "prevPeriod": "Předchozí období",
         "nextPeriod": "Další období",
         "recurringInstanceLabel": "Součást série",
-        "loanProgressLabel": "Průběh splácení"
+        "loanProgressLabel": "Průběh splácení",
+        "planTab": "Plán",
+        "planCategoryBudgets": "Rozpočty kategorií",
+        "planAddBudget": "Nastavit rozpočet",
+        "planSavingsSetTitle": "Nastavte cíl úspor",
+        "planSavingsSetDesc": "Nastavte měsíční cíl úspor a sledujte pokrok",
+        "planSetGoal": "Nastavit cíl",
+        "planSavingsGoal": "Cíl úspor",
+        "planSavingsMet": "Cíl splněn",
+        "planSavingsNegative": "Tento měsíc v mínusu",
+        "planSavingsShort": "Zbývá {{amount}}",
+        "planSavingsHint": "Cíl úspor porovnává plánované úspory s příjmy minus výdaje tohoto měsíce.",
+        "planEmptyTitle": "Zatím žádné rozpočty",
+        "planEmptyDesc": "Nastavte měsíční rozpočet na kategorii a mějte výdaje pod kontrolou.",
+        "planOverBy": "{{amount}} nad rozpočet",
+        "planLeft": "Zbývá {{amount}}",
+        "planAllCategoriesBudgeted": "Všechny kategorie už mají rozpočet.",
+        "planMonthlyAmount": "Měsíční částka",
+        "planSavedToast": "Rozpočet uložen",
+        "planRemovedToast": "Rozpočet odstraněn",
+        "planTarget": "Cíl: {{amount}}",
+        "planEditAction": "Upravit",
+        "planDeleteConfirm": "Odstranit rozpočet pro „{{category}}“?",
+        "planSavingsDeleteConfirm": "Odstranit cíl úspor?"
     },
     "settings": {
         "pageHealthModule": "Zdraví",

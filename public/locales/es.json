@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Aún sin visitas",
         "housekeepingVisitsMonth": "{{count}} visitas este mes",
         "housekeepingUnpaid": "{{amount}} pendiente",
-        "widgetError": "No se pudo cargar"
+        "widgetError": "No se pudo cargar",
+        "savingsGoal": "Objetivo de ahorro"
     },
     "tasks": {
         "title": "Tareas",
@@ -912,7 +913,30 @@
         "prevPeriod": "Período anterior",
         "nextPeriod": "Período siguiente",
         "recurringInstanceLabel": "Parte de una serie",
-        "loanProgressLabel": "Progreso de amortización"
+        "loanProgressLabel": "Progreso de amortización",
+        "planTab": "Plan",
+        "planCategoryBudgets": "Presupuestos por categoría",
+        "planAddBudget": "Definir presupuesto",
+        "planSavingsSetTitle": "Define un objetivo de ahorro",
+        "planSavingsSetDesc": "Establece un objetivo de ahorro mensual y sigue tu progreso",
+        "planSetGoal": "Definir objetivo",
+        "planSavingsGoal": "Objetivo de ahorro",
+        "planSavingsMet": "Objetivo alcanzado",
+        "planSavingsNegative": "En números rojos este mes",
+        "planSavingsShort": "Faltan {{amount}}",
+        "planSavingsHint": "El objetivo de ahorro compara tu ahorro previsto con los ingresos menos los gastos de este mes.",
+        "planEmptyTitle": "Aún no hay presupuestos",
+        "planEmptyDesc": "Define un presupuesto mensual por categoría para controlar los gastos.",
+        "planOverBy": "{{amount}} por encima",
+        "planLeft": "Quedan {{amount}}",
+        "planAllCategoriesBudgeted": "Todas las categorías ya tienen un presupuesto.",
+        "planMonthlyAmount": "Importe mensual",
+        "planSavedToast": "Presupuesto guardado",
+        "planRemovedToast": "Presupuesto eliminado",
+        "planTarget": "Objetivo: {{amount}}",
+        "planEditAction": "Editar",
+        "planDeleteConfirm": "¿Eliminar el presupuesto de «{{category}}»?",
+        "planSavingsDeleteConfirm": "¿Eliminar el objetivo de ahorro?"
     },
     "settings": {
         "pageHealthModule": "Salud",

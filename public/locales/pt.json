@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Ainda sem visitas",
         "housekeepingVisitsMonth": "{{count}} visitas este mês",
         "housekeepingUnpaid": "{{amount}} em aberto",
-        "widgetError": "Não foi possível carregar"
+        "widgetError": "Não foi possível carregar",
+        "savingsGoal": "Meta de poupança"
     },
     "tasks": {
         "title": "Tarefas",
@@ -912,7 +913,30 @@
         "prevPeriod": "Período anterior",
         "nextPeriod": "Próximo período",
         "recurringInstanceLabel": "Parte de uma série",
-        "loanProgressLabel": "Progresso do reembolso"
+        "loanProgressLabel": "Progresso do reembolso",
+        "planTab": "Plano",
+        "planCategoryBudgets": "Orçamentos por categoria",
+        "planAddBudget": "Definir orçamento",
+        "planSavingsSetTitle": "Defina uma meta de poupança",
+        "planSavingsSetDesc": "Defina uma meta de poupança mensal e acompanhe o progresso",
+        "planSetGoal": "Definir meta",
+        "planSavingsGoal": "Meta de poupança",
+        "planSavingsMet": "Meta atingida",
+        "planSavingsNegative": "No vermelho este mês",
+        "planSavingsShort": "Faltam {{amount}}",
+        "planSavingsHint": "A meta de poupança compara a poupança planejada com as receitas menos as despesas do mês.",
+        "planEmptyTitle": "Ainda sem orçamentos",
+        "planEmptyDesc": "Defina um orçamento mensal por categoria para controlar os gastos.",
+        "planOverBy": "{{amount}} acima do orçamento",
+        "planLeft": "{{amount}} restantes",
+        "planAllCategoriesBudgeted": "Todas as categorias já têm um orçamento.",
+        "planMonthlyAmount": "Valor mensal",
+        "planSavedToast": "Orçamento salvo",
+        "planRemovedToast": "Orçamento removido",
+        "planTarget": "Meta: {{amount}}",
+        "planEditAction": "Editar",
+        "planDeleteConfirm": "Excluir o orçamento de “{{category}}”?",
+        "planSavingsDeleteConfirm": "Excluir a meta de poupança?"
     },
     "settings": {
         "pageHealthModule": "Saúde",

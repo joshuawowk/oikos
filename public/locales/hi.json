@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "अभी कोई विज़िट नहीं",
         "housekeepingVisitsMonth": "इस माह {{count}} विज़िट",
         "housekeepingUnpaid": "{{amount}} बकाया",
-        "widgetError": "लोड नहीं हो सका"
+        "widgetError": "लोड नहीं हो सका",
+        "savingsGoal": "बचत लक्ष्य"
     },
     "tasks": {
         "title": "कार्य",
@@ -912,7 +913,30 @@
         "prevPeriod": "पिछली अवधि",
         "nextPeriod": "अगली अवधि",
         "recurringInstanceLabel": "एक शृंखला का हिस्सा",
-        "loanProgressLabel": "चुकौती प्रगति"
+        "loanProgressLabel": "चुकौती प्रगति",
+        "planTab": "योजना",
+        "planCategoryBudgets": "श्रेणी बजट",
+        "planAddBudget": "बजट तय करें",
+        "planSavingsSetTitle": "बचत लक्ष्य तय करें",
+        "planSavingsSetDesc": "मासिक बचत लक्ष्य तय करें और प्रगति देखें",
+        "planSetGoal": "लक्ष्य तय करें",
+        "planSavingsGoal": "बचत लक्ष्य",
+        "planSavingsMet": "लक्ष्य पूरा हुआ",
+        "planSavingsNegative": "इस माह घाटे में",
+        "planSavingsShort": "लक्ष्य तक {{amount}} शेष",
+        "planSavingsHint": "बचत लक्ष्य आपकी नियोजित बचत की तुलना इस माह की आय में से व्यय घटाकर करता है।",
+        "planEmptyTitle": "अभी कोई बजट नहीं",
+        "planEmptyDesc": "खर्च पर नियंत्रण के लिए हर श्रेणी का मासिक बजट तय करें।",
+        "planOverBy": "{{amount}} बजट से अधिक",
+        "planLeft": "{{amount}} शेष",
+        "planAllCategoriesBudgeted": "सभी श्रेणियों का बजट पहले से है।",
+        "planMonthlyAmount": "मासिक राशि",
+        "planSavedToast": "बजट सहेजा गया",
+        "planRemovedToast": "बजट हटाया गया",
+        "planTarget": "लक्ष्य: {{amount}}",
+        "planEditAction": "संपादित करें",
+        "planDeleteConfirm": "„{{category}}\" का बजट हटाएँ?",
+        "planSavingsDeleteConfirm": "बचत लक्ष्य हटाएँ?"
     },
     "settings": {
         "pageHealthModule": "स्वास्थ्य",

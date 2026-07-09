@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Chưa có lượt nào",
         "housekeepingVisitsMonth": "{{count}} lượt tháng này",
         "housekeepingUnpaid": "Còn nợ {{amount}}",
-        "widgetError": "Không thể tải"
+        "widgetError": "Không thể tải",
+        "savingsGoal": "Mục tiêu tiết kiệm"
     },
     "tasks": {
         "title": "Nhiệm vụ",
@@ -912,7 +913,30 @@
         "prevPeriod": "Kỳ trước",
         "nextPeriod": "Kỳ sau",
         "recurringInstanceLabel": "Một phần của chuỗi",
-        "loanProgressLabel": "Tiến độ trả nợ"
+        "loanProgressLabel": "Tiến độ trả nợ",
+        "planTab": "Kế hoạch",
+        "planCategoryBudgets": "Ngân sách theo danh mục",
+        "planAddBudget": "Đặt ngân sách",
+        "planSavingsSetTitle": "Đặt mục tiêu tiết kiệm",
+        "planSavingsSetDesc": "Đặt mục tiêu tiết kiệm hằng tháng và theo dõi tiến độ",
+        "planSetGoal": "Đặt mục tiêu",
+        "planSavingsGoal": "Mục tiêu tiết kiệm",
+        "planSavingsMet": "Đã đạt mục tiêu",
+        "planSavingsNegative": "Âm trong tháng này",
+        "planSavingsShort": "Còn {{amount}} nữa",
+        "planSavingsHint": "Mục tiêu tiết kiệm so sánh khoản tiết kiệm dự kiến với thu nhập trừ chi phí trong tháng.",
+        "planEmptyTitle": "Chưa có ngân sách",
+        "planEmptyDesc": "Đặt ngân sách hằng tháng cho từng danh mục để kiểm soát chi tiêu.",
+        "planOverBy": "Vượt {{amount}}",
+        "planLeft": "Còn {{amount}}",
+        "planAllCategoriesBudgeted": "Mọi danh mục đều đã có ngân sách.",
+        "planMonthlyAmount": "Số tiền hằng tháng",
+        "planSavedToast": "Đã lưu ngân sách",
+        "planRemovedToast": "Đã xoá ngân sách",
+        "planTarget": "Mục tiêu: {{amount}}",
+        "planEditAction": "Chỉnh sửa",
+        "planDeleteConfirm": "Xoá ngân sách cho “{{category}}”?",
+        "planSavingsDeleteConfirm": "Xoá mục tiêu tiết kiệm?"
     },
     "settings": {
         "pageHealthModule": "Sức khỏe",

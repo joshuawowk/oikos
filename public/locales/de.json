@@ -181,7 +181,8 @@
         "housekeepingNoVisits": "Noch keine Besuche",
         "housekeepingVisitsMonth": "{{count}} Besuche im Monat",
         "housekeepingUnpaid": "{{amount}} offen",
-        "widgetError": "Konnte nicht geladen werden"
+        "widgetError": "Konnte nicht geladen werden",
+        "savingsGoal": "Sparziel"
     },
     "tasks": {
         "title": "Aufgaben",
@@ -918,7 +919,30 @@
         "prevPeriod": "Vorheriger Zeitraum",
         "nextPeriod": "Nächster Zeitraum",
         "recurringInstanceLabel": "Teil einer Serie",
-        "loanProgressLabel": "Tilgungsfortschritt"
+        "loanProgressLabel": "Tilgungsfortschritt",
+        "planTab": "Plan",
+        "planCategoryBudgets": "Kategorie-Budgets",
+        "planAddBudget": "Budget festlegen",
+        "planSavingsSetTitle": "Sparziel festlegen",
+        "planSavingsSetDesc": "Monatliches Sparziel setzen und Fortschritt verfolgen",
+        "planSetGoal": "Ziel festlegen",
+        "planSavingsGoal": "Sparziel",
+        "planSavingsMet": "Ziel erreicht",
+        "planSavingsNegative": "Diesen Monat im Minus",
+        "planSavingsShort": "Noch {{amount}} bis zum Ziel",
+        "planSavingsHint": "Das Sparziel vergleicht die geplante Ersparnis mit Einnahmen minus Ausgaben dieses Monats.",
+        "planEmptyTitle": "Noch keine Budgets",
+        "planEmptyDesc": "Lege pro Kategorie ein monatliches Budget fest, um Ausgaben im Blick zu behalten.",
+        "planOverBy": "{{amount}} über Budget",
+        "planLeft": "{{amount}} übrig",
+        "planAllCategoriesBudgeted": "Alle Kategorien haben bereits ein Budget.",
+        "planMonthlyAmount": "Monatlicher Betrag",
+        "planSavedToast": "Budget gespeichert",
+        "planRemovedToast": "Budget entfernt",
+        "planTarget": "Ziel: {{amount}}",
+        "planEditAction": "Bearbeiten",
+        "planDeleteConfirm": "Budget für „{{category}}\" wirklich löschen?",
+        "planSavingsDeleteConfirm": "Sparziel wirklich löschen?"
     },
     "settings": {
         "pageHealthModule": "Gesundheit",

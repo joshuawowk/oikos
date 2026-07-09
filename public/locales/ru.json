@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "Пока нет визитов",
         "housekeepingVisitsMonth": "{{count}} визитов в этом месяце",
         "housekeepingUnpaid": "{{amount}} к оплате",
-        "widgetError": "Не удалось загрузить"
+        "widgetError": "Не удалось загрузить",
+        "savingsGoal": "Цель накоплений"
     },
     "tasks": {
         "title": "Задачи",
@@ -912,7 +913,30 @@
         "prevPeriod": "Предыдущий период",
         "nextPeriod": "Следующий период",
         "recurringInstanceLabel": "Часть серии",
-        "loanProgressLabel": "Ход погашения"
+        "loanProgressLabel": "Ход погашения",
+        "planTab": "План",
+        "planCategoryBudgets": "Бюджеты по категориям",
+        "planAddBudget": "Задать бюджет",
+        "planSavingsSetTitle": "Задайте цель накоплений",
+        "planSavingsSetDesc": "Задайте ежемесячную цель накоплений и следите за прогрессом",
+        "planSetGoal": "Задать цель",
+        "planSavingsGoal": "Цель накоплений",
+        "planSavingsMet": "Цель достигнута",
+        "planSavingsNegative": "В минусе в этом месяце",
+        "planSavingsShort": "Осталось {{amount}}",
+        "planSavingsHint": "Цель накоплений сравнивает запланированные сбережения с доходами минус расходы за месяц.",
+        "planEmptyTitle": "Пока нет бюджетов",
+        "planEmptyDesc": "Задайте месячный бюджет по категориям, чтобы контролировать расходы.",
+        "planOverBy": "{{amount}} сверх бюджета",
+        "planLeft": "Осталось {{amount}}",
+        "planAllCategoriesBudgeted": "У всех категорий уже есть бюджет.",
+        "planMonthlyAmount": "Ежемесячная сумма",
+        "planSavedToast": "Бюджет сохранён",
+        "planRemovedToast": "Бюджет удалён",
+        "planTarget": "Цель: {{amount}}",
+        "planEditAction": "Изменить",
+        "planDeleteConfirm": "Удалить бюджет для «{{category}}»?",
+        "planSavingsDeleteConfirm": "Удалить цель накоплений?"
     },
     "settings": {
         "pageHealthModule": "Здоровье",

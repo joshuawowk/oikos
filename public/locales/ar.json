@@ -175,7 +175,8 @@
         "housekeepingNoVisits": "لا زيارات بعد",
         "housekeepingVisitsMonth": "{{count}} زيارة هذا الشهر",
         "housekeepingUnpaid": "{{amount}} مستحقة",
-        "widgetError": "تعذّر التحميل"
+        "widgetError": "تعذّر التحميل",
+        "savingsGoal": "هدف الادخار"
     },
     "tasks": {
         "title": "المهام",
@@ -912,7 +913,30 @@
         "prevPeriod": "الفترة السابقة",
         "nextPeriod": "الفترة التالية",
         "recurringInstanceLabel": "جزء من سلسلة",
-        "loanProgressLabel": "تقدّم السداد"
+        "loanProgressLabel": "تقدّم السداد",
+        "planTab": "الخطة",
+        "planCategoryBudgets": "ميزانيات الفئات",
+        "planAddBudget": "تحديد ميزانية",
+        "planSavingsSetTitle": "حدّد هدف ادخار",
+        "planSavingsSetDesc": "حدّد هدف ادخار شهري وتابع تقدّمك",
+        "planSetGoal": "تحديد الهدف",
+        "planSavingsGoal": "هدف الادخار",
+        "planSavingsMet": "تم تحقيق الهدف",
+        "planSavingsNegative": "في العجز هذا الشهر",
+        "planSavingsShort": "يتبقّى {{amount}}",
+        "planSavingsHint": "يقارن هدف الادخار مدّخراتك المخطط لها بدخل هذا الشهر ناقص المصروفات.",
+        "planEmptyTitle": "لا توجد ميزانيات بعد",
+        "planEmptyDesc": "حدّد ميزانية شهرية لكل فئة للتحكم في الإنفاق.",
+        "planOverBy": "{{amount}} فوق الميزانية",
+        "planLeft": "يتبقّى {{amount}}",
+        "planAllCategoriesBudgeted": "كل الفئات لديها ميزانية بالفعل.",
+        "planMonthlyAmount": "المبلغ الشهري",
+        "planSavedToast": "تم حفظ الميزانية",
+        "planRemovedToast": "تمت إزالة الميزانية",
+        "planTarget": "الهدف: {{amount}}",
+        "planEditAction": "تحرير",
+        "planDeleteConfirm": "حذف ميزانية «{{category}}»؟",
+        "planSavingsDeleteConfirm": "حذف هدف الادخار؟"
     },
     "settings": {
         "pageHealthModule": "الصحة",
