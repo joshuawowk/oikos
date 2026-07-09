@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-07-09
+
+### Changed
+- Localized the roles and permissions settings UI into all supported languages. The new strings shipped translated in German and English only in v1.4.0; the other 21 languages now have full translations instead of the English fallback.
+
 ## [1.4.0] - 2026-07-09
 
 ### Added
