@@ -320,6 +320,10 @@
         "catDrugstore": "Аптека",
         "catMisc": "Різне",
         "emptyAction": "Додати товар",
+        "importMeals": "З плану харчування",
+        "importMealsTitle": "Імпортувати з плану харчування",
+        "importMealsAction": "Імпортувати",
+        "importMealsEmpty": "У вибраному діапазоні не знайдено інгредієнтів страв.",
         "manageCategories": "Керувати категоріями"
     },
     "meals": {

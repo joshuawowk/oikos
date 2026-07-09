@@ -320,6 +320,10 @@
         "catDrugstore": "صيدلية",
         "catMisc": "متنوع",
         "emptyAction": "إضافة عنصر",
+        "importMeals": "من خطة الوجبات",
+        "importMealsTitle": "استيراد من خطة الوجبات",
+        "importMealsAction": "استيراد",
+        "importMealsEmpty": "لم يتم العثور على مكونات وجبات في النطاق المحدد.",
         "manageCategories": "إدارة الفئات"
     },
     "meals": {

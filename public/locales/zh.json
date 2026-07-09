@@ -320,6 +320,10 @@
         "catDrugstore": "日化",
         "catMisc": "其他",
         "emptyAction": "添加商品",
+        "importMeals": "从餐食计划",
+        "importMealsTitle": "从餐食计划导入",
+        "importMealsAction": "导入",
+        "importMealsEmpty": "在所选范围内未找到餐食配料。",
         "manageCategories": "管理分类"
     },
     "meals": {

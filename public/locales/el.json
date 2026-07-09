@@ -320,6 +320,10 @@
         "catDrugstore": "Φαρμακείο",
         "catMisc": "Διάφορα",
         "emptyAction": "Προσθήκη στοιχείου",
+        "importMeals": "Από το πλάνο γευμάτων",
+        "importMealsTitle": "Εισαγωγή από το πλάνο γευμάτων",
+        "importMealsAction": "Εισαγωγή",
+        "importMealsEmpty": "Δεν βρέθηκαν υλικά γευμάτων στο επιλεγμένο εύρος.",
         "manageCategories": "Διαχείριση κατηγοριών"
     },
     "meals": {

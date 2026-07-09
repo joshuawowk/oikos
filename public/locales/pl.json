@@ -326,6 +326,10 @@
         "catHousehold": "Dom",
         "catDrugstore": "Drogeria",
         "catMisc": "Inne",
+        "importMeals": "Z planu posiłków",
+        "importMealsTitle": "Importuj z planu posiłków",
+        "importMealsAction": "Importuj",
+        "importMealsEmpty": "Nie znaleziono składników posiłków w wybranym zakresie dat.",
         "manageCategories": "Zarządzaj kategoriami"
     },
     "meals": {

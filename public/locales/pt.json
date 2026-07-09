@@ -320,6 +320,10 @@
         "catDrugstore": "Farmácia",
         "catMisc": "Outros",
         "emptyAction": "Adicionar item",
+        "importMeals": "Do plano de refeições",
+        "importMealsTitle": "Importar do plano de refeições",
+        "importMealsAction": "Importar",
+        "importMealsEmpty": "Não foram encontrados ingredientes de refeições no intervalo selecionado.",
         "manageCategories": "Gerir categorias"
     },
     "meals": {

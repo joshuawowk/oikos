@@ -320,6 +320,10 @@
         "catDrugstore": "Eczane",
         "catMisc": "Diğer",
         "emptyAction": "Öğe ekle",
+        "importMeals": "Yemek planından",
+        "importMealsTitle": "Yemek planından içe aktar",
+        "importMealsAction": "İçe aktar",
+        "importMealsEmpty": "Seçilen aralıkta yemek malzemesi bulunamadı.",
         "manageCategories": "Kategorileri yönet"
     },
     "meals": {

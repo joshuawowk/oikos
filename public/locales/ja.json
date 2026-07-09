@@ -320,6 +320,10 @@
         "catDrugstore": "薬局",
         "catMisc": "その他",
         "emptyAction": "アイテムを追加",
+        "importMeals": "献立から",
+        "importMealsTitle": "献立からインポート",
+        "importMealsAction": "インポート",
+        "importMealsEmpty": "選択した期間内に献立の材料が見つかりませんでした。",
         "manageCategories": "カテゴリを管理"
     },
     "meals": {

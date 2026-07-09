@@ -326,6 +326,10 @@
         "catHousehold": "생활용품",
         "catDrugstore": "생활잡화",
         "catMisc": "기타",
+        "importMeals": "식단에서",
+        "importMealsTitle": "식단에서 가져오기",
+        "importMealsAction": "가져오기",
+        "importMealsEmpty": "선택한 기간에 식단 재료가 없습니다.",
         "manageCategories": "카테고리 관리"
     },
     "meals": {

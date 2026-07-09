@@ -326,6 +326,10 @@
         "catHousehold": "Haushalt",
         "catDrugstore": "Drogerie",
         "catMisc": "Sonstiges",
+        "importMeals": "Aus Essensplan",
+        "importMealsTitle": "Essensplan importieren",
+        "importMealsAction": "Importieren",
+        "importMealsEmpty": "Im gewählten Zeitraum wurden keine Essensplan-Zutaten gefunden.",
         "manageCategories": "Kategorien verwalten"
     },
     "meals": {

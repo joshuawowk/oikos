@@ -326,6 +326,10 @@
         "catHousehold": "خانگی",
         "catDrugstore": "بهداشتی",
         "catMisc": "متفرقه",
+        "importMeals": "از برنامه غذایی",
+        "importMealsTitle": "درون\u200cریزی از برنامه غذایی",
+        "importMealsAction": "درون\u200cریزی",
+        "importMealsEmpty": "هیچ ماده غذایی از برنامه غذایی در بازه انتخاب\u200cشده پیدا نشد.",
         "manageCategories": "مدیریت دسته‌ها"
     },
     "meals": {

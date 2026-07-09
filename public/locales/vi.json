@@ -320,6 +320,10 @@
         "catDrugstore": "Nhà thuốc",
         "catMisc": "Khác",
         "emptyAction": "Thêm mục",
+        "importMeals": "Từ kế hoạch bữa ăn",
+        "importMealsTitle": "Nhập từ kế hoạch bữa ăn",
+        "importMealsAction": "Nhập",
+        "importMealsEmpty": "Không tìm thấy nguyên liệu bữa ăn nào trong phạm vi đã chọn.",
         "manageCategories": "Quản lý danh mục"
     },
     "meals": {

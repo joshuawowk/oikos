@@ -320,6 +320,10 @@
         "catDrugstore": "Drogisterij",
         "catMisc": "Overig",
         "emptyAction": "Item toevoegen",
+        "importMeals": "Uit maaltijdplan",
+        "importMealsTitle": "Importeren uit maaltijdplan",
+        "importMealsAction": "Importeren",
+        "importMealsEmpty": "Er zijn geen maaltijdingrediënten gevonden in de geselecteerde periode.",
         "manageCategories": "Categorieën beheren"
     },
     "meals": {
