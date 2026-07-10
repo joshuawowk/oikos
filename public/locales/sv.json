@@ -1461,6 +1461,8 @@
         "documentStorageBackupWarning": "Databassäkerhetskopior innehåller inte WebDAV-filer.",
         "documentStorageNotConfigured": "Inte konfigurerad",
         "documentStorageActive": "Aktivt uppladdningsmål",
+        "documentStorageDatabase": "Databas",
+        "documentStorageLocalEnvManaged": "Konfigurerad via miljön (värdmappsmontering).",
         "documentStorageTarget": "Mål",
         "documentStorageCount": "Lagrade WebDAV-dokument",
         "documentStorageLastTest": "Senaste testet",
@@ -1877,6 +1879,7 @@
     "documents": {
         "title": "Dokument",
         "storageLocal": "Lokalt",
+        "storageLocalFolder": "Lokal mapp",
         "storageWebdav": "WebDAV",
         "storageDms": "DMS",
         "storageDmsUnavailable": "DMS är inte tillgängligt",

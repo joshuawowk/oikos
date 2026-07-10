@@ -1461,6 +1461,8 @@
         "documentStorageBackupWarning": "لا تتضمن النسخ الاحتياطية لقاعدة البيانات ملفات WebDAV.",
         "documentStorageNotConfigured": "غير مهيأ",
         "documentStorageActive": "وجهة الرفع النشطة",
+        "documentStorageDatabase": "قاعدة البيانات",
+        "documentStorageLocalEnvManaged": "تم التكوين عبر البيئة (تركيب مجلد المضيف).",
         "documentStorageTarget": "الوجهة",
         "documentStorageCount": "مستندات WebDAV المخزنة",
         "documentStorageLastTest": "آخر اختبار",
@@ -1877,6 +1879,7 @@
     "documents": {
         "title": "المستندات",
         "storageLocal": "محلي",
+        "storageLocalFolder": "مجلد محلي",
         "storageWebdav": "WebDAV",
         "storageDms": "DMS",
         "storageDmsUnavailable": "نظام DMS غير متاح",

@@ -1468,6 +1468,8 @@
         "documentStorageBackupWarning": "Cadangan basis data tidak menyertakan file WebDAV.",
         "documentStorageNotConfigured": "Belum dikonfigurasi",
         "documentStorageActive": "Tujuan unggah aktif",
+        "documentStorageDatabase": "Basis data",
+        "documentStorageLocalEnvManaged": "Dikonfigurasi melalui environment (mount folder host).",
         "documentStorageTarget": "Tujuan",
         "documentStorageCount": "Dokumen WebDAV tersimpan",
         "documentStorageLastTest": "Uji terakhir",
@@ -1889,6 +1891,7 @@
     "documents": {
         "title": "Dokumen",
         "storageLocal": "Lokal",
+        "storageLocalFolder": "Folder lokal",
         "storageWebdav": "WebDAV",
         "storageDms": "DMS",
         "storageDmsUnavailable": "DMS tidak tersedia",
