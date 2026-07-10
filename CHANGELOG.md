@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-07-10
+
+### Added
+- Documents: optional local folder storage backend. With `DOCUMENT_STORAGE_LOCAL_ENABLED=true`, new document files and calendar attachments are written to a mounted host folder (`DOCUMENT_STORAGE_LOCAL_PATH`, default `/documents`) instead of the SQLite database, keeping the database small and letting other self-hosted tools share the same files. When enabled it takes precedence over WebDAV; existing database and WebDAV documents are not migrated and stay readable. Configurable in the web and CLI installers.
+- Documents: the storage settings card and the upload and calendar-attachment dialogs now show the active upload target (local folder, WebDAV, or database), and folder-backed documents display a "Local folder" badge in the list.
+
+### Security
+- Documents: the local folder backend validates storage keys against path traversal and fails an upload loudly on an unwritable mount instead of silently falling back to another location.
+
 ## [1.6.6] - 2026-07-10
 
 ### Changed
