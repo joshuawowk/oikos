@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-07-10
+
+### Fixed
+- Holidays: school breaks no longer appear twice in the calendar for regions where the provider models several same-named holiday variants with differing dates for one subdivision (e.g. Swiss cantons such as Bern, whose German- and French-speaking school regions have different summer-break dates). Overlapping same-named entries of the same type are now merged into a single span on read, so the fix applies to already-cached entries without needing a re-sync. This is a distinct cause from the earlier #434 duplicates, which stemmed from stale cross-scope cache rows and "Exception"-tagged variants.
+
 ## [1.7.1] - 2026-07-10
 
 ### Security
