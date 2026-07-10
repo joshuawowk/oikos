@@ -1,6 +1,6 @@
 {
   "name": "yuvomi",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Self-hosted family planner - calendar, tasks, shopping, meal planning, budget and more. Private, open-source, no subscription.",
   "main": "server/index.js",
   "type": "module",
@@ -120,11 +120,16 @@
   },
   "optionalDependencies": {
     "googleapis": "^173.0.0",
-    "tsdav": "^2.3.0"
+    "tsdav": "^2.3.1"
   },
   "license": "MIT",
   "devDependencies": {
     "puppeteer": "^25.3.0",
     "sharp": "^0.35.3"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true,
+    "bcrypt@6.0.0": true,
+    "puppeteer@25.3.0": true
   }
 }

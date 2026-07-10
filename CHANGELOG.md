@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-07-10
+
+### Security
+- ICS calendar subscriptions and one-off feed imports now validate the destination IP at the moment the connection is established, closing a DNS-rebinding hole where an attacker-controlled hostname could pass the pre-flight private-IP check but resolve to an internal address (e.g. cloud metadata) during the actual fetch. Literal private IPs — including IPv6 loopback and IPv4-mapped IPv6 in both decimal and hex form — are now rejected as well. The `ICS_SUBSCRIPTION_ALLOW_PRIVATE_NETWORK` opt-in continues to bypass both checks for trusted LAN feeds.
+
+### Changed
+- Bumped `tsdav` to 2.3.1 and pinned build-script permissions (`allowScripts`) for `better-sqlite3`, `bcrypt` and `puppeteer`.
+
 ## [1.7.0] - 2026-07-10
 
 ### Added
