@@ -58,6 +58,7 @@
         "recipes": "रेसिपी",
         "more": "और",
         "moreActiveLabel": "अधिक, {{section}} सक्रिय",
+        "moreCatalogHint": "सभी मॉड्यूल. पसंदीदा को सेटिंग में अनुकूलित करें।",
         "documents": "दस्तावेज़",
         "kitchen": "रसोई",
         "kitchenGoLabel": "रसोई, {{section}} खोलें",
@@ -1780,7 +1781,8 @@
         "title": "खोज",
         "open": "खोज खोलें",
         "placeholder": "खोजें…",
-        "noResults": "कोई परिणाम नहीं मिला।"
+        "noResults": "कोई परिणाम नहीं मिला।",
+        "error": "खोज अभी उपलब्ध नहीं है।"
     },
     "birthdays": {
         "inDays": "{{days}} दिनों में",

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-07-10
+
+### Changed
+- Mobile navigation: redesigned the "More" menu as a compact app launcher — solid full-color module icons in a dense four-column grid, with Settings, Help and Changelog grouped into a single quiet system row. The sheet now takes roughly 40% of the screen instead of ~70%.
+- Mobile navigation: bottom-bar inactive tabs now show bare icons with a single sliding pill marking the active tab, and the keyboard-focus ring sits outside the icon so it is clearly visible.
+
+### Fixed
+- Mobile navigation: opening Settings from the "More" menu now closes the sheet, and switching language or toggling a module no longer reverts the menu to an outdated layout.
+- The install prompt now steps aside for any open modal, the "More" menu, or search instead of overlapping their content.
+- Search: a failed query now shows a clear "search is currently unavailable" message instead of appearing empty.
+
 ## [1.6.5] - 2026-07-10
 
 ### Changed

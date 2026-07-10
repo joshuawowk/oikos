@@ -57,6 +57,7 @@
         "quickActions": "Szybkie akcje",
         "more": "Więcej",
         "moreActiveLabel": "Więcej, {{section}} aktywne",
+        "moreCatalogHint": "Wszystkie moduły. Ulubione dostosujesz w ustawieniach.",
         "recipes": "Przepisy",
         "documents": "Dokumenty",
         "kitchen": "Kuchnia",
@@ -81,6 +82,7 @@
         "title": "Szukaj",
         "placeholder": "Szukaj…",
         "noResults": "Nie znaleziono wyników.",
+        "error": "Wyszukiwanie jest chwilowo niedostępne.",
         "open": "Otwórz wyszukiwanie"
     },
     "dashboard": {

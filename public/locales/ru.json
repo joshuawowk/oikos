@@ -58,6 +58,7 @@
         "recipes": "Рецепты",
         "more": "Ещё",
         "moreActiveLabel": "Ещё, {{section}} активно",
+        "moreCatalogHint": "Все модули. Избранное настраивается в параметрах.",
         "documents": "Документы",
         "kitchen": "Кухня",
         "kitchenGoLabel": "Кухня, открыть {{section}}",
@@ -1780,7 +1781,8 @@
         "title": "Поиск",
         "open": "Открыть поиск",
         "placeholder": "Поиск…",
-        "noResults": "Результаты не найдены."
+        "noResults": "Результаты не найдены.",
+        "error": "Поиск сейчас недоступен."
     },
     "birthdays": {
         "inDays": "через {{days}} дн.",

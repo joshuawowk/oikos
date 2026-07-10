@@ -57,6 +57,7 @@
         "quickActions": "Schnellaktionen",
         "more": "Mehr",
         "moreActiveLabel": "Mehr, {{section}} aktiv",
+        "moreCatalogHint": "Alle Module. Favoriten passt du in den Einstellungen an.",
         "recipes": "Rezepte",
         "documents": "Dokumente",
         "kitchen": "Küche",
@@ -81,6 +82,7 @@
         "title": "Suche",
         "placeholder": "Suchen…",
         "noResults": "Keine Ergebnisse gefunden.",
+        "error": "Suche gerade nicht verfügbar.",
         "open": "Suche öffnen"
     },
     "dashboard": {

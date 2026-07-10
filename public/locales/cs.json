@@ -58,6 +58,7 @@
         "recipes": "Recepty",
         "more": "Více",
         "moreActiveLabel": "Více, aktivní sekce {{section}}",
+        "moreCatalogHint": "Všechny moduly. Oblíbené upravíš v nastavení.",
         "documents": "Dokumenty",
         "kitchen": "Kuchyně",
         "kitchenGoLabel": "Kuchyně, otevřít {{section}}",
@@ -1728,6 +1729,7 @@
         "title": "Hledat",
         "placeholder": "Hledat…",
         "noResults": "Žádné výsledky nenalezeny.",
+        "error": "Vyhledávání je momentálně nedostupné.",
         "open": "Otevřít vyhledávání"
     },
     "shortcuts": {

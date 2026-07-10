@@ -58,6 +58,7 @@
         "recipes": "Receitas",
         "more": "Mais",
         "moreActiveLabel": "Mais, {{section}} ativo",
+        "moreCatalogHint": "Todos os módulos. Personalize os favoritos nas definições.",
         "documents": "Documentos",
         "kitchen": "Cozinha",
         "kitchenGoLabel": "Cozinha, abrir {{section}}",
@@ -1780,7 +1781,8 @@
         "title": "Pesquisa",
         "open": "Abrir pesquisa",
         "placeholder": "Pesquisar…",
-        "noResults": "Nenhum resultado encontrado."
+        "noResults": "Nenhum resultado encontrado.",
+        "error": "A pesquisa está indisponível de momento."
     },
     "birthdays": {
         "inDays": "em {{days}} dias",

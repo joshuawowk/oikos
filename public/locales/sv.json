@@ -58,6 +58,7 @@
         "recipes": "Recept",
         "more": "Mer",
         "moreActiveLabel": "Mer, {{section}} aktivt",
+        "moreCatalogHint": "Alla moduler. Anpassa dina favoriter i inställningarna.",
         "documents": "Dokument",
         "kitchen": "Kök",
         "kitchenGoLabel": "Kök, öppna {{section}}",
@@ -1780,7 +1781,8 @@
         "title": "Sök",
         "open": "Öppna sökning",
         "placeholder": "Sök…",
-        "noResults": "Inga resultat hittades."
+        "noResults": "Inga resultat hittades.",
+        "error": "Sökning är för närvarande inte tillgänglig."
     },
     "birthdays": {
         "inDays": "om {{days}} dagar",

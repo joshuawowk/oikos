@@ -58,6 +58,7 @@
         "recipes": "Công thức nấu ăn",
         "more": "Thêm",
         "moreActiveLabel": "Thêm, {{section}} đang hoạt động",
+        "moreCatalogHint": "Tất cả mô-đun. Tùy chỉnh mục yêu thích trong cài đặt.",
         "documents": "Tài liệu",
         "kitchen": "Nhà bếp",
         "kitchenGoLabel": "Nhà bếp, mở {{section}}",
@@ -1844,7 +1845,8 @@
         "title": "Tìm kiếm",
         "open": "Mở tìm kiếm",
         "placeholder": "Tìm kiếm…",
-        "noResults": "Không tìm thấy kết quả."
+        "noResults": "Không tìm thấy kết quả.",
+        "error": "Tìm kiếm hiện không khả dụng."
     },
     "onboarding": {
         "step1Title": "Chào mừng đến với {{name}}",

@@ -57,6 +57,7 @@
         "quickActions": "اقدامات سریع",
         "more": "بیشتر",
         "moreActiveLabel": "بیشتر، {{section}} فعال",
+        "moreCatalogHint": "همه ماژول‌ها. موارد دلخواه را در تنظیمات سفارشی کنید.",
         "recipes": "دستورهای غذا",
         "documents": "اسناد",
         "kitchen": "آشپزخانه",
@@ -81,6 +82,7 @@
         "title": "جستجو",
         "placeholder": "جستجو…",
         "noResults": "نتیجه‌ای یافت نشد.",
+        "error": "جست‌وجو در حال حاضر در دسترس نیست.",
         "open": "باز کردن جستجو"
     },
     "dashboard": {

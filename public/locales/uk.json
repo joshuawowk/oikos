@@ -58,6 +58,7 @@
         "recipes": "Рецепти",
         "more": "Більше",
         "moreActiveLabel": "Більше, {{section}} активно",
+        "moreCatalogHint": "Усі модулі. Улюблене налаштовується в параметрах.",
         "documents": "Документи",
         "kitchen": "Кухня",
         "kitchenGoLabel": "Кухня, відкрити {{section}}",
@@ -1813,7 +1814,8 @@
         "title": "Пошук",
         "open": "Відкрити пошук",
         "placeholder": "Пошук…",
-        "noResults": "Результатів не знайдено."
+        "noResults": "Результатів не знайдено.",
+        "error": "Пошук наразі недоступний."
     },
     "birthdays": {
         "inDays": "через {{days}} дн.",

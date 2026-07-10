@@ -57,6 +57,7 @@
         "quickActions": "Tindakan cepat",
         "more": "Lainnya",
         "moreActiveLabel": "Lainnya, {{section}} aktif",
+        "moreCatalogHint": "Semua modul. Sesuaikan favorit di pengaturan.",
         "recipes": "Resep",
         "documents": "Dokumen",
         "kitchen": "Dapur",
@@ -81,6 +82,7 @@
         "title": "Cari",
         "placeholder": "Cari…",
         "noResults": "Tidak ada hasil ditemukan.",
+        "error": "Pencarian sedang tidak tersedia.",
         "open": "Buka pencarian"
     },
     "dashboard": {

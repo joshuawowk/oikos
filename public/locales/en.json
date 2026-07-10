@@ -58,6 +58,7 @@
         "recipes": "Recipes",
         "more": "More",
         "moreActiveLabel": "More, {{section}} active",
+        "moreCatalogHint": "All modules. Customize your favorites in settings.",
         "documents": "Documents",
         "kitchen": "Kitchen",
         "kitchenGoLabel": "Kitchen, open {{section}}",
@@ -1844,7 +1845,8 @@
         "title": "Search",
         "open": "Open search",
         "placeholder": "Search…",
-        "noResults": "No results found."
+        "noResults": "No results found.",
+        "error": "Search is currently unavailable."
     },
     "onboarding": {
         "step1Title": "Welcome to {{name}}",

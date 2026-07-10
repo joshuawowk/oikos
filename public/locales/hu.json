@@ -58,6 +58,7 @@
         "recipes": "Receptek",
         "more": "Több",
         "moreActiveLabel": "Több, {{section}} aktív",
+        "moreCatalogHint": "Minden modul. A kedvenceket a beállításokban szabhatod testre.",
         "documents": "Dokumentumok",
         "kitchen": "Konyha",
         "kitchenGoLabel": "Konyha, {{section}} megnyitása",
@@ -1844,7 +1845,8 @@
         "title": "Keresés",
         "open": "Keresés megnyitása",
         "placeholder": "Keresés…",
-        "noResults": "Nincs találat."
+        "noResults": "Nincs találat.",
+        "error": "A keresés jelenleg nem érhető el."
     },
     "onboarding": {
         "step1Title": "Üdvözöljük a {{name}} alkalmazásban",

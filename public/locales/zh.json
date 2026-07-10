@@ -58,6 +58,7 @@
         "recipes": "食谱",
         "more": "更多",
         "moreActiveLabel": "更多，{{section}} 已激活",
+        "moreCatalogHint": "所有模块。在设置中自定义常用项。",
         "documents": "文档",
         "kitchen": "厨房",
         "kitchenGoLabel": "厨房，打开 {{section}}",
@@ -1780,7 +1781,8 @@
         "title": "搜索",
         "open": "打开搜索",
         "placeholder": "搜索…",
-        "noResults": "未找到结果。"
+        "noResults": "未找到结果。",
+        "error": "搜索暂时不可用。"
     },
     "birthdays": {
         "inDays": "{{days}}天后",

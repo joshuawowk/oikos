@@ -58,6 +58,7 @@
         "recipes": "Recepten",
         "more": "Meer",
         "moreActiveLabel": "Meer, {{section}} actief",
+        "moreCatalogHint": "Alle modules. Pas je favorieten aan in de instellingen.",
         "documents": "Documenten",
         "kitchen": "Keuken",
         "kitchenGoLabel": "Keuken, {{section}} openen",
@@ -1844,7 +1845,8 @@
         "title": "Zoeken",
         "open": "Zoeken openen",
         "placeholder": "Zoeken…",
-        "noResults": "Geen resultaten gevonden."
+        "noResults": "Geen resultaten gevonden.",
+        "error": "Zoeken is momenteel niet beschikbaar."
     },
     "onboarding": {
         "step1Title": "Welkom bij {{name}}",

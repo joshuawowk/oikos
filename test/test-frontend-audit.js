@@ -1018,6 +1018,7 @@ test('mobile navigation Quiet Precision keeps state feedback stable and accessib
   const glass = read('../public/styles/glass.css');
   const indicatorRule = cssRuleBody(layout, '.nav-bottom__indicator');
   const indicatorSurfaceRule = cssRuleBody(layout, '.nav-bottom__indicator::before');
+  const indicatorSurfaceGlass = cssRuleBody(glass, '.nav-bottom__indicator::before');
   const focusRule = cssRuleBody(layout, '.nav-bottom .nav-item:focus-visible');
   const pressedWellRule = cssRuleBody(layout, '.nav-bottom .nav-item:active .nav-item__icon-well');
 
@@ -1031,18 +1032,27 @@ test('mobile navigation Quiet Precision keeps state feedback stable and accessib
     layout,
     /\.nav-bottom \.nav-item\[aria-current="page"\] \.nav-item__label,\s*\.nav-bottom \.nav-item--active \.nav-item__label\s*\{[\s\S]*?font-weight:\s*var\(--font-weight-semibold\)/,
   );
-  assert.match(focusRule, /outline:/);
-  assert.match(focusRule, /outline-offset:\s*calc\(-1 \* var\(--space-px\)\)/);
+  // Fokusring liegt AUSSEN um die Icon-Well (nicht innen ins Item) — so ist er
+  // für Tastatur-/Sehbeeinträchtigte klar zu orten statt hinter Icon+Label zu
+  // verschwinden.
+  assert.match(focusRule, /outline:\s*none/);
+  const focusWellRule = cssRuleBody(layout, '.nav-bottom .nav-item:focus-visible .nav-item__icon-well');
+  assert.match(focusWellRule, /outline:\s*var\(--space-0h\)\s+solid/);
+  assert.match(focusWellRule, /outline-offset:\s*var\(--space-0h\)/);
   assert.match(pressedWellRule, /transform:\s*translateY\(var\(--space-px\)\) scale\(0\.96\)/);
   assert.doesNotMatch(layout, /(^|\n)\.nav-item:active\s*\{[\s\S]*?transform:/);
   assert.doesNotMatch(layout, /\.nav-bottom \.nav-item:active\s*\{[\s\S]*?transform:/);
+  // EINE Tint-Schicht: der Akzent-Fill sitzt am Indikator selbst; das ::before
+  // trägt nur noch den Specular-Highlight (kein zweiter Tint → keine matschige
+  // Kante der gleitenden Pille).
   assert.match(
     glass,
-    /\.nav-bottom__indicator::before\s*\{[\s\S]*?var\(--active-module-accent,\s*var\(--color-accent\)\)[\s\S]*?var\(--glass-bg\)/,
+    /\.nav-bottom__indicator\s*\{[\s\S]*?background:\s*color-mix\(in srgb,\s*var\(--active-module-accent,\s*var\(--color-accent\)\)/,
   );
+  assert.doesNotMatch(indicatorSurfaceGlass, /background:/);
   assert.match(
     glass,
-    /@media \(prefers-reduced-transparency: reduce\)[\s\S]*?\.nav-bottom__indicator::before\s*\{[\s\S]*?background:/,
+    /@media \(prefers-reduced-transparency: reduce\)[\s\S]*?\.nav-bottom__indicator\s*\{[\s\S]*?background:/,
   );
   assert.match(
     layout,

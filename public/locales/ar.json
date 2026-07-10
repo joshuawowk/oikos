@@ -58,6 +58,7 @@
         "recipes": "الوصفات",
         "more": "المزيد",
         "moreActiveLabel": "المزيد، {{section}} نشط",
+        "moreCatalogHint": "كل الوحدات. خصّص مفضّلاتك من الإعدادات.",
         "documents": "المستندات",
         "kitchen": "المطبخ",
         "kitchenGoLabel": "المطبخ، فتح {{section}}",
@@ -1780,7 +1781,8 @@
         "title": "بحث",
         "open": "فتح البحث",
         "placeholder": "بحث…",
-        "noResults": "لم يتم العثور على نتائج."
+        "noResults": "لم يتم العثور على نتائج.",
+        "error": "البحث غير متاح حاليًا."
     },
     "birthdays": {
         "inDays": "خلال {{days}} أيام",
