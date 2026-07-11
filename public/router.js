@@ -1339,6 +1339,9 @@ const SHORTCUTS = [
     document.getElementById('more-sheet-search')?.click();
   } },
   { key: 'n',   description: () => t('shortcuts.new'),     action: () => document.querySelector('.page-fab')?.click() },
+  { key: 'f',   description: () => t('shortcuts.searchCalendar'), action: () => {
+    if (location.pathname === '/calendar') document.querySelector('#cal-search')?.click();
+  } },
   { key: '?',   description: () => t('shortcuts.help'),    action: () => showHelpModal() },
   { key: 'g d', description: () => t('shortcuts.goDash'),  action: () => navigate('/') },
   { key: 'g t', description: () => t('shortcuts.goTasks'), action: () => navigate('/tasks') },
@@ -1361,6 +1364,9 @@ function initKeyboardShortcuts() {
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (document.activeElement?.isContentEditable) return;
     if (document.querySelector('.modal-overlay') && e.key !== 'Escape') return;
+    // Modifikatoren durchlassen: Cmd/Ctrl/Alt-Kombis (z. B. Cmd+F „Im Browser
+    // suchen", Cmd+N) gehören dem Browser/OS, nicht den Bare-Key-Shortcuts.
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     const key = e.key.toLowerCase();
 

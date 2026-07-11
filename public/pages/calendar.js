@@ -381,6 +381,14 @@ let state = {
 };
 let _container = null;
 
+// Termin-Suche (#471): datumsunabhängiges Finden über den FTS-Index. Der
+// Suchmodus blendet eine Leiste unter der Toolbar ein und ersetzt den Ansichts-
+// Body durch eine chronologische Trefferliste; Schließen stellt die Ansicht her.
+let searchActive  = false;
+let searchQuery   = '';
+let searchResults = [];
+let searchTotal   = 0;
+
 // --------------------------------------------------------
 // Datumshelfer
 // --------------------------------------------------------
@@ -976,6 +984,11 @@ function renderToolbar() {
     </div>
     <div class="page-toolbar__actions">
       ${holidayToggleHtml}
+      <button class="btn btn--icon cal-toolbar__search-btn" id="cal-search"
+              aria-label="${t('calendar.searchOpen')}" title="${t('calendar.searchOpen')}"
+              aria-expanded="false" aria-controls="cal-search-bar">
+        <i data-lucide="search" aria-hidden="true"></i>
+      </button>
       <div class="cal-toolbar__views" role="tablist" aria-label="${t('nav.calendar')}">
         ${VIEWS.map((v) => `
           <button class="cal-toolbar__view-btn ${v === state.view ? 'cal-toolbar__view-btn--active' : ''}"
@@ -997,6 +1010,7 @@ function renderToolbar() {
   bar.querySelector('#cal-next').addEventListener('click', () => navigate(1));
   bar.querySelector('#cal-today').addEventListener('click', goToday);
   bar.querySelector('#cal-add').addEventListener('click', () => openEventModal({ mode: 'create' }));
+  bar.querySelector('#cal-search').addEventListener('click', openCalendarSearch);
 
   bar.querySelectorAll('[data-layer]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1018,6 +1032,7 @@ function renderToolbar() {
     activeId: state.view,
     activeClass: 'cal-toolbar__view-btn--active',
     onChange: async (view) => {
+      if (searchActive) closeCalendarSearch({ restoreView: false });
       state.view = view;
       setSavedCalendarView(view);
       await reloadForView();
@@ -1055,6 +1070,7 @@ function getWeekNumber(dateStr) {
 }
 
 async function navigate(dir) {
+  if (searchActive) closeCalendarSearch({ restoreView: false });
   if (state.view === 'month') {
     state.cursor = addMonths(state.cursor, dir);
   } else if (state.view === 'week') {
@@ -1071,6 +1087,7 @@ async function navigate(dir) {
 }
 
 async function goToday() {
+  if (searchActive) closeCalendarSearch({ restoreView: false });
   state.cursor = state.today;
   await reloadForView();
   updateLabel();
@@ -1633,6 +1650,245 @@ function renderAgendaView(container) {
       if (ev) showEventPopup(ev, evEl);
     }
   });
+
+  // Tastaturaktivierung der als role="button" ausgezeichneten Zeilen (Enter/Space).
+  container.querySelector('#agenda-view').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const evEl = e.target.closest('.agenda-event');
+    if (!evEl) return;
+    e.preventDefault();
+    const ev = state.events.find((x) => x.id === parseInt(evEl.dataset.id, 10));
+    if (ev) showEventPopup(ev, evEl);
+  });
+}
+
+// --------------------------------------------------------
+// Termin-Suche (#471)
+// Datumsunabhängiges Finden über den FTS-Index (Titel/Beschreibung/Ort).
+// Eine Leiste unter der Toolbar; der Body zeigt eine chronologische Trefferliste
+// (Vergangenheit + Zukunft) mit „Heute"-Anker. Klick öffnet den Termin im Kontext.
+// --------------------------------------------------------
+
+function openCalendarSearch() {
+  if (searchActive) {
+    _container.querySelector('#cal-search-input')?.focus();
+    return;
+  }
+  const toolbar = _container.querySelector('#cal-toolbar');
+  if (!toolbar) return;
+  searchActive  = true;
+  searchQuery   = '';
+  searchResults = [];
+
+  const toggle = _container.querySelector('#cal-search');
+  toggle?.setAttribute('aria-expanded', 'true');
+  toggle?.classList.add('cal-toolbar__search-btn--active');
+
+  toolbar.insertAdjacentHTML('afterend', `
+    <div class="cal-search" id="cal-search-bar" role="search">
+      <i data-lucide="search" class="cal-search__icon" aria-hidden="true"></i>
+      <input type="search" class="cal-search__input" id="cal-search-input"
+             placeholder="${esc(t('calendar.searchPlaceholder'))}"
+             aria-label="${esc(t('calendar.searchPlaceholder'))}"
+             autocomplete="off" enterkeyhint="search" spellcheck="false">
+      <button class="btn btn--icon cal-search__close" id="cal-search-close"
+              aria-label="${esc(t('calendar.searchClose'))}" title="${esc(t('calendar.searchClose'))}">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+      <span id="cal-search-live" class="sr-only" role="status" aria-live="polite"></span>
+    </div>
+  `);
+
+  const bar   = _container.querySelector('#cal-search-bar');
+  const input = bar.querySelector('#cal-search-input');
+  if (window.lucide) lucide.createIcons({ el: bar });
+
+  renderCalendarSearchState('hint');
+
+  let timer = null;
+  input.addEventListener('input', () => {
+    const q = input.value;
+    clearTimeout(timer);
+    timer = setTimeout(() => runCalendarSearch(q), 220);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); closeCalendarSearch(); }
+  });
+  bar.querySelector('#cal-search-close').addEventListener('click', () => closeCalendarSearch());
+
+  input.focus();
+}
+
+function closeCalendarSearch({ restoreView = true } = {}) {
+  if (!searchActive) return;
+  searchActive  = false;
+  searchQuery   = '';
+  searchResults = [];
+  _container.querySelector('#cal-search-bar')?.remove();
+
+  const toggle = _container.querySelector('#cal-search');
+  toggle?.setAttribute('aria-expanded', 'false');
+  toggle?.classList.remove('cal-toolbar__search-btn--active');
+
+  if (restoreView) renderView();
+  toggle?.focus();
+}
+
+async function runCalendarSearch(raw) {
+  if (!searchActive) return;
+  const q = String(raw ?? '').trim();
+  searchQuery = q;
+
+  if (q.length < 2) {
+    searchResults = [];
+    searchTotal = 0;
+    renderCalendarSearchState('hint');
+    return;
+  }
+
+  renderCalendarSearchState('loading');
+  try {
+    const res = await api.get(`/calendar/search?q=${encodeURIComponent(q)}`);
+    // Verworfen, wenn die Suche zwischenzeitlich geschlossen oder weitergetippt wurde.
+    if (!searchActive || searchQuery !== q) return;
+    searchResults = res.data ?? [];
+    searchTotal = Number.isFinite(res.total) ? res.total : searchResults.length;
+    renderCalendarSearchState(searchResults.length ? 'results' : 'empty');
+  } catch (err) {
+    if (!searchActive || searchQuery !== q) return;
+    console.warn('[Calendar] Suche fehlgeschlagen:', err);
+    renderCalendarSearchState('error');
+  }
+}
+
+// Aktualisiert die persistente sr-only-Live-Region in der Suchleiste. Bewusst
+// getrennt von der sichtbaren Trefferliste, damit Screenreader Statuswechsel
+// zuverlässig ansagen (ein bei jedem Render neu erzeugtes role=status wird oft
+// nicht vorgelesen).
+function setSearchLive(message) {
+  const live = _container.querySelector('#cal-search-live');
+  if (live) live.textContent = message;
+}
+
+function calendarSearchCountLabel() {
+  return searchTotal > searchResults.length
+    ? t('calendar.searchCountCapped', { shown: searchResults.length, total: searchTotal })
+    : t('calendar.searchCount', { count: searchResults.length });
+}
+
+function renderCalendarSearchState(kind) {
+  const body = _container.querySelector('#cal-body');
+  if (!body) return;
+  body.replaceChildren();
+
+  if (kind === 'hint') {
+    body.insertAdjacentHTML('beforeend', `
+      <div class="cal-search-status">
+        <i data-lucide="search" class="cal-search-status__icon" aria-hidden="true"></i>
+        <p class="cal-search-status__text">${esc(t('calendar.searchHint'))}</p>
+      </div>`);
+    setSearchLive(t('calendar.searchHint'));
+  } else if (kind === 'loading') {
+    body.insertAdjacentHTML('beforeend', renderSkeletonList({ rows: 5, lines: 2 }));
+    setSearchLive(t('common.loading'));
+  } else if (kind === 'empty') {
+    body.insertAdjacentHTML('beforeend', `
+      <div class="cal-search-status">
+        <i data-lucide="calendar-search" class="cal-search-status__icon" aria-hidden="true"></i>
+        <p class="cal-search-status__text">${esc(t('calendar.searchEmpty', { query: searchQuery }))}</p>
+        <button class="btn btn--secondary" id="cal-search-empty-cta">${esc(t('calendar.newEvent'))}</button>
+      </div>`);
+    body.querySelector('#cal-search-empty-cta')?.addEventListener('click', () => openEventModal({ mode: 'create' }));
+    setSearchLive(t('calendar.searchEmpty', { query: searchQuery }));
+  } else if (kind === 'error') {
+    body.insertAdjacentHTML('beforeend', `
+      <div class="cal-search-status">
+        <i data-lucide="alert-triangle" class="cal-search-status__icon cal-search-status__icon--error" aria-hidden="true"></i>
+        <p class="cal-search-status__text">${esc(t('calendar.searchError'))}</p>
+        <button class="btn btn--secondary" id="cal-search-retry">${esc(t('common.retry'))}</button>
+      </div>`);
+    body.querySelector('#cal-search-retry')?.addEventListener('click', () => runCalendarSearch(searchQuery));
+    setSearchLive(t('calendar.searchError'));
+  } else if (kind === 'results') {
+    renderCalendarSearchResults(body);
+    setSearchLive(calendarSearchCountLabel());
+  }
+
+  if (window.lucide) lucide.createIcons({ el: body });
+}
+
+function renderCalendarSearchResults(body) {
+  // Treffer nach Tag gruppieren; der Endpoint liefert bereits chronologisch sortiert.
+  const groups = [];
+  const byDate = new Map();
+  for (const ev of searchResults) {
+    const d = localDate(ev.start_datetime);
+    if (!byDate.has(d)) {
+      const g = { date: d, events: [] };
+      byDate.set(d, g);
+      groups.push(g);
+    }
+    byDate.get(d).events.push(ev);
+  }
+
+  body.insertAdjacentHTML('beforeend', `
+    <div class="agenda-view cal-search-results" id="cal-search-results">
+      <p class="cal-search-results__count" aria-hidden="true">${esc(calendarSearchCountLabel())}</p>
+      ${groups.map(({ date, events }) => `
+        <div class="agenda-day" data-date="${esc(date)}">
+          <div class="agenda-day__header ${date === state.today ? 'agenda-day__header--today' : ''}">
+            <span class="agenda-day__date">${formatDate(date, { long: true })}</span>
+            <span class="agenda-day__weekday">${DAY_NAMES_LONG()[new Date(date + 'T00:00:00').getDay()]}</span>
+          </div>
+          ${events.map((ev) => renderAgendaEvent(ev, date)).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `);
+
+  const results = body.querySelector('#cal-search-results');
+  stagger(results.querySelectorAll('.agenda-event'));
+
+  const activateResult = (evEl) => {
+    const ev = searchResults.find((x) => String(x.id) === evEl.dataset.id);
+    if (ev) openFoundEvent(ev);
+  };
+  results.addEventListener('click', (e) => {
+    const evEl = e.target.closest('.agenda-event');
+    if (evEl) activateResult(evEl);
+  });
+  results.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const evEl = e.target.closest('.agenda-event');
+    if (!evEl) return;
+    e.preventDefault();
+    activateResult(evEl);
+  });
+
+  // Auf den nächsten kommenden Treffer scrollen — Vergangenes bleibt darüber
+  // erreichbar, aber der Blick startet beim relevantesten (heute/zukünftig).
+  const upcoming = groups.find((g) => g.date >= state.today);
+  if (upcoming) {
+    results.querySelector(`.agenda-day[data-date="${CSS.escape(upcoming.date)}"]`)
+      ?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
+}
+
+// Öffnet einen gefundenen Termin im Kontext: springt in die Tagesansicht des
+// Termindatums und zeigt das Detail-Popup (Fallback: Bearbeiten-Modal).
+async function openFoundEvent(ev) {
+  const date = localDate(ev.start_datetime);
+  closeCalendarSearch({ restoreView: false });
+  await switchToDayView(date);
+
+  const full = state.events.find((e) => e.id === ev.id) || ev;
+  const chip = _container.querySelector(`[data-id="${CSS.escape(String(ev.id))}"]`);
+  if (chip) {
+    chip.scrollIntoView({ block: 'center', behavior: 'instant' });
+    showEventPopup(full, chip);
+  } else {
+    openEventModal({ mode: 'edit', event: full });
+  }
 }
 
 export const __test = {
@@ -1676,7 +1932,8 @@ function renderAgendaEvent(ev, dayStr) {
   const calLabelColor = ev.cal_color || ev.color || displayColor;
   const assignedUsers = ev.assigned_users ?? [];
   return `
-    <div class="agenda-event" data-id="${ev.id}">
+    <div class="agenda-event" data-id="${ev.id}" role="button" tabindex="0"
+         aria-label="${esc(ev.title)}, ${esc(timeStr)}">
       <div class="agenda-event__color" style="background:${esc(displayBg)};"></div>
       <div class="agenda-event__body">
         <div class="agenda-event__title">${eventIconHtml(ev.icon)}<span>${esc(ev.title)}</span>${(ev.recurrence_rule || ev.is_recurring_instance) ? calendarRepeatIconHtml() : ''}</div>

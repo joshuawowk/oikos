@@ -18,6 +18,7 @@ import * as holidays from '../services/holidays.js';
 import { requireAdmin } from '../auth.js';
 import { str, color, datetime, rrule, collectErrors, MAX_TITLE, MAX_TEXT, DATE_RE, DATETIME_RE } from '../middleware/validate.js';
 import { expandRecurringEvents, getUpcomingEvents } from '../services/calendar-events.js';
+import { buildMatchQuery } from '../services/search.js';
 import {
   StorageError,
   cleanupStagedUpload,
@@ -312,6 +313,80 @@ router.get('/upcoming', (req, res) => {
       .map(serializeEvent);
 
     res.json({ data: expanded });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// GET /api/v1/calendar/search?q=<query>
+// Termin-Suche über den FTS-Index (Titel, Beschreibung, Ort) — datumsunabhängig,
+// über den geladenen Zeitraum hinaus (#471). Liefert dieselbe serialisierte
+// Event-Form wie GET / (inkl. cal_name/assigned_users), damit die Agenda-Zeilen
+// direkt gerendert werden können. Sichtbarkeit deckt sich mit der Listenansicht:
+// alle Familientermine, ICS nur aus geteilten/eigenen Abos. Vor /:id registriert.
+// Response: { data: Event[] }
+// --------------------------------------------------------
+router.get('/search', (req, res) => {
+  try {
+    const match = buildMatchQuery(req.query.q ?? '');
+    if (!match) return res.json({ data: [], total: 0 });
+
+    const userId = getUserId(req);
+    const LIMIT  = 100;
+    // Sichtbarkeit deckt sich mit GET / (alle Familientermine; ICS nur aus
+    // geteilten/eigenen Abos). Als Fragment wiederverwendet für Count + Liste.
+    const whereSql = `
+      s.entity = 'event' AND s.search_index MATCH @match
+      AND (
+        e.external_source <> 'ics'
+        OR e.subscription_id IN (
+          SELECT id FROM ics_subscriptions WHERE shared = 1 OR created_by = @userId
+        )
+      )`;
+
+    const total = db.get().prepare(`
+      SELECT COUNT(*) AS n
+      FROM search_index s
+      JOIN calendar_events e ON e.id = s.entity_id
+      WHERE ${whereSql}
+    `).get({ match, userId }).n;
+
+    const rows = db.get().prepare(`
+      SELECT e.*,
+             u_assigned.display_name AS assigned_name,
+             u_assigned.avatar_color AS assigned_color,
+             u_created.display_name  AS creator_name,
+             ec.name  AS cal_name,
+             ec.color AS cal_color,
+             ${ASSIGNED_USERS_SQL}
+      FROM search_index s
+      JOIN calendar_events e ON e.id = s.entity_id
+      LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
+      LEFT JOIN users u_created  ON u_created.id  = e.created_by
+      LEFT JOIN external_calendars ec ON ec.id = e.calendar_ref_id
+      WHERE ${whereSql}
+      ORDER BY e.start_datetime ASC
+      LIMIT @limit
+    `).all({ match, userId, limit: LIMIT });
+
+    // Wiederkehrende Treffer auf die nächste Instanz ab heute auflösen (statt des
+    // Serienstarts, der Jahre zurückliegen kann). Findet die Serie im 1-Jahres-
+    // Fenster keine kommende Instanz, bleibt der Master-Termin unverändert (#471).
+    const today  = new Date().toISOString().slice(0, 10);
+    // 2-Jahres-Fenster: fängt auch Serien, deren nächste Instanz mehr als ein Jahr
+    // voraus liegt (z. B. mehrjährige Intervalle). Findet sich keine, bleibt der Master.
+    const future = new Date(Date.now() + 730 * 86400000).toISOString().slice(0, 10);
+    const resolved = rows.map((row) => {
+      if (!row.recurrence_rule) return row;
+      return expandRecurringEvents([row], today, future)[0] || row;
+    });
+    // Nach der Auflösung neu chronologisch sortieren, damit die Frontend-Gruppierung
+    // die tatsächlichen (nicht die Master-)Daten in Reihenfolge zeigt.
+    resolved.sort((a, b) => String(a.start_datetime).localeCompare(String(b.start_datetime)));
+
+    res.json({ data: resolved.map(serializeEvent), total });
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: 'Interner Fehler', code: 500 });

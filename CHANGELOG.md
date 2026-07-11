@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-07-11
+
+### Added
+- **Calendar search (#471):** a magnifier button in the calendar toolbar — or the new `f` keyboard shortcut — opens an in-context search that finds appointments across the whole timeline, past and future, even when you don't know the date. It matches by title, location, and notes, lists results grouped by date (anchored on the next upcoming hit), resolves recurring events to their next occurrence, and jumps straight to the day and opens the event when you pick a result. Result rows are fully keyboard-operable, and the count shows "N of M" when a very large result set is capped.
+
+### Changed
+- Global search now also finds calendar events by their **location**, and the whole search index is **accent-insensitive**: "muller" finds "Müller" and "strasse" finds "Straße". Calendar events in global search are now family-visible (matching the calendar list) rather than limited to the event's creator.
+
+### Fixed
+- Keyboard shortcuts no longer intercept Cmd/Ctrl/Alt key combinations, so browser and OS shortcuts such as Cmd+F ("find in page") keep working as expected.
+
 ## [1.9.0] - 2026-07-11
 
 ### Added
