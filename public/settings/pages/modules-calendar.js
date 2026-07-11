@@ -1,6 +1,30 @@
 import { api } from '/api.js';
 import { formatDate, formatTime, t } from '/i18n.js';
 import { esc } from '/utils/html.js';
+import { weekStartIndex, weekdayOrder } from '/utils/date.js';
+
+// Wochenstart-Optionen; Labels aus dem bestehenden Kalender-i18n (kein neuer
+// Übersetzungsbedarf für die Wochentagsnamen).
+const WEEK_START_OPTIONS = [
+  { value: 'monday', labelKey: 'calendar.dayLongMonday' },
+  { value: 'sunday', labelKey: 'calendar.dayLongSunday' },
+  { value: 'saturday', labelKey: 'calendar.dayLongSaturday' },
+];
+const VALID_WEEK_STARTS = WEEK_START_OPTIONS.map((o) => o.value);
+const DAY_NAMES_SHORT = () => [
+  t('calendar.dayShortSunday'), t('calendar.dayShortMonday'), t('calendar.dayShortTuesday'),
+  t('calendar.dayShortWednesday'), t('calendar.dayShortThursday'), t('calendar.dayShortFriday'),
+  t('calendar.dayShortSaturday'),
+];
+
+// Sieben Mini-Zellen in der Reihenfolge des gewählten Wochenstarts; die erste
+// Zelle ist hervorgehoben, damit die Wahl sofort sichtbar wird.
+function weekStartPreviewHtml(weekStart) {
+  const names = DAY_NAMES_SHORT();
+  return weekdayOrder(weekStartIndex(weekStart)).map((idx, pos) => (
+    `<span class="week-start-preview__cell${pos === 0 ? ' week-start-preview__cell--start' : ''}">${esc(names[idx])}</span>`
+  )).join('');
+}
 
 function formatSyncTime(value) {
   if (!value) return t('settings.holidayNeverSynced');
@@ -19,6 +43,9 @@ function durationOptionLabel(minutes) {
 
 function renderPage(container, preferences) {
   const currentDuration = Number(preferences.calendar_default_duration) || 60;
+  const currentWeekStart = VALID_WEEK_STARTS.includes(preferences.week_start)
+    ? preferences.week_start
+    : 'monday';
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
     <section class="settings-section">
@@ -27,17 +54,32 @@ function renderPage(container, preferences) {
         <h3 class="settings-card__title">${t('settings.calendarDurationTitle')}</h3>
         <p class="settings-card-description">${t('settings.calendarDurationDescription')}</p>
 
-        <form class="settings-form settings-form--compact" id="calendar-events-form" novalidate autocomplete="off">
-          <div class="form-group">
-            <label class="form-label" for="calendar-default-duration">${t('settings.calendarDurationLabel')}</label>
-            <select class="form-input" id="calendar-default-duration">
-              ${DURATION_OPTIONS.map((m) => `<option value="${m}"${m === currentDuration ? ' selected' : ''}>${esc(durationOptionLabel(m))}</option>`).join('')}
-            </select>
-          </div>
-          <div class="settings-form-actions">
-            <button type="submit" class="btn btn--primary">${t('settings.calendarDurationSaveBtn')}</button>
-          </div>
-        </form>
+        <div class="form-group">
+          <label class="form-label" for="calendar-default-duration">${t('settings.calendarDurationLabel')}</label>
+          <select class="form-input" id="calendar-default-duration">
+            ${DURATION_OPTIONS.map((m) => `<option value="${m}"${m === currentDuration ? ' selected' : ''}>${esc(durationOptionLabel(m))}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h2 class="settings-section__title">${t('settings.calendarSectionView')}</h2>
+      <div class="settings-card">
+        <h3 class="settings-card__title">${t('settings.weekStartTitle')}</h3>
+        <p class="settings-card-description">${t('settings.weekStartDescription')}</p>
+
+        <div class="theme-toggle" id="week-start-toggle" role="group" aria-label="${t('settings.weekStartTitle')}">
+          ${WEEK_START_OPTIONS.map((o) => `
+            <button type="button" class="theme-toggle__btn ${o.value === currentWeekStart ? 'theme-toggle__btn--active' : ''}"
+              data-week-start="${o.value}" aria-pressed="${o.value === currentWeekStart}">
+              ${t(o.labelKey)}
+            </button>`).join('')}
+        </div>
+
+        <div class="week-start-preview" id="week-start-preview" aria-hidden="true">
+          ${weekStartPreviewHtml(currentWeekStart)}
+        </div>
       </div>
     </section>
 
@@ -235,17 +277,71 @@ function holidayPreferenceData(container, discoveryState) {
   };
 }
 
+function bindWeekStart(container, preferences) {
+  const toggle = container.querySelector('#week-start-toggle');
+  const preview = container.querySelector('#week-start-preview');
+  if (!toggle) return;
+
+  let current = VALID_WEEK_STARTS.includes(preferences.week_start)
+    ? preferences.week_start
+    : 'monday';
+
+  const paint = (value) => {
+    toggle.querySelectorAll('.theme-toggle__btn').forEach((btn) => {
+      const active = btn.dataset.weekStart === value;
+      btn.classList.toggle('theme-toggle__btn--active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+    if (preview) {
+      preview.replaceChildren();
+      preview.insertAdjacentHTML('beforeend', weekStartPreviewHtml(value));
+    }
+  };
+
+  toggle.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-week-start]');
+    if (!button) return;
+    const value = button.dataset.weekStart;
+    if (value === current || !VALID_WEEK_STARTS.includes(value)) return;
+
+    const previous = current;
+    current = value;
+    paint(value); // optimistisch – Klick fühlt sich sofort an
+    try {
+      await api.put('/preferences', { week_start: value });
+      // Parität zu date-format-changed/time-format-changed: erlaubt offenen
+      // Ansichten, den Wochenstart ohne Neuladen zu übernehmen.
+      window.dispatchEvent(new CustomEvent('week-start-changed', { detail: { weekStart: value } }));
+      window.yuvomi?.showToast(t('settings.weekStartSaved'), 'success');
+    } catch (error) {
+      current = previous;
+      paint(previous); // Rollback bei Fehler
+      window.yuvomi?.showToast(error.message || t('common.errorGeneric'), 'danger');
+    }
+  });
+}
+
 async function bindEvents(container, preferences) {
-  const eventsForm = container.querySelector('#calendar-events-form');
-  eventsForm?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const select = container.querySelector('#calendar-default-duration');
-    const minutes = Number(select?.value) || 60;
+  bindWeekStart(container, preferences);
+
+  // Instant-Save wie beim Wochenstart – ein einzelner Wert braucht keinen
+  // separaten Speichern-Button (vereinheitlicht die beiden Ansicht-Controls).
+  const durationSelect = container.querySelector('#calendar-default-duration');
+  let persistedDuration = durationSelect?.value;
+  durationSelect?.addEventListener('change', async () => {
+    const minutes = Number(durationSelect.value) || 60;
+    const previous = persistedDuration;
+    persistedDuration = durationSelect.value;
+    durationSelect.disabled = true;
     try {
       await api.put('/preferences', { calendar_default_duration: minutes });
       window.yuvomi?.showToast(t('settings.calendarDurationSaved'), 'success');
     } catch (error) {
+      persistedDuration = previous;
+      durationSelect.value = previous; // Rollback bei Fehler
       window.yuvomi?.showToast(error.message || t('common.errorGeneric'), 'danger');
+    } finally {
+      if (durationSelect.isConnected) durationSelect.disabled = false;
     }
   });
 

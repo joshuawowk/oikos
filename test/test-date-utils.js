@@ -8,7 +8,44 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { shiftEndDateKey, isEndBeforeStart } = await import('../public/utils/date.js');
+const { shiftEndDateKey, isEndBeforeStart, weekStartIndex, weekdayOrder } = await import('../public/utils/date.js');
+
+// --- weekStartIndex: Präferenz → getDay()-Index ---
+
+test('weekStartIndex: monday/sunday/saturday → 1/0/6', () => {
+  assert.equal(weekStartIndex('monday'), 1);
+  assert.equal(weekStartIndex('sunday'), 0);
+  assert.equal(weekStartIndex('saturday'), 6);
+});
+
+test('weekStartIndex: unbekannter/leerer Wert fällt auf Montag (1) zurück', () => {
+  assert.equal(weekStartIndex('friday'), 1);
+  assert.equal(weekStartIndex(undefined), 1);
+  assert.equal(weekStartIndex(null), 1);
+});
+
+// --- weekdayOrder: 7 Indizes in Anzeigereihenfolge ---
+
+test('weekdayOrder: Montag-Start → [1,2,3,4,5,6,0]', () => {
+  assert.deepEqual(weekdayOrder('monday'), [1, 2, 3, 4, 5, 6, 0]);
+});
+
+test('weekdayOrder: Sonntag-Start → [0,1,2,3,4,5,6]', () => {
+  assert.deepEqual(weekdayOrder('sunday'), [0, 1, 2, 3, 4, 5, 6]);
+});
+
+test('weekdayOrder: Samstag-Start → [6,0,1,2,3,4,5]', () => {
+  assert.deepEqual(weekdayOrder('saturday'), [6, 0, 1, 2, 3, 4, 5]);
+});
+
+test('weekdayOrder: akzeptiert auch einen Index und ist immer eine Permutation von 0–6', () => {
+  assert.deepEqual(weekdayOrder(6), [6, 0, 1, 2, 3, 4, 5]);
+  assert.deepEqual([...weekdayOrder('monday')].sort((a, b) => a - b), [0, 1, 2, 3, 4, 5, 6]);
+});
+
+test('weekdayOrder: Default (kein Argument) ist Montag', () => {
+  assert.deepEqual(weekdayOrder(), [1, 2, 3, 4, 5, 6, 0]);
+});
 
 // --- shiftEndDateKey: Enddatum zieht um dieselbe Tagesdifferenz mit ---
 

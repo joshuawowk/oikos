@@ -28,6 +28,12 @@ const VALID_DATE_FORMATS = ['mdy', 'dmy', 'ymd', 'mdy_dot', 'dmy_dot', 'dmy_slas
 const DEFAULT_DATE_FORMAT = 'dmy';
 const VALID_TIME_FORMATS = ['24h', '12h'];
 
+// Wochenstart (haushaltweit): mit welchem Wochentag Kalender-Ansichten beginnen.
+// Montag = bisheriges Fixverhalten; Sonntag/Samstag auf mehrfachen Nutzerwunsch
+// (#484, #465). Als Klartext gespeichert – der Client mappt auf den getDay()-Index.
+const VALID_WEEK_STARTS = ['monday', 'sunday', 'saturday'];
+const DEFAULT_WEEK_START = 'monday';
+
 // Region ist nur ein Anzeige-Hinweis (Locale-Code wie "fr-FR" oder "custom").
 // Der Client fällt bei unbekanntem Wert ohnehin auf detectRegion() zurück, daher
 // genügt eine Formprüfung statt einer festen Liste.
@@ -218,6 +224,7 @@ router.get('/', (req, res) => {
     const currency = cfgGet('currency') ?? DEFAULT_CURRENCY;
     const dateFormat = VALID_DATE_FORMATS.includes(cfgGet('date_format')) ? cfgGet('date_format') : DEFAULT_DATE_FORMAT;
     const timeFormat = VALID_TIME_FORMATS.includes(cfgGet('time_format')) ? cfgGet('time_format') : DEFAULT_TIME_FORMAT;
+    const weekStart = VALID_WEEK_STARTS.includes(cfgGet('week_start')) ? cfgGet('week_start') : DEFAULT_WEEK_START;
     const appName = cfgGet('app_name') ?? DEFAULT_APP_NAME;
     const dashboardWidgets = parseWidgetConfig(cfgGet('dashboard_widgets'));
     const disabledModules = parseDisabledModules(cfgGet('disabled_modules'));
@@ -230,6 +237,7 @@ router.get('/', (req, res) => {
         currency,
         date_format: dateFormat,
         time_format: timeFormat,
+        week_start: weekStart,
         region: cfgGet('region') || null,
         app_name: appName,
         dashboard_widgets: dashboardWidgets,
@@ -273,7 +281,7 @@ router.get('/', (req, res) => {
 
 router.put('/', (req, res) => {
   try {
-    const { visible_meal_types, currency, date_format, time_format, region, app_name, dashboard_widgets, disabled_modules, module_order, mobile_nav_order, housekeeping_payment_tasks, calendar_default_duration, health_cycle_enabled, rewards_require_approval, weather_provider, weather_lat, weather_lon, weather_city, weather_units, weather_auto_locate, weather_user, holiday_country, holiday_subdivision, holiday_show_public, holiday_show_school, holiday_public_color, holiday_school_color } = req.body;
+    const { visible_meal_types, currency, date_format, time_format, week_start, region, app_name, dashboard_widgets, disabled_modules, module_order, mobile_nav_order, housekeeping_payment_tasks, calendar_default_duration, health_cycle_enabled, rewards_require_approval, weather_provider, weather_lat, weather_lon, weather_city, weather_units, weather_auto_locate, weather_user, holiday_country, holiday_subdivision, holiday_show_public, holiday_show_school, holiday_public_color, holiday_school_color } = req.body;
 
     if (visible_meal_types !== undefined) {
       if (!Array.isArray(visible_meal_types)) {
@@ -305,6 +313,14 @@ router.put('/', (req, res) => {
         return res.status(400).json({ error: `Invalid time format. Allowed: ${VALID_TIME_FORMATS.join(', ')}`, code: 400 });
       }
       cfgSet('time_format', time_format);
+    }
+
+    // Wochenstart — haushaltweit, von jedem Mitglied änderbar (wie date/time_format).
+    if (week_start !== undefined) {
+      if (!VALID_WEEK_STARTS.includes(week_start)) {
+        return res.status(400).json({ error: `Ungültiger Wochenstart. Erlaubt: ${VALID_WEEK_STARTS.join(', ')}`, code: 400 });
+      }
+      cfgSet('week_start', week_start);
     }
 
     // Reine Anzeige-Hilfe: welche Region-Vorlage der Nutzer gewählt hat. Nötig,
@@ -569,6 +585,7 @@ router.put('/', (req, res) => {
     const savedCurrency = cfgGet('currency') ?? DEFAULT_CURRENCY;
     const savedDateFormat = VALID_DATE_FORMATS.includes(cfgGet('date_format')) ? cfgGet('date_format') : DEFAULT_DATE_FORMAT;
     const savedTimeFormat = VALID_TIME_FORMATS.includes(cfgGet('time_format')) ? cfgGet('time_format') : DEFAULT_TIME_FORMAT;
+    const savedWeekStart = VALID_WEEK_STARTS.includes(cfgGet('week_start')) ? cfgGet('week_start') : DEFAULT_WEEK_START;
     const savedAppName = cfgGet('app_name') ?? DEFAULT_APP_NAME;
     const savedWidgets = parseWidgetConfig(cfgGet('dashboard_widgets'));
     const savedDisabledModules = parseDisabledModules(cfgGet('disabled_modules'));
@@ -582,6 +599,7 @@ router.put('/', (req, res) => {
         currency: savedCurrency,
         date_format: savedDateFormat,
         time_format: savedTimeFormat,
+        week_start: savedWeekStart,
         region: cfgGet('region') || null,
         app_name: savedAppName,
         dashboard_widgets: savedWidgets,

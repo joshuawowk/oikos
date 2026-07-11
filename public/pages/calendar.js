@@ -10,7 +10,7 @@ import { openModal as openSharedModal, closeModal, advancedSection } from '/comp
 import { stagger } from '/utils/ux.js';
 import { t, formatDate as formatPreferredDate, formatTime, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput } from '/i18n.js';
 import { esc, fmtLocation } from '/utils/html.js';
-import { shiftEndDateKey, isEndBeforeStart } from '/utils/date.js';
+import { shiftEndDateKey, isEndBeforeStart, weekStartIndex, weekdayOrder } from '/utils/date.js';
 import { getReadableTextColor } from '/utils/color.js';
 import { refresh as refreshReminders } from '/reminders.js';
 import { parseRemindAtAsUtc } from '/utils/reminder-offset.js';
@@ -374,6 +374,7 @@ let state = {
   rangeTo:       '',
   holidays:      [],       // cached entries from holiday_cache
   holidayPrefs:  {},       // subset of /preferences
+  weekStart:     1,        // getDay()-Index des Wochenstarts (0=So,1=Mo,6=Sa)
   documentUploadBackend: 'local',
   layerHolidays: true,     // toggle for public holiday layer
   layerSchool:   true,     // toggle for school holiday layer
@@ -476,11 +477,12 @@ function addDays(dateStr, n) {
   return isoDate(d);
 }
 
-function getMondayOf(dateStr) {
-  const d   = new Date(dateStr + 'T00:00:00');
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setDate(d.getDate() + diff);
+// Erster Tag der Woche, die `dateStr` enthält, gemäß haushaltweitem Wochenstart
+// (state.weekStart als getDay()-Index). Standard Montag – wie zuvor getMondayOf.
+function startOfWeekOf(dateStr, weekStart = state.weekStart) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const diff = (d.getDay() - weekStart + 7) % 7;
+  d.setDate(d.getDate() - diff);
   return isoDate(d);
 }
 
@@ -637,8 +639,8 @@ function getMonthRange(dateStr) {
   const month = d.getMonth();
   // Start des Monats, dann bis auf den Montag zurückgehen (Kalenderraster)
   const firstOfMonth = new Date(year, month, 1);
-  let startOffset = firstOfMonth.getDay() - 1; // Montag = 0
-  if (startOffset < 0) startOffset = 6;        // Sonntag → 6
+  // Bis zum gewählten Wochenstart zurückgehen (Kalenderraster).
+  const startOffset = (firstOfMonth.getDay() - state.weekStart + 7) % 7;
   const gridStart = new Date(firstOfMonth);
   gridStart.setDate(gridStart.getDate() - startOffset);
   const from = isoDate(gridStart);
@@ -648,8 +650,8 @@ function getMonthRange(dateStr) {
 }
 
 function getWeekRange(dateStr) {
-  const monday = getMondayOf(dateStr);
-  return { from: monday, to: addDays(monday, 6) };
+  const weekStart = startOfWeekOf(dateStr);
+  return { from: weekStart, to: addDays(weekStart, 6) };
 }
 
 function getAgendaRange(dateStr) {
@@ -917,6 +919,7 @@ export async function render(container, { user }) {
     api.get('/documents/meta/options').catch(() => ({ data: {} })),
   ]);
   state.holidayPrefs  = prefsRes.data ?? {};
+  state.weekStart     = weekStartIndex(prefsRes.data?.week_start);
   state.defaultDuration = Number(prefsRes.data?.calendar_default_duration) || 60;
   state.documentUploadBackend = documentOptionsRes.data?.active_upload_backend ?? 'local';
   state.layerHolidays = localStorage.getItem(LAYER_HOLIDAYS_KEY) !== 'false';
@@ -1214,9 +1217,8 @@ function renderMonthView(container) {
 
   // Erster Tag des Monats
   const firstDay  = new Date(year, month, 1);
-  // Montag-basiert: 0=Mo … 6=So
-  let startOffset = firstDay.getDay() - 1;
-  if (startOffset < 0) startOffset = 6;
+  // Bis zum gewählten Wochenstart zurückgehen.
+  const startOffset = (firstDay.getDay() - state.weekStart + 7) % 7;
 
   // 42 Tage anzeigen (6 Wochen)
   const startDate = new Date(firstDay);
@@ -1232,7 +1234,7 @@ function renderMonthView(container) {
   container.insertAdjacentHTML('beforeend', `
     <div class="month-view">
       <div class="month-weekdays">
-        ${[t('calendar.dayShortMonday'),t('calendar.dayShortTuesday'),t('calendar.dayShortWednesday'),t('calendar.dayShortThursday'),t('calendar.dayShortFriday'),t('calendar.dayShortSaturday'),t('calendar.dayShortSunday')].map((n) => `<div class="month-weekday">${n}</div>`).join('')}
+        ${weekdayOrder(state.weekStart).map((idx) => `<div class="month-weekday">${DAY_NAMES_SHORT()[idx]}</div>`).join('')}
       </div>
       <div class="month-grid" id="month-grid">
         ${days.map(({ date, inMonth }) => renderMonthDay(date, inMonth)).join('')}
@@ -1314,8 +1316,8 @@ function renderWeekView(container) {
   const days = isMobile
     ? Array.from({ length: 3 }, (_, i) => addDays(state.cursor, i - 1))
     : (() => {
-        const monday = getMondayOf(state.cursor);
-        return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+        const weekStart = startOfWeekOf(state.cursor);
+        return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
       })();
   const colCount = days.length;
 

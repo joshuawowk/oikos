@@ -131,6 +131,12 @@ const STUBS = {
       if (startTime && endTime) return endTime < startTime;
       return false;
     };
+    export const WEEK_START_INDEX = { monday: 1, sunday: 0, saturday: 6 };
+    export const weekStartIndex = (value) => WEEK_START_INDEX[value] ?? 1;
+    export const weekdayOrder = (weekStart = 1) => {
+      const start = typeof weekStart === 'number' ? weekStart : weekStartIndex(weekStart);
+      return Array.from({ length: 7 }, (_, i) => (start + i) % 7);
+    };
   `,
 };
 

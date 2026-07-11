@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-07-11
+
+### Added
+- **Selectable week start (#484, #465).** Settings → Modules → Calendar → View now lets the household choose whether the week begins on Monday, Sunday, or Saturday. The month grid, week view, and their navigation all follow the choice; a segmented control shows a live weekday-order preview and saves instantly. The displayed ISO week number stays Monday-based, per ISO 8601.
+
+### Changed
+- The calendar's default appointment duration now saves instantly when you pick a value, consistent with the new week-start control — the separate "Save" button is gone.
+
+### Fixed
+- The segmented controls in Settings (theme switch and week start) now show a visible keyboard focus ring for keyboard and assistive-technology users.
+
 ## [1.11.4] - 2026-07-11
 
 ### Fixed

@@ -398,6 +398,7 @@ test('module-specific settings leaves only reference their owned preferences and
       ],
       preferences: [
         'calendar_default_duration',
+        'week_start',
         'holiday_country',
         'holiday_subdivision',
         'holiday_show_public',
