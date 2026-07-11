@@ -221,7 +221,8 @@ const ATTACHMENT_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 
 const CALENDAR_VIEW_STORAGE_KEY = 'yuvomi:calendar:view';
 const LEGACY_CALENDAR_VIEW_STORAGE_KEY = 'yuvomi-calendar-view';
 const LAYER_HOLIDAYS_KEY = 'yuvomi:calendar:layer:holidays';
-const LAYER_SCHOOL_KEY   = 'yuvomi:calendar:layer:school';
+const LAYER_SCHOOL_KEY    = 'yuvomi:calendar:layer:school';
+const ASSIGNED_TO_ME_KEY  = 'yuvomi:calendar:assignedToMe';
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const HOUR_HEIGHT = 56; // px pro Stunde in Wochen-/Tagesansicht
@@ -378,6 +379,8 @@ let state = {
   layerSchool:   true,     // toggle for school holiday layer
   offlineSince:  null,     // Date des letzten Cache-Stands, wenn offline bedient
   defaultDuration: 60,     // Standard-Termindauer (Minuten) aus den Präferenzen
+  currentUserId: null,     // eigene User-ID für „Mir zugewiesen"-Filter
+  assignedToMe:  false,    // nur Termine/Aufgaben zeigen, die mir zugewiesen sind
 };
 let _container = null;
 
@@ -703,13 +706,24 @@ function buildDayIndex() {
   _dayIndex.active = true;
 }
 
+/**
+ * True, wenn der „Mir zugewiesen"-Filter aus ist oder das Element der eigenen
+ * User-ID zugewiesen ist. Wird auf Termine und Kalender-Aufgaben angewandt.
+ */
+function belongsToMe(item) {
+  if (!state.assignedToMe || state.currentUserId == null) return true;
+  return (item.assigned_users ?? []).some((u) => u.id === state.currentUserId);
+}
+
 function eventsOnDay(dateStr) {
-  if (_dayIndex.active) return _dayIndex.events.get(dateStr) ?? [];
-  return state.events.filter((e) => {
-    const start = localDate(e.start_datetime);
-    const end   = e.end_datetime ? localDate(e.end_datetime) : start;
-    return start <= dateStr && end >= dateStr;
-  });
+  const list = _dayIndex.active
+    ? (_dayIndex.events.get(dateStr) ?? [])
+    : state.events.filter((e) => {
+        const start = localDate(e.start_datetime);
+        const end   = e.end_datetime ? localDate(e.end_datetime) : start;
+        return start <= dateStr && end >= dateStr;
+      });
+  return state.assignedToMe ? list.filter(belongsToMe) : list;
 }
 
 /** True, wenn Start- und Enddatum auf verschiedene Kalendertage fallen. */
@@ -753,8 +767,10 @@ function filterTasksForCalendar(tasks) {
 
 /** Tasks, die an einem bestimmten Tag fällig sind. */
 function tasksOnDay(dateStr) {
-  if (_dayIndex.active) return _dayIndex.tasks.get(dateStr) ?? [];
-  return state.tasks.filter((t) => t.due_date === dateStr);
+  const list = _dayIndex.active
+    ? (_dayIndex.tasks.get(dateStr) ?? [])
+    : state.tasks.filter((t) => t.due_date === dateStr);
+  return state.assignedToMe ? list.filter(belongsToMe) : list;
 }
 
 /** Holiday entries that overlap a given date (respects layer toggles). */
@@ -905,6 +921,8 @@ export async function render(container, { user }) {
   state.documentUploadBackend = documentOptionsRes.data?.active_upload_backend ?? 'local';
   state.layerHolidays = localStorage.getItem(LAYER_HOLIDAYS_KEY) !== 'false';
   state.layerSchool   = localStorage.getItem(LAYER_SCHOOL_KEY)   !== 'false';
+  state.currentUserId = user?.id ?? null;
+  state.assignedToMe  = localStorage.getItem(ASSIGNED_TO_ME_KEY) === '1';
 
   renderToolbar();
   renderView();
@@ -984,6 +1002,14 @@ function renderToolbar() {
     </div>
     <div class="page-toolbar__actions">
       ${holidayToggleHtml}
+      ${state.users.length > 1 && state.currentUserId != null ? `
+        <button class="cal-toolbar__layer-btn cal-toolbar__mine-btn ${state.assignedToMe ? 'cal-toolbar__layer-btn--active' : ''}"
+                id="cal-assigned-me" aria-pressed="${state.assignedToMe ? 'true' : 'false'}"
+                title="${t('calendar.assignedToMe')}" style="--layer-color:var(--module-calendar)">
+          <i data-lucide="user" class="icon-sm" aria-hidden="true"></i>
+          <span>${t('calendar.assignedToMe')}</span>
+        </button>
+      ` : ''}
       <button class="btn btn--icon cal-toolbar__search-btn" id="cal-search"
               aria-label="${t('calendar.searchOpen')}" title="${t('calendar.searchOpen')}"
               aria-expanded="false" aria-controls="cal-search-bar">
@@ -1011,6 +1037,15 @@ function renderToolbar() {
   bar.querySelector('#cal-today').addEventListener('click', goToday);
   bar.querySelector('#cal-add').addEventListener('click', () => openEventModal({ mode: 'create' }));
   bar.querySelector('#cal-search').addEventListener('click', openCalendarSearch);
+
+  bar.querySelector('#cal-assigned-me')?.addEventListener('click', (e) => {
+    state.assignedToMe = !state.assignedToMe;
+    try { localStorage.setItem(ASSIGNED_TO_ME_KEY, state.assignedToMe ? '1' : '0'); } catch {}
+    const btn = e.currentTarget;
+    btn.classList.toggle('cal-toolbar__layer-btn--active', state.assignedToMe);
+    btn.setAttribute('aria-pressed', String(state.assignedToMe));
+    renderView();
+  });
 
   bar.querySelectorAll('[data-layer]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1941,11 +1976,23 @@ function renderAgendaEvent(ev, dayStr) {
           <span class="calendar-meta-item">${calendarMetaIconHtml('clock')}<span>${esc(timeStr)}</span></span>
           ${ev.location ? `<span class="calendar-meta-item">${calendarMetaIconHtml('map-pin')}<span>${esc(fmtLocation(ev.location))}</span></span>` : ''}
           ${ev.cal_name ? `<span class="event-cal-label" style="--cal-color:${esc(calLabelColor)}">${esc(ev.cal_name)}</span>` : ''}
+          ${eventVisibilityMeta(ev.visibility)}
           ${assignedUsers.length ? `<span class="agenda-event__assigned">${renderAvatarStack(assignedUsers, { size: 20, maxVisible: 3 })}</span>` : ''}
         </div>
       </div>
     </div>
   `;
+}
+
+// Sichtbarkeits-Indikator (#474): nur bei eingeschränkten Terminen ein dezentes
+// Icon mit Label — „Alle" bleibt icon-los.
+function eventVisibilityMeta(visibility) {
+  if (!visibility || visibility === 'all') return '';
+  const icon  = visibility === 'private' ? 'lock' : 'users';
+  const label = visibility === 'private'
+    ? t('common.visibility.private')
+    : t('common.visibility.assignees');
+  return `<span class="calendar-meta-item" title="${esc(label)}">${calendarMetaIconHtml(icon)}<span>${esc(label)}</span></span>`;
 }
 
 // --------------------------------------------------------
@@ -2333,6 +2380,22 @@ async function loadSyncTargets(selectElement, currentEvent = null) {
 // Event-Modal (Erstellen / Bearbeiten)
 // --------------------------------------------------------
 
+// Blendet einen Hinweis ein, wenn „Nur Zugewiesene" gewählt ist, aber niemand
+// zugewiesen wurde — dann sieht faktisch nur der Ersteller den Termin (#474 Guard).
+function wireVisibilityWarning(panel, selectSel, msName, warnSel) {
+  const select = panel.querySelector(selectSel);
+  const warn   = panel.querySelector(warnSel);
+  if (!select || !warn) return;
+  const ms = panel.querySelector(`.user-ms[data-ms-name="${msName}"]`);
+  const update = () => {
+    const count = getSelectedUserIds(panel, msName).length;
+    warn.hidden = !(select.value === 'assignees' && count === 0);
+  };
+  select.addEventListener('change', update);
+  ms?.addEventListener('click', () => setTimeout(update, 0));
+  update();
+}
+
 function openEventModal({ mode, event = null, date = null, reminder = null, time = null }) {
   if (mode === 'edit' && event?.housekeeping_visit_id) {
     window.yuvomi.navigate(`/housekeeping?editVisit=${event.housekeeping_visit_id}`);
@@ -2349,6 +2412,7 @@ function openEventModal({ mode, event = null, date = null, reminder = null, time
       // RRULE-Events binden
       bindRRuleEvents(panel, 'event');
       bindUserMultiSelect(panel, 'cal_assigned');
+      wireVisibilityWarning(panel, '#modal-visibility', 'cal_assigned', '#modal-visibility-warning');
 
       // Color-Picker ausgrauen wenn Assignees gesetzt sind (Avatar-Farbe hat Vorrang)
       function syncColorPickerState() {
@@ -2636,6 +2700,7 @@ function buildEventModalContent({ mode, event, date, reminder = null, time = nul
   const selectedUserIds = isEdit
     ? (event.assigned_users?.map((u) => u.id) ?? (event.assigned_to ? [event.assigned_to] : []))
     : [];
+  const visibility = (isEdit ? event.visibility : null) || 'all';
 
   // Sekundärfelder: wandern hinter „Weitere Einstellungen". Beim Bearbeiten
   // automatisch geöffnet, falls bereits Werte gesetzt sind.
@@ -2777,6 +2842,18 @@ function buildEventModalContent({ mode, event, date, reminder = null, time = nul
       ${renderUserMultiSelect(state.users, selectedUserIds, 'cal_assigned', 'calendar.assignedLabel')}
     </div>
 
+    ${state.users.length > 1 ? `
+    <div class="form-group">
+      <label class="form-label" for="modal-visibility">${t('common.visibility.label')}</label>
+      <select class="input" id="modal-visibility" name="visibility">
+        <option value="all"       ${visibility === 'all'       ? 'selected' : ''}>${t('common.visibility.all')}</option>
+        <option value="assignees" ${visibility === 'assignees' ? 'selected' : ''}>${t('common.visibility.assignees')}</option>
+        <option value="private"   ${visibility === 'private'   ? 'selected' : ''}>${t('common.visibility.private')}</option>
+      </select>
+      <p class="form-hint">${t('common.visibility.hint')}</p>
+      <p class="form-hint field-hint--warn" id="modal-visibility-warning" role="status" hidden><i data-lucide="alert-triangle" aria-hidden="true"></i><span>${t('common.visibility.assigneesNobodyHint')}</span></p>
+    </div>` : ''}
+
     ${advancedSection(advancedFieldsHtml, { open: advancedFieldsOpen })}
 
     ${renderRRuleFields('event', isEdit ? event.recurrence_rule : null)}
@@ -2889,6 +2966,7 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
       title, description, start_datetime, end_datetime,
       all_day: allday ? 1 : 0,
       location, color, icon, assigned_to,
+      visibility: overlay.querySelector('#modal-visibility')?.value || 'all',
       recurrence_rule: rrule.recurrence_rule,
       target_google_calendar_id,
       target_caldav_account_id,

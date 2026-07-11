@@ -39,7 +39,15 @@
         "invalidInput": "Input non valido.",
         "togglePasswordVisibility": "Mostra/nascondi password",
         "errorOfflineMutation": "Le modifiche non sono possibili offline. Riconnettiti.",
-        "retry": "Riprova"
+        "retry": "Riprova",
+        "visibility": {
+            "label": "Visibilità",
+            "all": "Tutti i membri della famiglia",
+            "assignees": "Solo assegnatari",
+            "private": "Solo io",
+            "hint": "Determina chi può vedere questa voce in Yuvomi.",
+            "assigneesNobodyHint": "Senza assegnatari, solo tu vedi questa voce."
+        }
     },
     "nav": {
         "dashboard": "Panoramica",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Stato modificato.",
         "selectTask": "Seleziona attività",
         "pointsLabel": "Punti",
-        "pointsHint": "I punti vengono accreditati al completamento."
+        "pointsHint": "I punti vengono accreditati al completamento.",
+        "assignedToMe": "Assegnati a me"
     },
     "shopping": {
         "detailsLabel": "Dettagli di {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Nessun evento nell'intervallo selezionato",
         "taskChipAriaLabel": "Attività: {{title}}",
         "toggleHolidays": "Giorni festivi",
-        "toggleSchool": "Vacanze scolastiche"
+        "toggleSchool": "Vacanze scolastiche",
+        "assignedToMe": "Assegnati a me"
     },
     "notes": {
         "title": "Bacheca",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Nessun canale della famiglia ancora configurato.",
         "notificationChannelAdminOnlyHint": "Solo gli amministratori possono gestire i canali della famiglia.",
         "notificationChannelDeleteConfirm": "Eliminare questo canale di notifica?",
-        "apiTokensMcpHint": "Questi token funzionano anche come token Bearer per l'endpoint MCP su /mcp (ad es. in Claude Desktop, per creare attività, articoli della spesa ed eventi tramite IA)."
+        "apiTokensMcpHint": "Questi token funzionano anche come token Bearer per l'endpoint MCP su /mcp (ad es. in Claude Desktop, per creare attività, articoli della spesa ed eventi tramite IA).",
+        "sync": {
+            "defaultAssignee": "Assegnazione predefinita",
+            "defaultAssigneeNone": "Nessuno",
+            "defaultAssigneeHint": "Gli eventi appena sincronizzati vengono assegnati automaticamente a questa persona."
+        }
     },
     "login": {
         "tagline": "Pianificazione familiare. Sicura. Rispettosa della privacy. Open source.",

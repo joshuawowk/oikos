@@ -39,7 +39,15 @@
         "invalidInput": "Érvénytelen bevitel.",
         "togglePasswordVisibility": "Jelszó láthatóságának váltása",
         "errorOfflineMutation": "Offline állapotban nem lehet módosítani. Csatlakozz újra.",
-        "retry": "Újra"
+        "retry": "Újra",
+        "visibility": {
+            "label": "Láthatóság",
+            "all": "Minden családtag",
+            "assignees": "Csak a hozzárendeltek",
+            "private": "Csak én",
+            "hint": "Meghatározza, ki láthatja ezt a bejegyzést a Yuvomiban.",
+            "assigneesNobodyHint": "Hozzárendelés nélkül csak te látod ezt a bejegyzést."
+        }
     },
     "nav": {
         "dashboard": "Áttekintés",
@@ -275,7 +283,8 @@
         "emptyAction": "Feladat létrehozása",
         "navLabelOverdue": "Feladatok, {{{count}}} lejárt",
         "pointsLabel": "Pontok",
-        "pointsHint": "A pontok teljesítéskor jóváíródnak."
+        "pointsHint": "A pontok teljesítéskor jóváíródnak.",
+        "assignedToMe": "Hozzám rendelve"
     },
     "shopping": {
         "detailsLabel": "{{name}} részletei",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Nincsenek események a kiválasztott időszakban",
         "taskChipAriaLabel": "Feladat: {{title}}",
         "toggleHolidays": "Állami ünnepek",
-        "toggleSchool": "Iskolai szünetek"
+        "toggleSchool": "Iskolai szünetek",
+        "assignedToMe": "Hozzám rendelve"
     },
     "notes": {
         "title": "Tábla",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Még nincsenek háztartási csatornák konfigurálva.",
         "notificationChannelAdminOnlyHint": "Csak az adminisztrátorok kezelhetik a háztartási csatornákat.",
         "notificationChannelDeleteConfirm": "Törölni szeretné ezt a értesítési csatornát?",
-        "apiTokensMcpHint": "Ezek a tokenek Bearer tokenként is működnek a /mcp címen elérhető MCP-végponthoz (pl. a Claude Desktopban, feladatok, bevásárlólista-tételek és események MI-vel történő létrehozásához)."
+        "apiTokensMcpHint": "Ezek a tokenek Bearer tokenként is működnek a /mcp címen elérhető MCP-végponthoz (pl. a Claude Desktopban, feladatok, bevásárlólista-tételek és események MI-vel történő létrehozásához).",
+        "sync": {
+            "defaultAssignee": "Alapértelmezett hozzárendelés",
+            "defaultAssigneeNone": "Nincs",
+            "defaultAssigneeHint": "Az újonnan szinkronizált események automatikusan ehhez a személyhez lesznek rendelve."
+        }
     },
     "login": {
         "tagline": "Family planning. Secure. Privacy-friendly. Open source.",

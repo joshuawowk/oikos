@@ -39,7 +39,15 @@
         "invalidInput": "Nieprawidłowe dane.",
         "togglePasswordVisibility": "Pokaż/ukryj hasło",
         "errorOfflineMutation": "Zmiany nie są możliwe w trybie offline. Połącz się ponownie.",
-        "retry": "Spróbuj ponownie"
+        "retry": "Spróbuj ponownie",
+        "visibility": {
+            "label": "Widoczność",
+            "all": "Wszyscy członkowie rodziny",
+            "assignees": "Tylko przypisani",
+            "private": "Tylko ja",
+            "hint": "Określa, kto może zobaczyć ten wpis w Yuvomi.",
+            "assigneesNobodyHint": "Bez przypisania widzisz ten wpis tylko ty."
+        }
     },
     "nav": {
         "dashboard": "Pulpit",
@@ -282,7 +290,8 @@
         "startsOn": "Zaczyna się {{date}}",
         "showFuture": "Pokaż zaplanowane",
         "pointsLabel": "Punkty",
-        "pointsHint": "Punkty są przyznawane po ukończeniu."
+        "pointsHint": "Punkty są przyznawane po ukończeniu.",
+        "assignedToMe": "Przypisane do mnie"
     },
     "shopping": {
         "detailsLabel": "Szczegóły: {{name}}",
@@ -613,7 +622,8 @@
         "agendaEmpty": "Brak wydarzeń w wybranym zakresie",
         "taskChipAriaLabel": "Zadanie: {{title}}",
         "toggleHolidays": "Święta państwowe",
-        "toggleSchool": "Ferie szkolne"
+        "toggleSchool": "Ferie szkolne",
+        "assignedToMe": "Przypisane do mnie"
     },
     "notes": {
         "title": "Notatki",
@@ -1687,7 +1697,12 @@
         "notificationChannelEmpty": "Nie skonfigurowano jeszcze kanałów domowych.",
         "notificationChannelAdminOnlyHint": "Tylko administratorzy mogą zarządzać kanałami domowymi.",
         "notificationChannelDeleteConfirm": "Usunąć ten kanał powiadomień?",
-        "apiTokensMcpHint": "Te tokeny działają również jako tokeny Bearer dla punktu końcowego MCP pod adresem /mcp (np. w Claude Desktop, aby tworzyć zadania, produkty na liście zakupów i wydarzenia za pomocą AI)."
+        "apiTokensMcpHint": "Te tokeny działają również jako tokeny Bearer dla punktu końcowego MCP pod adresem /mcp (np. w Claude Desktop, aby tworzyć zadania, produkty na liście zakupów i wydarzenia za pomocą AI).",
+        "sync": {
+            "defaultAssignee": "Domyślne przypisanie",
+            "defaultAssigneeNone": "Brak",
+            "defaultAssigneeHint": "Nowo zsynchronizowane wydarzenia są automatycznie przypisywane do tej osoby."
+        }
     },
     "login": {
         "tagline": "Planowanie rodziny. Bezpieczne. Chroniące prywatność. Open Source.",

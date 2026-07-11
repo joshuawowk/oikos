@@ -39,7 +39,15 @@
         "invalidInput": "إدخال غير صالح.",
         "togglePasswordVisibility": "إظهار/إخفاء كلمة المرور",
         "errorOfflineMutation": "لا يمكن إجراء تغييرات دون اتصال. يرجى إعادة الاتصال.",
-        "retry": "أعد المحاولة"
+        "retry": "أعد المحاولة",
+        "visibility": {
+            "label": "الظهور",
+            "all": "جميع أفراد العائلة",
+            "assignees": "المُسنَدون فقط",
+            "private": "أنا فقط",
+            "hint": "يحدّد من يمكنه رؤية هذا العنصر في Yuvomi.",
+            "assigneesNobodyHint": "بدون إسناد، لا يرى هذا العنصر سواك."
+        }
     },
     "nav": {
         "dashboard": "لوحة التحكم",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status changed.",
         "selectTask": "Select task",
         "pointsLabel": "النقاط",
-        "pointsHint": "تُضاف النقاط عند الإكمال."
+        "pointsHint": "تُضاف النقاط عند الإكمال.",
+        "assignedToMe": "المُسندة إليّ"
     },
     "shopping": {
         "detailsLabel": "تفاصيل {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "لا توجد مواعيد في الفترة المحددة",
         "taskChipAriaLabel": "مهمة: {{title}}",
         "toggleHolidays": "العطلات الرسمية",
-        "toggleSchool": "العطلات المدرسية"
+        "toggleSchool": "العطلات المدرسية",
+        "assignedToMe": "المُسندة إليّ"
     },
     "notes": {
         "title": "لوحة الملاحظات",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "لم يتم إعداد أي قنوات منزلية بعد.",
         "notificationChannelAdminOnlyHint": "يمكن للمشرفين فقط إدارة قنوات المنزل.",
         "notificationChannelDeleteConfirm": "هل تريد حذف قناة الإشعارات هذه؟",
-        "apiTokensMcpHint": "تعمل هذه الرموز أيضًا كرموز Bearer لنقطة نهاية MCP على /mcp (على سبيل المثال في Claude Desktop، لإنشاء المهام وعناصر التسوق والمواعيد باستخدام الذكاء الاصطناعي)."
+        "apiTokensMcpHint": "تعمل هذه الرموز أيضًا كرموز Bearer لنقطة نهاية MCP على /mcp (على سبيل المثال في Claude Desktop، لإنشاء المهام وعناصر التسوق والمواعيد باستخدام الذكاء الاصطناعي).",
+        "sync": {
+            "defaultAssignee": "الإسناد الافتراضي",
+            "defaultAssigneeNone": "بلا",
+            "defaultAssigneeHint": "تُسنَد الأحداث المُزامَنة حديثًا تلقائيًا إلى هذا الشخص."
+        }
     },
     "login": {
         "tagline": "تخطيط عائلي. آمن. يحترم الخصوصية. مفتوح المصدر.",

@@ -39,7 +39,15 @@
         "invalidInput": "ورودی نامعتبر.",
         "togglePasswordVisibility": "نمایش/پنهان‌سازی رمز عبور",
         "errorOfflineMutation": "تغییرات در حالت آفلاین ممکن نیست. لطفاً دوباره متصل شوید.",
-        "retry": "تلاش مجدد"
+        "retry": "تلاش مجدد",
+        "visibility": {
+            "label": "نمایش",
+            "all": "همه اعضای خانواده",
+            "assignees": "فقط واگذارشده‌ها",
+            "private": "فقط من",
+            "hint": "تعیین می‌کند چه کسی این مورد را در Yuvomi می‌بیند.",
+            "assigneesNobodyHint": "بدون واگذاری، فقط خودت این مورد را می‌بینی."
+        }
     },
     "nav": {
         "dashboard": "نمای کلی",
@@ -282,7 +290,8 @@
         "startsOn": "شروع در {{date}}",
         "showFuture": "نمایش برنامه‌ریزی‌شده‌ها",
         "pointsLabel": "امتیاز",
-        "pointsHint": "امتیازها هنگام تکمیل ثبت می‌شوند."
+        "pointsHint": "امتیازها هنگام تکمیل ثبت می‌شوند.",
+        "assignedToMe": "واگذارشده به من"
     },
     "shopping": {
         "detailsLabel": "جزئیات برای {{name}}",
@@ -613,7 +622,8 @@
         "agendaEmpty": "در بازه انتخاب‌شده رویدادی نیست",
         "taskChipAriaLabel": "کار: {{title}}",
         "toggleHolidays": "تعطیلات رسمی",
-        "toggleSchool": "تعطیلات مدرسه"
+        "toggleSchool": "تعطیلات مدرسه",
+        "assignedToMe": "واگذارشده به من"
     },
     "notes": {
         "title": "یادداشت‌ها",
@@ -1687,7 +1697,12 @@
         "notificationChannelEmpty": "هنوز کانال خانواری تنظیم نشده است.",
         "notificationChannelAdminOnlyHint": "فقط مدیران می‌توانند کانال‌های خانوار را مدیریت کنند.",
         "notificationChannelDeleteConfirm": "این کانال اعلان حذف شود؟",
-        "apiTokensMcpHint": "این توکن‌ها به عنوان توکن Bearer برای نقطه پایانی MCP در /mcp نیز کار می‌کنند (مثلاً در Claude Desktop، برای ایجاد کارها، اقلام خرید و رویدادها با هوش مصنوعی)."
+        "apiTokensMcpHint": "این توکن‌ها به عنوان توکن Bearer برای نقطه پایانی MCP در /mcp نیز کار می‌کنند (مثلاً در Claude Desktop، برای ایجاد کارها، اقلام خرید و رویدادها با هوش مصنوعی).",
+        "sync": {
+            "defaultAssignee": "واگذاری پیش‌فرض",
+            "defaultAssigneeNone": "هیچ‌کدام",
+            "defaultAssigneeHint": "رویدادهای تازه همگام‌سازی‌شده به‌طور خودکار به این شخص واگذار می‌شوند."
+        }
     },
     "login": {
         "tagline": "برنامه‌ریزی خانواده. امن. حریم‌خصوصی‌محور. متن‌باز.",

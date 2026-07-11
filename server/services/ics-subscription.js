@@ -13,6 +13,7 @@ import https from 'node:https';
 import fetch from 'node-fetch';
 import { createLogger } from '../logger.js';
 import * as db from '../db.js';
+import { assignDefaultToEvent } from './sync-assignment.js';
 import { parseICS, expandRRULE } from './ics-parser.js';
 
 const log = createLogger('ICS');
@@ -210,6 +211,14 @@ async function syncOne(sub) {
 
     const seenUids = new Set(flatEvents.map((e) => e.uid));
 
+    // #459: Vor dem Upsert die bereits vorhandenen UIDs merken, damit die
+    // Standard-Zuweisung nur NEUE Termine trifft (nicht rückwirkend, kein
+    // Wiederkehren nach manuellem Entfernen).
+    const existingUids = new Set(
+      db.get().prepare('SELECT external_calendar_id FROM calendar_events WHERE subscription_id = ?')
+        .all(sub.id).map((r) => r.external_calendar_id)
+    );
+
     const upsert = db.get().prepare(`
       INSERT INTO calendar_events
         (title, description, start_datetime, end_datetime, all_day, location,
@@ -242,6 +251,18 @@ async function syncOne(sub) {
         } catch (err) { log.error(`Upsert UID ${ev.uid}: ${err.message}`); }
       }
       deleteStale.run(sub.id, JSON.stringify([...seenUids]));
+
+      // #459: neu importierte Termine der Standard-Person zuweisen.
+      if (sub.default_assignee_user_id) {
+        for (const ev of flatEvents) {
+          if (existingUids.has(ev.uid)) continue;
+          const row = db.get().prepare(
+            'SELECT id FROM calendar_events WHERE subscription_id = ? AND external_calendar_id = ?'
+          ).get(sub.id, ev.uid);
+          if (row) assignDefaultToEvent(db.get(), row.id, sub.default_assignee_user_id);
+        }
+      }
+
       db.get().prepare(`UPDATE ics_subscriptions SET last_sync = ?, etag = ?, last_modified = ? WHERE id = ?`)
         .run(new Date().toISOString(), newEtag, newLastModified, sub.id);
     })();
@@ -380,8 +401,11 @@ function update(userId, subId, fields, isAdmin) {
   const name   = fields.name   !== undefined ? fields.name   : sub.name;
   const color  = fields.color  !== undefined ? fields.color  : sub.color;
   const shared = fields.shared !== undefined ? (fields.shared ? 1 : 0) : sub.shared;
-  db.get().prepare(`UPDATE ics_subscriptions SET name = ?, color = ?, shared = ? WHERE id = ?`)
-    .run(name, color, shared, subId);
+  const assignee = fields.default_assignee_user_id !== undefined
+    ? fields.default_assignee_user_id
+    : sub.default_assignee_user_id;
+  db.get().prepare(`UPDATE ics_subscriptions SET name = ?, color = ?, shared = ?, default_assignee_user_id = ? WHERE id = ?`)
+    .run(name, color, shared, assignee, subId);
   return db.get().prepare('SELECT * FROM ics_subscriptions WHERE id = ?').get(subId);
 }
 

@@ -19,6 +19,7 @@ import { requireAdmin } from '../auth.js';
 import { str, color, datetime, rrule, collectErrors, MAX_TITLE, MAX_TEXT, DATE_RE, DATETIME_RE } from '../middleware/validate.js';
 import { expandRecurringEvents, getUpcomingEvents } from '../services/calendar-events.js';
 import { buildMatchQuery } from '../services/search.js';
+import { normalizeVisibility, visibilityWhere } from '../services/visibility.js';
 import {
   StorageError,
   cleanupStagedUpload,
@@ -279,6 +280,10 @@ router.get('/', (req, res) => {
     `;
     const params = [to, from, to, getUserId(req)];
 
+    // Sichtbarkeit (#474): eigene + für alle sichtbare + zugewiesene-sichtbare.
+    sql += ` AND ${visibilityWhere('e', 'event_assignments', 'event_id')}`;
+    params.push(getUserId(req), getUserId(req));
+
     if (req.query.assigned_to) {
       sql += ' AND EXISTS (SELECT 1 FROM event_assignments ea WHERE ea.event_id = e.id AND ea.user_id = ?)';
       params.push(parseInt(req.query.assigned_to, 10));
@@ -344,7 +349,8 @@ router.get('/search', (req, res) => {
         OR e.subscription_id IN (
           SELECT id FROM ics_subscriptions WHERE shared = 1 OR created_by = @userId
         )
-      )`;
+      )
+      AND ${visibilityWhere('e', 'event_assignments', 'event_id', '@userId')}`;
 
     const total = db.get().prepare(`
       SELECT COUNT(*) AS n
@@ -507,6 +513,47 @@ router.patch('/google/calendars', requireAdmin, async (req, res) => {
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: err.message, code: 500 });
+  }
+});
+
+/**
+ * PATCH /api/v1/calendar/external-calendars
+ * Admin only. Setzt die Standard-Zuweisung eines synchronisierten Kalenders (#459).
+ * Provider-übergreifend (Google/Apple/CalDAV) über die geteilte external_calendars-Tabelle,
+ * adressiert per (source, external_id). Die Zeile entsteht beim ersten Sync — der Picker
+ * erscheint im UI nur für aktivierte Kalender.
+ * Body: { source: 'google'|'apple'|'caldav', external_id: string, default_assignee_user_id: number|null }
+ * Response: { data: { source, external_id, default_assignee_user_id } }
+ */
+router.patch('/external-calendars', requireAdmin, (req, res) => {
+  try {
+    const { source, external_id } = req.body;
+    if (!['google', 'apple', 'caldav'].includes(source)) {
+      return res.status(400).json({ error: 'source muss google, apple oder caldav sein.', code: 400 });
+    }
+    if (typeof external_id !== 'string' || external_id.trim().length === 0) {
+      return res.status(400).json({ error: 'external_id fehlt oder ist ungültig.', code: 400 });
+    }
+    const raw = req.body.default_assignee_user_id;
+    const assignee = (raw === null || raw === undefined || raw === '') ? null : Number(raw);
+    if (assignee !== null && !Number.isInteger(assignee)) {
+      return res.status(400).json({ error: 'default_assignee_user_id muss eine Zahl oder null sein.', code: 400 });
+    }
+    if (assignee !== null && !db.get().prepare('SELECT 1 FROM users WHERE id = ?').get(assignee)) {
+      return res.status(400).json({ error: 'Unbekannte Nutzer-ID.', code: 400 });
+    }
+
+    const result = db.get().prepare(
+      'UPDATE external_calendars SET default_assignee_user_id = ? WHERE source = ? AND external_id = ?'
+    ).run(assignee, source, external_id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Kalender noch nicht synchronisiert.', code: 404 });
+    }
+    res.json({ data: { source, external_id, default_assignee_user_id: assignee } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
   }
 });
 
@@ -682,6 +729,10 @@ router.patch('/subscriptions/:id', (req, res) => {
       fields.color = req.body.color;
     }
     if (req.body.shared !== undefined) fields.shared = req.body.shared;
+    if (req.body.default_assignee_user_id !== undefined) {
+      const raw = req.body.default_assignee_user_id;
+      fields.default_assignee_user_id = (raw === null || raw === '') ? null : Number(raw);
+    }
 
     const updated = icsSubscription.update(getUserId(req), subId, fields, isAdmin);
     if (!updated) return res.status(404).json({ error: 'Abonnement nicht gefunden.', code: 404 });
@@ -841,7 +892,8 @@ router.get('/:id', (req, res) => {
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by
       WHERE e.id = ?
-    `).get(id);
+        AND ${visibilityWhere('e', 'event_assignments', 'event_id')}
+    `).get(id, getUserId(req), getUserId(req));
 
     if (!event) return res.status(404).json({ error: 'Termin nicht gefunden', code: 404 });
     res.json({ data: serializeEvent(event) });
@@ -916,8 +968,8 @@ router.post('/', async (req, res) => {
           (title, description, start_datetime, end_datetime, all_day,
            location, color, icon, assigned_to, created_by, recurrence_rule,
            attachment_name, attachment_mime, attachment_size, attachment_data, attachment_document_id,
-           target_caldav_account_id, target_caldav_calendar_url, target_google_calendar_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           target_caldav_account_id, target_caldav_calendar_url, target_google_calendar_id, visibility)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         vTitle.value, vDesc.value,
         vStart.value, vEnd.value,
@@ -931,7 +983,8 @@ router.post('/', async (req, res) => {
         documentId,
         vCaldav.value.accountId,
         vCaldav.value.calendarUrl,
-        vGoogle.value
+        vGoogle.value,
+        normalizeVisibility(req.body.visibility)
       );
       setEventAssignments(db.get(), result.lastInsertRowid, userIds);
       return result.lastInsertRowid;
@@ -1105,6 +1158,7 @@ router.put('/:id', async (req, res) => {
             target_caldav_account_id   = ?,
             target_caldav_calendar_url = ?,
             target_google_calendar_id  = ?,
+            visibility      = ?,
             user_modified   = ?
         WHERE id = ?
       `).run(
@@ -1126,6 +1180,9 @@ router.put('/:id', async (req, res) => {
         caldavAccountId,
         caldavCalendarUrl,
         googleTargetId,
+        req.body.visibility !== undefined
+          ? normalizeVisibility(req.body.visibility, event.visibility)
+          : event.visibility,
         userModified,
         id
       );

@@ -39,7 +39,15 @@
         "invalidInput": "Saisie invalide.",
         "togglePasswordVisibility": "Afficher/masquer le mot de passe",
         "errorOfflineMutation": "Les modifications sont impossibles hors ligne. Veuillez vous reconnecter.",
-        "retry": "Réessayer"
+        "retry": "Réessayer",
+        "visibility": {
+            "label": "Visibilité",
+            "all": "Tous les membres de la famille",
+            "assignees": "Personnes assignées uniquement",
+            "private": "Moi uniquement",
+            "hint": "Détermine qui peut voir cette entrée dans Yuvomi.",
+            "assigneesNobodyHint": "Sans personne assignée, vous seul voyez cette entrée."
+        }
     },
     "nav": {
         "dashboard": "Accueil",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status changed.",
         "selectTask": "Select task",
         "pointsLabel": "Points",
-        "pointsHint": "Les points sont crédités à la fin de la tâche."
+        "pointsHint": "Les points sont crédités à la fin de la tâche.",
+        "assignedToMe": "Attribués à moi"
     },
     "shopping": {
         "detailsLabel": "Détails de {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Aucun événement dans la période sélectionnée",
         "taskChipAriaLabel": "Tâche : {{title}}",
         "toggleHolidays": "Jours fériés",
-        "toggleSchool": "Vacances scolaires"
+        "toggleSchool": "Vacances scolaires",
+        "assignedToMe": "Attribués à moi"
     },
     "notes": {
         "title": "Notes",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Aucun canal du foyer n’est encore configuré.",
         "notificationChannelAdminOnlyHint": "Seuls les administrateurs peuvent gérer les canaux du foyer.",
         "notificationChannelDeleteConfirm": "Supprimer ce canal de notification ?",
-        "apiTokensMcpHint": "Ces jetons fonctionnent aussi comme jetons Bearer pour le point de terminaison MCP sur /mcp (p. ex. dans Claude Desktop, pour créer des tâches, des articles de courses et des événements via l'IA)."
+        "apiTokensMcpHint": "Ces jetons fonctionnent aussi comme jetons Bearer pour le point de terminaison MCP sur /mcp (p. ex. dans Claude Desktop, pour créer des tâches, des articles de courses et des événements via l'IA).",
+        "sync": {
+            "defaultAssignee": "Attribution par défaut",
+            "defaultAssigneeNone": "Aucune",
+            "defaultAssigneeHint": "Les événements nouvellement synchronisés sont automatiquement attribués à cette personne."
+        }
     },
     "login": {
         "tagline": "Planification familiale. Sécurisée. Respectueuse de la vie privée. Open source.",

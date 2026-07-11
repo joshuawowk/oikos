@@ -39,7 +39,15 @@
         "invalidInput": "Geçersiz giriş.",
         "togglePasswordVisibility": "Şifreyi göster/gizle",
         "errorOfflineMutation": "Çevrimdışıyken değişiklik yapılamaz. Lütfen yeniden bağlanın.",
-        "retry": "Tekrar dene"
+        "retry": "Tekrar dene",
+        "visibility": {
+            "label": "Görünürlük",
+            "all": "Tüm aile üyeleri",
+            "assignees": "Yalnızca atananlar",
+            "private": "Yalnızca ben",
+            "hint": "Bu kaydı Yuvomi’de kimin görebileceğini belirler.",
+            "assigneesNobodyHint": "Kimse atanmazsa bu kaydı yalnızca sen görürsün."
+        }
     },
     "nav": {
         "dashboard": "Genel Bakış",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status changed.",
         "selectTask": "Select task",
         "pointsLabel": "Puan",
-        "pointsHint": "Puanlar tamamlandığında hesaba geçer."
+        "pointsHint": "Puanlar tamamlandığında hesaba geçer.",
+        "assignedToMe": "Bana atananlar"
     },
     "shopping": {
         "detailsLabel": "{{name}} ayrıntıları",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Seçilen aralıkta etkinlik yok",
         "taskChipAriaLabel": "Görev: {{title}}",
         "toggleHolidays": "Resmi tatiller",
-        "toggleSchool": "Okul tatilleri"
+        "toggleSchool": "Okul tatilleri",
+        "assignedToMe": "Bana atananlar"
     },
     "notes": {
         "title": "Notlar",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Henüz ev kanalı yapılandırılmadı.",
         "notificationChannelAdminOnlyHint": "Ev kanallarını yalnızca yöneticiler yönetebilir.",
         "notificationChannelDeleteConfirm": "Bu bildirim kanalı silinsin mi?",
-        "apiTokensMcpHint": "Bu belirteçler /mcp adresindeki MCP uç noktası için Bearer belirteci olarak da çalışır (örn. Claude Desktop'ta yapay zekâ ile görev, alışveriş öğesi ve etkinlik oluşturmak için)."
+        "apiTokensMcpHint": "Bu belirteçler /mcp adresindeki MCP uç noktası için Bearer belirteci olarak da çalışır (örn. Claude Desktop'ta yapay zekâ ile görev, alışveriş öğesi ve etkinlik oluşturmak için).",
+        "sync": {
+            "defaultAssignee": "Varsayılan atama",
+            "defaultAssigneeNone": "Yok",
+            "defaultAssigneeHint": "Yeni eşitlenen etkinlikler otomatik olarak bu kişiye atanır."
+        }
     },
     "login": {
         "tagline": "Aile planlaması. Güvenli. Gizlilik dostu. Açık kaynak.",

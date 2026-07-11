@@ -41,6 +41,9 @@ Every table: `id INTEGER PRIMARY KEY`, `created_at TEXT`, `updated_at TEXT` (ISO
 | recurrence_rule | TEXT | iCal RRULE |
 | parent_task_id | INTEGER | FK → Tasks (max 2 levels) |
 | points | INTEGER | NOT NULL DEFAULT 0 — reward points credited to assigned members on completion (Rewards module, migration v69) |
+| visibility | TEXT | NOT NULL DEFAULT `all` — `all` \| `assignees` \| `private`; who may see the task (migration v78) |
+
+**Visibility (migration v78):** every task carries a `visibility` of `all` (all family members, the default and prior behaviour), `assignees` (creator + assigned members only), or `private` (creator only). Enforcement is **server-side on every read path** (list, detail, dashboard widgets, search, MCP) — there is **no admin bypass**, so a "private" task stays hidden even from a parent/admin (the intended use is preparing a surprise). Set via the visibility selector in the task modal; restricted tasks carry a lock/people icon in the list. The same field and rule apply to calendar events.
 
 Recurring tasks keep only one open instance: the next instance is created on completion, not on a schedule. When an overdue recurring task is marked done, its next due date catches up to the next occurrence at or after today (skipping missed periods) instead of advancing a single interval from the old — possibly still overdue — due date.
 
@@ -232,6 +235,9 @@ Reusable recipe cards that can be pre-filled into meal slots.
 | target_caldav_account_id | INTEGER | FK → CalDAV Accounts (for outbound sync), nullable |
 | target_caldav_calendar_url | TEXT | CalDAV calendar URL (for outbound sync), nullable |
 | target_google_calendar_id | TEXT | Google calendar ID for outbound sync, nullable. Mutually exclusive with the CalDAV target columns — an event syncs to at most one destination |
+| visibility | TEXT | NOT NULL DEFAULT `all` — `all` \| `assignees` \| `private`; who may see the event (migration v78, same rule as Tasks) |
+
+**Visibility (migration v78):** the same `all` / `assignees` / `private` model and server-side, no-admin-bypass enforcement described under [Tasks](#tasks) applies to calendar events, on every read path (list, detail, upcoming, search, MCP). It is an **in-app** control — the ICS calendar export feed is deliberately not filtered by it. Set via the visibility selector in the event dialog.
 
 ### Event Assignments
 Join table for multi-person calendar event assignment (migration v32). Existing `assigned_to` values were migrated automatically.
@@ -251,7 +257,10 @@ Display metadata (name, color) for synced Google/CalDAV calendars. Populated aut
 | external_id | TEXT | Calendar ID from the provider, NOT NULL |
 | name | TEXT | Display name from the provider, NOT NULL |
 | color | TEXT | Background color from the provider (HEX) |
+| default_assignee_user_id | INTEGER | FK → Users, nullable — default assignee for newly imported events of this calendar (migration v79) |
 | UNIQUE | | (source, external_id) |
+
+**Default assignee per sync target (migration v79):** each synced calendar (Google/Apple/CalDAV via `external_calendars`, and each ICS subscription) can carry an optional `default_assignee_user_id`. Newly imported events of that target are automatically assigned to that person — **new events only**, never retroactively, so a manually removed assignment does not reappear on the next sync. Configured per calendar row in Settings → Sync (the picker appears once a calendar has completed its first sync). Nulled automatically when the referenced user is deleted.
 
 ### Holiday Cache
 Cached public holidays and school holidays from the free [OpenHolidays API](https://openholidaysapi.org)
@@ -662,6 +671,7 @@ External calendar feeds subscribed by users (read-only, auto-synced).
 | etag | TEXT | HTTP ETag for conditional fetch |
 | last_modified | TEXT | HTTP Last-Modified for conditional fetch |
 | last_sync | TEXT | ISO timestamp of last successful sync |
+| default_assignee_user_id | INTEGER | FK → Users, nullable — default assignee for newly imported events of this feed (migration v79, see [External Calendars](#external-calendars)) |
 | created_at | TEXT | ISO timestamp |
 
 **One-time import vs. subscription.** `POST /api/v1/calendar/import` imports events from an
@@ -1225,6 +1235,8 @@ Skeleton loading instead of spinners (the skeleton mirrors the default-visible w
 - Inline reminder presets: offset from due date/time — 15 min, 1 h, 1 d, 2 d, 1 w, 2 w, or fully custom offset
 - **Bulk actions (list view only):** select multiple tasks via checkboxes and apply batch operations (mark done, mark open, archive, delete); bulk select toggle in toolbar
 - **Start date:** tasks can have an optional start date; tasks with a future start date are hidden from the default list view to reduce cognitive load. A "Show scheduled" toggle chip in the filter bar reveals all upcoming planned tasks. Task cards display a "Starts on …" badge when a start date is set.
+- **"Assigned to me" quick filter:** a toggle chip in the filter bar limits the list to tasks assigned to the current user (a shortcut for the person filter); the choice is remembered per device. Shown only in multi-member households.
+- **Per-task visibility:** an "all / assignees only / private" selector in the task dialog controls who can see the task (server-enforced, no admin bypass — see [Tasks data model](#tasks)); restricted tasks carry a lock/people icon in the list.
 - **Responsive toolbar:** secondary controls collapse into a single overflow trigger through phone and tablet widths (≤ 1023px); bulk actions remain hidden until at least one task is selected. Checkbox and row actions use the shared touch-target tokens.
 - Mobile swipe: left = done, right = edit
 - Badge for overdue tasks
@@ -1279,9 +1291,12 @@ Reusable recipe cards linked to meal slots.
 - **Multiple reminders per event (Discussion #436):** an event can carry several reminders (e.g. "15 minutes before" *and* "1 day before"), managed as a row list in the event dialog (add/remove, max 5). See the Reminders data-model section for the API.
 - **Multi-person assignment:** events can be assigned to multiple family members via the same `UserMultiSelect` component as tasks
 - Color-coding per person
+- **"Assigned to me" quick filter:** a toggle in the calendar toolbar limits every view to events (and calendar-shown tasks) assigned to the current user; remembered per device, shown only in multi-member households
+- **Per-event visibility:** an "all / assignees only / private" selector in the event dialog controls who can see the event (server-enforced, no admin bypass — see [Calendar Events data model](#calendar-events)); it is an in-app control and does not filter the ICS export feed
 - Recurring via iCal RRULE (daily, weekly, monthly, yearly)
 - **Google Calendar:** OAuth 2.0, Calendar API v3, two-way sync of **multiple calendars** at once. After connecting, an admin enables/disables each available calendar via checkboxes in Settings (state in `google_calendar_selection`); enabled calendars are imported together, each in its own color, with its own incremental sync token. Disabling a calendar removes its imported events and clears its token (clean resync on re-enable). Outbound is **per-event**: a local event is only pushed to Google when it carries an explicit target calendar (`calendar_events.target_google_calendar_id`), chosen via the unified sync-target picker in the event dialog; events without a target stay local. The sync-target picker lists only **writable** Google calendars (accessRole `owner` or `writer`); read-only calendars (accessRole `reader` / `freeBusyReader`) are excluded from the picker. The server-side outbound sync additionally guards against writing to a calendar that has lost write permission after the event was created. A **read-only mode** checkbox prevents Yuvomi from pushing any local events back to Google while still reading incoming events normally; the flag is stored as `google_readonly` in `sync_config` and cleared on disconnect.
 - **CalDAV Multi-Account:** Connect multiple CalDAV servers (iCloud, Nextcloud, Radicale, Baikal) with per-account calendar selection via checkboxes, two-way sync (tsdav), optional outbound target selection per event
+- **Default assignee per sync target (migration v79):** each synced calendar (Google/CalDAV) and each ICS subscription can be given an optional default assignee in Settings → Sync; newly imported events of that target are auto-assigned to that person (new events only — see [External Calendars](#external-calendars)). The per-calendar picker appears once the calendar has completed its first sync
 - **ICS Subscriptions:** Subscribe to any public ICS/webcal URL (e.g. public holidays, sports schedules). Per-subscription color, private/shared visibility, manual "Sync now" and automatic sync on the shared interval. Edit name, color, and visibility of any subscription inline. RRULE events expanded into a rolling ±6/+12 month window. SSRF-protected (DNS pre-resolution), ETag/Last-Modified conditional fetch, 10 MB limit, 15 s timeout. User-edited events are protected from being overwritten (`user_modified`); a "Reset to original" link restores them.
 - **One-time import (Discussion #437):** Settings → Sync → Calendar → "Kalender importieren" imports events from an uploaded `.ics` file or a shared calendar feed URL as **editable local events** (`external_source='local'`, no subscription) — the migration path when moving from another calendar. Unlike a subscription the events are owned by the importing user and never auto-synced; recurring events are kept as a series (RRULE reduced to the locally supported FREQ/INTERVAL/BYDAY/UNTIL subset), and the source UID is stored in `external_calendar_id` to skip duplicate re-imports of the same feed. The URL path reuses the subscription fetch (SSRF-protected, 10 MB / 15 s limits); `POST /api/v1/calendar/import` returns `{ imported, skipped, total }`.
 - **Read-only export feed (Discussion #387):** Settings → Calendar → "Kalender-Feed exportieren" exposes the user's own visible events (own events, assigned events, and shared/own ICS subscriptions) as a `webcal://`/`https://` ICS feed for subscribing in Apple Calendar, Google Calendar, Thunderbird, etc. Backed by a per-user secret token (`users.calendar_feed_token`); enabling generates the token, "Neuen Link erzeugen" rotates it (invalidating the old URL), "Feed deaktivieren" clears it. The feed itself is served by a public, unauthenticated `GET /feed/calendar/:token.ics` route outside `/api/v1` (no session/CSRF — the token in the URL is the secret), rate-limited to 30 requests/minute per IP, recomputed on every request (no caching). The feed URL uses `BASE_URL` when set, falling back to the request's protocol/host. Token management (`GET/POST regenerate/DELETE /api/v1/calendar/feed`) requires authentication.

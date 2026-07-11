@@ -39,7 +39,15 @@
         "invalidInput": "無効な入力です。",
         "togglePasswordVisibility": "パスワードを表示/非表示",
         "errorOfflineMutation": "オフラインでは変更できません。再接続してください。",
-        "retry": "再試行"
+        "retry": "再試行",
+        "visibility": {
+            "label": "表示範囲",
+            "all": "家族全員",
+            "assignees": "割り当て先のみ",
+            "private": "自分のみ",
+            "hint": "この項目を Yuvomi 内で見られる人を設定します。",
+            "assigneesNobodyHint": "誰も割り当てないと、この項目はあなたにしか表示されません。"
+        }
     },
     "nav": {
         "dashboard": "ダッシュボード",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status changed.",
         "selectTask": "Select task",
         "pointsLabel": "ポイント",
-        "pointsHint": "完了時にポイントが付与されます。"
+        "pointsHint": "完了時にポイントが付与されます。",
+        "assignedToMe": "自分に割り当て"
     },
     "shopping": {
         "detailsLabel": "{{name}} の詳細",
@@ -606,7 +615,8 @@
         "agendaEmpty": "選択した期間に予定はありません",
         "taskChipAriaLabel": "タスク: {{title}}",
         "toggleHolidays": "祝日",
-        "toggleSchool": "学校の休暇"
+        "toggleSchool": "学校の休暇",
+        "assignedToMe": "自分に割り当て"
     },
     "notes": {
         "title": "メモボード",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "世帯チャンネルはまだ設定されていません。",
         "notificationChannelAdminOnlyHint": "世帯チャンネルを管理できるのは管理者のみです。",
         "notificationChannelDeleteConfirm": "この通知チャンネルを削除しますか？",
-        "apiTokensMcpHint": "これらのトークンは、/mcp の MCP エンドポイント用の Bearer トークンとしても機能します（例: Claude Desktop で、AI によりタスク・買い物リスト・予定を作成）。"
+        "apiTokensMcpHint": "これらのトークンは、/mcp の MCP エンドポイント用の Bearer トークンとしても機能します（例: Claude Desktop で、AI によりタスク・買い物リスト・予定を作成）。",
+        "sync": {
+            "defaultAssignee": "既定の割り当て先",
+            "defaultAssigneeNone": "なし",
+            "defaultAssigneeHint": "新しく同期された予定は自動的にこの人に割り当てられます。"
+        }
     },
     "login": {
         "tagline": "家族計画。安全。プライバシー重視。オープンソース。",

@@ -3314,3 +3314,21 @@ html[data-module-readonly] .page-fab {
   color: var(--color-text-tertiary);
   flex-shrink: 0;
 }
+
+/* Warn-Variante für Formular-Hinweise (#474 Sichtbarkeits-Guard): hebt einen
+   Hinweis mit überraschender Konsequenz von neutralem Hilfetext ab, ohne zu
+   schreien. Als Zusatzklasse neben .form-hint / .task-field-hint. Der p-Selektor
+   erhöht die Spezifität, damit die später geladene Page-CSS-Hint-Farbe nicht gewinnt. */
+p.field-hint--warn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-warning);
+}
+
+p.field-hint--warn i,
+p.field-hint--warn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}

@@ -39,7 +39,15 @@
         "invalidInput": "잘못된 입력입니다.",
         "togglePasswordVisibility": "비밀번호 표시/숨기기",
         "errorOfflineMutation": "오프라인 상태에서는 변경할 수 없습니다. 다시 연결해 주세요.",
-        "retry": "다시 시도"
+        "retry": "다시 시도",
+        "visibility": {
+            "label": "표시 범위",
+            "all": "모든 가족 구성원",
+            "assignees": "할당된 사람만",
+            "private": "나만",
+            "hint": "Yuvomi에서 이 항목을 볼 수 있는 사람을 설정합니다.",
+            "assigneesNobodyHint": "아무도 지정하지 않으면 이 항목은 나만 볼 수 있습니다."
+        }
     },
     "nav": {
         "dashboard": "개요",
@@ -282,7 +290,8 @@
         "startsOn": "{{date}}에 시작",
         "showFuture": "예정된 항목 표시",
         "pointsLabel": "포인트",
-        "pointsHint": "완료 시 포인트가 적립됩니다."
+        "pointsHint": "완료 시 포인트가 적립됩니다.",
+        "assignedToMe": "나에게 할당됨"
     },
     "shopping": {
         "detailsLabel": "{{name}} 세부 정보",
@@ -613,7 +622,8 @@
         "agendaEmpty": "선택한 기간에 일정이 없습니다",
         "taskChipAriaLabel": "할 일: {{title}}",
         "toggleHolidays": "공휴일",
-        "toggleSchool": "방학"
+        "toggleSchool": "방학",
+        "assignedToMe": "나에게 할당됨"
     },
     "notes": {
         "title": "메모",
@@ -1687,7 +1697,12 @@
         "notificationChannelEmpty": "아직 설정된 가구 채널이 없습니다.",
         "notificationChannelAdminOnlyHint": "관리자만 가구 채널을 관리할 수 있습니다.",
         "notificationChannelDeleteConfirm": "이 알림 채널을 삭제할까요?",
-        "apiTokensMcpHint": "이 토큰은 /mcp의 MCP 엔드포인트용 Bearer 토큰으로도 작동합니다(예: Claude Desktop에서 AI로 할 일, 장보기 항목, 일정을 만들 때)."
+        "apiTokensMcpHint": "이 토큰은 /mcp의 MCP 엔드포인트용 Bearer 토큰으로도 작동합니다(예: Claude Desktop에서 AI로 할 일, 장보기 항목, 일정을 만들 때).",
+        "sync": {
+            "defaultAssignee": "기본 담당자",
+            "defaultAssigneeNone": "없음",
+            "defaultAssigneeHint": "새로 동기화된 일정은 자동으로 이 사람에게 할당됩니다."
+        }
     },
     "login": {
         "tagline": "가족 계획. 안전하게. 개인정보 보호. 오픈 소스.",

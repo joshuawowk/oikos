@@ -39,7 +39,15 @@
         "invalidInput": "Ongeldige invoer.",
         "togglePasswordVisibility": "Wachtwoord tonen/verbergen",
         "errorOfflineMutation": "Wijzigingen zijn offline niet mogelijk. Maak opnieuw verbinding.",
-        "retry": "Opnieuw proberen"
+        "retry": "Opnieuw proberen",
+        "visibility": {
+            "label": "Zichtbaarheid",
+            "all": "Alle gezinsleden",
+            "assignees": "Alleen toegewezenen",
+            "private": "Alleen ik",
+            "hint": "Bepaalt wie dit item in Yuvomi kan zien.",
+            "assigneesNobodyHint": "Zonder toewijzing zie alleen jij dit item."
+        }
     },
     "nav": {
         "dashboard": "Overzicht",
@@ -275,7 +283,8 @@
         "emptyAction": "Taak aanmaken",
         "navLabelOverdue": "Taken, {{{count}}} verlopen",
         "pointsLabel": "Punten",
-        "pointsHint": "Punten worden bij voltooiing bijgeschreven."
+        "pointsHint": "Punten worden bij voltooiing bijgeschreven.",
+        "assignedToMe": "Aan mij toegewezen"
     },
     "shopping": {
         "detailsLabel": "Details van {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Geen evenementen in het geselecteerde bereik",
         "taskChipAriaLabel": "Taak: {{title}}",
         "toggleHolidays": "Feestdagen",
-        "toggleSchool": "Schoolvakanties"
+        "toggleSchool": "Schoolvakanties",
+        "assignedToMe": "Aan mij toegewezen"
     },
     "notes": {
         "title": "Bord",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Er zijn nog geen huishoudkanalen ingesteld.",
         "notificationChannelAdminOnlyHint": "Alleen beheerders kunnen huishoudkanalen beheren.",
         "notificationChannelDeleteConfirm": "Dit meldingskanaal verwijderen?",
-        "apiTokensMcpHint": "Deze tokens werken ook als Bearer-tokens voor het MCP-eindpunt op /mcp (bijv. in Claude Desktop, om taken, boodschappen en afspraken via AI aan te maken)."
+        "apiTokensMcpHint": "Deze tokens werken ook als Bearer-tokens voor het MCP-eindpunt op /mcp (bijv. in Claude Desktop, om taken, boodschappen en afspraken via AI aan te maken).",
+        "sync": {
+            "defaultAssignee": "Standaardtoewijzing",
+            "defaultAssigneeNone": "Geen",
+            "defaultAssigneeHint": "Nieuw gesynchroniseerde afspraken worden automatisch aan deze persoon toegewezen."
+        }
     },
     "login": {
         "tagline": "Gezinsplanning. Veilig. Privacyvriendelijk. Open source.",

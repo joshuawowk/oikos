@@ -39,7 +39,15 @@
         "invalidInput": "Ungültige Eingabe.",
         "togglePasswordVisibility": "Passwort anzeigen/verbergen",
         "errorOfflineMutation": "Änderungen sind offline nicht möglich. Bitte erneut verbinden.",
-        "retry": "Erneut versuchen"
+        "retry": "Erneut versuchen",
+        "visibility": {
+            "label": "Sichtbarkeit",
+            "all": "Alle Familienmitglieder",
+            "assignees": "Nur Zugewiesene",
+            "private": "Nur ich",
+            "hint": "Legt fest, wer diesen Eintrag in Yuvomi sieht.",
+            "assigneesNobodyHint": "Ohne Zuweisung sieht diesen Eintrag nur du."
+        }
     },
     "nav": {
         "dashboard": "Übersicht",
@@ -282,7 +290,8 @@
         "startsOn": "Startet am {{date}}",
         "showFuture": "Geplante anzeigen",
         "pointsLabel": "Punkte",
-        "pointsHint": "Punkte werden beim Erledigen gutgeschrieben."
+        "pointsHint": "Punkte werden beim Erledigen gutgeschrieben.",
+        "assignedToMe": "Mir zugewiesen"
     },
     "shopping": {
         "detailsLabel": "Details zu {{name}}",
@@ -613,7 +622,8 @@
         "agendaEmpty": "Keine Termine im ausgewählten Zeitraum",
         "taskChipAriaLabel": "Aufgabe: {{title}}",
         "toggleHolidays": "Feiertage",
-        "toggleSchool": "Schulferien"
+        "toggleSchool": "Schulferien",
+        "assignedToMe": "Mir zugewiesen"
     },
     "notes": {
         "title": "Notizen",
@@ -1687,7 +1697,12 @@
         "notificationChannelEmpty": "Noch keine Haushaltskanäle eingerichtet.",
         "notificationChannelAdminOnlyHint": "Nur Admins können Haushaltskanäle verwalten.",
         "notificationChannelDeleteConfirm": "Diesen Benachrichtigungskanal löschen?",
-        "apiTokensMcpHint": "Diese Tokens funktionieren auch als Bearer-Token für den MCP-Endpoint unter /mcp (z. B. in Claude Desktop, um Aufgaben, Einkaufsartikel und Termine per KI anzulegen)."
+        "apiTokensMcpHint": "Diese Tokens funktionieren auch als Bearer-Token für den MCP-Endpoint unter /mcp (z. B. in Claude Desktop, um Aufgaben, Einkaufsartikel und Termine per KI anzulegen).",
+        "sync": {
+            "defaultAssignee": "Standard-Zuweisung",
+            "defaultAssigneeNone": "Keine",
+            "defaultAssigneeHint": "Neu synchronisierte Termine werden automatisch dieser Person zugewiesen."
+        }
     },
     "login": {
         "tagline": "Familienplanung. Sicher. Datenschutzfreundlich. Open Source.",

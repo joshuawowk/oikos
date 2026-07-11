@@ -39,7 +39,15 @@
         "invalidInput": "Neplatný vstup.",
         "togglePasswordVisibility": "Zobrazit/skrýt heslo",
         "errorOfflineMutation": "Změny nejsou offline možné. Připojte se prosím znovu.",
-        "retry": "Zkusit znovu"
+        "retry": "Zkusit znovu",
+        "visibility": {
+            "label": "Viditelnost",
+            "all": "Všichni členové rodiny",
+            "assignees": "Pouze přiřazení",
+            "private": "Pouze já",
+            "hint": "Určuje, kdo vidí tuto položku v Yuvomi.",
+            "assigneesNobodyHint": "Bez přiřazení vidíš tuto položku jen ty."
+        }
     },
     "nav": {
         "dashboard": "Přehled",
@@ -275,7 +283,8 @@
         "emptyAction": "Vytvořit úkol",
         "navLabelOverdue": "Úkoly, {{{count}}} po termínu",
         "pointsLabel": "Body",
-        "pointsHint": "Body se připíší po splnění."
+        "pointsHint": "Body se připíší po splnění.",
+        "assignedToMe": "Přiřazeno mně"
     },
     "shopping": {
         "detailsLabel": "Podrobnosti: {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "V vybraném rozsahu nejsou žádné události",
         "taskChipAriaLabel": "Úkol: {{title}}",
         "toggleHolidays": "Státní svátky",
-        "toggleSchool": "Školní prázdniny"
+        "toggleSchool": "Školní prázdniny",
+        "assignedToMe": "Přiřazeno mně"
     },
     "notes": {
         "title": "Nástěnka",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Zatím nejsou nastaveny žádné kanály domácnosti.",
         "notificationChannelAdminOnlyHint": "Kanály domácnosti mohou spravovat pouze správci.",
         "notificationChannelDeleteConfirm": "Smazat tento kanál oznámení?",
-        "apiTokensMcpHint": "Tyto tokeny fungují také jako Bearer tokeny pro koncový bod MCP na /mcp (např. v Claude Desktop pro vytváření úkolů, položek nákupu a událostí pomocí AI)."
+        "apiTokensMcpHint": "Tyto tokeny fungují také jako Bearer tokeny pro koncový bod MCP na /mcp (např. v Claude Desktop pro vytváření úkolů, položek nákupu a událostí pomocí AI).",
+        "sync": {
+            "defaultAssignee": "Výchozí přiřazení",
+            "defaultAssigneeNone": "Žádné",
+            "defaultAssigneeHint": "Nově synchronizované události se automaticky přiřadí této osobě."
+        }
     },
     "login": {
         "tagline": "Rodinné plánování. Bezpečné. Soukromé. Open Source.",

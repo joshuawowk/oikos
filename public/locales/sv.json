@@ -39,7 +39,15 @@
         "invalidInput": "Ogiltig inmatning.",
         "togglePasswordVisibility": "Visa/dölj lösenord",
         "errorOfflineMutation": "Ändringar går inte att göra offline. Anslut igen.",
-        "retry": "Försök igen"
+        "retry": "Försök igen",
+        "visibility": {
+            "label": "Synlighet",
+            "all": "Alla familjemedlemmar",
+            "assignees": "Endast tilldelade",
+            "private": "Endast jag",
+            "hint": "Styr vem som kan se den här posten i Yuvomi.",
+            "assigneesNobodyHint": "Utan tilldelning ser bara du den här posten."
+        }
     },
     "nav": {
         "dashboard": "Översikt",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status ändrad.",
         "selectTask": "Välj uppgift",
         "pointsLabel": "Poäng",
-        "pointsHint": "Poäng krediteras när uppgiften slutförs."
+        "pointsHint": "Poäng krediteras när uppgiften slutförs.",
+        "assignedToMe": "Tilldelade mig"
     },
     "shopping": {
         "detailsLabel": "Detaljer för {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Inga händelser under vald period",
         "taskChipAriaLabel": "Uppgift: {{title}}",
         "toggleHolidays": "Helgdagar",
-        "toggleSchool": "Skollov"
+        "toggleSchool": "Skollov",
+        "assignedToMe": "Tilldelade mig"
     },
     "notes": {
         "title": "Anteckningar",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Inga hushållskanaler har konfigurerats ännu.",
         "notificationChannelAdminOnlyHint": "Endast administratörer kan hantera hushållskanaler.",
         "notificationChannelDeleteConfirm": "Ta bort den här aviseringskanalen?",
-        "apiTokensMcpHint": "Dessa token fungerar även som Bearer-token för MCP-slutpunkten på /mcp (t.ex. i Claude Desktop, för att skapa uppgifter, inköpsartiklar och händelser med AI)."
+        "apiTokensMcpHint": "Dessa token fungerar även som Bearer-token för MCP-slutpunkten på /mcp (t.ex. i Claude Desktop, för att skapa uppgifter, inköpsartiklar och händelser med AI).",
+        "sync": {
+            "defaultAssignee": "Standardtilldelning",
+            "defaultAssigneeNone": "Ingen",
+            "defaultAssigneeHint": "Nyligen synkroniserade händelser tilldelas automatiskt den här personen."
+        }
     },
     "login": {
         "tagline": "Familjeplanering. Säker. Sekretessvänlig. Öppen källkod.",

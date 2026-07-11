@@ -39,7 +39,15 @@
         "invalidInput": "Masukan tidak valid.",
         "togglePasswordVisibility": "Tampilkan/sembunyikan kata sandi",
         "errorOfflineMutation": "Perubahan tidak dapat dilakukan saat offline. Harap sambungkan kembali.",
-        "retry": "Coba lagi"
+        "retry": "Coba lagi",
+        "visibility": {
+            "label": "Visibilitas",
+            "all": "Semua anggota keluarga",
+            "assignees": "Hanya yang ditugaskan",
+            "private": "Hanya saya",
+            "hint": "Menentukan siapa yang dapat melihat entri ini di Yuvomi.",
+            "assigneesNobodyHint": "Tanpa penerima tugas, hanya kamu yang melihat entri ini."
+        }
     },
     "nav": {
         "dashboard": "Ringkasan",
@@ -282,7 +290,8 @@
         "startsOn": "Mulai pada {{date}}",
         "showFuture": "Tampilkan yang terjadwal",
         "pointsLabel": "Poin",
-        "pointsHint": "Poin dikreditkan saat selesai."
+        "pointsHint": "Poin dikreditkan saat selesai.",
+        "assignedToMe": "Ditugaskan ke saya"
     },
     "shopping": {
         "detailsLabel": "Detail untuk {{name}}",
@@ -613,7 +622,8 @@
         "agendaEmpty": "Tidak ada acara pada periode yang dipilih",
         "taskChipAriaLabel": "Tugas: {{title}}",
         "toggleHolidays": "Hari libur",
-        "toggleSchool": "Libur sekolah"
+        "toggleSchool": "Libur sekolah",
+        "assignedToMe": "Ditugaskan ke saya"
     },
     "notes": {
         "title": "Catatan",
@@ -1687,7 +1697,12 @@
         "notificationChannelEmpty": "Belum ada saluran rumah tangga yang disiapkan.",
         "notificationChannelAdminOnlyHint": "Hanya admin yang dapat mengelola saluran rumah tangga.",
         "notificationChannelDeleteConfirm": "Hapus saluran notifikasi ini?",
-        "apiTokensMcpHint": "Token ini juga berfungsi sebagai token Bearer untuk endpoint MCP di /mcp (mis. di Claude Desktop, untuk membuat tugas, item belanja, dan acara dengan AI)."
+        "apiTokensMcpHint": "Token ini juga berfungsi sebagai token Bearer untuk endpoint MCP di /mcp (mis. di Claude Desktop, untuk membuat tugas, item belanja, dan acara dengan AI).",
+        "sync": {
+            "defaultAssignee": "Penerima tugas default",
+            "defaultAssigneeNone": "Tidak ada",
+            "defaultAssigneeHint": "Acara yang baru disinkronkan otomatis ditugaskan ke orang ini."
+        }
     },
     "login": {
         "tagline": "Perencanaan keluarga. Aman. Ramah privasi. Sumber terbuka.",

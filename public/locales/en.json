@@ -39,7 +39,15 @@
         "invalidInput": "Invalid input.",
         "togglePasswordVisibility": "Toggle password visibility",
         "errorOfflineMutation": "Changes aren't possible while offline. Please reconnect.",
-        "retry": "Try again"
+        "retry": "Try again",
+        "visibility": {
+            "label": "Visibility",
+            "all": "All family members",
+            "assignees": "Assignees only",
+            "private": "Only me",
+            "hint": "Controls who can see this entry in Yuvomi.",
+            "assigneesNobodyHint": "With no one assigned, only you can see this entry."
+        }
     },
     "nav": {
         "dashboard": "Overview",
@@ -275,7 +283,8 @@
         "emptyAction": "Create task",
         "navLabelOverdue": "Tasks, {{{count}}} overdue",
         "pointsLabel": "Points",
-        "pointsHint": "Points are credited on completion."
+        "pointsHint": "Points are credited on completion.",
+        "assignedToMe": "Assigned to me"
     },
     "shopping": {
         "detailsLabel": "Details for {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "No events in the selected range",
         "taskChipAriaLabel": "Task: {{title}}",
         "toggleHolidays": "Public Holidays",
-        "toggleSchool": "School Holidays"
+        "toggleSchool": "School Holidays",
+        "assignedToMe": "Assigned to me"
     },
     "notes": {
         "title": "Board",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "No household channels configured yet.",
         "notificationChannelAdminOnlyHint": "Only admins can manage household channels.",
         "notificationChannelDeleteConfirm": "Delete this notification channel?",
-        "apiTokensMcpHint": "These tokens also work as Bearer tokens for the MCP endpoint at /mcp (e.g. in Claude Desktop, to create tasks, shopping items and events via AI)."
+        "apiTokensMcpHint": "These tokens also work as Bearer tokens for the MCP endpoint at /mcp (e.g. in Claude Desktop, to create tasks, shopping items and events via AI).",
+        "sync": {
+            "defaultAssignee": "Default assignee",
+            "defaultAssigneeNone": "None",
+            "defaultAssigneeHint": "Newly synced events are automatically assigned to this person."
+        }
     },
     "login": {
         "tagline": "Family planning. Secure. Privacy-friendly. Open source.",

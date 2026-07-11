@@ -39,6 +39,7 @@ const MIGRATIONS_SQL = {
       is_recurring    INTEGER NOT NULL DEFAULT 0,
       recurrence_rule TEXT,
       parent_task_id  INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+      visibility      TEXT    NOT NULL DEFAULT 'all',
       created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
       updated_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     );
@@ -98,6 +99,7 @@ const MIGRATIONS_SQL = {
       external_source      TEXT    NOT NULL DEFAULT 'local'
                                    CHECK(external_source IN ('local', 'google', 'apple')),
       recurrence_rule      TEXT,
+      visibility           TEXT    NOT NULL DEFAULT 'all',
       created_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
       updated_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     );

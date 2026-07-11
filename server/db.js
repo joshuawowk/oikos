@@ -2989,6 +2989,29 @@ const MIGRATIONS = [
         SELECT 'activity', id, COALESCE(type, ''), COALESCE(note, '') FROM health_activities;
     `,
   },
+  {
+    version: 78,
+    description: 'Sichtbarkeit pro Aufgabe/Termin: all | assignees | private (#474)',
+    up: `
+      -- Standard 'all' = bisheriges Verhalten (für alle Familienmitglieder sichtbar);
+      -- Bestandsdaten bleiben damit unverändert sichtbar. Durchsetzung erfolgt
+      -- serverseitig auf allen Lesepfaden (Liste, Detail, Dashboard, Suche, Reminder).
+      ALTER TABLE tasks           ADD COLUMN visibility TEXT NOT NULL DEFAULT 'all';
+      ALTER TABLE calendar_events ADD COLUMN visibility TEXT NOT NULL DEFAULT 'all';
+    `,
+  },
+  {
+    version: 79,
+    description: 'Standard-Zuweisung pro Kalender-Sync-Ziel (#459)',
+    up: `
+      -- Optionale Standard-Person je Sync-Ziel: neu importierte Termine werden ihr
+      -- automatisch zugewiesen. NULL = keine Zuweisung (bisheriges Verhalten).
+      -- ON DELETE ist nicht per ALTER setzbar; Aufräumen bei Nutzer-Löschung
+      -- übernimmt server/services/sync-assignment.js beim nächsten Zugriff.
+      ALTER TABLE external_calendars ADD COLUMN default_assignee_user_id INTEGER;
+      ALTER TABLE ics_subscriptions  ADD COLUMN default_assignee_user_id INTEGER;
+    `,
+  },
 ];
 
 /**

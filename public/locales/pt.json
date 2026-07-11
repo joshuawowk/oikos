@@ -39,7 +39,15 @@
         "invalidInput": "Entrada inválida.",
         "togglePasswordVisibility": "Mostrar/ocultar senha",
         "errorOfflineMutation": "Não é possível fazer alterações offline. Reconecte-se.",
-        "retry": "Tentar novamente"
+        "retry": "Tentar novamente",
+        "visibility": {
+            "label": "Visibilidade",
+            "all": "Todos os membros da família",
+            "assignees": "Apenas atribuídos",
+            "private": "Apenas eu",
+            "hint": "Controla quem pode ver esta entrada no Yuvomi.",
+            "assigneesNobodyHint": "Sem ninguém atribuído, só você vê esta entrada."
+        }
     },
     "nav": {
         "dashboard": "Painel",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status changed.",
         "selectTask": "Select task",
         "pointsLabel": "Pontos",
-        "pointsHint": "Os pontos são creditados ao concluir."
+        "pointsHint": "Os pontos são creditados ao concluir.",
+        "assignedToMe": "Atribuídos a mim"
     },
     "shopping": {
         "detailsLabel": "Detalhes de {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Nenhum evento no período selecionado",
         "taskChipAriaLabel": "Tarefa: {{title}}",
         "toggleHolidays": "Feriados",
-        "toggleSchool": "Férias escolares"
+        "toggleSchool": "Férias escolares",
+        "assignedToMe": "Atribuídos a mim"
     },
     "notes": {
         "title": "Quadro de notas",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Nenhum canal da casa configurado ainda.",
         "notificationChannelAdminOnlyHint": "Somente administradores podem gerenciar canais da casa.",
         "notificationChannelDeleteConfirm": "Excluir este canal de notificações?",
-        "apiTokensMcpHint": "Estes tokens também funcionam como tokens Bearer para o endpoint MCP em /mcp (por ex. no Claude Desktop, para criar tarefas, itens de compras e eventos através de IA)."
+        "apiTokensMcpHint": "Estes tokens também funcionam como tokens Bearer para o endpoint MCP em /mcp (por ex. no Claude Desktop, para criar tarefas, itens de compras e eventos através de IA).",
+        "sync": {
+            "defaultAssignee": "Atribuição padrão",
+            "defaultAssigneeNone": "Nenhum",
+            "defaultAssigneeHint": "Os eventos recém-sincronizados são atribuídos automaticamente a esta pessoa."
+        }
     },
     "login": {
         "tagline": "Planejamento familiar. Seguro. Privado. Código aberto.",

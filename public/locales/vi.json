@@ -39,7 +39,15 @@
         "invalidInput": "Đầu vào không hợp lệ.",
         "togglePasswordVisibility": "Hiện/ẩn mật khẩu",
         "errorOfflineMutation": "Không thể thay đổi khi ngoại tuyến. Vui lòng kết nối lại.",
-        "retry": "Thử lại"
+        "retry": "Thử lại",
+        "visibility": {
+            "label": "Khả năng hiển thị",
+            "all": "Tất cả thành viên gia đình",
+            "assignees": "Chỉ người được giao",
+            "private": "Chỉ mình tôi",
+            "hint": "Kiểm soát ai có thể xem mục này trong Yuvomi.",
+            "assigneesNobodyHint": "Nếu không giao cho ai, chỉ bạn thấy mục này."
+        }
     },
     "nav": {
         "dashboard": "Tổng quan",
@@ -275,7 +283,8 @@
         "emptyAction": "Tạo nhiệm vụ",
         "navLabelOverdue": "Nhiệm vụ, {{{count}}} quá hạn",
         "pointsLabel": "Điểm",
-        "pointsHint": "Điểm được cộng khi hoàn thành."
+        "pointsHint": "Điểm được cộng khi hoàn thành.",
+        "assignedToMe": "Được giao cho tôi"
     },
     "shopping": {
         "detailsLabel": "Chi tiết {{name}}",
@@ -606,7 +615,8 @@
         "taskChipAriaLabel": "Nhiệm vụ: {{title}}",
         "colorOverriddenByAssignee": "Màu sắc bị ghi đè bởi người được giao",
         "toggleHolidays": "Ngày lễ",
-        "toggleSchool": "Kỳ nghỉ học"
+        "toggleSchool": "Kỳ nghỉ học",
+        "assignedToMe": "Được giao cho tôi"
     },
     "notes": {
         "title": "Bảng ghi chú",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Chưa cấu hình kênh gia đình nào.",
         "notificationChannelAdminOnlyHint": "Chỉ quản trị viên mới có thể quản lý kênh gia đình.",
         "notificationChannelDeleteConfirm": "Xóa kênh thông báo này?",
-        "apiTokensMcpHint": "Các token này cũng hoạt động như token Bearer cho điểm cuối MCP tại /mcp (ví dụ trong Claude Desktop, để tạo công việc, món hàng cần mua và sự kiện bằng AI)."
+        "apiTokensMcpHint": "Các token này cũng hoạt động như token Bearer cho điểm cuối MCP tại /mcp (ví dụ trong Claude Desktop, để tạo công việc, món hàng cần mua và sự kiện bằng AI).",
+        "sync": {
+            "defaultAssignee": "Người được giao mặc định",
+            "defaultAssigneeNone": "Không có",
+            "defaultAssigneeHint": "Các sự kiện mới đồng bộ sẽ tự động được giao cho người này."
+        }
     },
     "login": {
         "tagline": "Kế hoạch gia đình. Bảo mật. Thân thiện với quyền riêng tư. Mã nguồn mở.",

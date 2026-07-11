@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-07-11
+
+### Added
+- Per-item visibility for tasks and calendar events: choose "all family members" (default), "assignees only", or "private" (only you). Enforced server-side on every read path — list, detail, dashboard, search, and MCP — with no admin bypass, so a private item stays hidden even from a parent/admin (useful for preparing a surprise). Restricted items carry a lock/people icon in the list, and the event export feed is deliberately not filtered by it. (Discussion #474)
+- "Assigned to me" quick filter on the Tasks and Calendar views: one toggle limits the list to items assigned to you, remembered per device and shown only in multi-member households. (Discussion #472)
+- Default assignee per calendar sync target: give each synced Google/CalDAV calendar or ICS subscription an optional default person in Settings → Sync, and newly imported events of that target are automatically assigned to them (new events only, never retroactively). (Discussion #459)
+
 ## [1.10.2] - 2026-07-11
 
 ### Fixed

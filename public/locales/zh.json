@@ -39,7 +39,15 @@
         "invalidInput": "输入无效。",
         "togglePasswordVisibility": "显示/隐藏密码",
         "errorOfflineMutation": "离线时无法进行更改。请重新连接。",
-        "retry": "重试"
+        "retry": "重试",
+        "visibility": {
+            "label": "可见性",
+            "all": "所有家庭成员",
+            "assignees": "仅限被分配者",
+            "private": "仅自己",
+            "hint": "控制谁可以在 Yuvomi 中看到此条目。",
+            "assigneesNobodyHint": "未指定任何人时，只有你能看到此条目。"
+        }
     },
     "nav": {
         "dashboard": "概览",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status changed.",
         "selectTask": "Select task",
         "pointsLabel": "积分",
-        "pointsHint": "完成后积分记入账户。"
+        "pointsHint": "完成后积分记入账户。",
+        "assignedToMe": "分配给我"
     },
     "shopping": {
         "detailsLabel": "{{name}} 的详情",
@@ -606,7 +615,8 @@
         "agendaEmpty": "所选时间范围内没有日程",
         "taskChipAriaLabel": "任务：{{title}}",
         "toggleHolidays": "法定节假日",
-        "toggleSchool": "学校假期"
+        "toggleSchool": "学校假期",
+        "assignedToMe": "分配给我"
     },
     "notes": {
         "title": "便签板",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "尚未配置家庭频道。",
         "notificationChannelAdminOnlyHint": "只有管理员可以管理家庭频道。",
         "notificationChannelDeleteConfirm": "删除此通知频道？",
-        "apiTokensMcpHint": "这些令牌也可用作 /mcp 上 MCP 端点的 Bearer 令牌（例如在 Claude Desktop 中，通过 AI 创建任务、购物项和日程）。"
+        "apiTokensMcpHint": "这些令牌也可用作 /mcp 上 MCP 端点的 Bearer 令牌（例如在 Claude Desktop 中，通过 AI 创建任务、购物项和日程）。",
+        "sync": {
+            "defaultAssignee": "默认分配",
+            "defaultAssigneeNone": "无",
+            "defaultAssigneeHint": "新同步的日程会自动分配给此人。"
+        }
     },
     "login": {
         "tagline": "家庭规划。安全。注重隐私。开源。",

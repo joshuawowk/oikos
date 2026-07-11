@@ -39,7 +39,15 @@
         "invalidInput": "Недопустимый ввод.",
         "togglePasswordVisibility": "Показать/скрыть пароль",
         "errorOfflineMutation": "Изменения недоступны офлайн. Подключитесь снова.",
-        "retry": "Повторить"
+        "retry": "Повторить",
+        "visibility": {
+            "label": "Видимость",
+            "all": "Все члены семьи",
+            "assignees": "Только назначенные",
+            "private": "Только я",
+            "hint": "Определяет, кто видит эту запись в Yuvomi.",
+            "assigneesNobodyHint": "Без назначения эту запись видите только вы."
+        }
     },
     "nav": {
         "dashboard": "Обзор",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Status changed.",
         "selectTask": "Select task",
         "pointsLabel": "Баллы",
-        "pointsHint": "Баллы начисляются после выполнения."
+        "pointsHint": "Баллы начисляются после выполнения.",
+        "assignedToMe": "Назначенные мне"
     },
     "shopping": {
         "detailsLabel": "Подробнее: {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Нет событий в выбранном периоде",
         "taskChipAriaLabel": "Задача: {{title}}",
         "toggleHolidays": "Праздничные дни",
-        "toggleSchool": "Школьные каникулы"
+        "toggleSchool": "Школьные каникулы",
+        "assignedToMe": "Назначенные мне"
     },
     "notes": {
         "title": "Заметки",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Каналы семьи ещё не настроены.",
         "notificationChannelAdminOnlyHint": "Только администраторы могут управлять каналами семьи.",
         "notificationChannelDeleteConfirm": "Удалить этот канал уведомлений?",
-        "apiTokensMcpHint": "Эти токены также работают как токены Bearer для конечной точки MCP по адресу /mcp (например, в Claude Desktop для создания задач, покупок и событий с помощью ИИ)."
+        "apiTokensMcpHint": "Эти токены также работают как токены Bearer для конечной точки MCP по адресу /mcp (например, в Claude Desktop для создания задач, покупок и событий с помощью ИИ).",
+        "sync": {
+            "defaultAssignee": "Назначение по умолчанию",
+            "defaultAssigneeNone": "Нет",
+            "defaultAssigneeHint": "Новые синхронизированные события автоматически назначаются этому человеку."
+        }
     },
     "login": {
         "tagline": "Семейное планирование. Безопасно. С уважением к приватности. Открытый исходный код.",

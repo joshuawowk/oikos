@@ -39,7 +39,15 @@
         "invalidInput": "Некоректне введення.",
         "togglePasswordVisibility": "Показати/приховати пароль",
         "errorOfflineMutation": "Зміни недоступні офлайн. Підключіться знову.",
-        "retry": "Спробувати ще раз"
+        "retry": "Спробувати ще раз",
+        "visibility": {
+            "label": "Видимість",
+            "all": "Усі члени родини",
+            "assignees": "Лише призначені",
+            "private": "Лише я",
+            "hint": "Визначає, хто бачить цей запис у Yuvomi.",
+            "assigneesNobodyHint": "Без призначення цей запис бачите лише ви."
+        }
     },
     "nav": {
         "dashboard": "Огляд",
@@ -275,7 +283,8 @@
         "bulkStatusChanged": "Статус змінено.",
         "selectTask": "Виберіть завдання",
         "pointsLabel": "Бали",
-        "pointsHint": "Бали нараховуються після виконання."
+        "pointsHint": "Бали нараховуються після виконання.",
+        "assignedToMe": "Призначені мені"
     },
     "shopping": {
         "detailsLabel": "Деталі: {{name}}",
@@ -606,7 +615,8 @@
         "agendaEmpty": "Немає подій у вибраному періоді",
         "taskChipAriaLabel": "Завдання: {{title}}",
         "toggleHolidays": "Святкові дні",
-        "toggleSchool": "Шкільні канікули"
+        "toggleSchool": "Шкільні канікули",
+        "assignedToMe": "Призначені мені"
     },
     "notes": {
         "title": "Нотатки",
@@ -1680,7 +1690,12 @@
         "notificationChannelEmpty": "Канали домогосподарства ще не налаштовано.",
         "notificationChannelAdminOnlyHint": "Керувати каналами домогосподарства можуть лише адміністратори.",
         "notificationChannelDeleteConfirm": "Видалити цей канал сповіщень?",
-        "apiTokensMcpHint": "Ці токени також працюють як токени Bearer для кінцевої точки MCP за адресою /mcp (наприклад, у Claude Desktop для створення завдань, покупок і подій за допомогою ШІ)."
+        "apiTokensMcpHint": "Ці токени також працюють як токени Bearer для кінцевої точки MCP за адресою /mcp (наприклад, у Claude Desktop для створення завдань, покупок і подій за допомогою ШІ).",
+        "sync": {
+            "defaultAssignee": "Призначення за замовчуванням",
+            "defaultAssigneeNone": "Немає",
+            "defaultAssigneeHint": "Нові синхронізовані події автоматично призначаються цій особі."
+        }
     },
     "login": {
         "tagline": "Планування для родини. Безпечно. Конфіденційно. Відкритий код.",
