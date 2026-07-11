@@ -27,6 +27,11 @@ const VALID_DATE_FORMATS = ['mdy', 'dmy', 'ymd', 'mdy_dot', 'dmy_dot', 'dmy_slas
 // statt 06/30/2026. US-Nutzer können in den Einstellungen weiterhin mdy wählen.
 const DEFAULT_DATE_FORMAT = 'dmy';
 const VALID_TIME_FORMATS = ['24h', '12h'];
+
+// Region ist nur ein Anzeige-Hinweis (Locale-Code wie "fr-FR" oder "custom").
+// Der Client fällt bei unbekanntem Wert ohnehin auf detectRegion() zurück, daher
+// genügt eine Formprüfung statt einer festen Liste.
+const VALID_REGION = /^(custom|[a-z]{2}-[A-Z]{2})$/;
 const DEFAULT_TIME_FORMAT = '24h';
 
 // Standard-Termindauer (Minuten): setzt das Ende neuer Kalender-Termine relativ
@@ -225,6 +230,7 @@ router.get('/', (req, res) => {
         currency,
         date_format: dateFormat,
         time_format: timeFormat,
+        region: cfgGet('region') || null,
         app_name: appName,
         dashboard_widgets: dashboardWidgets,
         disabled_modules: disabledModules,
@@ -267,7 +273,7 @@ router.get('/', (req, res) => {
 
 router.put('/', (req, res) => {
   try {
-    const { visible_meal_types, currency, date_format, time_format, app_name, dashboard_widgets, disabled_modules, module_order, mobile_nav_order, housekeeping_payment_tasks, calendar_default_duration, health_cycle_enabled, rewards_require_approval, weather_provider, weather_lat, weather_lon, weather_city, weather_units, weather_auto_locate, weather_user, holiday_country, holiday_subdivision, holiday_show_public, holiday_show_school, holiday_public_color, holiday_school_color } = req.body;
+    const { visible_meal_types, currency, date_format, time_format, region, app_name, dashboard_widgets, disabled_modules, module_order, mobile_nav_order, housekeeping_payment_tasks, calendar_default_duration, health_cycle_enabled, rewards_require_approval, weather_provider, weather_lat, weather_lon, weather_city, weather_units, weather_auto_locate, weather_user, holiday_country, holiday_subdivision, holiday_show_public, holiday_show_school, holiday_public_color, holiday_school_color } = req.body;
 
     if (visible_meal_types !== undefined) {
       if (!Array.isArray(visible_meal_types)) {
@@ -299,6 +305,16 @@ router.put('/', (req, res) => {
         return res.status(400).json({ error: `Invalid time format. Allowed: ${VALID_TIME_FORMATS.join(', ')}`, code: 400 });
       }
       cfgSet('time_format', time_format);
+    }
+
+    // Reine Anzeige-Hilfe: welche Region-Vorlage der Nutzer gewählt hat. Nötig,
+    // weil sich mehrere Regionen dasselbe currency/date/time-Triple teilen und
+    // der Dropdown sonst nach dem Speichern auf die falsche Region springt (#486).
+    if (region !== undefined) {
+      if (region !== null && (typeof region !== 'string' || !VALID_REGION.test(region))) {
+        return res.status(400).json({ error: 'Ungültige Region.', code: 400 });
+      }
+      cfgSet('region', region ?? '');
     }
 
     if (app_name !== undefined) {
@@ -566,6 +582,7 @@ router.put('/', (req, res) => {
         currency: savedCurrency,
         date_format: savedDateFormat,
         time_format: savedTimeFormat,
+        region: cfgGet('region') || null,
         app_name: savedAppName,
         dashboard_widgets: savedWidgets,
         disabled_modules: savedDisabledModules,

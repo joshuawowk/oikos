@@ -60,6 +60,27 @@ export function detectRegion({ currency, date_format, time_format } = {}) {
   return CUSTOM_REGION;
 }
 
+// Bevorzugt eine explizit gespeicherte Region, solange deren Preset noch exakt
+// zu den gespeicherten Formatwerten passt. Nötig, weil sich mehrere Regionen
+// dasselbe Triple teilen (z. B. fr-FR und es-ES = EUR/dmy_slash/24h): ohne
+// gespeichertes `region`-Feld liefert detectRegion() immer den ersten Treffer
+// und der Dropdown springt nach dem Speichern auf die falsche Region (#486).
+// Fällt auf detectRegion() zurück, wenn keine gültige Region gespeichert ist
+// oder ihr Preset nicht mehr zu den aktuellen Werten passt (z. B. nach manueller
+// Formatänderung).
+export function resolveRegion({ region, currency, date_format, time_format } = {}) {
+  const preset = region ? REGION_PRESETS[region] : undefined;
+  if (
+    preset
+    && preset.currency === currency
+    && preset.date_format === date_format
+    && preset.time_format === time_format
+  ) {
+    return region;
+  }
+  return detectRegion({ currency, date_format, time_format });
+}
+
 // Lokalisierter Anzeigename eines Regions-Codes (z. B. "de-DE" → "Deutsch (Deutschland)").
 // Fällt auf den Code zurück, wenn Intl.DisplayNames nicht verfügbar ist.
 export function regionLabel(code, locale) {

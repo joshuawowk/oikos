@@ -12,6 +12,7 @@ import {
   REGION_CODES,
   REGION_PRESETS,
   detectRegion,
+  resolveRegion,
   regionLabel,
 } from '/settings/region-presets.js';
 
@@ -112,7 +113,7 @@ function renderLoadError(container) {
 
 function renderPage(container, preferences, isAdmin) {
   const theme = currentTheme();
-  const activeRegion = detectRegion(preferences);
+  const activeRegion = resolveRegion(preferences);
   const customHidden = isAdmin && activeRegion !== CUSTOM_REGION;
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
@@ -271,6 +272,9 @@ function bindEvents(container, user) {
         currency: preset.currency,
         date_format: preset.date_format,
         time_format: preset.time_format,
+        // Gewählte Region mitspeichern, sonst würde detectRegion() beim
+        // nächsten Laden auf die erste Region mit gleichem Triple springen (#486).
+        region: regionSelect.value,
       });
       const currencySelect = container.querySelector('#currency-select');
       if (currencySelect) currencySelect.value = preset.currency;
@@ -363,6 +367,7 @@ export async function render(container, { user }) {
       currency: response?.data?.currency || 'EUR',
       date_format: response?.data?.date_format || 'dmy',
       time_format: response?.data?.time_format || '24h',
+      region: response?.data?.region || null,
     };
 
     safeStorageSet('yuvomi-date-format', preferences.date_format);

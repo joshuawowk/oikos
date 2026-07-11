@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.3] - 2026-07-11
+
+### Fixed
+- The region/format picker no longer jumps to the wrong region after saving. When several regions share the same currency, date and time format (for example French and Spanish), your selection is now remembered instead of snapping to another region with identical formats. (#486)
+
 ## [1.11.2] - 2026-07-11
 
 ### Fixed
