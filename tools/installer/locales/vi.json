@@ -8,8 +8,9 @@
     "optional": "Tùy chọn",
     "stepCounter": "Bước {{n}} / {{total}}",
     "toggleVisibility": "Hiện hoặc ẩn giá trị",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "Sao chép",
+    "copied": "Đã sao chép ✓",
+    "language": "Ngôn ngữ"
   },
   "config": {
     "title": "Cấu hình cơ bản",
@@ -31,7 +32,7 @@
     "dbLabel": "Khóa mã hóa cơ sở dữ liệu",
     "dbHint": "Mã hóa cơ sở dữ liệu SQLite khi lưu trữ.",
     "errBoth": "Cả hai khóa đều bắt buộc.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "Hãy lưu các khóa này ngay. Nếu mất, dữ liệu được mã hóa của bạn sẽ không thể khôi phục — không có cách đặt lại."
   },
   "weather": {
     "title": "Widget thời tiết",
@@ -82,8 +83,17 @@
     "errSave": "Không thể lưu .env.",
     "weatherEnabled": "đã bật ({{city}})",
     "configured": "đã cấu hình",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "Thao tác này ghi tệp .env của bạn (tệp hiện có được sao lưu) và khởi động container.",
+    "confirm": "Nhấp lại để xác nhận",
+    "access": "Truy cập",
+    "accessProxy": "Reverse proxy (HTTPS)",
+    "accessDirect": "Trực tiếp / HTTP",
+    "email": "Email",
+    "oidc": "Đăng nhập một lần",
+    "backups": "Sao lưu",
+    "webdavBackup": "Sao lưu bên ngoài",
+    "on": "bật",
+    "off": "tắt"
   },
   "docker": {
     "title": "Đang khởi động Yuvomi",
@@ -117,7 +127,7 @@
     "title": "Yuvomi đã sẵn sàng!",
     "subtitle": "Trình lên kế hoạch gia đình của bạn đang chạy và tài khoản admin đã được thiết lập.",
     "open": "Mở Yuvomi →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "Nhớ sao lưu tệp .env của bạn ngay bây giờ — nó chứa các khóa của bạn."
   },
   "advanced": {
     "tag": "Nâng cao · tùy chọn",
@@ -151,9 +161,63 @@
     "documentLocalEnable": "Lưu tài liệu mới vào thư mục cục bộ",
     "documentLocalPathLabel": "Đường dẫn thư mục",
     "documentLocalPathHint": "Đường dẫn trong container. Để trống để dùng /documents.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "Mạng",
+    "sectionIntegrations": "Tích hợp và sao lưu",
+    "errSchedule": "Lịch cron không hợp lệ (cần năm trường phân tách bằng dấu cách, ví dụ 0 2 * * *).",
+    "errKeep": "Số bản sao lưu cần giữ phải là một số dương.",
+    "webdavBackup": "Sao lưu bên ngoài (WebDAV)",
+    "webdavBackupHint": "Sao chép mỗi bản sao lưu tới máy chủ WebDAV (ví dụ Nextcloud) để tồn tại qua sự cố ổ đĩa.",
+    "webdavBackupEnable": "Cũng gửi bản sao lưu tới WebDAV",
+    "webdavBackupUrlLabel": "URL WebDAV",
+    "webdavBackupUsernameLabel": "Tên người dùng",
+    "webdavBackupPasswordLabel": "Mật khẩu",
+    "webdavBackupPathLabel": "Đường dẫn từ xa",
+    "sectionMore": "Tùy chọn khác",
+    "fixerLabel": "Khóa API Fixer (tỷ giá trực tiếp)",
+    "fixerHint": "Tùy chọn. Quy đổi tiền tệ của gói đăng ký theo tỷ giá trực tiếp. Gói đăng ký vẫn hoạt động khi không có.",
+    "pushSubjectLabel": "Địa chỉ liên hệ push",
+    "pushSubjectHint": "Gửi tới các dịch vụ push làm liên hệ cho máy chủ của bạn. Để trống để dùng mặc định."
+  },
+  "welcome": {
+    "title": "Chào mừng đến với Yuvomi",
+    "subtitle": "Hãy khởi chạy trình lập kế hoạch gia đình riêng tư của bạn. Chọn cách thiết lập.",
+    "simpleTitle": "Thiết lập đơn giản",
+    "simpleBadge": "Khuyến nghị",
+    "simpleDesc": "Chúng tôi lo các chi tiết kỹ thuật cho bạn. Lý tưởng để chạy Yuvomi tại nhà.",
+    "simpleTime": "Khoảng 2 phút",
+    "advancedTitle": "Thiết lập nâng cao",
+    "advancedDesc": "Toàn quyền kiểm soát: reverse proxy, đồng bộ lịch, email, đăng nhập một lần và sao lưu.",
+    "advancedTime": "Mọi tùy chọn, từng bước"
+  },
+  "simple": {
+    "title": "Sẵn sàng",
+    "subtitle": "Chúng tôi đã chuẩn bị mọi thứ với mặc định an toàn. Giờ chỉ cần tạo tài khoản của bạn.",
+    "itemKeysTitle": "Đã tạo khóa bảo mật",
+    "itemKeysDesc": "Phiên và cơ sở dữ liệu của bạn được mã hóa tự động.",
+    "itemAccessTitle": "Truy cập cục bộ",
+    "itemAccessDesc": "Truy cập tại {{url}} trên máy này.",
+    "itemBackupsTitle": "Đã bật sao lưu hằng ngày",
+    "itemBackupsDesc": "Mỗi đêm giữ lại một bản sao lưu cục bộ.",
+    "backupReminder": "Sau khi thiết lập, hãy sao lưu tệp .env đã tạo — nó chứa các khóa mã hóa duy nhất của bạn.",
+    "switchAdvanced": "Cần thêm tùy chọn? Chuyển sang thiết lập nâng cao",
+    "start": "Thiết lập & khởi động Yuvomi"
+  },
+  "email": {
+    "title": "Email & đặt lại mật khẩu",
+    "subtitle": "Cho phép các thành viên gia đình đặt lại mật khẩu đã quên qua email. Tùy chọn — bỏ qua nếu không cần.",
+    "enable": "Bật gửi email",
+    "hint": "Dùng máy chủ SMTP của riêng bạn (nhà cung cấp email, tự lưu trữ hoặc dịch vụ giao dịch).",
+    "hostLabel": "Máy chủ SMTP",
+    "portLabel": "Cổng",
+    "secureLabel": "Mã hóa",
+    "secureStarttls": "STARTTLS (cổng 587)",
+    "secureSsl": "SSL/TLS (cổng 465)",
+    "secureNone": "Không (không khuyến nghị)",
+    "userLabel": "Tên người dùng",
+    "passLabel": "Mật khẩu",
+    "fromLabel": "Địa chỉ người gửi",
+    "fromHint": "Địa chỉ \"Từ\" mà người nhận sẽ thấy. Nhiều nhà cung cấp yêu cầu nó khớp với tên người dùng.",
+    "fromNameLabel": "Tên người gửi",
+    "errIncomplete": "Máy chủ SMTP và địa chỉ người gửi là bắt buộc."
   }
 }

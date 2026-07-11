@@ -8,8 +8,9 @@
     "optional": "Opsional",
     "stepCounter": "Langkah {{n}} dari {{total}}",
     "toggleVisibility": "Tampilkan atau sembunyikan nilai",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "Salin",
+    "copied": "Disalin ✓",
+    "language": "Bahasa"
   },
   "config": {
     "title": "Konfigurasi dasar",
@@ -31,7 +32,7 @@
     "dbLabel": "Kunci enkripsi basis data",
     "dbHint": "Mengenkripsi basis data SQLite saat diam.",
     "errBoth": "Kedua kunci diperlukan.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "Simpan kunci ini sekarang. Jika hilang, data terenkripsi Anda tidak dapat dipulihkan — tidak ada penyetelan ulang."
   },
   "weather": {
     "title": "Widget cuaca",
@@ -98,10 +99,22 @@
     "documentLocalEnable": "Simpan dokumen baru di folder lokal",
     "documentLocalPathLabel": "Jalur folder",
     "documentLocalPathHint": "Jalur di dalam kontainer. Biarkan kosong untuk /documents.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "Jaringan",
+    "sectionIntegrations": "Integrasi dan pencadangan",
+    "errSchedule": "Jadwal cron tidak valid (diharapkan lima bidang dipisah spasi, mis. 0 2 * * *).",
+    "errKeep": "Jumlah cadangan yang disimpan harus berupa angka positif.",
+    "webdavBackup": "Cadangan eksternal (WebDAV)",
+    "webdavBackupHint": "Menyalin setiap cadangan ke server WebDAV (mis. Nextcloud) agar bertahan dari kegagalan disk.",
+    "webdavBackupEnable": "Kirim juga cadangan ke WebDAV",
+    "webdavBackupUrlLabel": "URL WebDAV",
+    "webdavBackupUsernameLabel": "Nama pengguna",
+    "webdavBackupPasswordLabel": "Kata sandi",
+    "webdavBackupPathLabel": "Jalur jarak jauh",
+    "sectionMore": "Opsi lainnya",
+    "fixerLabel": "Kunci API Fixer (kurs mata uang langsung)",
+    "fixerHint": "Opsional. Mengonversi mata uang langganan dengan kurs langsung. Langganan tetap berfungsi tanpanya.",
+    "pushSubjectLabel": "Alamat kontak push",
+    "pushSubjectHint": "Dikirim ke layanan push sebagai kontak untuk server Anda. Biarkan kosong untuk nilai default."
   },
   "review": {
     "title": "Tinjauan",
@@ -119,8 +132,17 @@
     "errSave": "Gagal menyimpan .env.",
     "weatherEnabled": "diaktifkan ({{city}})",
     "configured": "dikonfigurasi",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "Ini menulis .env Anda (yang sudah ada dicadangkan) dan menjalankan kontainer.",
+    "confirm": "Klik lagi untuk mengonfirmasi",
+    "access": "Akses",
+    "accessProxy": "Reverse proxy (HTTPS)",
+    "accessDirect": "Langsung / HTTP",
+    "email": "Email",
+    "oidc": "Single sign-on",
+    "backups": "Pencadangan",
+    "webdavBackup": "Cadangan eksternal",
+    "on": "aktif",
+    "off": "nonaktif"
   },
   "docker": {
     "title": "Yuvomi sedang dimulai",
@@ -154,6 +176,48 @@
     "title": "Yuvomi siap!",
     "subtitle": "Perencana keluarga Anda berjalan dan akun admin Anda telah disiapkan.",
     "open": "Buka Yuvomi →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "Ingat untuk mencadangkan berkas .env Anda sekarang — berkas itu berisi kunci Anda."
+  },
+  "welcome": {
+    "title": "Selamat datang di Yuvomi",
+    "subtitle": "Mari jalankan perencana keluarga pribadi Anda. Pilih cara menyiapkannya.",
+    "simpleTitle": "Penyiapan sederhana",
+    "simpleBadge": "Disarankan",
+    "simpleDesc": "Kami mengurus detail teknis untuk Anda. Ideal untuk menjalankan Yuvomi di rumah.",
+    "simpleTime": "Sekitar 2 menit",
+    "advancedTitle": "Penyiapan lanjutan",
+    "advancedDesc": "Kontrol penuh: reverse proxy, sinkronisasi kalender, email, single sign-on, dan pencadangan.",
+    "advancedTime": "Setiap opsi, langkah demi langkah"
+  },
+  "simple": {
+    "title": "Siap digunakan",
+    "subtitle": "Kami sudah menyiapkan semuanya dengan nilai aman default. Tinggal buat akun Anda.",
+    "itemKeysTitle": "Kunci keamanan dibuat",
+    "itemKeysDesc": "Sesi dan basis data Anda dienkripsi secara otomatis.",
+    "itemAccessTitle": "Akses lokal",
+    "itemAccessDesc": "Dapat diakses di {{url}} pada mesin ini.",
+    "itemBackupsTitle": "Pencadangan harian aktif",
+    "itemBackupsDesc": "Cadangan lokal disimpan setiap malam.",
+    "backupReminder": "Setelah penyiapan, cadangkan berkas .env yang dibuat — berkas itu menyimpan satu-satunya kunci enkripsi Anda.",
+    "switchAdvanced": "Butuh lebih banyak opsi? Beralih ke penyiapan lanjutan",
+    "start": "Siapkan & jalankan Yuvomi"
+  },
+  "email": {
+    "title": "Email & atur ulang kata sandi",
+    "subtitle": "Izinkan anggota keluarga mengatur ulang kata sandi yang terlupa melalui email. Opsional — lewati jika tidak perlu.",
+    "enable": "Aktifkan pengiriman email",
+    "hint": "Menggunakan server SMTP Anda sendiri (penyedia email, self-hosted, atau layanan transaksional).",
+    "hostLabel": "Server SMTP",
+    "portLabel": "Porta",
+    "secureLabel": "Enkripsi",
+    "secureStarttls": "STARTTLS (porta 587)",
+    "secureSsl": "SSL/TLS (porta 465)",
+    "secureNone": "Tidak ada (tidak disarankan)",
+    "userLabel": "Nama pengguna",
+    "passLabel": "Kata sandi",
+    "fromLabel": "Alamat pengirim",
+    "fromHint": "Alamat \"Dari\" yang akan dilihat penerima. Banyak penyedia mensyaratkan agar cocok dengan nama pengguna.",
+    "fromNameLabel": "Nama pengirim",
+    "errIncomplete": "Server SMTP dan alamat pengirim wajib diisi."
   }
 }

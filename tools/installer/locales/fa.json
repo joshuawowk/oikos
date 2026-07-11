@@ -8,8 +8,9 @@
     "optional": "اختیاری",
     "stepCounter": "گام {{n}} از {{total}}",
     "toggleVisibility": "نمایش یا پنهان‌سازی مقدار",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "کپی",
+    "copied": "کپی شد ✓",
+    "language": "زبان"
   },
   "config": {
     "title": "پیکربندی پایه",
@@ -31,7 +32,7 @@
     "dbLabel": "کلید رمزنگاری پایگاه داده",
     "dbHint": "پایگاه داده SQLite را در حالت سکون رمزنگاری می‌کند.",
     "errBoth": "هر دو کلید الزامی هستند.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "این کلیدها را همین حالا ذخیره کنید. اگر آن‌ها را از دست بدهید، داده‌های رمزنگاری‌شده‌تان غیرقابل بازیابی خواهند بود — بازنشانی وجود ندارد."
   },
   "weather": {
     "title": "ابزارک آب‌وهوا",
@@ -98,10 +99,22 @@
     "documentLocalEnable": "ذخیره اسناد جدید در یک پوشه محلی",
     "documentLocalPathLabel": "مسیر پوشه",
     "documentLocalPathHint": "مسیر داخل کانتینر. برای /documents خالی بگذارید.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "شبکه",
+    "sectionIntegrations": "یکپارچه‌سازی‌ها و پشتیبان‌گیری",
+    "errSchedule": "زمان‌بندی cron نامعتبر است (پنج فیلد جداشده با فاصله انتظار می‌رود، مثل 0 2 * * *).",
+    "errKeep": "تعداد پشتیبان‌های نگه‌داشتنی باید عددی مثبت باشد.",
+    "webdavBackup": "پشتیبان‌گیری بیرونی (WebDAV)",
+    "webdavBackupHint": "هر نسخهٔ پشتیبان را روی سرور WebDAV (مثلاً Nextcloud) کپی می‌کند تا از خرابی دیسک جان سالم به در ببرد.",
+    "webdavBackupEnable": "ارسال پشتیبان‌ها به WebDAV نیز",
+    "webdavBackupUrlLabel": "نشانی WebDAV",
+    "webdavBackupUsernameLabel": "نام کاربری",
+    "webdavBackupPasswordLabel": "گذرواژه",
+    "webdavBackupPathLabel": "مسیر راه دور",
+    "sectionMore": "گزینه‌های بیشتر",
+    "fixerLabel": "کلید API Fixer (نرخ ارز زنده)",
+    "fixerHint": "اختیاری. ارز اشتراک‌ها را با نرخ زنده تبدیل می‌کند. اشتراک‌ها بدون آن نیز کار می‌کنند.",
+    "pushSubjectLabel": "نشانی تماس push",
+    "pushSubjectHint": "به سرویس‌های push به‌عنوان تماس سرور شما ارسال می‌شود. برای مقدار پیش‌فرض خالی بگذارید."
   },
   "review": {
     "title": "بازبینی",
@@ -119,8 +132,17 @@
     "errSave": "ذخیره .env ناموفق بود.",
     "weatherEnabled": "فعال ({{city}})",
     "configured": "پیکربندی‌شده",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "این کار فایل ‎.env شما را می‌نویسد (از فایل موجود نسخهٔ پشتیبان گرفته می‌شود) و کانتینر را اجرا می‌کند.",
+    "confirm": "برای تأیید دوباره کلیک کنید",
+    "access": "دسترسی",
+    "accessProxy": "پراکسی معکوس (HTTPS)",
+    "accessDirect": "مستقیم / HTTP",
+    "email": "ایمیل",
+    "oidc": "ورود یکپارچه",
+    "backups": "پشتیبان‌گیری",
+    "webdavBackup": "پشتیبان بیرونی",
+    "on": "فعال",
+    "off": "غیرفعال"
   },
   "docker": {
     "title": "Yuvomi در حال راه‌اندازی است",
@@ -154,6 +176,48 @@
     "title": "Yuvomi آماده است!",
     "subtitle": "برنامه‌ریز خانوادگی شما در حال اجراست و حساب مدیر شما راه‌اندازی شده است.",
     "open": "باز کردن Yuvomi ←",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "به یاد داشته باشید اکنون از فایل ‎.env نسخهٔ پشتیبان بگیرید — کلیدهای شما در آن است."
+  },
+  "welcome": {
+    "title": "به Yuvomi خوش آمدید",
+    "subtitle": "بیایید برنامه‌ریز خانوادگی خصوصی شما را راه‌اندازی کنیم. نحوهٔ پیکربندی را انتخاب کنید.",
+    "simpleTitle": "راه‌اندازی ساده",
+    "simpleBadge": "پیشنهادی",
+    "simpleDesc": "جزئیات فنی را ما برایتان انجام می‌دهیم. مناسب برای اجرای Yuvomi در خانه.",
+    "simpleTime": "حدود ۲ دقیقه",
+    "advancedTitle": "راه‌اندازی پیشرفته",
+    "advancedDesc": "کنترل کامل: پراکسی معکوس، همگام‌سازی تقویم، ایمیل، ورود یکپارچه و پشتیبان‌گیری.",
+    "advancedTime": "هر گزینه، گام‌به‌گام"
+  },
+  "simple": {
+    "title": "آماده",
+    "subtitle": "همه‌چیز را با مقادیر پیش‌فرض امن آماده کرده‌ایم. فقط کافی است حساب خود را بسازید.",
+    "itemKeysTitle": "کلیدهای امنیتی ساخته شد",
+    "itemKeysDesc": "نشست و پایگاه‌دادهٔ شما به‌صورت خودکار رمزنگاری می‌شوند.",
+    "itemAccessTitle": "دسترسی محلی",
+    "itemAccessDesc": "روی این دستگاه از طریق {{url}} در دسترس است.",
+    "itemBackupsTitle": "پشتیبان‌گیری روزانه فعال",
+    "itemBackupsDesc": "هر شب یک نسخهٔ پشتیبان محلی نگه داشته می‌شود.",
+    "backupReminder": "پس از راه‌اندازی از فایل ‎.env ساخته‌شده نسخهٔ پشتیبان بگیرید — تنها کلیدهای رمزنگاری شما در آن است.",
+    "switchAdvanced": "به گزینه‌های بیشتری نیاز دارید؟ به راه‌اندازی پیشرفته بروید",
+    "start": "راه‌اندازی و اجرای Yuvomi"
+  },
+  "email": {
+    "title": "ایمیل و بازنشانی گذرواژه",
+    "subtitle": "به اعضای خانواده اجازه دهید گذرواژهٔ فراموش‌شده را با ایمیل بازنشانی کنند. اختیاری — اگر لازم ندارید رد شوید.",
+    "enable": "فعال‌سازی ارسال ایمیل",
+    "hint": "از سرور SMTP خودتان استفاده می‌کند (ارائه‌دهندهٔ ایمیل، خودمیزبان یا سرویس تراکنشی).",
+    "hostLabel": "سرور SMTP",
+    "portLabel": "درگاه",
+    "secureLabel": "رمزنگاری",
+    "secureStarttls": "STARTTLS (درگاه ۵۸۷)",
+    "secureSsl": "SSL/TLS (درگاه ۴۶۵)",
+    "secureNone": "هیچ‌کدام (توصیه نمی‌شود)",
+    "userLabel": "نام کاربری",
+    "passLabel": "گذرواژه",
+    "fromLabel": "نشانی فرستنده",
+    "fromHint": "نشانی «از» که گیرندگان می‌بینند. بسیاری از ارائه‌دهندگان مطابقت آن با نام کاربری را الزامی می‌کنند.",
+    "fromNameLabel": "نام فرستنده",
+    "errIncomplete": "سرور SMTP و نشانی فرستنده الزامی هستند."
   }
 }

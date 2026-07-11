@@ -8,8 +8,9 @@
     "optional": "Opcional",
     "stepCounter": "Passo {{n}} de {{total}}",
     "toggleVisibility": "Mostrar ou ocultar o valor",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "Copiar",
+    "copied": "Copiado ✓",
+    "language": "Idioma"
   },
   "config": {
     "title": "Configuração básica",
@@ -31,7 +32,7 @@
     "dbLabel": "Chave de criptografia do banco de dados",
     "dbHint": "Criptografa o banco de dados SQLite em repouso.",
     "errBoth": "Ambas as chaves são obrigatórias.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "Guarda estas chaves agora. Se as perderes, os teus dados cifrados serão irrecuperáveis — não há reposição."
   },
   "weather": {
     "title": "Widget de tempo",
@@ -82,8 +83,17 @@
     "errSave": "Falha ao salvar o .env.",
     "weatherEnabled": "ativado ({{city}})",
     "configured": "configurado",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "Isto escreve o teu .env (um existente é copiado) e inicia o contentor.",
+    "confirm": "Clica novamente para confirmar",
+    "access": "Acesso",
+    "accessProxy": "Proxy inverso (HTTPS)",
+    "accessDirect": "Direto / HTTP",
+    "email": "E-mail",
+    "oidc": "Início de sessão único",
+    "backups": "Backups",
+    "webdavBackup": "Backups externos",
+    "on": "ativado",
+    "off": "desativado"
   },
   "docker": {
     "title": "Iniciando o Yuvomi",
@@ -117,7 +127,7 @@
     "title": "O Yuvomi está pronto!",
     "subtitle": "Seu organizador familiar está em execução e sua conta de administrador está configurada.",
     "open": "Abrir o Yuvomi →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "Lembra-te de fazer uma cópia do teu ficheiro .env agora — contém as tuas chaves."
   },
   "advanced": {
     "tag": "Avançado · opcional",
@@ -151,9 +161,63 @@
     "documentLocalEnable": "Armazenar novos documentos numa pasta local",
     "documentLocalPathLabel": "Caminho da pasta",
     "documentLocalPathHint": "Caminho dentro do contentor. Deixe vazio para usar /documents.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "Rede",
+    "sectionIntegrations": "Integrações e backups",
+    "errSchedule": "Agendamento cron inválido (esperados cinco campos separados por espaços, p. ex. 0 2 * * *).",
+    "errKeep": "Os backups a manter têm de ser um número positivo.",
+    "webdavBackup": "Backups externos (WebDAV)",
+    "webdavBackupHint": "Copia cada backup para um servidor WebDAV (p. ex. Nextcloud) para sobreviver a uma falha de disco.",
+    "webdavBackupEnable": "Enviar também os backups para WebDAV",
+    "webdavBackupUrlLabel": "URL WebDAV",
+    "webdavBackupUsernameLabel": "Nome de utilizador",
+    "webdavBackupPasswordLabel": "Palavra-passe",
+    "webdavBackupPathLabel": "Caminho remoto",
+    "sectionMore": "Mais opções",
+    "fixerLabel": "Chave de API Fixer (câmbios em tempo real)",
+    "fixerHint": "Opcional. Converte as moedas das subscrições com câmbios em tempo real. As subscrições funcionam sem ela.",
+    "pushSubjectLabel": "Endereço de contacto de push",
+    "pushSubjectHint": "Enviado aos serviços de push como contacto do teu servidor. Deixa vazio para o valor predefinido."
+  },
+  "welcome": {
+    "title": "Boas-vindas ao Yuvomi",
+    "subtitle": "Vamos pôr o teu organizador familiar privado a funcionar. Escolhe como o queres configurar.",
+    "simpleTitle": "Configuração simples",
+    "simpleBadge": "Recomendada",
+    "simpleDesc": "Tratamos dos detalhes técnicos por ti. Ideal para usar o Yuvomi em casa.",
+    "simpleTime": "Cerca de 2 minutos",
+    "advancedTitle": "Configuração avançada",
+    "advancedDesc": "Controlo total: proxy inverso, sincronização de calendário, e-mail, início de sessão único e backups.",
+    "advancedTime": "Todas as opções, passo a passo"
+  },
+  "simple": {
+    "title": "Tudo pronto",
+    "subtitle": "Preparámos tudo com valores seguros. Só falta criares a tua conta.",
+    "itemKeysTitle": "Chaves de segurança geradas",
+    "itemKeysDesc": "A tua sessão e a base de dados são cifradas automaticamente.",
+    "itemAccessTitle": "Acesso local",
+    "itemAccessDesc": "Acessível em {{url}} neste equipamento.",
+    "itemBackupsTitle": "Backups diários ativos",
+    "itemBackupsDesc": "Todas as noites é guardado um backup local.",
+    "backupReminder": "Após a configuração, faz uma cópia do ficheiro .env gerado — contém as tuas únicas chaves de cifragem.",
+    "switchAdvanced": "Precisas de mais opções? Muda para a configuração avançada",
+    "start": "Configurar e iniciar o Yuvomi"
+  },
+  "email": {
+    "title": "E-mail e reposição de palavra-passe",
+    "subtitle": "Permite que os membros da família reponham uma palavra-passe esquecida por e-mail. Opcional — ignora se não precisares.",
+    "enable": "Ativar o envio de e-mail",
+    "hint": "Usa o teu próprio servidor SMTP (fornecedor de e-mail, self-hosted ou um serviço transacional).",
+    "hostLabel": "Servidor SMTP",
+    "portLabel": "Porta",
+    "secureLabel": "Encriptação",
+    "secureStarttls": "STARTTLS (porta 587)",
+    "secureSsl": "SSL/TLS (porta 465)",
+    "secureNone": "Nenhuma (não recomendado)",
+    "userLabel": "Nome de utilizador",
+    "passLabel": "Palavra-passe",
+    "fromLabel": "Endereço do remetente",
+    "fromHint": "O endereço «De» que os destinatários verão. Muitos fornecedores exigem que corresponda ao nome de utilizador.",
+    "fromNameLabel": "Nome do remetente",
+    "errIncomplete": "O servidor SMTP e o endereço do remetente são obrigatórios."
   }
 }

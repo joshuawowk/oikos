@@ -9,13 +9,24 @@
 export const SUPPORTED_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'sv', 'el', 'ru', 'tr', 'zh', 'ja', 'ar', 'hi', 'pt', 'uk', 'pl', 'nl', 'cs', 'vi', 'hu', 'ko', 'id', 'fa'];
 const FALLBACK_LOCALE = 'en';
 const RTL_LOCALES = ['ar', 'fa'];
+const STORAGE_KEY = 'yuvomi-installer-locale';
 
 let translations = {};
 let fallbackTranslations = {};
 let activeLocale = FALLBACK_LOCALE;
 
-/** Browsersprache > Englisch, analog public/i18n.js:31-34. */
+/** Gemerkte Wahl aus localStorage lesen (falls gültig). */
+function storedLocale() {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY);
+    return v && SUPPORTED_LOCALES.includes(v) ? v : null;
+  } catch { return null; }
+}
+
+/** Gemerkte Wahl > Browsersprache > Englisch, analog public/i18n.js:31-34. */
 export function resolveLocale(languages = navigator.languages || [navigator.language]) {
+  const stored = storedLocale();
+  if (stored) return stored;
   for (const tag of languages) {
     const base = (tag || '').split('-')[0].toLowerCase();
     if (SUPPORTED_LOCALES.includes(base)) return base;
@@ -49,6 +60,30 @@ export async function initInstallerI18n() {
 }
 
 export function getLocale() {
+  return activeLocale;
+}
+
+/**
+ * Sprache zur Laufzeit wechseln (Sprachumschalter). Lädt die Ziel-Locale,
+ * merkt die Wahl in localStorage und aktualisiert lang/dir am <html>.
+ * Der Aufrufer muss danach die Übersetzungen neu anwenden (applyTranslations).
+ */
+export async function setLocale(locale) {
+  if (!SUPPORTED_LOCALES.includes(locale)) return activeLocale;
+  if (locale === FALLBACK_LOCALE) {
+    translations = fallbackTranslations;
+  } else {
+    try {
+      translations = await loadLocale(locale);
+    } catch {
+      translations = fallbackTranslations;
+      locale = FALLBACK_LOCALE;
+    }
+  }
+  activeLocale = locale;
+  try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
+  document.documentElement.lang = activeLocale;
+  document.documentElement.dir = RTL_LOCALES.includes(activeLocale) ? 'rtl' : 'ltr';
   return activeLocale;
 }
 

@@ -32,9 +32,24 @@ const DOCUMENT_STORAGE_LOCAL_KEYS = [
 
 const SUBSCRIPTION_KEYS = ['FIXER_API_KEY'];
 
+// Laien-Wizard-Ausbau: BASE_URL (abgeleitet), SMTP für „Passwort vergessen",
+// externe WebDAV-Backups und die Push-Kontaktadresse.
+const EMAIL_KEYS = [
+  'EMAIL_SMTP_HOST', 'EMAIL_SMTP_PORT', 'EMAIL_SMTP_SECURE',
+  'EMAIL_SMTP_USER', 'EMAIL_SMTP_PASS', 'EMAIL_FROM_ADDRESS', 'EMAIL_FROM_NAME',
+];
+
+const WEBDAV_BACKUP_KEYS = [
+  'WEBDAV_BACKUP_ENABLED', 'WEBDAV_BACKUP_URL', 'WEBDAV_BACKUP_USERNAME',
+  'WEBDAV_BACKUP_PASSWORD', 'WEBDAV_BACKUP_PATH', 'WEBDAV_BACKUP_KEEP',
+];
+
+const WIZARD_EXTRA_KEYS = ['BASE_URL', 'VAPID_SUBJECT'];
+
 const TOTAL_KEYS = ORIGINAL_KEYS.length + 2 + P5_KEYS.length
   + DOCUMENT_STORAGE_KEYS.length + DOCUMENT_STORAGE_LOCAL_KEYS.length
-  + SUBSCRIPTION_KEYS.length; // + TZ + OIKOS_HTTP_PORT
+  + SUBSCRIPTION_KEYS.length + EMAIL_KEYS.length + WEBDAV_BACKUP_KEYS.length
+  + WIZARD_EXTRA_KEYS.length; // + TZ + OIKOS_HTTP_PORT
 
 test('ENV_SCHEMA enthält alle Original-Keys, TZ, OIKOS_HTTP_PORT, P5, Subscriptions und Dokument-WebDAV', () => {
   assert.equal(ENV_SCHEMA.length, TOTAL_KEYS);
@@ -55,6 +70,44 @@ test('ENV_SCHEMA enthält alle Original-Keys, TZ, OIKOS_HTTP_PORT, P5, Subscript
   }
   for (const k of DOCUMENT_STORAGE_LOCAL_KEYS) {
     assert.ok(keys.includes(k), `Dokument-Local-Key fehlt: ${k}`);
+  }
+  for (const k of [...EMAIL_KEYS, ...WEBDAV_BACKUP_KEYS, ...WIZARD_EXTRA_KEYS]) {
+    assert.ok(keys.includes(k), `Wizard-Ausbau-Key fehlt: ${k}`);
+  }
+});
+
+test('E-Mail/SMTP-Keys sind optional, das Passwort ist ein Secret', () => {
+  for (const key of EMAIL_KEYS) {
+    const entry = ENV_SCHEMA.find(e => e.key === key);
+    assert.ok(entry, `${key} nicht in ENV_SCHEMA`);
+    assert.equal(entry.writeToEnv, true, `${key}.writeToEnv ist nicht true`);
+    assert.equal(entry.group, 'email', `${key} muss group 'email' haben`);
+  }
+  const pass = ENV_SCHEMA.find(e => e.key === 'EMAIL_SMTP_PASS');
+  assert.equal(pass.secret, true, 'EMAIL_SMTP_PASS muss als Secret markiert sein');
+  const secure = ENV_SCHEMA.find(e => e.key === 'EMAIL_SMTP_SECURE');
+  assert.equal(secure.default, 'starttls', 'EMAIL_SMTP_SECURE-Default muss starttls sein');
+});
+
+test('WebDAV-Backup-Keys sind optional, standardmäßig deaktiviert, Passwort maskiert', () => {
+  for (const key of WEBDAV_BACKUP_KEYS) {
+    const entry = ENV_SCHEMA.find(e => e.key === key);
+    assert.ok(entry, `${key} nicht in ENV_SCHEMA`);
+    assert.equal(entry.writeToEnv, true, `${key}.writeToEnv ist nicht true`);
+    assert.equal(entry.group, 'backup', `${key} muss group 'backup' haben`);
+  }
+  const enabled = ENV_SCHEMA.find(e => e.key === 'WEBDAV_BACKUP_ENABLED');
+  assert.equal(enabled.default, 'false');
+  const pass = ENV_SCHEMA.find(e => e.key === 'WEBDAV_BACKUP_PASSWORD');
+  assert.equal(pass.secret, true, 'WEBDAV_BACKUP_PASSWORD muss als Secret markiert sein');
+});
+
+test('BASE_URL und VAPID_SUBJECT sind schreibbar mit leerem Default', () => {
+  for (const key of WIZARD_EXTRA_KEYS) {
+    const entry = ENV_SCHEMA.find(e => e.key === key);
+    assert.ok(entry, `${key} nicht in ENV_SCHEMA`);
+    assert.equal(entry.writeToEnv, true, `${key}.writeToEnv ist nicht true`);
+    assert.equal(entry.default, '', `${key}-Default muss leer sein`);
   }
 });
 

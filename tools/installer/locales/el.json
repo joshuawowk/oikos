@@ -8,8 +8,9 @@
     "optional": "Προαιρετικό",
     "stepCounter": "Βήμα {{n}} από {{total}}",
     "toggleVisibility": "Εμφάνιση ή απόκρυψη της τιμής",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "Αντιγραφή",
+    "copied": "Αντιγράφηκε ✓",
+    "language": "Γλώσσα"
   },
   "config": {
     "title": "Βασική διαμόρφωση",
@@ -31,7 +32,7 @@
     "dbLabel": "Κλειδί κρυπτογράφησης βάσης δεδομένων",
     "dbHint": "Κρυπτογραφεί τη βάση δεδομένων SQLite σε ηρεμία.",
     "errBoth": "Απαιτούνται και τα δύο κλειδιά.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "Αποθηκεύστε τώρα αυτά τα κλειδιά. Αν τα χάσετε, τα κρυπτογραφημένα δεδομένα σας δεν θα ανακτηθούν — δεν υπάρχει επαναφορά."
   },
   "weather": {
     "title": "Widget Καιρού",
@@ -82,8 +83,17 @@
     "errSave": "Αποτυχία αποθήκευσης του .env.",
     "weatherEnabled": "ενεργοποιημένο ({{city}})",
     "configured": "διαμορφωμένο",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "Αυτό γράφει το .env σας (ένα υπάρχον κρατείται ως αντίγραφο) και εκκινεί το κοντέινερ.",
+    "confirm": "Κάντε ξανά κλικ για επιβεβαίωση",
+    "access": "Πρόσβαση",
+    "accessProxy": "Αντίστροφο proxy (HTTPS)",
+    "accessDirect": "Άμεση / HTTP",
+    "email": "Email",
+    "oidc": "Ενιαία σύνδεση",
+    "backups": "Αντίγραφα ασφαλείας",
+    "webdavBackup": "Εξωτερικά αντίγραφα",
+    "on": "ενεργό",
+    "off": "ανενεργό"
   },
   "docker": {
     "title": "Εκκίνηση του Yuvomi",
@@ -117,7 +127,7 @@
     "title": "Το Yuvomi είναι έτοιμο!",
     "subtitle": "Ο οικογενειακός σας προγραμματιστής εκτελείται και ο λογαριασμός διαχειριστή σας έχει ρυθμιστεί.",
     "open": "Άνοιγμα Yuvomi →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "Μην ξεχάσετε να κρατήσετε τώρα αντίγραφο του αρχείου .env — περιέχει τα κλειδιά σας."
   },
   "advanced": {
     "tag": "Για προχωρημένους · προαιρετικό",
@@ -151,9 +161,63 @@
     "documentLocalEnable": "Αποθήκευση νέων εγγράφων σε τοπικό φάκελο",
     "documentLocalPathLabel": "Διαδρομή φακέλου",
     "documentLocalPathHint": "Διαδρομή μέσα στο κοντέινερ. Αφήστε κενό για /documents.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "Δίκτυο",
+    "sectionIntegrations": "Ενσωματώσεις και αντίγραφα ασφαλείας",
+    "errSchedule": "Μη έγκυρος προγραμματισμός cron (αναμένονται πέντε πεδία χωρισμένα με κενά, π.χ. 0 2 * * *).",
+    "errKeep": "Τα αντίγραφα προς διατήρηση πρέπει να είναι θετικός αριθμός.",
+    "webdavBackup": "Εξωτερικά αντίγραφα ασφαλείας (WebDAV)",
+    "webdavBackupHint": "Αντιγράφει κάθε αντίγραφο ασφαλείας σε διακομιστή WebDAV (π.χ. Nextcloud) ώστε να επιβιώσει μιας βλάβης δίσκου.",
+    "webdavBackupEnable": "Αποστολή αντιγράφων και στο WebDAV",
+    "webdavBackupUrlLabel": "URL WebDAV",
+    "webdavBackupUsernameLabel": "Όνομα χρήστη",
+    "webdavBackupPasswordLabel": "Κωδικός",
+    "webdavBackupPathLabel": "Απομακρυσμένη διαδρομή",
+    "sectionMore": "Περισσότερες επιλογές",
+    "fixerLabel": "Κλειδί API Fixer (ζωντανές ισοτιμίες)",
+    "fixerHint": "Προαιρετικό. Μετατρέπει τα νομίσματα των συνδρομών με ζωντανές ισοτιμίες. Οι συνδρομές λειτουργούν και χωρίς αυτό.",
+    "pushSubjectLabel": "Διεύθυνση επικοινωνίας push",
+    "pushSubjectHint": "Αποστέλλεται στις υπηρεσίες push ως επικοινωνία του διακομιστή σας. Αφήστε το κενό για την προεπιλογή."
+  },
+  "welcome": {
+    "title": "Καλώς ήρθατε στο Yuvomi",
+    "subtitle": "Ας θέσουμε σε λειτουργία τον ιδιωτικό οικογενειακό σας οργανωτή. Επιλέξτε πώς θέλετε να τον ρυθμίσετε.",
+    "simpleTitle": "Απλή εγκατάσταση",
+    "simpleBadge": "Συνιστάται",
+    "simpleDesc": "Αναλαμβάνουμε εμείς τις τεχνικές λεπτομέρειες. Ιδανικό για χρήση του Yuvomi στο σπίτι.",
+    "simpleTime": "Περίπου 2 λεπτά",
+    "advancedTitle": "Προηγμένη εγκατάσταση",
+    "advancedDesc": "Πλήρης έλεγχος: αντίστροφο proxy, συγχρονισμός ημερολογίου, email, ενιαία σύνδεση και αντίγραφα ασφαλείας.",
+    "advancedTime": "Κάθε επιλογή, βήμα προς βήμα"
+  },
+  "simple": {
+    "title": "Έτοιμο",
+    "subtitle": "Τα ετοιμάσαμε όλα με ασφαλείς προεπιλογές. Απομένει μόνο να δημιουργήσετε τον λογαριασμό σας.",
+    "itemKeysTitle": "Δημιουργήθηκαν κλειδιά ασφαλείας",
+    "itemKeysDesc": "Η συνεδρία και η βάση δεδομένων σας κρυπτογραφούνται αυτόματα.",
+    "itemAccessTitle": "Τοπική πρόσβαση",
+    "itemAccessDesc": "Προσβάσιμο στο {{url}} σε αυτό το μηχάνημα.",
+    "itemBackupsTitle": "Ενεργά ημερήσια αντίγραφα ασφαλείας",
+    "itemBackupsDesc": "Κάθε βράδυ διατηρείται ένα τοπικό αντίγραφο ασφαλείας.",
+    "backupReminder": "Μετά την εγκατάσταση, κρατήστε αντίγραφο του αρχείου .env — περιέχει τα μοναδικά σας κλειδιά κρυπτογράφησης.",
+    "switchAdvanced": "Χρειάζεστε περισσότερες επιλογές; Μεταβείτε στην προηγμένη εγκατάσταση",
+    "start": "Ρύθμιση & εκκίνηση του Yuvomi"
+  },
+  "email": {
+    "title": "Email & επαναφορά κωδικού",
+    "subtitle": "Επιτρέψτε στα μέλη της οικογένειας να επαναφέρουν έναν ξεχασμένο κωδικό μέσω email. Προαιρετικό — παραλείψτε το αν δεν το χρειάζεστε.",
+    "enable": "Ενεργοποίηση αποστολής email",
+    "hint": "Χρησιμοποιεί τον δικό σας διακομιστή SMTP (πάροχος email, self-hosted ή υπηρεσία συναλλαγών).",
+    "hostLabel": "Διακομιστής SMTP",
+    "portLabel": "Θύρα",
+    "secureLabel": "Κρυπτογράφηση",
+    "secureStarttls": "STARTTLS (θύρα 587)",
+    "secureSsl": "SSL/TLS (θύρα 465)",
+    "secureNone": "Καμία (δεν συνιστάται)",
+    "userLabel": "Όνομα χρήστη",
+    "passLabel": "Κωδικός",
+    "fromLabel": "Διεύθυνση αποστολέα",
+    "fromHint": "Η διεύθυνση «Από» που θα βλέπουν οι παραλήπτες. Πολλοί πάροχοι απαιτούν να ταιριάζει με το όνομα χρήστη.",
+    "fromNameLabel": "Όνομα αποστολέα",
+    "errIncomplete": "Ο διακομιστής SMTP και η διεύθυνση αποστολέα είναι υποχρεωτικά."
   }
 }

@@ -8,8 +8,9 @@
     "optional": "वैकल्पिक",
     "stepCounter": "चरण {{n}} / {{total}}",
     "toggleVisibility": "मान दिखाएँ या छिपाएँ",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "कॉपी करें",
+    "copied": "कॉपी किया ✓",
+    "language": "भाषा"
   },
   "config": {
     "title": "बुनियादी कॉन्फ़िगरेशन",
@@ -31,7 +32,7 @@
     "dbLabel": "डेटाबेस एन्क्रिप्शन कुंजी",
     "dbHint": "SQLite डेटाबेस को विश्राम अवस्था में एन्क्रिप्ट करता है।",
     "errBoth": "दोनों कुंजियाँ आवश्यक हैं।",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "ये कुंजियाँ अभी सहेजें। यदि आप इन्हें खो देते हैं, तो आपका एन्क्रिप्टेड डेटा पुनर्प्राप्त नहीं किया जा सकता — कोई रीसेट नहीं है।"
   },
   "weather": {
     "title": "मौसम विजेट",
@@ -82,8 +83,17 @@
     "errSave": ".env सहेजने में विफल।",
     "weatherEnabled": "सक्षम ({{city}})",
     "configured": "कॉन्फ़िगर किया गया",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "यह आपकी .env लिखता है (मौजूदा का बैकअप लिया जाता है) और कंटेनर शुरू करता है।",
+    "confirm": "पुष्टि के लिए फिर से क्लिक करें",
+    "access": "पहुँच",
+    "accessProxy": "रिवर्स प्रॉक्सी (HTTPS)",
+    "accessDirect": "प्रत्यक्ष / HTTP",
+    "email": "ईमेल",
+    "oidc": "सिंगल साइन-ऑन",
+    "backups": "बैकअप",
+    "webdavBackup": "बाहरी बैकअप",
+    "on": "सक्षम",
+    "off": "अक्षम"
   },
   "docker": {
     "title": "Yuvomi शुरू हो रहा है",
@@ -117,7 +127,7 @@
     "title": "Yuvomi तैयार है!",
     "subtitle": "आपका पारिवारिक प्लानर चल रहा है और आपका व्यवस्थापक खाता सेट हो गया है।",
     "open": "Yuvomi खोलें →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "अपनी .env फ़ाइल का अभी बैकअप लेना याद रखें — इसमें आपकी कुंजियाँ हैं।"
   },
   "advanced": {
     "tag": "उन्नत · वैकल्पिक",
@@ -151,9 +161,63 @@
     "documentLocalEnable": "नए दस्तावेज़ों को स्थानीय फ़ोल्डर में सहेजें",
     "documentLocalPathLabel": "फ़ोल्डर पथ",
     "documentLocalPathHint": "कंटेनर के अंदर पथ। /documents के लिए खाली छोड़ें।",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "नेटवर्क",
+    "sectionIntegrations": "एकीकरण और बैकअप",
+    "errSchedule": "अमान्य cron शेड्यूल (स्पेस से अलग किए गए पाँच फ़ील्ड अपेक्षित, जैसे 0 2 * * *)।",
+    "errKeep": "रखे जाने वाले बैकअप एक धनात्मक संख्या होनी चाहिए।",
+    "webdavBackup": "बाहरी बैकअप (WebDAV)",
+    "webdavBackupHint": "हर बैकअप को WebDAV सर्वर (जैसे Nextcloud) पर कॉपी करता है ताकि डिस्क विफलता में भी बचा रहे।",
+    "webdavBackupEnable": "बैकअप WebDAV पर भी भेजें",
+    "webdavBackupUrlLabel": "WebDAV URL",
+    "webdavBackupUsernameLabel": "उपयोगकर्ता नाम",
+    "webdavBackupPasswordLabel": "पासवर्ड",
+    "webdavBackupPathLabel": "रिमोट पथ",
+    "sectionMore": "अधिक विकल्प",
+    "fixerLabel": "Fixer API कुंजी (लाइव मुद्रा दरें)",
+    "fixerHint": "वैकल्पिक। सदस्यता मुद्राओं को लाइव दरों पर बदलता है। इसके बिना भी सदस्यताएँ काम करती हैं।",
+    "pushSubjectLabel": "पुश संपर्क पता",
+    "pushSubjectHint": "आपके सर्वर के संपर्क के रूप में पुश सेवाओं को भेजा जाता है। डिफ़ॉल्ट के लिए खाली छोड़ें।"
+  },
+  "welcome": {
+    "title": "Yuvomi में आपका स्वागत है",
+    "subtitle": "आइए आपका निजी पारिवारिक प्लानर चालू करें। चुनें कि इसे कैसे सेट अप करना है।",
+    "simpleTitle": "सरल सेटअप",
+    "simpleBadge": "अनुशंसित",
+    "simpleDesc": "तकनीकी विवरण हम आपके लिए संभाल लेते हैं। घर पर Yuvomi चलाने के लिए उपयुक्त।",
+    "simpleTime": "लगभग 2 मिनट",
+    "advancedTitle": "उन्नत सेटअप",
+    "advancedDesc": "पूर्ण नियंत्रण: रिवर्स प्रॉक्सी, कैलेंडर सिंक, ईमेल, सिंगल साइन-ऑन और बैकअप।",
+    "advancedTime": "हर विकल्प, चरण दर चरण"
+  },
+  "simple": {
+    "title": "तैयार है",
+    "subtitle": "हमने सब कुछ सुरक्षित डिफ़ॉल्ट के साथ तैयार कर दिया है। अब बस अपना खाता बनाएं।",
+    "itemKeysTitle": "सुरक्षा कुंजियाँ बन गईं",
+    "itemKeysDesc": "आपका सत्र और डेटाबेस स्वचालित रूप से एन्क्रिप्ट होते हैं।",
+    "itemAccessTitle": "स्थानीय पहुँच",
+    "itemAccessDesc": "इस मशीन पर {{url}} पर उपलब्ध है।",
+    "itemBackupsTitle": "दैनिक बैकअप चालू",
+    "itemBackupsDesc": "हर रात एक स्थानीय बैकअप रखा जाता है।",
+    "backupReminder": "सेटअप के बाद बनी हुई .env फ़ाइल का बैकअप लें — इसमें आपकी एकमात्र एन्क्रिप्शन कुंजियाँ हैं।",
+    "switchAdvanced": "अधिक विकल्प चाहिए? उन्नत सेटअप पर जाएँ",
+    "start": "Yuvomi सेट अप करें और शुरू करें"
+  },
+  "email": {
+    "title": "ईमेल और पासवर्ड रीसेट",
+    "subtitle": "परिवार के सदस्यों को भूला हुआ पासवर्ड ईमेल से रीसेट करने दें। वैकल्पिक — ज़रूरत न हो तो छोड़ें।",
+    "enable": "ईमेल भेजना सक्षम करें",
+    "hint": "आपके अपने SMTP सर्वर का उपयोग करता है (मेल प्रदाता, स्वयं-होस्टेड या ट्रांज़ैक्शनल सेवा)।",
+    "hostLabel": "SMTP सर्वर",
+    "portLabel": "पोर्ट",
+    "secureLabel": "एन्क्रिप्शन",
+    "secureStarttls": "STARTTLS (पोर्ट 587)",
+    "secureSsl": "SSL/TLS (पोर्ट 465)",
+    "secureNone": "कोई नहीं (अनुशंसित नहीं)",
+    "userLabel": "उपयोगकर्ता नाम",
+    "passLabel": "पासवर्ड",
+    "fromLabel": "भेजने वाले का पता",
+    "fromHint": "वह \"से\" पता जो प्राप्तकर्ता देखेंगे। कई प्रदाता इसे उपयोगकर्ता नाम से मेल खाने की आवश्यकता रखते हैं।",
+    "fromNameLabel": "भेजने वाले का नाम",
+    "errIncomplete": "SMTP सर्वर और भेजने वाले का पता आवश्यक हैं।"
   }
 }

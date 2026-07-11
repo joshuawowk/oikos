@@ -8,8 +8,9 @@
     "optional": "Необязательно",
     "stepCounter": "Шаг {{n}} из {{total}}",
     "toggleVisibility": "Показать или скрыть значение",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "Копировать",
+    "copied": "Скопировано ✓",
+    "language": "Язык"
   },
   "config": {
     "title": "Базовая конфигурация",
@@ -31,7 +32,7 @@
     "dbLabel": "Ключ шифрования базы данных",
     "dbHint": "Шифрует базу данных SQLite в состоянии покоя.",
     "errBoth": "Требуются оба ключа.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "Сохраните эти ключи сейчас. Если вы их потеряете, ваши зашифрованные данные будут безвозвратно утеряны — сброса нет."
   },
   "weather": {
     "title": "Виджет погоды",
@@ -82,8 +83,17 @@
     "errSave": "Не удалось сохранить .env.",
     "weatherEnabled": "включено ({{city}})",
     "configured": "настроено",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "Это запишет ваш .env (существующий будет сохранён в резервную копию) и запустит контейнер.",
+    "confirm": "Нажмите ещё раз для подтверждения",
+    "access": "Доступ",
+    "accessProxy": "Обратный прокси (HTTPS)",
+    "accessDirect": "Прямой / HTTP",
+    "email": "Эл. почта",
+    "oidc": "Единый вход",
+    "backups": "Резервные копии",
+    "webdavBackup": "Внешние копии",
+    "on": "включено",
+    "off": "отключено"
   },
   "docker": {
     "title": "Запуск Yuvomi",
@@ -117,7 +127,7 @@
     "title": "Yuvomi готов!",
     "subtitle": "Ваш семейный планировщик работает, а учётная запись администратора настроена.",
     "open": "Открыть Yuvomi →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "Не забудьте сейчас сделать резервную копию файла .env — в нём ваши ключи."
   },
   "advanced": {
     "tag": "Дополнительно · необязательно",
@@ -151,9 +161,63 @@
     "documentLocalEnable": "Сохранять новые документы в локальной папке",
     "documentLocalPathLabel": "Путь к папке",
     "documentLocalPathHint": "Путь внутри контейнера. Оставьте пустым для /documents.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "Сеть",
+    "sectionIntegrations": "Интеграции и резервные копии",
+    "errSchedule": "Недопустимое расписание cron (ожидается пять полей, разделённых пробелами, напр. 0 2 * * *).",
+    "errKeep": "Число сохраняемых резервных копий должно быть положительным.",
+    "webdavBackup": "Внешние резервные копии (WebDAV)",
+    "webdavBackupHint": "Копирует каждую резервную копию на сервер WebDAV (например, Nextcloud), чтобы она пережила отказ диска.",
+    "webdavBackupEnable": "Также отправлять резервные копии на WebDAV",
+    "webdavBackupUrlLabel": "URL WebDAV",
+    "webdavBackupUsernameLabel": "Имя пользователя",
+    "webdavBackupPasswordLabel": "Пароль",
+    "webdavBackupPathLabel": "Удалённый путь",
+    "sectionMore": "Дополнительные параметры",
+    "fixerLabel": "Ключ API Fixer (курсы валют в реальном времени)",
+    "fixerHint": "Необязательно. Конвертирует валюты подписок по актуальным курсам. Подписки работают и без него.",
+    "pushSubjectLabel": "Контактный адрес push",
+    "pushSubjectHint": "Отправляется push-сервисам как контакт вашего сервера. Оставьте пустым для значения по умолчанию."
+  },
+  "welcome": {
+    "title": "Добро пожаловать в Yuvomi",
+    "subtitle": "Запустим ваш личный семейный планировщик. Выберите способ настройки.",
+    "simpleTitle": "Простая настройка",
+    "simpleBadge": "Рекомендуется",
+    "simpleDesc": "Мы возьмём технические детали на себя. Идеально для использования Yuvomi дома.",
+    "simpleTime": "Около 2 минут",
+    "advancedTitle": "Расширенная настройка",
+    "advancedDesc": "Полный контроль: обратный прокси, синхронизация календаря, эл. почта, единый вход и резервные копии.",
+    "advancedTime": "Каждый параметр, шаг за шагом"
+  },
+  "simple": {
+    "title": "Всё готово",
+    "subtitle": "Мы всё подготовили с безопасными значениями по умолчанию. Осталось только создать учётную запись.",
+    "itemKeysTitle": "Ключи безопасности созданы",
+    "itemKeysDesc": "Ваша сессия и база данных шифруются автоматически.",
+    "itemAccessTitle": "Локальный доступ",
+    "itemAccessDesc": "Доступно по адресу {{url}} на этом устройстве.",
+    "itemBackupsTitle": "Ежедневные резервные копии включены",
+    "itemBackupsDesc": "Каждую ночь сохраняется локальная резервная копия.",
+    "backupReminder": "После настройки сохраните созданный файл .env — в нём хранятся ваши единственные ключи шифрования.",
+    "switchAdvanced": "Нужно больше параметров? Перейдите к расширенной настройке",
+    "start": "Настроить и запустить Yuvomi"
+  },
+  "email": {
+    "title": "Эл. почта и сброс пароля",
+    "subtitle": "Позвольте членам семьи сбрасывать забытый пароль по эл. почте. Необязательно — пропустите, если не нужно.",
+    "enable": "Включить отправку эл. почты",
+    "hint": "Использует ваш собственный SMTP-сервер (почтовый провайдер, self-hosted или транзакционный сервис).",
+    "hostLabel": "SMTP-сервер",
+    "portLabel": "Порт",
+    "secureLabel": "Шифрование",
+    "secureStarttls": "STARTTLS (порт 587)",
+    "secureSsl": "SSL/TLS (порт 465)",
+    "secureNone": "Нет (не рекомендуется)",
+    "userLabel": "Имя пользователя",
+    "passLabel": "Пароль",
+    "fromLabel": "Адрес отправителя",
+    "fromHint": "Адрес «От», который увидят получатели. Многие провайдеры требуют, чтобы он совпадал с именем пользователя.",
+    "fromNameLabel": "Имя отправителя",
+    "errIncomplete": "SMTP-сервер и адрес отправителя обязательны."
   }
 }

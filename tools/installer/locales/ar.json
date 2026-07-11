@@ -8,8 +8,9 @@
     "optional": "اختياري",
     "stepCounter": "الخطوة {{n}} من {{total}}",
     "toggleVisibility": "إظهار القيمة أو إخفاؤها",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "نسخ",
+    "copied": "تم النسخ ✓",
+    "language": "اللغة"
   },
   "config": {
     "title": "الإعداد الأساسي",
@@ -31,7 +32,7 @@
     "dbLabel": "مفتاح تشفير قاعدة البيانات",
     "dbHint": "يشفّر قاعدة بيانات SQLite في حالة السكون.",
     "errBoth": "كلا المفتاحين مطلوبان.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "احفظ هذه المفاتيح الآن. إن فقدتها، فلن يمكن استرجاع بياناتك المشفّرة — لا توجد إعادة تعيين."
   },
   "weather": {
     "title": "أداة الطقس",
@@ -82,8 +83,17 @@
     "errSave": "فشل حفظ ‎.env‎.",
     "weatherEnabled": "مُفعّل ({{city}})",
     "configured": "تمت التهيئة",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "يكتب هذا ملف ‎.env الخاص بك (يُنسخ الموجود احتياطيًا) ويشغّل الحاوية.",
+    "confirm": "انقر مرة أخرى للتأكيد",
+    "access": "الوصول",
+    "accessProxy": "بروكسي عكسي (HTTPS)",
+    "accessDirect": "مباشر / HTTP",
+    "email": "البريد الإلكتروني",
+    "oidc": "تسجيل الدخول الموحّد",
+    "backups": "النسخ الاحتياطية",
+    "webdavBackup": "نسخ خارجية",
+    "on": "مفعّل",
+    "off": "معطّل"
   },
   "docker": {
     "title": "جارٍ بدء Yuvomi",
@@ -117,7 +127,7 @@
     "title": "‏Yuvomi جاهز!",
     "subtitle": "مخطّط عائلتك قيد التشغيل وتم إعداد حساب المسؤول الخاص بك.",
     "open": "افتح Yuvomi ←",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "تذكّر أخذ نسخة من ملف ‎.env الآن — فهو يحتوي على مفاتيحك."
   },
   "advanced": {
     "tag": "متقدّم · اختياري",
@@ -151,9 +161,63 @@
     "documentLocalEnable": "تخزين المستندات الجديدة في مجلد محلي",
     "documentLocalPathLabel": "مسار المجلد",
     "documentLocalPathHint": "المسار داخل الحاوية. اتركه فارغًا لاستخدام /documents.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "الشبكة",
+    "sectionIntegrations": "التكاملات والنسخ الاحتياطية",
+    "errSchedule": "جدولة cron غير صالحة (يُتوقع خمسة حقول مفصولة بمسافات، مثل 0 2 * * *).",
+    "errKeep": "يجب أن يكون عدد النسخ الاحتياطية المحفوظة رقمًا موجبًا.",
+    "webdavBackup": "نسخ احتياطية خارجية (WebDAV)",
+    "webdavBackupHint": "ينسخ كل نسخة احتياطية إلى خادم WebDAV (مثل Nextcloud) لتبقى بعد أعطال القرص.",
+    "webdavBackupEnable": "إرسال النسخ الاحتياطية إلى WebDAV أيضًا",
+    "webdavBackupUrlLabel": "رابط WebDAV",
+    "webdavBackupUsernameLabel": "اسم المستخدم",
+    "webdavBackupPasswordLabel": "كلمة المرور",
+    "webdavBackupPathLabel": "المسار البعيد",
+    "sectionMore": "خيارات إضافية",
+    "fixerLabel": "مفتاح Fixer API (أسعار عملات مباشرة)",
+    "fixerHint": "اختياري. يحوّل عملات الاشتراكات بأسعار مباشرة. تعمل الاشتراكات من دونه.",
+    "pushSubjectLabel": "عنوان اتصال الإشعارات",
+    "pushSubjectHint": "يُرسل إلى خدمات الإشعارات كجهة اتصال لخادمك. اتركه فارغًا للقيمة الافتراضية."
+  },
+  "welcome": {
+    "title": "مرحبًا بك في Yuvomi",
+    "subtitle": "لنبدأ تشغيل منظّم عائلتك الخاص. اختر طريقة الإعداد.",
+    "simpleTitle": "إعداد بسيط",
+    "simpleBadge": "موصى به",
+    "simpleDesc": "نتولى التفاصيل التقنية نيابةً عنك. مثالي لتشغيل Yuvomi في المنزل.",
+    "simpleTime": "حوالي دقيقتين",
+    "advancedTitle": "إعداد متقدم",
+    "advancedDesc": "تحكم كامل: بروكسي عكسي، مزامنة التقويم، البريد الإلكتروني، تسجيل الدخول الموحّد والنسخ الاحتياطية.",
+    "advancedTime": "كل خيار، خطوة بخطوة"
+  },
+  "simple": {
+    "title": "جاهز",
+    "subtitle": "أعددنا كل شيء بقيم افتراضية آمنة. لم يبقَ سوى إنشاء حسابك.",
+    "itemKeysTitle": "تم إنشاء مفاتيح الأمان",
+    "itemKeysDesc": "يتم تشفير جلستك وقاعدة بياناتك تلقائيًا.",
+    "itemAccessTitle": "وصول محلي",
+    "itemAccessDesc": "يمكن الوصول إليه على {{url}} من هذا الجهاز.",
+    "itemBackupsTitle": "النسخ الاحتياطية اليومية مفعّلة",
+    "itemBackupsDesc": "يُحفظ نسخ احتياطي محلي كل ليلة.",
+    "backupReminder": "بعد الإعداد، خذ نسخة من ملف ‎.env المُنشأ — فهو يحتوي على مفاتيح التشفير الوحيدة لديك.",
+    "switchAdvanced": "تحتاج خيارات أكثر؟ انتقل إلى الإعداد المتقدم",
+    "start": "إعداد وتشغيل Yuvomi"
+  },
+  "email": {
+    "title": "البريد الإلكتروني وإعادة تعيين كلمة المرور",
+    "subtitle": "اسمح لأفراد العائلة بإعادة تعيين كلمة مرور منسية عبر البريد. اختياري — تخطَّه إن لم تحتجه.",
+    "enable": "تفعيل إرسال البريد الإلكتروني",
+    "hint": "يستخدم خادم SMTP الخاص بك (مزود بريد، مُستضاف ذاتيًا أو خدمة معاملات).",
+    "hostLabel": "خادم SMTP",
+    "portLabel": "المنفذ",
+    "secureLabel": "التشفير",
+    "secureStarttls": "STARTTLS (المنفذ 587)",
+    "secureSsl": "SSL/TLS (المنفذ 465)",
+    "secureNone": "بدون (غير موصى به)",
+    "userLabel": "اسم المستخدم",
+    "passLabel": "كلمة المرور",
+    "fromLabel": "عنوان المُرسِل",
+    "fromHint": "عنوان «من» الذي سيراه المستلمون. يشترط كثير من المزودين تطابقه مع اسم المستخدم.",
+    "fromNameLabel": "اسم المُرسِل",
+    "errIncomplete": "خادم SMTP وعنوان المُرسِل مطلوبان."
   }
 }

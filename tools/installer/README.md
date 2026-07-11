@@ -32,12 +32,26 @@ dedicated `podman-compose.yml` (SELinux `:Z` labels).
 
 1. Detects the container engine (Docker or Podman), checks its prerequisites, and
    reports any existing `.env` file or running `oikos` container before you start
-2. Guides you through all configuration options, grouped into steps:
-   - **Basics** — timezone (`TZ`) and HTTP host port (`OIKOS_HTTP_PORT`)
-   - **Security keys** — generates `SESSION_SECRET` and `DB_ENCRYPTION_KEY`
-   - **Optional integrations** — weather (Open-Meteo coordinates, no API key), Google Calendar, Apple CalDAV, and local-folder or WebDAV document storage
-   - **Advanced** — reverse-proxy/HTTPS (`SESSION_SECURE`, `TRUST_PROXY`),
-     Single Sign-On (OIDC), and automatic backups
+2. Lets you pick a setup path on the welcome screen:
+   - **Simple setup** (recommended for non-technical users) — auto-generates the
+     security keys, applies safe localhost/HTTP defaults, and goes straight to
+     creating your admin account. Two or three clicks, no jargon.
+   - **Advanced setup** — walks every option, step by step. Security keys are
+     still pre-generated (regenerate any time), and each screen is optional:
+     - **Basics** — domain/IP, timezone (`TZ`), HTTP host port (`OIKOS_HTTP_PORT`)
+     - **Security keys** — `SESSION_SECRET` and `DB_ENCRYPTION_KEY` (pre-filled)
+     - **Weather** — Open-Meteo coordinates (no API key)
+     - **Calendar** — Google Calendar and Apple CalDAV
+     - **Email** — SMTP for the "forgot password" flow (`EMAIL_SMTP_*`,
+       `EMAIL_FROM_*`); enables password-reset emails
+     - **Advanced** — reverse-proxy/HTTPS (`SESSION_SECURE`, `TRUST_PROXY`),
+       Single Sign-On (OIDC), automatic backups, off-site WebDAV backups
+       (`WEBDAV_BACKUP_*`), local-folder or WebDAV document storage, live
+       currency rates (`FIXER_API_KEY`), and the Web-Push contact (`VAPID_SUBJECT`)
+   - Either path derives and writes `BASE_URL` from your host/port/scheme so
+     password-reset links work out of the box.
+   - A language switcher (top corner) overrides the auto-detected browser
+     language and remembers your choice.
 3. Backs up any existing `.env` to `.env.bak-<ISO>` before writing
 4. Writes `.env` to the project root (keys are allowlisted against the shared
    env schema; values containing line breaks are rejected)

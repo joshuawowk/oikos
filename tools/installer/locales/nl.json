@@ -8,8 +8,9 @@
     "optional": "Optioneel",
     "stepCounter": "Stap {{n}} van {{total}}",
     "toggleVisibility": "Waarde tonen of verbergen",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd ✓",
+    "language": "Taal"
   },
   "config": {
     "title": "Basisconfiguratie",
@@ -31,7 +32,7 @@
     "dbLabel": "Databaseversleutelingssleutel",
     "dbHint": "Versleutelt de SQLite-database in rust.",
     "errBoth": "Beide sleutels zijn vereist.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "Bewaar deze sleutels nu. Als je ze kwijtraakt, zijn je versleutelde gegevens onherstelbaar — er is geen herstel."
   },
   "weather": {
     "title": "Weer-widget",
@@ -98,10 +99,22 @@
     "documentLocalEnable": "Nieuwe documenten in een lokale map opslaan",
     "documentLocalPathLabel": "Mappad",
     "documentLocalPathHint": "Pad in de container. Laat leeg voor /documents.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "Netwerk",
+    "sectionIntegrations": "Integraties en back-ups",
+    "errSchedule": "Ongeldige cron-planning (vijf door spaties gescheiden velden verwacht, bijv. 0 2 * * *).",
+    "errKeep": "Te bewaren back-ups moet een positief getal zijn.",
+    "webdavBackup": "Externe back-ups (WebDAV)",
+    "webdavBackupHint": "Kopieert elke back-up naar een WebDAV-server (bijv. Nextcloud) zodat die een schijfstoring overleeft.",
+    "webdavBackupEnable": "Back-ups ook naar WebDAV sturen",
+    "webdavBackupUrlLabel": "WebDAV-URL",
+    "webdavBackupUsernameLabel": "Gebruikersnaam",
+    "webdavBackupPasswordLabel": "Wachtwoord",
+    "webdavBackupPathLabel": "Extern pad",
+    "sectionMore": "Meer opties",
+    "fixerLabel": "Fixer-API-sleutel (live wisselkoersen)",
+    "fixerHint": "Optioneel. Zet abonnementsvaluta om met live koersen. Abonnementen werken ook zonder.",
+    "pushSubjectLabel": "Push-contactadres",
+    "pushSubjectHint": "Wordt naar pushdiensten gestuurd als contact voor je server. Laat leeg voor de standaard."
   },
   "review": {
     "title": "Controleren",
@@ -119,8 +132,17 @@
     "errSave": "Opslaan van .env mislukt.",
     "weatherEnabled": "ingeschakeld ({{city}})",
     "configured": "geconfigureerd",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "Dit schrijft je .env (een bestaande wordt geback-upt) en start de container.",
+    "confirm": "Klik nogmaals om te bevestigen",
+    "access": "Toegang",
+    "accessProxy": "Reverse proxy (HTTPS)",
+    "accessDirect": "Direct / HTTP",
+    "email": "E-mail",
+    "oidc": "Single sign-on",
+    "backups": "Back-ups",
+    "webdavBackup": "Externe back-ups",
+    "on": "ingeschakeld",
+    "off": "uitgeschakeld"
   },
   "docker": {
     "title": "Yuvomi wordt gestart",
@@ -154,6 +176,48 @@
     "title": "Yuvomi is klaar!",
     "subtitle": "Je gezinsplanner werkt en je beheerdersaccount is ingesteld.",
     "open": "Yuvomi openen →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "Vergeet niet je .env-bestand nu te back-uppen — het bevat je sleutels."
+  },
+  "welcome": {
+    "title": "Welkom bij Yuvomi",
+    "subtitle": "Laten we je privé-gezinsplanner starten. Kies hoe je hem wilt instellen.",
+    "simpleTitle": "Eenvoudige installatie",
+    "simpleBadge": "Aanbevolen",
+    "simpleDesc": "Wij regelen de technische details voor je. Ideaal om Yuvomi thuis te draaien.",
+    "simpleTime": "Ongeveer 2 minuten",
+    "advancedTitle": "Geavanceerde installatie",
+    "advancedDesc": "Volledige controle: reverse proxy, agenda-synchronisatie, e-mail, single sign-on en back-ups.",
+    "advancedTime": "Elke optie, stap voor stap"
+  },
+  "simple": {
+    "title": "Klaar voor gebruik",
+    "subtitle": "We hebben alles voorbereid met veilige standaardwaarden. Maak nu alleen nog je account aan.",
+    "itemKeysTitle": "Beveiligingssleutels gegenereerd",
+    "itemKeysDesc": "Je sessie en database worden automatisch versleuteld.",
+    "itemAccessTitle": "Lokale toegang",
+    "itemAccessDesc": "Bereikbaar op {{url}} op deze computer.",
+    "itemBackupsTitle": "Dagelijkse back-ups aan",
+    "itemBackupsDesc": "Elke nacht wordt een lokale back-up bewaard.",
+    "backupReminder": "Maak na de installatie een back-up van het gegenereerde .env-bestand — het bevat je enige versleutelingssleutels.",
+    "switchAdvanced": "Meer opties nodig? Ga naar de geavanceerde installatie",
+    "start": "Yuvomi instellen & starten"
+  },
+  "email": {
+    "title": "E-mail & wachtwoordherstel",
+    "subtitle": "Laat gezinsleden een vergeten wachtwoord per e-mail herstellen. Optioneel — sla over als je het niet nodig hebt.",
+    "enable": "E-mailverzending inschakelen",
+    "hint": "Gebruikt je eigen SMTP-server (mailprovider, zelf gehost of een transactionele dienst).",
+    "hostLabel": "SMTP-server",
+    "portLabel": "Poort",
+    "secureLabel": "Versleuteling",
+    "secureStarttls": "STARTTLS (poort 587)",
+    "secureSsl": "SSL/TLS (poort 465)",
+    "secureNone": "Geen (niet aanbevolen)",
+    "userLabel": "Gebruikersnaam",
+    "passLabel": "Wachtwoord",
+    "fromLabel": "Afzenderadres",
+    "fromHint": "Het \"van\"-adres dat ontvangers zien. Veel providers vereisen dat het overeenkomt met je gebruikersnaam.",
+    "fromNameLabel": "Afzendernaam",
+    "errIncomplete": "SMTP-server en afzenderadres zijn verplicht."
   }
 }

@@ -8,8 +8,9 @@
     "optional": "Opcionális",
     "stepCounter": "{{n}}/{{total}} lépés",
     "toggleVisibility": "Érték megjelenítése vagy elrejtése",
-    "copy": "Copy",
-    "copied": "Copied ✓"
+    "copy": "Másolás",
+    "copied": "Másolva ✓",
+    "language": "Nyelv"
   },
   "config": {
     "title": "Alapbeállítások",
@@ -31,7 +32,7 @@
     "dbLabel": "Adatbázis titkosító kulcs",
     "dbHint": "Titkosítja az SQLite adatbázist nyugalmi állapotban.",
     "errBoth": "Mindkét kulcs megadása kötelező.",
-    "dangerWarn": "Save these keys now. If you lose them, your encrypted data is unrecoverable — there is no reset."
+    "dangerWarn": "Mentsd el most ezeket a kulcsokat. Ha elveszíted őket, a titkosított adataid helyreállíthatatlanok — nincs visszaállítás."
   },
   "weather": {
     "title": "Időjárás widget",
@@ -82,8 +83,17 @@
     "errSave": "Nem sikerült menteni a .env fájlt.",
     "weatherEnabled": "engedélyezve ({{city}})",
     "configured": "beállítva",
-    "finalNote": "This writes your .env (an existing one is backed up) and starts the container.",
-    "confirm": "Click again to confirm"
+    "finalNote": "Ez kiírja a .env fájlt (a meglévőről biztonsági másolat készül), és elindítja a konténert.",
+    "confirm": "Kattints újra a megerősítéshez",
+    "access": "Hozzáférés",
+    "accessProxy": "Reverse proxy (HTTPS)",
+    "accessDirect": "Közvetlen / HTTP",
+    "email": "E-mail",
+    "oidc": "Egyszeri bejelentkezés",
+    "backups": "Biztonsági mentések",
+    "webdavBackup": "Külső mentések",
+    "on": "bekapcsolva",
+    "off": "kikapcsolva"
   },
   "docker": {
     "title": "Yuvomi indítása",
@@ -117,7 +127,7 @@
     "title": "Yuvomi készen áll!",
     "subtitle": "A családi tervező fut, és az adminisztrátor fiók be van állítva.",
     "open": "Yuvomi megnyitása →",
-    "backupReminder": "Remember to back up your .env file now — it holds your keys."
+    "backupReminder": "Ne feledd most menteni a .env fájlt — ez tartalmazza a kulcsaidat."
   },
   "advanced": {
     "tag": "Speciális · opcionális",
@@ -151,9 +161,63 @@
     "documentLocalEnable": "Új dokumentumok mentése helyi mappába",
     "documentLocalPathLabel": "Mappa elérési útja",
     "documentLocalPathHint": "Elérési út a konténerben. Hagyja üresen a /documents használatához.",
-    "sectionNetwork": "Networking",
-    "sectionIntegrations": "Integrations & backups",
-    "errSchedule": "Invalid cron schedule (expected five space-separated fields, e.g. 0 2 * * *).",
-    "errKeep": "Backups to keep must be a positive number."
+    "sectionNetwork": "Hálózat",
+    "sectionIntegrations": "Integrációk és biztonsági mentések",
+    "errSchedule": "Érvénytelen cron-ütemezés (öt, szóközzel elválasztott mező szükséges, pl. 0 2 * * *).",
+    "errKeep": "A megőrzendő mentések számának pozitív számnak kell lennie.",
+    "webdavBackup": "Külső biztonsági mentések (WebDAV)",
+    "webdavBackupHint": "Minden mentést átmásol egy WebDAV-kiszolgálóra (pl. Nextcloud), hogy túléljen egy lemezhibát.",
+    "webdavBackupEnable": "Mentések küldése WebDAV-ra is",
+    "webdavBackupUrlLabel": "WebDAV-URL",
+    "webdavBackupUsernameLabel": "Felhasználónév",
+    "webdavBackupPasswordLabel": "Jelszó",
+    "webdavBackupPathLabel": "Távoli útvonal",
+    "sectionMore": "További beállítások",
+    "fixerLabel": "Fixer API-kulcs (élő árfolyamok)",
+    "fixerHint": "Nem kötelező. Élő árfolyamon váltja át az előfizetések pénznemeit. Az előfizetések enélkül is működnek.",
+    "pushSubjectLabel": "Push kapcsolattartási cím",
+    "pushSubjectHint": "A push-szolgáltatásoknak küldjük a kiszolgálód elérhetőségeként. Hagyd üresen az alapértelmezetthez."
+  },
+  "welcome": {
+    "title": "Üdvözöl a Yuvomi",
+    "subtitle": "Indítsuk el a privát családi tervezőt. Válaszd ki, hogyan szeretnéd beállítani.",
+    "simpleTitle": "Egyszerű telepítés",
+    "simpleBadge": "Ajánlott",
+    "simpleDesc": "A technikai részleteket elintézzük helyetted. Ideális a Yuvomi otthoni használatához.",
+    "simpleTime": "Körülbelül 2 perc",
+    "advancedTitle": "Speciális telepítés",
+    "advancedDesc": "Teljes irányítás: reverse proxy, naptárszinkron, e-mail, egyszeri bejelentkezés és biztonsági mentések.",
+    "advancedTime": "Minden lehetőség, lépésről lépésre"
+  },
+  "simple": {
+    "title": "Minden kész",
+    "subtitle": "Mindent előkészítettünk biztonságos alapértékekkel. Már csak a fiókodat kell létrehoznod.",
+    "itemKeysTitle": "Biztonsági kulcsok létrehozva",
+    "itemKeysDesc": "A munkameneted és az adatbázisod automatikusan titkosítva van.",
+    "itemAccessTitle": "Helyi hozzáférés",
+    "itemAccessDesc": "Elérhető itt: {{url}} ezen a gépen.",
+    "itemBackupsTitle": "Napi biztonsági mentés bekapcsolva",
+    "itemBackupsDesc": "Minden éjjel megőrzünk egy helyi biztonsági mentést.",
+    "backupReminder": "A telepítés után mentsd el a létrehozott .env fájlt — ez tartalmazza az egyetlen titkosítási kulcsaidat.",
+    "switchAdvanced": "Több beállítás kell? Válts speciális telepítésre",
+    "start": "Yuvomi beállítása és indítása"
+  },
+  "email": {
+    "title": "E-mail és jelszó-visszaállítás",
+    "subtitle": "Tedd lehetővé, hogy a családtagok e-mailben állítsák vissza elfelejtett jelszavukat. Nem kötelező — hagyd ki, ha nincs rá szükség.",
+    "enable": "E-mail-küldés bekapcsolása",
+    "hint": "A saját SMTP-kiszolgálódat használja (levelezőszolgáltató, önállóan üzemeltetett vagy tranzakciós szolgáltatás).",
+    "hostLabel": "SMTP-kiszolgáló",
+    "portLabel": "Port",
+    "secureLabel": "Titkosítás",
+    "secureStarttls": "STARTTLS (587-es port)",
+    "secureSsl": "SSL/TLS (465-ös port)",
+    "secureNone": "Nincs (nem ajánlott)",
+    "userLabel": "Felhasználónév",
+    "passLabel": "Jelszó",
+    "fromLabel": "Feladó címe",
+    "fromHint": "A „Feladó\" cím, amelyet a címzettek látnak. Sok szolgáltató megköveteli, hogy egyezzen a felhasználónévvel.",
+    "fromNameLabel": "Feladó neve",
+    "errIncomplete": "Az SMTP-kiszolgáló és a feladó címe kötelező."
   }
 }
