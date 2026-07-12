@@ -190,6 +190,8 @@
         "savingsGoal": "बचत लक्ष्य"
     },
     "tasks": {
+        "manageCategories": "श्रेणियाँ प्रबंधित करें",
+        "addCategory": "+ category",
         "title": "कार्य",
         "newTask": "नया कार्य",
         "editTask": "कार्य संपादित करें",
@@ -669,6 +671,8 @@
         "searchClear": "खोज साफ़ करें"
     },
     "contacts": {
+        "manageCategories": "श्रेणियाँ प्रबंधित करें",
+        "addCategory": "+ category",
         "title": "संपर्क",
         "newContact": "नया संपर्क",
         "editContact": "संपर्क संपादित करें",

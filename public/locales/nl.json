@@ -190,6 +190,8 @@
         "savingsGoal": "Spaardoel"
     },
     "tasks": {
+        "manageCategories": "Categorieën beheren",
+        "addCategory": "+ categorie",
         "title": "Taken",
         "newTask": "Nieuwe taak",
         "editTask": "Taak bewerken",
@@ -669,6 +671,8 @@
         "searchClear": "Zoekopdracht wissen"
     },
     "contacts": {
+        "manageCategories": "Categorieën beheren",
+        "addCategory": "+ categorie",
         "title": "Contacten",
         "newContact": "Nieuw contact",
         "editContact": "Contact bewerken",

@@ -190,6 +190,8 @@
         "savingsGoal": "Στόχος αποταμίευσης"
     },
     "tasks": {
+        "manageCategories": "Διαχείριση κατηγοριών",
+        "addCategory": "+ category",
         "title": "Εργασίες",
         "newTask": "Νέα εργασία",
         "editTask": "Επεξεργασία εργασίας",
@@ -669,6 +671,8 @@
         "searchClear": "Εκκαθάριση αναζήτησης"
     },
     "contacts": {
+        "manageCategories": "Διαχείριση κατηγοριών",
+        "addCategory": "+ category",
         "title": "Επαφές",
         "newContact": "Νέα επαφή",
         "editContact": "Επεξεργασία επαφής",

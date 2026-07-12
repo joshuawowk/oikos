@@ -190,6 +190,8 @@
         "savingsGoal": "储蓄目标"
     },
     "tasks": {
+        "manageCategories": "管理类别",
+        "addCategory": "+ category",
         "title": "任务",
         "newTask": "新建任务",
         "editTask": "编辑任务",
@@ -669,6 +671,8 @@
         "searchClear": "清除搜索"
     },
     "contacts": {
+        "manageCategories": "管理类别",
+        "addCategory": "+ category",
         "title": "联系人",
         "newContact": "新建联系人",
         "editContact": "编辑联系人",

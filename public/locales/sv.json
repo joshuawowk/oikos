@@ -190,6 +190,8 @@
         "savingsGoal": "Sparmål"
     },
     "tasks": {
+        "manageCategories": "Hantera kategorier",
+        "addCategory": "+ kategori",
         "title": "Uppgifter",
         "newTask": "Ny uppgift",
         "editTask": "Redigera uppgift",
@@ -669,6 +671,8 @@
         "searchClear": "Rensa sökning"
     },
     "contacts": {
+        "manageCategories": "Hantera kategorier",
+        "addCategory": "+ kategori",
         "title": "Kontakter",
         "newContact": "Ny kontakt",
         "editContact": "Redigera kontakt",

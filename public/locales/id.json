@@ -197,6 +197,8 @@
         "savingsGoal": "Target tabungan"
     },
     "tasks": {
+        "manageCategories": "Kelola kategori",
+        "addCategory": "+ Kategori",
         "title": "Tugas",
         "newTask": "Tugas baru",
         "editTask": "Ubah tugas",
@@ -676,6 +678,8 @@
         "searchClear": "Hapus pencarian"
     },
     "contacts": {
+        "manageCategories": "Kelola kategori",
+        "addCategory": "+ Kategori",
         "title": "Kontak",
         "newContact": "Kontak baru",
         "editContact": "Ubah kontak",

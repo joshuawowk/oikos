@@ -2118,6 +2118,17 @@ describe('Contacts API - Multi-Value Fields', () => {
         updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
       );
 
+      -- Seit #357 validiert der Contacts-Router category dynamisch gegen
+      -- contact_categories. Dieses Fixture sendet weiterhin die Legacy-Werte
+      -- 'Arzt'/'Sonstiges'; beide werden hier als gültige Keys mitgeführt.
+      CREATE TABLE contact_categories (
+        key TEXT PRIMARY KEY, name TEXT, label_key TEXT,
+        icon TEXT NOT NULL DEFAULT 'tag', sort_order INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO contact_categories (key, sort_order) VALUES
+        ('doctor',0),('school',1),('authority',2),('insurance',3),
+        ('craftsman',4),('emergency',5),('misc',6),('Arzt',7),('Sonstiges',8);
+
       INSERT INTO users (username) VALUES ('testuser');
     `);
 

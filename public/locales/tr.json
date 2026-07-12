@@ -190,6 +190,8 @@
         "savingsGoal": "Tasarruf hedefi"
     },
     "tasks": {
+        "manageCategories": "Kategorileri yönet",
+        "addCategory": "+ category",
         "title": "Görevler",
         "newTask": "Yeni Görev",
         "editTask": "Görevi Düzenle",
@@ -669,6 +671,8 @@
         "searchClear": "Aramayı temizle"
     },
     "contacts": {
+        "manageCategories": "Kategorileri yönet",
+        "addCategory": "+ category",
         "title": "Kişiler",
         "newContact": "Yeni Kişi",
         "editContact": "Kişiyi Düzenle",

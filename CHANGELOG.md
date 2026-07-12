@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-07-12
+
+### Added
+- **Customizable task categories.** The Tasks module gains a "Manage categories" action in its toolbar to add, rename, reorder, and delete task categories, matching the category management already available in Budget and Shopping. The eight built-in categories stay translated; categories you add appear everywhere tasks are grouped, filtered, and created. Deleting a category is blocked while tasks still use it, or when it is the last one.
+- **Customizable contact categories.** Contacts gains the same "Manage categories" button, so the contact directory is no longer limited to the fixed set. Built-in categories keep their icons, color tints, and translations; custom categories use a neutral tag icon. The same in-use and last-category safeguards apply.
+
+### Changed
+- Task and contact categories are now stored in the database instead of being hardcoded. Existing tasks and contacts keep their categories automatically, and any categories already in your data are preserved as custom entries.
+
 ## [1.17.1] - 2026-07-12
 
 ### Changed

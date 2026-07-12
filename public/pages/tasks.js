@@ -13,6 +13,7 @@ import { esc } from '/utils/html.js';
 import { refresh as refreshReminders } from '/reminders.js';
 import { renderUserMultiSelect, getSelectedUserIds, bindUserMultiSelect, renderAvatarStack } from '/components/user-multi-select.js';
 import { resolveReminderPreset } from '/utils/reminder-offset.js';
+import '/components/category-manager.js';
 
 // --------------------------------------------------------
 // Konstanten
@@ -35,21 +36,18 @@ const STATUSES = () => [
   { value: 'archived',    label: t('tasks.statusArchived')   },
 ];
 
-const CATEGORIES = [
-  'household', 'school', 'shopping', 'repair',
-  'health', 'finance', 'leisure', 'misc',
-];
+// Fallback-Kategorie (kanonischer Key). Kategorien sind seit #494 benutzer-
+// verwaltbar und werden aus /tasks/meta/options in state.categories geladen.
+const FALLBACK_CATEGORY = 'misc';
 
-const CATEGORY_LABELS = () => ({
-  'household': t('tasks.categoryHousehold'),
-  'school':    t('tasks.categorySchool'),
-  'shopping':  t('tasks.categoryShopping'),
-  'repair':    t('tasks.categoryRepair'),
-  'health':    t('tasks.categoryHealth'),
-  'finance':   t('tasks.categoryFinance'),
-  'leisure':   t('tasks.categoryLeisure'),
-  'misc':      t('tasks.categoryMisc'),
-});
+// Label einer Kategorie auflösen: Seed-Kategorien tragen label_key (i18n),
+// benutzerdefinierte tragen name. Unbekannte Keys (z. B. Due-Gruppen-Strings)
+// werden unverändert zurückgegeben.
+function catLabel(key) {
+  const c = state.categories.find((x) => x.key === key);
+  if (!c) return key;
+  return c.label_key ? t(c.label_key) : (c.name || c.key);
+}
 
 const PRIORITY_LABELS = () => Object.fromEntries(PRIORITIES().map((p) => [p.value, p.label]));
 const STATUS_LABELS   = () => Object.fromEntries(STATUSES().map((s)  => [s.value, s.label]));
@@ -105,7 +103,7 @@ function groupBy(tasks, mode) {
 
   if (mode === 'category') {
     for (const t of tasks) {
-      const key = t.category || 'Sonstiges';
+      const key = t.category || FALLBACK_CATEGORY;
       (groups[key] = groups[key] || []).push(t);
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b, 'de'));
@@ -227,7 +225,7 @@ function renderTaskCard(task, opts = {}) {
             ${renderDueDate(task.due_date, task.due_time)}
             ${task.is_recurring ? `<span class="due-date" aria-label="${t('tasks.recurring')}"><i data-lucide="repeat" class="icon-sm" aria-hidden="true"></i></span>` : ''}
             ${renderVisibilityBadge(task.visibility)}
-            ${task.category !== 'misc' ? `<span class="due-date task-card__category">${CATEGORY_LABELS()[task.category] ?? task.category}</span>` : ''}
+            ${task.category !== FALLBACK_CATEGORY ? `<span class="due-date task-card__category">${esc(catLabel(task.category))}</span>` : ''}
           </div>
         </div>
 
@@ -304,14 +302,13 @@ function renderTaskGroups(tasks, groupMode) {
   }
 
   const now = new Date();
-  const catLabelsMap = CATEGORY_LABELS();
   const groups = groupBy(tasks, groupMode);
   return groups.map(([name, groupTasks]) => {
     const sorted = [...groupTasks].sort((a, b) => sortTasks(a, b, now));
     return `
     <div class="task-group">
       <div class="task-group__header">
-        <span class="task-group__title">${catLabelsMap[name] ?? name}</span>
+        <span class="task-group__title">${esc(groupMode === 'category' ? catLabel(name) : name)}</span>
         <span class="task-group__count">${groupTasks.length}</span>
       </div>
       ${sorted.map((t) => renderSwipeRow(t, renderTaskCard(t, {
@@ -332,9 +329,9 @@ function renderModalContent({ task = null, users = [], reminder = null } = {}) {
   const selectedIds = task?.assigned_users?.map((u) => u.id) ?? (task?.assigned_to ? [task.assigned_to] : []);
   const visibility  = task?.visibility || 'all';
 
-  const catLabels = CATEGORY_LABELS();
-  const categoryOptions = CATEGORIES.map((c) =>
-    `<option value="${c}" ${(task?.category ?? 'Sonstiges') === c ? 'selected' : ''}>${catLabels[c] ?? c}</option>`
+  const selectedCat = task?.category ?? FALLBACK_CATEGORY;
+  const categoryOptions = state.categories.map((c) =>
+    `<option value="${esc(c.key)}" ${selectedCat === c.key ? 'selected' : ''}>${esc(catLabel(c.key))}</option>`
   ).join('');
 
   const priorityOptions = PRIORITIES().map((p) =>
@@ -346,7 +343,7 @@ function renderModalContent({ task = null, users = [], reminder = null } = {}) {
   const advancedFieldsOpen = isEdit && (
     !!task.description
     || (!!task.priority && task.priority !== 'none')
-    || (!!task.category && task.category !== 'Sonstiges')
+    || (!!task.category && task.category !== FALLBACK_CATEGORY)
     || !!task.start_date
     || (Number(task.points) > 0)
   );
@@ -474,6 +471,7 @@ function renderModalContent({ task = null, users = [], reminder = null } = {}) {
 let state = {
   tasks:           [],
   users:           [],
+  categories:      [],
   currentUserId:   null,
   filters:         { status: 'open', priority: '', assigned_to: '' },
   groupMode:       'category',   // 'category' | 'due'
@@ -631,6 +629,38 @@ function openTaskModal({ task = null, users = [], reminder = null } = {}, contai
       panel.querySelector('[data-action="delete-task"]')
         ?.addEventListener('click', (e) => handleDeleteTask(e.currentTarget.dataset.id, container));
     },
+  });
+}
+
+// --------------------------------------------------------
+// Kategorie-Verwaltung (#494)
+// --------------------------------------------------------
+
+function openTaskCategoryManager(container) {
+  let manager = null;
+  const onChanged = async () => {
+    try {
+      const res = await api.get('/tasks/categories');
+      state.categories = res.data ?? [];
+      renderTaskList(container);
+    } catch { /* Fehler wurde bereits vom Manager als Toast angezeigt */ }
+  };
+  openSharedModal({
+    title: t('tasks.manageCategories'),
+    content: '<yuvomi-category-manager></yuvomi-category-manager>',
+    size: 'lg',
+    onSave: (panel) => {
+      manager = panel.querySelector('yuvomi-category-manager');
+      manager.addEventListener('category-manager-changed', onChanged);
+      manager.configure({
+        basePath: '/tasks/categories',
+        groups: [{ key: '', addLabelKey: 'tasks.addCategory' }],
+        labelResolver: (item) => (item.label_key ? t(item.label_key) : (item.name || item.key)),
+        titleKey: 'tasks.manageCategories',
+        hintKey: 'category.manageHint',
+      });
+    },
+    onClose: () => manager?.removeEventListener('category-manager-changed', onChanged),
   });
 }
 
@@ -1918,6 +1948,10 @@ export async function render(container, { user }) {
                       title="${t('tasks.bulkSelect')}" aria-label="${t('tasks.bulkSelect')}" aria-pressed="false">
                 <i data-lucide="list-checks" class="icon-lg" aria-hidden="true"></i>
               </button>
+              <button class="btn btn--ghost tasks-toolbar__manage-cats" id="btn-manage-categories">
+                <i data-lucide="tags" class="icon-md" aria-hidden="true"></i>
+                <span>${t('tasks.manageCategories')}</span>
+              </button>
             </div>
           </details>
           <button class="btn btn--primary toolbar-new-btn" id="btn-new-task" style="gap:var(--space-1)">
@@ -1983,11 +2017,13 @@ export async function render(container, { user }) {
     ]);
     state.tasks = tasksData.data ?? [];
     state.users = metaData.users ?? [];
+    state.categories = metaData.categories ?? [];
   } catch (err) {
     console.error('[Tasks] Ladefehler:', err.message);
     window.yuvomi.showToast(t('tasks.loadError'), 'danger');
     state.tasks = [];
     state.users = [];
+    state.categories = [];
   }
 
   // UI verdrahten
@@ -1998,6 +2034,8 @@ export async function render(container, { user }) {
   wireBulkSelect(container);
   wireBulkCheckboxes(container);
   wireBulkActions(container);
+  container.querySelector('#btn-manage-categories')
+    ?.addEventListener('click', () => openTaskCategoryManager(container));
   renderFilters(container);
   renderTaskList(container);
 

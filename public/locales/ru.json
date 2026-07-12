@@ -190,6 +190,8 @@
         "savingsGoal": "Цель накоплений"
     },
     "tasks": {
+        "manageCategories": "Управление категориями",
+        "addCategory": "+ category",
         "title": "Задачи",
         "newTask": "Новая задача",
         "editTask": "Редактировать задачу",
@@ -669,6 +671,8 @@
         "searchClear": "Очистить поиск"
     },
     "contacts": {
+        "manageCategories": "Управление категориями",
+        "addCategory": "+ category",
         "title": "Контакты",
         "newContact": "Новый контакт",
         "editContact": "Редактировать контакт",

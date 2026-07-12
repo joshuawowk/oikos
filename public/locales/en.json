@@ -190,6 +190,8 @@
         "savingsGoal": "Savings goal"
     },
     "tasks": {
+        "manageCategories": "Manage categories",
+        "addCategory": "+ category",
         "title": "Tasks",
         "newTask": "New Task",
         "editTask": "Edit Task",
@@ -669,6 +671,8 @@
         "searchClear": "Clear search"
     },
     "contacts": {
+        "manageCategories": "Manage categories",
+        "addCategory": "+ category",
         "title": "Contacts",
         "newContact": "New Contact",
         "editContact": "Edit Contact",

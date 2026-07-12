@@ -197,6 +197,8 @@
         "savingsGoal": "هدف پس‌انداز"
     },
     "tasks": {
+        "manageCategories": "مدیریت دسته‌ها",
+        "addCategory": "+ دسته",
         "title": "کارها",
         "newTask": "کار جدید",
         "editTask": "ویرایش کار",
@@ -676,6 +678,8 @@
         "searchClear": "پاک کردن جستجو"
     },
     "contacts": {
+        "manageCategories": "مدیریت دسته‌ها",
+        "addCategory": "+ دسته",
         "title": "مخاطبین",
         "newContact": "مخاطب جدید",
         "editContact": "ویرایش مخاطب",

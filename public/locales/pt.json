@@ -190,6 +190,8 @@
         "savingsGoal": "Meta de poupança"
     },
     "tasks": {
+        "manageCategories": "Gerir categorias",
+        "addCategory": "+ categoria",
         "title": "Tarefas",
         "newTask": "Nova tarefa",
         "editTask": "Editar tarefa",
@@ -669,6 +671,8 @@
         "searchClear": "Limpar pesquisa"
     },
     "contacts": {
+        "manageCategories": "Gerir categorias",
+        "addCategory": "+ categoria",
         "title": "Contatos",
         "newContact": "Novo contato",
         "editContact": "Editar contato",

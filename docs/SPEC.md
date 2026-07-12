@@ -30,7 +30,7 @@ Every table: `id INTEGER PRIMARY KEY`, `created_at TEXT`, `updated_at TEXT` (ISO
 |--------|------|-----------|
 | title | TEXT | NOT NULL |
 | description | TEXT | |
-| category | TEXT | Household, School, Shopping, Repairs, Other |
+| category | TEXT | FK → Task Categories (by key), NOT NULL default `misc` |
 | priority | TEXT | none (default), low, medium, high, urgent |
 | status | TEXT | open, in_progress, done, archived |
 | due_date | TEXT | DATE, nullable |
@@ -47,6 +47,17 @@ Every table: `id INTEGER PRIMARY KEY`, `created_at TEXT`, `updated_at TEXT` (ISO
 **Visibility (migration v78):** every task carries a `visibility` of `all` (all family members, the default and prior behaviour), `assignees` (creator + assigned members only), or `private` (creator only). Enforcement is **server-side on every read path** (list, detail, dashboard widgets, search, MCP) — there is **no admin bypass**, so a "private" task stays hidden even from a parent/admin (the intended use is preparing a surprise). Set via the visibility selector in the task modal; restricted tasks carry a lock/people icon in the list. The same field and rule apply to calendar events.
 
 Recurring tasks keep only one open instance: the next instance is created on completion, not on a schedule. When an overdue recurring task is marked done, its next due date catches up to the next occurrence at or after today (skipping missed periods) instead of advancing a single interval from the old — possibly still overdue — due date.
+
+### Task Categories (migration v83)
+DB-backed, customizable category list for tasks. Replaces the old hardcoded set. The eight predefined keys (`household`, `school`, `shopping`, `repair`, `health`, `finance`, `leisure`, `misc`) keep a stable slug key and are localized via `label_key`; user-added categories store their display `name`. A "Manage categories" action in the tasks toolbar opens a modal (the reusable `oikos-category-manager` component) to add, rename, reorder, and delete categories. Renaming leaves the key stable (so existing tasks are unaffected) and clears `label_key`. Deletion is blocked while a category is still referenced by tasks (`409`) or when it is the last remaining category.
+
+| Column | Type | Constraint |
+|--------|------|-----------|
+| key | TEXT | PRIMARY KEY — stable slug |
+| name | TEXT | custom display name; NULL for predefined (localized) categories |
+| label_key | TEXT | i18n key for predefined categories; NULL for custom |
+| sort_order | INTEGER | NOT NULL |
+| created_at | TEXT | |
 
 ### Task Assignments
 Join table for multi-person task assignment (migration v32). Existing `assigned_to` values were migrated automatically.
@@ -372,7 +383,7 @@ disappear from the remote list are pruned on the next sync.
 | Column | Type | Constraint |
 |--------|------|-----------|
 | name | TEXT | NOT NULL |
-| category | TEXT | Doctor, School/Nursery, Authority, Insurance, Tradesperson, Emergency, Other |
+| category | TEXT | FK → Contact Categories (by key), NOT NULL default `misc` |
 | phone | TEXT | legacy single-value field |
 | email | TEXT | legacy single-value field |
 | address | TEXT | legacy single-value field |
@@ -389,6 +400,18 @@ disappear from the remote list are pruned on the next sync.
 | carddav_addressbook_url | TEXT | Source addressbook URL, nullable |
 
 Index: UNIQUE on `(carddav_account_id, carddav_addressbook_url, carddav_uid)` WHERE `carddav_uid IS NOT NULL`
+
+### Contact Categories (migration v84)
+DB-backed, customizable category list for contacts. Replaces the old hardcoded German-named set. The seven predefined keys (`doctor`, `school`, `authority`, `insurance`, `craftsman`, `emergency`, `misc`) carry a stable slug key (which also drives the per-category color tint and, together with `icon`, the list grouping), a localizing `label_key`, and a Lucide `icon`; the pre-existing German category values (`Arzt`, `Behörde`, …) are migrated to these keys. User-added categories store their `name` and default to the `tag` icon. A "Manage categories" button in the contacts toolbar opens the shared `oikos-category-manager` modal to add, rename, reorder, and delete categories, with the same in-use / last-category deletion guards as Tasks and Budget.
+
+| Column | Type | Constraint |
+|--------|------|-----------|
+| key | TEXT | PRIMARY KEY — stable slug (also the CSS color-tint slug) |
+| name | TEXT | custom display name; NULL for predefined (localized) categories |
+| label_key | TEXT | i18n key for predefined categories; NULL for custom |
+| icon | TEXT | NOT NULL DEFAULT `tag` — Lucide icon name |
+| sort_order | INTEGER | NOT NULL |
+| created_at | TEXT | |
 
 ### Contact Phones
 Multiple phone numbers per contact with label and primary flag.
@@ -1256,6 +1279,7 @@ Skeleton loading instead of spinners (the skeleton mirrors the default-visible w
 - **Start date:** tasks can have an optional start date; tasks with a future start date are hidden from the default list view to reduce cognitive load. A "Show scheduled" toggle chip in the filter bar reveals all upcoming planned tasks. Task cards display a "Starts on …" badge when a start date is set.
 - **"Assigned to me" quick filter:** a toggle chip in the filter bar limits the list to tasks assigned to the current user (a shortcut for the person filter); the choice is remembered per device. Shown only in multi-member households.
 - **Per-task visibility:** an "all / assignees only / private" selector in the task dialog controls who can see the task (server-enforced, no admin bypass — see [Tasks data model](#tasks)); restricted tasks carry a lock/people icon in the list.
+- **Customizable categories:** a "Manage categories" action in the toolbar opens the shared `oikos-category-manager` modal to add, rename, reorder, and delete task categories (predefined set localized, custom categories added inline). Deletion is blocked while a category is in use or when it is the last one — see [Task Categories data model](#task-categories-migration-v83).
 - **Responsive toolbar:** secondary controls collapse into a single overflow trigger through phone and tablet widths (≤ 1023px); bulk actions remain hidden until at least one task is selected. Checkbox and row actions use the shared touch-target tokens.
 - Mobile swipe: left = done, right = edit
 - Badge for overdue tasks
@@ -1345,6 +1369,7 @@ Responsive grid with colored sticky notes. Phones use one readable column; wider
 ### Contacts (`/contacts`)
 
 - CRUD with category filter
+- **Customizable categories:** a "Manage categories" button in the toolbar opens the shared `oikos-category-manager` modal to add, rename, reorder, and delete contact categories (predefined set localized with per-category icons and color tints, custom categories added inline). Deletion is blocked while a category is in use or when it is the last one — see [Contact Categories data model](#contact-categories-migration-v84)
 - **Multi-value fields:** multiple phones, emails, and addresses per contact, each with a label (mobile, work, home, etc.) and optional `isPrimary` flag
 - **Additional fields:** organization, job_title, birthday, website, photo, nickname
 - Phone: `tel:` link, email: `mailto:` link

@@ -197,6 +197,8 @@
         "savingsGoal": "저축 목표"
     },
     "tasks": {
+        "manageCategories": "카테고리 관리",
+        "addCategory": "+ 카테고리",
         "title": "할 일",
         "newTask": "새 할 일",
         "editTask": "할 일 편집",
@@ -676,6 +678,8 @@
         "searchClear": "검색 지우기"
     },
     "contacts": {
+        "manageCategories": "카테고리 관리",
+        "addCategory": "+ 카테고리",
         "title": "연락처",
         "newContact": "새 연락처",
         "editContact": "연락처 편집",

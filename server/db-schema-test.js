@@ -818,6 +818,68 @@ const MIGRATIONS_SQL = {
   80: `
     ALTER TABLE users ADD COLUMN calendar_feed_show_assignees INTEGER NOT NULL DEFAULT 0;
   `,
+  // Gespiegelt aus db.js MIGRATIONS (v83). Änderungen dort hier synchron halten.
+  83: `
+    CREATE TABLE IF NOT EXISTS task_categories (
+      key        TEXT    PRIMARY KEY,
+      name       TEXT,
+      label_key  TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+    INSERT OR IGNORE INTO task_categories (key, name, label_key, sort_order) VALUES
+      ('household', NULL, 'tasks.categoryHousehold', 0),
+      ('school',    NULL, 'tasks.categorySchool',    1),
+      ('shopping',  NULL, 'tasks.categoryShopping',  2),
+      ('repair',    NULL, 'tasks.categoryRepair',    3),
+      ('health',    NULL, 'tasks.categoryHealth',    4),
+      ('finance',   NULL, 'tasks.categoryFinance',   5),
+      ('leisure',   NULL, 'tasks.categoryLeisure',   6),
+      ('misc',      NULL, 'tasks.categoryMisc',      7);
+    UPDATE tasks SET category = 'misc' WHERE category = 'Sonstiges' OR category IS NULL OR category = '';
+    INSERT OR IGNORE INTO task_categories (key, name, label_key, sort_order)
+    SELECT category, category, NULL, 1000
+    FROM tasks
+    WHERE category IS NOT NULL AND category != ''
+      AND category NOT IN (SELECT key FROM task_categories)
+    GROUP BY category;
+  `,
+  // Gespiegelt aus db.js MIGRATIONS (v84). Änderungen dort hier synchron halten.
+  84: `
+    CREATE TABLE IF NOT EXISTS contact_categories (
+      key        TEXT    PRIMARY KEY,
+      name       TEXT,
+      label_key  TEXT,
+      icon       TEXT    NOT NULL DEFAULT 'tag',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+    INSERT OR IGNORE INTO contact_categories (key, name, label_key, icon, sort_order) VALUES
+      ('doctor',    NULL, 'contacts.categoryDoctor',    'stethoscope',    0),
+      ('school',    NULL, 'contacts.categorySchool',    'graduation-cap', 1),
+      ('authority', NULL, 'contacts.categoryAuthority', 'landmark',       2),
+      ('insurance', NULL, 'contacts.categoryInsurance', 'shield',         3),
+      ('craftsman', NULL, 'contacts.categoryCraftsman', 'wrench',         4),
+      ('emergency', NULL, 'contacts.categoryEmergency', 'siren',          5),
+      ('misc',      NULL, 'contacts.categoryOther',     'tag',            6);
+    UPDATE contacts SET category = CASE category
+      WHEN 'Arzt'         THEN 'doctor'
+      WHEN 'Schule/Kita'  THEN 'school'
+      WHEN 'Behörde'      THEN 'authority'
+      WHEN 'Versicherung' THEN 'insurance'
+      WHEN 'Handwerker'   THEN 'craftsman'
+      WHEN 'Notfall'      THEN 'emergency'
+      WHEN 'Sonstiges'    THEN 'misc'
+      ELSE category
+    END;
+    UPDATE contacts SET category = 'misc' WHERE category IS NULL OR category = '';
+    INSERT OR IGNORE INTO contact_categories (key, name, label_key, icon, sort_order)
+    SELECT category, category, NULL, 'tag', 1000
+    FROM contacts
+    WHERE category IS NOT NULL AND category != ''
+      AND category NOT IN (SELECT key FROM contact_categories)
+    GROUP BY category;
+  `,
 };
 
 export { MIGRATIONS_SQL };

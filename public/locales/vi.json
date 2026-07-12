@@ -190,6 +190,8 @@
         "savingsGoal": "Mục tiêu tiết kiệm"
     },
     "tasks": {
+        "manageCategories": "Quản lý danh mục",
+        "addCategory": "+ danh mục",
         "title": "Nhiệm vụ",
         "newTask": "Nhiệm vụ mới",
         "editTask": "Sửa nhiệm vụ",
@@ -669,6 +671,8 @@
         "searchClear": "Xóa tìm kiếm"
     },
     "contacts": {
+        "manageCategories": "Quản lý danh mục",
+        "addCategory": "+ danh mục",
         "title": "Liên hệ",
         "newContact": "Liên hệ mới",
         "editContact": "Sửa liên hệ",

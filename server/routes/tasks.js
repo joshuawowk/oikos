@@ -10,6 +10,7 @@ import * as db from '../db.js';
 import { nextOccurrenceAfter } from '../services/recurrence.js';
 import { syncTaskRewards } from '../services/rewards.js';
 import { normalizeVisibility, visibilityWhere } from '../services/visibility.js';
+import { uniqueKey } from '../utils/category-slug.js';
 import * as v from '../middleware/validate.js';
 
 const log = createLogger('Tasks');
@@ -22,9 +23,25 @@ const router = express.Router();
 
 const VALID_PRIORITIES = ['none', 'low', 'medium', 'high', 'urgent'];
 const VALID_STATUSES   = ['open', 'in_progress', 'done', 'archived'];
-const VALID_CATEGORIES = ['household', 'school', 'shopping', 'repair',
-                          'health', 'finance', 'leisure', 'misc'];
 const MAX_POINTS = 10000;
+const FALLBACK_CATEGORY = 'misc';
+
+/** Verwaltbare Kategorien aus der DB (nach sort_order). */
+function loadTaskCategories() {
+  return db.get().prepare(
+    'SELECT key, name, label_key, sort_order FROM task_categories ORDER BY sort_order ASC, key ASC'
+  ).all();
+}
+
+/** Nur die Keys — für die dynamische category-Validierung. */
+function validTaskCategoryKeys() {
+  return loadTaskCategories().map((c) => c.key);
+}
+
+/** Anzahl Aufgaben, die eine Kategorie referenzieren (Guard vor dem Löschen). */
+function taskCategoryInUseCount(key) {
+  return db.get().prepare('SELECT COUNT(*) AS n FROM tasks WHERE category = ?').get(key).n;
+}
 
 /** Punktewert einer Aufgabe auf eine nichtnegative Ganzzahl normalisieren. */
 function clampPoints(val) {
@@ -108,7 +125,7 @@ function validateTaskInput(body, isCreate = true) {
     v.str(body.description, 'description', { required: false, max: v.MAX_TEXT }),
     v.oneOf(body.priority,  VALID_PRIORITIES, 'priority'),
     v.oneOf(body.status,    VALID_STATUSES,   'status'),
-    v.oneOf(body.category,  VALID_CATEGORIES, 'category'),
+    v.oneOf(body.category,  validTaskCategoryKeys(), 'category'),
     v.date(body.start_date, 'start_date'),
     v.date(body.due_date,   'due_date'),
     v.time(body.due_time,   'due_time'),
@@ -116,6 +133,105 @@ function validateTaskInput(body, isCreate = true) {
     v.num(body.points,      'points'),
   ]);
 }
+
+// --------------------------------------------------------
+// Kategorie-Verwaltung (#494, #357)
+// Statische /categories-Pfade MÜSSEN vor den dynamischen /:id-Routen stehen,
+// sonst matcht Express „categories" als :id.
+// --------------------------------------------------------
+
+// GET /api/v1/tasks/categories → { data: TaskCategory[] }
+router.get('/categories', (_req, res) => {
+  try {
+    res.json({ data: loadTaskCategories() });
+  } catch (err) {
+    log.error('GET /categories error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// POST /api/v1/tasks/categories  Body: { name } → { data: TaskCategory }
+router.post('/categories', (req, res) => {
+  try {
+    const vName = v.str(req.body.name, 'Name', { max: v.MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM task_categories WHERE COALESCE(name, key) = ? COLLATE NOCASE
+    `).get(vName.value);
+    if (conflict) return res.status(409).json({ error: 'Category already exists.', code: 409 });
+
+    const maxOrder = db.get().prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM task_categories').get().m;
+    const key = uniqueKey(db.get(), 'task_categories', vName.value);
+    db.get().prepare(
+      'INSERT INTO task_categories (key, name, label_key, sort_order) VALUES (?, ?, NULL, ?)'
+    ).run(key, vName.value, maxOrder + 1);
+
+    const cat = db.get().prepare('SELECT key, name, label_key, sort_order FROM task_categories WHERE key = ?').get(key);
+    res.status(201).json({ data: cat });
+  } catch (err) {
+    log.error('POST /categories error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// PATCH /api/v1/tasks/categories/reorder  Body: { order: string[] }
+router.patch('/categories/reorder', (req, res) => {
+  try {
+    const order = Array.isArray(req.body.order) ? req.body.order : [];
+    const update = db.get().prepare('UPDATE task_categories SET sort_order = ? WHERE key = ?');
+    db.get().transaction(() => order.forEach((key, i) => update.run(i, key)))();
+    res.json({ data: loadTaskCategories() });
+  } catch (err) {
+    log.error('PATCH /categories/reorder error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// PUT /api/v1/tasks/categories/:key  Body: { name } → benennt um (Key bleibt stabil,
+// label_key wird gelöscht → der Custom-Name gilt fortan).
+router.put('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM task_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const vName = v.str(req.body.name, 'Name', { max: v.MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM task_categories WHERE COALESCE(name, key) = ? COLLATE NOCASE AND key != ?
+    `).get(vName.value, cat.key);
+    if (conflict) return res.status(409).json({ error: 'Category already exists.', code: 409 });
+
+    db.get().prepare('UPDATE task_categories SET name = ?, label_key = NULL WHERE key = ?').run(vName.value, cat.key);
+    const updated = db.get().prepare('SELECT key, name, label_key, sort_order FROM task_categories WHERE key = ?').get(cat.key);
+    res.json({ data: updated });
+  } catch (err) {
+    log.error('PUT /categories/:key error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// DELETE /api/v1/tasks/categories/:key → 409 wenn in Benutzung oder letzte Kategorie.
+router.delete('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM task_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const inUse = taskCategoryInUseCount(cat.key);
+    if (inUse > 0) {
+      return res.status(409).json({ error: `Category is in use by ${inUse} task${inUse === 1 ? '' : 's'}.`, code: 409, count: inUse });
+    }
+    const total = db.get().prepare('SELECT COUNT(*) AS n FROM task_categories').get().n;
+    if (total <= 1) return res.status(409).json({ error: 'Cannot delete the last category.', code: 409 });
+
+    db.get().prepare('DELETE FROM task_categories WHERE key = ?').run(cat.key);
+    res.status(204).end();
+  } catch (err) {
+    log.error('DELETE /categories/:key error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
 
 // --------------------------------------------------------
 // GET /api/v1/tasks
@@ -218,7 +334,7 @@ router.post('/', (req, res) => {
     const {
       title,
       description     = null,
-      category        = 'Sonstiges',
+      category        = FALLBACK_CATEGORY,
       priority        = 'none',
       start_date      = null,
       due_date        = null,
@@ -428,7 +544,7 @@ router.get('/meta/options', (req, res) => {
        WHERE NOT EXISTS (SELECT 1 FROM housekeeping_workers hw WHERE hw.user_id = u.id)
        ORDER BY display_name`
     ).all();
-    res.json({ users, priorities: VALID_PRIORITIES, statuses: VALID_STATUSES, categories: VALID_CATEGORIES });
+    res.json({ users, priorities: VALID_PRIORITIES, statuses: VALID_STATUSES, categories: loadTaskCategories() });
   } catch (err) {
     log.error('GET /meta/options error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });

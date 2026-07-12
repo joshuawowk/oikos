@@ -190,6 +190,8 @@
         "savingsGoal": "貯蓄目標"
     },
     "tasks": {
+        "manageCategories": "カテゴリーを管理",
+        "addCategory": "+ category",
         "title": "タスク",
         "newTask": "新しいタスク",
         "editTask": "タスクを編集",
@@ -669,6 +671,8 @@
         "searchClear": "検索をクリア"
     },
     "contacts": {
+        "manageCategories": "カテゴリーを管理",
+        "addCategory": "+ category",
         "title": "連絡先",
         "newContact": "新しい連絡先",
         "editContact": "連絡先を編集",

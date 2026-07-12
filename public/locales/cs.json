@@ -190,6 +190,8 @@
         "savingsGoal": "Cíl úspor"
     },
     "tasks": {
+        "manageCategories": "Spravovat kategorie",
+        "addCategory": "+ kategorie",
         "title": "Úkoly",
         "newTask": "Nový úkol",
         "editTask": "Upravit úkol",
@@ -669,6 +671,8 @@
         "searchClear": "Vymazat hledání"
     },
     "contacts": {
+        "manageCategories": "Spravovat kategorie",
+        "addCategory": "+ kategorie",
         "title": "Kontakty",
         "newContact": "Nový kontakt",
         "editContact": "Upravit kontakt",

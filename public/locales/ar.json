@@ -190,6 +190,8 @@
         "savingsGoal": "هدف الادخار"
     },
     "tasks": {
+        "manageCategories": "إدارة الفئات",
+        "addCategory": "+ category",
         "title": "المهام",
         "newTask": "مهمة جديدة",
         "editTask": "تعديل المهمة",
@@ -669,6 +671,8 @@
         "searchClear": "مسح البحث"
     },
     "contacts": {
+        "manageCategories": "إدارة الفئات",
+        "addCategory": "+ category",
         "title": "جهات الاتصال",
         "newContact": "جهة اتصال جديدة",
         "editContact": "تعديل جهة الاتصال",

@@ -10,42 +10,40 @@ import { stagger, vibrate } from '/utils/ux.js';
 import { t } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
+import '/components/category-manager.js';
 
 // --------------------------------------------------------
 // Konstanten
 // --------------------------------------------------------
 
-const CATEGORIES = ['Arzt', 'Schule/Kita', 'Behörde', 'Versicherung',
-                    'Handwerker', 'Notfall', 'Sonstiges'];
+// Kategorien sind seit #357 benutzer-verwaltbar und werden aus
+// /contacts/categories in state.categories geladen. Bestands-Kategorien tragen
+// label_key (i18n) + icon; benutzerdefinierte tragen name + Default-Icon 'tag'.
+// Der stabile key dient zugleich als CSS-Farb-Slug (.contact-group--<key>).
+const FALLBACK_CATEGORY = 'misc';
 
-// Kategorie → Lucide-Iconname (Linien-Stil, konsistent mit übrigen UI-Icons)
-const CATEGORY_ICONS = {
-  'Arzt':         'stethoscope',
-  'Schule/Kita':  'graduation-cap',
-  'Behörde':      'landmark',
-  'Versicherung': 'shield',
-  'Handwerker':   'wrench',
-  'Notfall':      'siren',
-  'Sonstiges':    'tag',
-};
+function catByKey(key) {
+  return state.categories.find((c) => c.key === key) || null;
+}
 
-// Kategorie → CSS-Slug für den abgeleiteten Farbton (siehe .contact-group--* in
-// contacts.css). Kein neuer Modul-Akzent, nur eine dezente Tint-Schicht.
-const CATEGORY_SLUG = {
-  'Arzt':         'doctor',
-  'Schule/Kita':  'school',
-  'Behörde':      'authority',
-  'Versicherung': 'insurance',
-  'Handwerker':   'craftsman',
-  'Notfall':      'emergency',
-  'Sonstiges':    'misc',
-};
+// Label auflösen: Seed → i18n via label_key, Custom → name; unbekannt → key.
+function catLabel(key) {
+  const c = catByKey(key);
+  if (!c) return key;
+  return c.label_key ? t(c.label_key) : (c.name || c.key);
+}
+
+// Sortier-Index einer Kategorie (folgt sort_order); Unbekannte ans Ende.
+function catSortIndex(key) {
+  const i = state.categories.findIndex((c) => c.key === key);
+  return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+}
 
 // Liefert das Lucide-Placeholder-Markup für eine Kategorie; aria-hidden, da stets
 // von einem Text-Label begleitet. lucide.createIcons() ersetzt den Platzhalter.
-function categoryIcon(cat, size = 16) {
-  const name = CATEGORY_ICONS[cat] || 'tag';
-  return `<i data-lucide="${name}" class="contact-cat-icon" style="width:${size}px;height:${size}px;" aria-hidden="true"></i>`;
+function categoryIcon(key, size = 16) {
+  const name = catByKey(key)?.icon || 'tag';
+  return `<i data-lucide="${esc(name)}" class="contact-cat-icon" style="width:${size}px;height:${size}px;" aria-hidden="true"></i>`;
 }
 
 // Initialen aus dem Namen (max. 2 Buchstaben): Vorname + letzter Namensteil.
@@ -66,24 +64,13 @@ function contactAvatar(c, size = 20) {
   return `<span class="contact-item__icon">${categoryIcon(c.category, size)}</span>`;
 }
 
-function CATEGORY_LABELS() {
-  return {
-    'Arzt':         t('contacts.categoryDoctor'),
-    'Schule/Kita':  t('contacts.categorySchool'),
-    'Behörde':      t('contacts.categoryAuthority'),
-    'Versicherung': t('contacts.categoryInsurance'),
-    'Handwerker':   t('contacts.categoryCraftsman'),
-    'Notfall':      t('contacts.categoryEmergency'),
-    'Sonstiges':    t('contacts.categoryOther'),
-  };
-}
-
 // --------------------------------------------------------
 // State
 // --------------------------------------------------------
 
 let state = {
   contacts:       [],
+  categories:     [],
   activeCategory: null,
   searchQuery:    '',
   selectMode:     false,
@@ -112,6 +99,10 @@ export async function render(container, { user }) {
           </span>
         </label>
         <div class="page-toolbar__actions">
+          <button class="btn btn--secondary" id="contacts-manage-cats" aria-label="${t('contacts.manageCategories')}" title="${t('contacts.manageCategories')}">
+            <i data-lucide="tags" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
+            ${t('contacts.manageCategories')}
+          </button>
           <button class="btn btn--secondary" id="contacts-select-btn" aria-pressed="false">
             <i data-lucide="list-checks" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
             ${t('contacts.selectButton')}
@@ -135,12 +126,7 @@ export async function render(container, { user }) {
           <button class="btn btn--danger" data-action="select-delete">${t('common.delete')}</button>
         </div>
       </div>
-      <div class="contacts-filters" id="contacts-filters" role="group" aria-label="${t('contacts.filterAll')}">
-        <button class="contact-filter-chip contact-filter-chip--active" data-cat="" aria-pressed="true">${t('contacts.filterAll')}</button>
-        ${CATEGORIES.map((c) => `
-          <button class="contact-filter-chip" data-cat="${esc(c)}" aria-pressed="false">${categoryIcon(c)} ${CATEGORY_LABELS()[c] || esc(c)}</button>
-        `).join('')}
-      </div>
+      <div class="contacts-filters" id="contacts-filters" role="group" aria-label="${t('contacts.filterAll')}"></div>
       <div id="contacts-status" class="sr-only" role="status" aria-live="polite"></div>
       <div id="contacts-list" class="contacts-list" aria-busy="true">${renderSkeletonList({ rows: 6, lines: 2 })}</div>
       <button class="page-fab" id="fab-new-contact" aria-label="${t('contacts.newContactLabel')}">
@@ -193,9 +179,17 @@ export async function render(container, { user }) {
     updateSelectUI();
   });
 
-  const res        = await api.get('/contacts');
+  const [res, catRes] = await Promise.all([
+    api.get('/contacts'),
+    api.get('/contacts/categories'),
+  ]);
   state.contacts   = res.data;
+  state.categories = catRes.data ?? [];
+  renderCategoryFilters();
   renderList({ animate: true });
+
+  _container.querySelector('#contacts-manage-cats')
+    ?.addEventListener('click', openContactCategoryManager);
 
   // Deep-Link: ?open=<id> öffnet direkt das Edit-Modal
   const openId = new URLSearchParams(window.location.search).get('open');
@@ -283,6 +277,53 @@ export async function render(container, { user }) {
     }
   };
   document.addEventListener('keydown', onKey);
+}
+
+// --------------------------------------------------------
+// Kategorie-Filterleiste (aus state.categories aufgebaut) + Verwaltung (#357)
+// --------------------------------------------------------
+
+function renderCategoryFilters() {
+  const bar = _container?.querySelector('#contacts-filters');
+  if (!bar) return;
+  const active = state.activeCategory;
+  const allChip = `<button class="contact-filter-chip${active ? '' : ' contact-filter-chip--active'}" data-cat="" aria-pressed="${active ? 'false' : 'true'}">${esc(t('contacts.filterAll'))}</button>`;
+  const catChips = state.categories.map((c) => {
+    const on = active === c.key;
+    return `<button class="contact-filter-chip${on ? ' contact-filter-chip--active' : ''}" data-cat="${esc(c.key)}" aria-pressed="${on ? 'true' : 'false'}">${categoryIcon(c.key)} ${esc(catLabel(c.key))}</button>`;
+  }).join('');
+  bar.replaceChildren();
+  bar.insertAdjacentHTML('beforeend', allChip + catChips);
+  if (window.lucide) lucide.createIcons({ el: bar });
+}
+
+function openContactCategoryManager() {
+  let manager = null;
+  const onChanged = async () => {
+    try {
+      const res = await api.get('/contacts/categories');
+      state.categories = res.data ?? [];
+      renderCategoryFilters();
+      renderList();
+    } catch { /* Fehler wurde bereits vom Manager als Toast angezeigt */ }
+  };
+  openSharedModal({
+    title: t('contacts.manageCategories'),
+    content: '<yuvomi-category-manager></yuvomi-category-manager>',
+    size: 'lg',
+    onSave: (panel) => {
+      manager = panel.querySelector('yuvomi-category-manager');
+      manager.addEventListener('category-manager-changed', onChanged);
+      manager.configure({
+        basePath: '/contacts/categories',
+        groups: [{ key: '', addLabelKey: 'contacts.addCategory' }],
+        labelResolver: (item) => (item.label_key ? t(item.label_key) : (item.name || item.key)),
+        titleKey: 'contacts.manageCategories',
+        hintKey: 'category.manageHint',
+      });
+    },
+    onClose: () => manager?.removeEventListener('category-manager-changed', onChanged),
+  });
 }
 
 // --------------------------------------------------------
@@ -377,10 +418,10 @@ function renderList({ animate = false } = {}) {
 
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', Object.entries(groups)
-    .sort(([a], [b]) => CATEGORIES.indexOf(a) - CATEGORIES.indexOf(b))
+    .sort(([a], [b]) => catSortIndex(a) - catSortIndex(b))
     .map(([cat, items]) => `
-      <div class="contact-group contact-group--${CATEGORY_SLUG[cat] || 'misc'}">
-        <div class="contact-group__header">${categoryIcon(cat)} ${CATEGORY_LABELS()[cat] || esc(cat)}</div>
+      <div class="contact-group contact-group--${esc(cat)}">
+        <div class="contact-group__header">${categoryIcon(cat)} ${esc(catLabel(cat))}</div>
         ${items.map((c) => renderContactItem(c)).join('')}
       </div>
     `).join(''));
@@ -508,9 +549,9 @@ function openContactModal({ mode, contact = null }) {
   const isEdit = mode === 'edit';
   const v      = (field) => esc(isEdit && contact[field] ? contact[field] : '');
 
-  const catLabels = CATEGORY_LABELS();
-  const catOpts = CATEGORIES.map((c) =>
-    `<option value="${c}" ${isEdit && contact.category === c ? 'selected' : ''}>${catLabels[c] || esc(c)}</option>`
+  const defaultCat = state.categories[0]?.key ?? FALLBACK_CATEGORY;
+  const catOpts = state.categories.map((c) =>
+    `<option value="${esc(c.key)}" ${isEdit && contact.category === c.key ? 'selected' : ''}>${esc(catLabel(c.key))}</option>`
   ).join('');
 
   const advancedOpen = isEdit && (!!contact.address || !!contact.notes);
@@ -533,7 +574,7 @@ function openContactModal({ mode, contact = null }) {
     <div class="form-group">
       <label class="form-label" for="cm-category">${t('contacts.categoryLabel')}</label>
       <div class="contacts-cat-select">
-        <span class="contacts-cat-select__icon" id="cm-cat-icon" aria-hidden="true">${categoryIcon(isEdit && contact.category ? contact.category : CATEGORIES[0], 18)}</span>
+        <span class="contacts-cat-select__icon" id="cm-cat-icon" aria-hidden="true">${categoryIcon(isEdit && contact.category ? contact.category : defaultCat, 18)}</span>
         <select class="form-input" id="cm-category">${catOpts}</select>
       </div>
     </div>
@@ -599,7 +640,7 @@ function openContactModal({ mode, contact = null }) {
             const res = await api.post('/contacts', body);
             state.contacts.push(res.data);
             state.contacts.sort((a, b) =>
-              CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category) ||
+              catSortIndex(a.category) - catSortIndex(b.category) ||
               a.name.localeCompare(b.name)
             );
           } else {
@@ -751,8 +792,12 @@ function parseVCard(text) {
   }
 
   const notes    = get('NOTE') || null;
-  const catRaw   = get('CATEGORIES') || null;
-  const category = CATEGORIES.find((c) => catRaw?.toLowerCase().includes(c.toLowerCase())) || 'Sonstiges';
+  const catRaw   = (get('CATEGORIES') || '').toLowerCase();
+  const matched  = catRaw
+    ? state.categories.find((c) =>
+        catRaw.includes(c.key.toLowerCase()) || catRaw.includes(catLabel(c.key).toLowerCase()))
+    : null;
+  const category = matched?.key || FALLBACK_CATEGORY;
 
   return { name, phone, email, address, notes, category };
 }

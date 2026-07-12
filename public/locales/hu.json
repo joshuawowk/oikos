@@ -190,6 +190,8 @@
         "savingsGoal": "Megtakarítási cél"
     },
     "tasks": {
+        "manageCategories": "Kategóriák kezelése",
+        "addCategory": "+ kategória",
         "title": "Feladatok",
         "newTask": "Új feladat",
         "editTask": "Feladat szerkesztése",
@@ -669,6 +671,8 @@
         "searchClear": "Keresés törlése"
     },
     "contacts": {
+        "manageCategories": "Kategóriák kezelése",
+        "addCategory": "+ kategória",
         "title": "Kapcsolatok",
         "newContact": "Új kapcsolat",
         "editContact": "Kapcsolat szerkesztése",

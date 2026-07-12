@@ -577,6 +577,17 @@ function buildPaths() {
       post: op({ summary: 'Create task', tag: 'Tasks', stateChanging: true, requestBody: jsonBody(null) }),
     },
     '/api/v1/tasks/meta/options': { get: op({ summary: 'Get task metadata', tag: 'Tasks' }) },
+    '/api/v1/tasks/categories': {
+      get: op({ summary: 'List task categories', tag: 'Tasks' }),
+      post: op({ summary: 'Create task category', tag: 'Tasks', stateChanging: true, requestBody: jsonBody(null) }),
+    },
+    '/api/v1/tasks/categories/reorder': {
+      patch: op({ summary: 'Reorder task categories', tag: 'Tasks', stateChanging: true, requestBody: jsonBody(null) }),
+    },
+    '/api/v1/tasks/categories/{key}': {
+      put: op({ summary: 'Rename task category', tag: 'Tasks', params: [idParam('key', 'Category key')], stateChanging: true, requestBody: jsonBody(null) }),
+      delete: op({ summary: 'Delete task category', tag: 'Tasks', params: [idParam('key', 'Category key')], stateChanging: true }),
+    },
     '/api/v1/tasks/{id}': {
       get: op({ summary: 'Get task', tag: 'Tasks', params: [idParam()] }),
       put: op({ summary: 'Update task', tag: 'Tasks', params: [idParam()], stateChanging: true, requestBody: jsonBody(null) }),
@@ -827,6 +838,17 @@ function buildPaths() {
       post: op({ summary: 'Create contact with multi-value fields', tag: 'Contacts', stateChanging: true, requestBody: jsonBody(null) }),
     },
     '/api/v1/contacts/meta': { get: op({ summary: 'Get contact metadata', tag: 'Contacts' }) },
+    '/api/v1/contacts/categories': {
+      get: op({ summary: 'List contact categories', tag: 'Contacts' }),
+      post: op({ summary: 'Create contact category', tag: 'Contacts', stateChanging: true, requestBody: jsonBody(null) }),
+    },
+    '/api/v1/contacts/categories/reorder': {
+      patch: op({ summary: 'Reorder contact categories', tag: 'Contacts', stateChanging: true, requestBody: jsonBody(null) }),
+    },
+    '/api/v1/contacts/categories/{key}': {
+      put: op({ summary: 'Rename contact category', tag: 'Contacts', params: [idParam('key', 'Category key')], stateChanging: true, requestBody: jsonBody(null) }),
+      delete: op({ summary: 'Delete contact category', tag: 'Contacts', params: [idParam('key', 'Category key')], stateChanging: true }),
+    },
     '/api/v1/contacts/cardav/accounts': {
       get: op({ summary: 'List CardDAV accounts', tag: 'Contacts' }),
       post: op({ summary: 'Add CardDAV account', tag: 'Contacts', stateChanging: true, requestBody: jsonBody(null) }),

@@ -190,6 +190,8 @@
         "savingsGoal": "Ціль заощаджень"
     },
     "tasks": {
+        "manageCategories": "Керування категоріями",
+        "addCategory": "+ категорія",
         "title": "Завдання",
         "newTask": "Нове завдання",
         "editTask": "Редагувати завдання",
@@ -669,6 +671,8 @@
         "searchClear": "Очистити пошук"
     },
     "contacts": {
+        "manageCategories": "Керування категоріями",
+        "addCategory": "+ категорія",
         "title": "Контакти",
         "newContact": "Новий контакт",
         "editContact": "Редагувати контакт",
