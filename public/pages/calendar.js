@@ -2019,6 +2019,14 @@ function showEventPopup(ev, anchor) {
   const displayBg     = resolveEventBackground(ev);
   const displayColor  = resolveEventColor(ev);
   const calLabelColor = ev.cal_color || ev.color || displayColor;
+
+  // Alle zugewiesenen Mitglieder anzeigen, nicht nur das erste (#492).
+  const assignedNames = (ev.assigned_users ?? [])
+    .map((u) => u.display_name)
+    .filter(Boolean);
+  const assignedLabel = assignedNames.length
+    ? assignedNames.join(', ')
+    : (ev.assigned_name || '');
   popup.insertAdjacentHTML('beforeend', `
     <div class="event-popup__color-bar" style="background:${esc(displayBg)};"></div>
     <div class="event-popup__title">${eventIconHtml(ev.icon)}<span>${esc(ev.title)}</span></div>
@@ -2028,7 +2036,7 @@ function showEventPopup(ev, anchor) {
       ${ev.location ? `<div class="calendar-meta-item">${calendarMetaIconHtml('map-pin')}<span>${esc(fmtLocation(ev.location))}</span></div>` : ''}
       ${ev.description ? `<div>${esc(truncateDescription(ev.description, 500))}</div>` : ''}
       ${hasAttachment(ev) ? attachmentHtml(ev) : ''}
-      ${ev.assigned_name ? `<div class="calendar-meta-item">${calendarMetaIconHtml('user')}<span>${esc(ev.assigned_name)}</span></div>` : ''}
+      ${assignedLabel ? `<div class="calendar-meta-item">${calendarMetaIconHtml(assignedNames.length > 1 ? 'users' : 'user')}<span>${esc(assignedLabel)}</span></div>` : ''}
     </div>
     <div class="event-popup__actions">
       <button class="btn btn--secondary event-popup__edit" id="popup-edit">${t('calendar.popupEdit')}</button>

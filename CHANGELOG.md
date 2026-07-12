@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.2] - 2026-07-12
+
+### Fixed
+- **Event preview now lists every assigned member (#492).** When an appointment had more than one member assigned, the detail popup only showed the first name. It now shows all assigned members, comma-separated, with a group icon when more than one is assigned.
+
 ## [1.13.1] - 2026-07-12
 
 ### Fixed
