@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-07-12
+
+### Added
+- **Budget accounts with real balances.** The Budget module gains an **Accounts** tab where you can set up separate accounts — checking, savings, cash, credit card, investment, or other — each with its own starting balance. Every account shows its running current balance (starting balance plus the entries assigned to it) alongside your household net worth, so you can finally see what is actually in each account instead of only this month's income and expenses.
+- **Assign transactions to an account** directly from the entry form, and click any account to drill into just its transactions; each transaction shows which account it belongs to.
+- **Archive accounts** you no longer use — they stay out of the net-worth total and the default list without losing their history — and give each account an accent color to tell them apart. Deleting an account keeps its transactions.
+
 ## [1.15.0] - 2026-07-12
 
 ### Changed

@@ -112,6 +112,38 @@ function getMonthName(monthIndex) {
 }
 
 // --------------------------------------------------------
+// Konten (#495)
+// --------------------------------------------------------
+
+// Muss mit ACCOUNT_TYPE_KEYS in server/routes/budget.js übereinstimmen.
+const ACCOUNT_TYPES = ['checking', 'savings', 'cash', 'credit', 'investment', 'other'];
+const ACCOUNT_TYPE_ICONS = {
+  checking:   'landmark',
+  savings:    'piggy-bank',
+  cash:       'wallet',
+  credit:     'credit-card',
+  investment: 'trending-up',
+  other:      'circle-dollar-sign',
+};
+
+// Kuratierte Konto-Akzentfarben (Modul-Tokens). Leerer Wert = Modul-Akzent (Teal).
+const ACCOUNT_COLORS = ['#0F766E', '#2563EB', '#7C3AED', '#DB2777', '#C2410C', '#15803D', '#A16207', '#0969DA'];
+
+function accountTypeLabel(type) {
+  return t(`budget.accountType_${ACCOUNT_TYPES.includes(type) ? type : 'other'}`);
+}
+
+// Akzentfarbe eines Kontos für die Kachel; Fallback auf den Modul-Akzent.
+function accountAccent(color) {
+  return esc(color) || 'var(--module-accent)';
+}
+
+function accountName(id) {
+  if (id == null) return '';
+  return state.accounts.find((a) => a.id === id)?.name || '';
+}
+
+// --------------------------------------------------------
 // State
 // --------------------------------------------------------
 
@@ -121,6 +153,10 @@ let state = {
   summary:     null,
   prevSummary: null, // Vormonat für Monatsvergleich
   loans:       { loans: [], summary: { active_count: 0, remaining_amount: 0, remaining_installments: 0 } },
+  accounts:    [],
+  netWorth:    0,
+  accountFilterId: null,      // aktiver Konto-Filter für die Transaktionsliste (Drilldown)
+  accountsShowArchived: false,
   activeTab:   'budget',
   loanFilterId: null,
   loanStatusFilter: 'active',
@@ -160,9 +196,11 @@ function setHtml(element, html) {
 
 async function loadMonth(month) {
   const prevMonth = addMonths(month, -1);
+  // Konto-Drilldown: Transaktionsliste optional auf ein Konto filtern.
+  const accountQuery = state.accountFilterId ? `&account_id=${state.accountFilterId}` : '';
   try {
     const [entriesRes, summaryRes, prevSummaryRes, loansRes] = await Promise.all([
-      api.get(`/budget?month=${month}`),
+      api.get(`/budget?month=${month}${accountQuery}`),
       api.get(`/budget/summary?month=${month}`),
       api.get(`/budget/summary?month=${prevMonth}`),
       api.get('/budget/loans'),
@@ -180,6 +218,20 @@ async function loadMonth(month) {
     state.prevSummary = null;
     state.loans       = { loans: [], summary: { active_count: 0, remaining_amount: 0, remaining_installments: 0 } };
     window.yuvomi?.showToast(t('budget.loadError'), 'danger');
+  }
+}
+
+async function loadAccounts() {
+  try {
+    // Immer inkl. archivierter Konten laden: für die Namensauflösung in der
+    // Transaktionsliste (ein Eintrag kann einem archivierten Konto gehören) und
+    // den optionalen „Archivierte anzeigen"-Modus. net_worth ignoriert archivierte
+    // serverseitig; die Kachel-Liste filtert clientseitig.
+    const res = await api.get('/budget/accounts?include_archived=1');
+    state.accounts = res.data?.accounts ?? [];
+    state.netWorth = res.data?.net_worth ?? 0;
+  } catch (err) {
+    console.error('[Budget] loadAccounts Fehler:', err);
   }
 }
 
@@ -239,6 +291,9 @@ export async function render(container, { user }) {
             <button class="budget-tab" id="budget-tab-budget" type="button" role="tab" aria-selected="true" aria-controls="budget-body" tabindex="-1" data-tab="budget">
               ${t('budget.budgetTab')}
             </button>
+            <button class="budget-tab" id="budget-tab-accounts" type="button" role="tab" aria-selected="false" aria-controls="budget-body" tabindex="-1" data-tab="accounts">
+              ${t('budget.accountsTab')}
+            </button>
             <button class="budget-tab" id="budget-tab-plan" type="button" role="tab" aria-selected="false" aria-controls="budget-body" tabindex="-1" data-tab="plan">
               ${t('budget.planTab')}
             </button>
@@ -272,7 +327,9 @@ export async function render(container, { user }) {
   if (window.lucide) lucide.createIcons({ el: container });
 
   if (user?.access_scope !== 'split_guest') {
-    await loadMonth(state.month);
+    // Konten einmalig beim Mount laden (Salden sind monatsunabhängig; kein
+    // Nachladen pro Monatswechsel). Namensliste versorgt die Transaktions-Meta.
+    await Promise.all([loadMonth(state.month), loadAccounts()]);
   } else {
     state.summary = { income: 0, expenses: 0, balance: 0, byCategory: [] };
     state.prevSummary = null;
@@ -316,6 +373,10 @@ function wireNav() {
     }
     if (state.activeTab === 'plan') {
       _container.querySelector('#budget-plan-add')?.click();
+      return;
+    }
+    if (state.activeTab === 'accounts') {
+      openAccountModal();
       return;
     }
     openBudgetModal({ mode: 'create' });
@@ -408,6 +469,17 @@ function renderBody() {
     if (window.lucide) lucide.createIcons({ el: body });
     return;
   }
+  if (state.activeTab === 'accounts') {
+    const paint = () => {
+      setHtml(body, renderAccountsPage());
+      wireAccountsPage();
+      if (window.lucide) lucide.createIcons({ el: body });
+    };
+    paint(); // sofort aus dem State (beim Mount geladen)
+    // Salden nach zwischenzeitlichen Einträgen frisch ziehen, ohne den Wechsel zu blockieren.
+    loadAccounts().then(() => { if (state.activeTab === 'accounts') paint(); });
+    return;
+  }
   if (state.activeTab === 'subscriptions') {
     setHtml(body, '<div class="budget-tab-panel budget-tab-panel--subscriptions" id="budget-subscriptions-panel"></div>');
     renderSubscriptions(body.querySelector('#budget-subscriptions-panel'), { user: _user }).catch((err) => {
@@ -464,6 +536,13 @@ function renderBody() {
       <div class="budget-list-header">
         <div>
           <span class="budget-list-header__title">${t('budget.transactions')}</span>
+          ${state.accountFilterId ? `
+          <button class="budget-account-chip" id="budget-clear-account-filter" type="button"
+                  aria-label="${t('budget.clearAccountFilter')}">
+            <i data-lucide="wallet" class="icon-xs" aria-hidden="true"></i>
+            <span>${esc(accountName(state.accountFilterId))}</span>
+            <i data-lucide="x" class="icon-xs" aria-hidden="true"></i>
+          </button>` : ''}
         </div>
         <div class="budget-list-header__actions">
         <button class="btn btn--icon btn--ghost" id="budget-manage-categories"
@@ -488,6 +567,11 @@ function renderBody() {
     document.querySelector('.page-fab')?.click();
   });
   _container.querySelector('#budget-manage-categories')?.addEventListener('click', openCategoryManager);
+  _container.querySelector('#budget-clear-account-filter')?.addEventListener('click', async () => {
+    state.accountFilterId = null;
+    await loadMonth(state.month);
+    renderBody();
+  });
   stagger(_container.querySelector('#budget-list')?.querySelectorAll('.budget-entry') ?? []);
 
   _container.querySelector('#budget-list')?.addEventListener('click', async (e) => {
@@ -523,20 +607,22 @@ function updateTabs() {
   const loansActive = state.activeTab === 'loans';
   const subscriptionsActive = state.activeTab === 'subscriptions';
   const reportsActive = state.activeTab === 'reports';
+  const accountsActive = state.activeTab === 'accounts';
   ['#budget-today', '#budget-label', '#budget-add'].forEach((selector) => {
     const el = _container.querySelector(selector);
-    if (el) el.hidden = splitActive || subscriptionsActive || reportsActive;
+    if (el) el.hidden = splitActive || subscriptionsActive || reportsActive || accountsActive;
   });
   ['#budget-prev', '#budget-next'].forEach((selector) => {
     const el = _container.querySelector(selector);
-    if (el) el.hidden = splitActive || loansActive || subscriptionsActive || reportsActive;
+    if (el) el.hidden = splitActive || loansActive || subscriptionsActive || reportsActive || accountsActive;
   });
   const fab = _container.querySelector('#fab-new-budget');
   if (fab) {
     fab.hidden = false;
     fab.setAttribute('aria-label', splitActive
       ? t('splitExpenses.addExpense')
-      : subscriptionsActive ? t('subscriptions.add') : t('budget.newEntryFabLabel'));
+      : subscriptionsActive ? t('subscriptions.add')
+      : accountsActive ? t('budget.addAccount') : t('budget.newEntryFabLabel'));
   }
 }
 
@@ -605,13 +691,17 @@ function renderEntries() {
     const categoryMeta = isIncome || !e.subcategory
       ? categoryLabel(e.category)
       : `${categoryLabel(e.category)} · ${subcategoryLabel(e.subcategory)}`;
+    const acctName = accountName(e.account_id);
+    const acctMeta = acctName
+      ? ` · <span class="budget-entry__account"><i data-lucide="wallet" class="icon-xs" aria-hidden="true"></i>${esc(acctName)}</span>`
+      : '';
 
     return `
       <div class="budget-entry" data-id="${e.id}">
         <div class="budget-entry__indicator ${indClass}"></div>
         <div class="budget-entry__body">
           <div class="budget-entry__title">${esc(e.title)}</div>
-          <div class="budget-entry__meta">${date} · ${esc(categoryMeta)}${recurTag}</div>
+          <div class="budget-entry__meta">${date} · ${esc(categoryMeta)}${acctMeta}${recurTag}</div>
         </div>
         <div class="budget-entry__amount ${amtClass}">${sign}${formatAmount(e.amount)}</div>
         <button class="budget-entry__action budget-entry__delete" data-action="delete" data-id="${e.id}" aria-label="${t('budget.deleteLabel')}">
@@ -620,6 +710,239 @@ function renderEntries() {
       </div>
     `;
   }).join('');
+}
+
+function renderAccountsPage() {
+  const all = state.accounts ?? [];
+  const hasArchived = all.some((a) => a.archived);
+  const visible = all.filter((a) => state.accountsShowArchived || !a.archived);
+  const netClass = state.netWorth >= 0 ? 'budget-networth--positive' : 'budget-networth--negative';
+
+  const archiveToggle = hasArchived ? `
+      <button class="budget-accounts__toggle" id="budget-toggle-archived" type="button" aria-pressed="${state.accountsShowArchived}">
+        <i data-lucide="${state.accountsShowArchived ? 'eye-off' : 'archive'}" class="icon-xs" aria-hidden="true"></i>
+        ${state.accountsShowArchived ? t('budget.hideArchivedAccounts') : t('budget.showArchivedAccounts')}
+      </button>` : '';
+
+  const header = `
+    <div class="budget-accounts__header">
+      <div class="budget-networth ${netClass}">
+        <span class="budget-networth__label">${t('budget.netWorth')}</span>
+        <span class="budget-networth__amount">${formatAmount(state.netWorth)}</span>
+      </div>
+      <div class="budget-accounts__header-actions">
+        ${archiveToggle}
+        <button class="btn btn--secondary" id="budget-add-account" type="button">
+          <i data-lucide="plus" class="icon-sm" aria-hidden="true"></i>${t('budget.addAccount')}
+        </button>
+      </div>
+    </div>`;
+
+  if (!all.length) {
+    return `
+      <div class="budget-tab-panel budget-tab-panel--accounts">
+        ${header}
+        <div class="empty-state">
+          <i data-lucide="wallet" class="empty-state__icon" aria-hidden="true"></i>
+          <div class="empty-state__title">${t('budget.accountsEmptyTitle')}</div>
+          <div class="empty-state__description">${t('budget.accountsEmptyDescription')}</div>
+          <button class="btn btn--primary empty-state__cta" id="budget-add-account-empty" type="button">
+            <i data-lucide="plus" aria-hidden="true" class="icon-md"></i>${t('budget.addAccount')}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  const cards = visible.map((a) => {
+    const balClass = a.current_balance >= 0 ? 'budget-account__balance--positive' : 'budget-account__balance--negative';
+    const icon = ACCOUNT_TYPE_ICONS[a.type] || ACCOUNT_TYPE_ICONS.other;
+    const archivedBadge = a.archived
+      ? `<span class="budget-account__badge">${t('budget.archivedBadge')}</span>`
+      : '';
+    return `
+      <div class="budget-account ${a.archived ? 'budget-account--archived' : ''}" style="--account-accent:${accountAccent(a.color)}">
+        <button class="budget-account__main" type="button" data-drill="${a.id}"
+                aria-label="${t('budget.viewAccountTransactions', { name: a.name })} · ${t('budget.currentBalance')} ${formatAmount(a.current_balance)}">
+          <span class="budget-account__icon"><i data-lucide="${icon}" class="icon-md" aria-hidden="true"></i></span>
+          <span class="budget-account__body">
+            <span class="budget-account__name"><span class="budget-account__name-text">${esc(a.name)}</span>${archivedBadge}</span>
+            <span class="budget-account__type">${esc(accountTypeLabel(a.type))}</span>
+          </span>
+          <span class="budget-account__figures">
+            <span class="budget-account__balance ${balClass}">${formatAmount(a.current_balance)}</span>
+            <span class="budget-account__starting">${t('budget.startingBalanceShort')} ${formatAmount(a.starting_balance)}</span>
+          </span>
+          <i data-lucide="chevron-right" class="budget-account__chevron icon-sm" aria-hidden="true"></i>
+        </button>
+        <button class="budget-account__edit" type="button" data-edit="${a.id}" aria-label="${t('budget.editAccount')}">
+          <i data-lucide="pencil" class="icon-sm" aria-hidden="true"></i>
+        </button>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="budget-tab-panel budget-tab-panel--accounts">
+      ${header}
+      <div class="budget-accounts__list">${cards}</div>
+    </div>`;
+}
+
+function wireAccountsPage() {
+  _container.querySelector('#budget-add-account')?.addEventListener('click', () => openAccountModal());
+  _container.querySelector('#budget-add-account-empty')?.addEventListener('click', () => openAccountModal());
+  _container.querySelector('#budget-toggle-archived')?.addEventListener('click', () => {
+    state.accountsShowArchived = !state.accountsShowArchived;
+    renderBody();
+  });
+  // Zeilen-Klick öffnet den Kontoauszug (Drilldown-Filter), das Stift-Icon bearbeitet.
+  _container.querySelectorAll('.budget-account__main[data-drill]').forEach((el) => {
+    el.addEventListener('click', async () => {
+      state.accountFilterId = parseInt(el.dataset.drill, 10);
+      state.activeTab = 'budget';
+      await loadMonth(state.month);
+      renderBody();
+    });
+  });
+  _container.querySelectorAll('.budget-account__edit[data-edit]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const account = state.accounts.find((a) => a.id === parseInt(el.dataset.edit, 10));
+      if (account) openAccountModal(account);
+    });
+  });
+}
+
+function openAccountModal(account = null) {
+  const isEdit = !!account;
+  const typeOpts = ACCOUNT_TYPES.map((key) =>
+    `<option value="${key}" ${isEdit && account.type === key ? 'selected' : ''}>${esc(accountTypeLabel(key))}</option>`
+  ).join('');
+
+  const currentColor = isEdit ? (account.color || '') : '';
+  const swatch = (value, styleColor, label) =>
+    `<button type="button" class="budget-color-swatch ${currentColor === value ? 'is-active' : ''}"
+             data-color="${value}" style="--swatch:${styleColor}" aria-label="${label}" aria-pressed="${currentColor === value}"></button>`;
+  const colorSwatches = swatch('', 'var(--module-accent)', t('budget.accountColorDefault'))
+    + ACCOUNT_COLORS.map((c) => swatch(c, c, c)).join('');
+
+  const content = `
+    <div class="form-group">
+      <label class="form-label" for="am-name">${t('budget.accountNameLabel')}<span class="required-marker" aria-hidden="true"> *</span></label>
+      <input type="text" class="form-input" id="am-name" maxlength="100"
+             placeholder="${t('budget.accountNamePlaceholder')}" value="${esc(isEdit ? account.name : '')}">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="am-type">${t('budget.accountTypeLabel')}</label>
+      <select class="form-input" id="am-type">${typeOpts}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="am-balance">${t('budget.startingBalanceLabel')}</label>
+      <input type="number" class="form-input" id="am-balance" step="0.01" inputmode="decimal"
+             placeholder="0.00" value="${isEdit ? account.starting_balance : ''}">
+      <p class="form-hint">${t('budget.startingBalanceHint')}</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('budget.accountColorLabel')}</label>
+      <div class="budget-color-picker" id="am-color" role="group" aria-label="${t('budget.accountColorLabel')}">${colorSwatches}</div>
+    </div>
+
+    <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
+      <div style="display:flex;gap:var(--space-2)">
+      ${isEdit ? `<button class="btn btn--danger btn--icon" id="am-delete" aria-label="${t('budget.deleteAccount')}">
+        <i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i>
+      </button>
+      <button class="btn btn--secondary btn--icon" id="am-archive"
+              aria-label="${account.archived ? t('budget.unarchiveAccount') : t('budget.archiveAccount')}"
+              title="${account.archived ? t('budget.unarchiveAccount') : t('budget.archiveAccount')}">
+        <i data-lucide="${account.archived ? 'archive-restore' : 'archive'}" class="icon-md" aria-hidden="true"></i>
+      </button>` : '<div></div>'}
+      </div>
+      <div style="display:flex;gap:var(--space-3)">
+        <button class="btn btn--secondary" id="am-cancel">${t('common.cancel')}</button>
+        <button class="btn btn--primary" id="am-save">${isEdit ? t('common.save') : t('common.add')}</button>
+      </div>
+    </div>`;
+
+  openSharedModal({
+    title: isEdit ? t('budget.editAccount') : t('budget.newAccount'),
+    content,
+    size: 'sm',
+    onSave(panel) {
+      let selectedColor = currentColor;
+      const colorPicker = panel.querySelector('#am-color');
+      colorPicker?.querySelectorAll('.budget-color-swatch').forEach((sw) => {
+        sw.addEventListener('click', () => {
+          selectedColor = sw.dataset.color;
+          colorPicker.querySelectorAll('.budget-color-swatch').forEach((o) => {
+            const active = o === sw;
+            o.classList.toggle('is-active', active);
+            o.setAttribute('aria-pressed', String(active));
+          });
+        });
+      });
+
+      panel.querySelector('#am-cancel').addEventListener('click', closeModal);
+
+      panel.querySelector('#am-archive')?.addEventListener('click', async () => {
+        const nextArchived = !account.archived;
+        try {
+          await api.put(`/budget/accounts/${account.id}`, { archived: nextArchived });
+          closeModal({ force: true });
+          await loadAccounts();
+          renderBody();
+          window.yuvomi?.showToast(nextArchived ? t('budget.accountArchivedToast') : t('budget.accountRestoredToast'), 'success');
+        } catch (err) {
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+        }
+      });
+
+      panel.querySelector('#am-delete')?.addEventListener('click', async () => {
+        const ok = await confirmModal(
+          t('budget.deleteAccountConfirm', { name: account.name }),
+          { confirmLabel: t('common.delete'), danger: true },
+        );
+        if (!ok) return;
+        try {
+          await api.delete(`/budget/accounts/${account.id}`);
+          closeModal({ force: true });
+          await loadMonth(state.month);
+          renderBody();
+          window.yuvomi?.showToast(t('budget.accountDeletedToast'), 'success');
+        } catch (err) {
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+        }
+      });
+
+      panel.querySelector('#am-save').addEventListener('click', async () => {
+        const saveBtn = panel.querySelector('#am-save');
+        const name    = panel.querySelector('#am-name').value.trim();
+        const type    = panel.querySelector('#am-type').value;
+        const rawBal  = panel.querySelector('#am-balance').value;
+        const startingBalance = rawBal === '' ? 0 : parseFloat(rawBal);
+
+        if (!name) { window.yuvomi?.showToast(t('common.titleRequired'), 'error'); return; }
+        if (isNaN(startingBalance)) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = '…';
+        try {
+          const body = { name, type, starting_balance: startingBalance, color: selectedColor || null };
+          if (isEdit) {
+            await api.put(`/budget/accounts/${account.id}`, body);
+          } else {
+            await api.post('/budget/accounts', body);
+          }
+          closeModal({ force: true });
+          await loadAccounts();
+          renderBody();
+          window.yuvomi?.showToast(isEdit ? t('budget.accountSavedToast') : t('budget.accountAddedToast'), 'success');
+        } catch (err) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = isEdit ? t('common.save') : t('common.add');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+        }
+      });
+    },
+  });
 }
 
 function renderLoansDashboard() {
@@ -1012,6 +1335,16 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
     `<option value="${esc(s.key)}" ${initialSubcategory === s.key ? 'selected' : ''}>${esc(subcategoryLabel(s))}</option>`
   ).join('');
 
+  const hasAccounts = (state.accounts?.length ?? 0) > 0;
+  const accountOpts = `<option value="">${t('budget.noAccount')}</option>` + (state.accounts ?? []).map((a) =>
+    `<option value="${a.id}" ${isEdit && entry.account_id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`
+  ).join('');
+  const accountField = hasAccounts ? `
+        <div class="form-group">
+          <label class="form-label" for="bm-account">${t('budget.accountLabel')}</label>
+          <select class="form-input" id="bm-account">${accountOpts}</select>
+        </div>` : '';
+
   const content = `
     <div class="amount-type-toggle ${isEdit ? 'amount-type-toggle--entry-only' : ''}">
       <button class="amount-type-btn amount-type-btn--expenses ${isExpense ? 'amount-type-btn--active' : ''}"
@@ -1051,6 +1384,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
 
     <div class="js-entry-field">
       ${advancedSection(`
+        ${accountField}
         <div class="form-group" id="bm-subcategory-group" ${isExpense ? '' : 'hidden'}>
           <div class="budget-field-header">
             <label class="form-label" for="bm-subcategory">${t('budget.subcategoryLabel')}</label>
@@ -1081,7 +1415,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
           </label>
           <p style="color:var(--color-text-secondary);font-size:var(--text-sm);margin-top:var(--space-1)">${t('budget.virtualBudgetHint')}</p>
         </div>`,
-        { open: isEdit && (entry.is_recurring || !!entry.subcategory) })}
+        { open: isEdit && (entry.is_recurring || !!entry.subcategory || entry.account_id != null) })}
     </div>
 
     <div id="bm-loan-fields" hidden>
@@ -1260,6 +1594,10 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
         const recurring  = panel.querySelector('#bm-recurring').checked ? 1 : 0;
         const interval   = panel.querySelector('#bm-interval').value;
         const virtual    = recurring && panel.querySelector('#bm-virtual').checked ? 1 : 0;
+        const accountSel = panel.querySelector('#bm-account');
+        // Konto-Feld erscheint nur, wenn Konten existieren. Fehlt es, bleibt die
+        // Zuordnung beim Bearbeiten unverändert (account_id nicht mitsenden).
+        const accountId  = accountSel ? (accountSel.value === '' ? null : parseInt(accountSel.value, 10)) : undefined;
 
         if (!title)           { window.yuvomi?.showToast(t('common.titleRequired'), 'error'); return; }
         if (isNaN(absVal) || absVal <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
@@ -1272,6 +1610,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
 
         try {
           const body = { title, amount, category, subcategory, date, is_recurring: recurring, recurrence_interval: interval, recurrence_virtual: virtual };
+          if (accountId !== undefined) body.account_id = accountId;
           if (mode === 'create') {
             const res = await api.post('/budget', body);
             state.entries.unshift(res.data);

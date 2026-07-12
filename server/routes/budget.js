@@ -9,7 +9,7 @@ import express from 'express';
 import { readFileSync } from 'node:fs';
 import path from 'path';
 import * as db from '../db.js';
-import { str, oneOf, date as validateDate, month as validateMonth, num, rrule, collectErrors, MAX_TITLE, MAX_SHORT, MONTH_RE } from '../middleware/validate.js';
+import { str, oneOf, date as validateDate, month as validateMonth, num, rrule, color as validateColor, collectErrors, MAX_TITLE, MAX_SHORT, MONTH_RE } from '../middleware/validate.js';
 
 const log = createLogger('Budget');
 
@@ -421,6 +421,61 @@ function entryWithLoanMeta(id) {
     LEFT JOIN budget_loans l ON l.id = p.loan_id
     WHERE b.id = ?
   `).get(id);
+}
+
+// --------------------------------------------------------
+// Konten (#495): getrennte Konten mit Startsaldo + laufendem Saldo
+// --------------------------------------------------------
+
+const ACCOUNT_TYPE_KEYS = ['checking', 'savings', 'cash', 'credit', 'investment', 'other'];
+
+/**
+ * Prüft eine optionale Konto-Zuordnung aus dem Request.
+ * @returns {{ value: number|null }|{ error: string }} value=null ⇒ keinem Konto zugeordnet.
+ */
+function validateAccountRef(raw) {
+  if (raw === undefined || raw === null || raw === '') return { value: null };
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) return { error: 'account_id muss eine gültige Konto-ID sein.' };
+  const row = db.get().prepare('SELECT id FROM budget_accounts WHERE id = ?').get(id);
+  if (!row) return { error: 'Konto nicht gefunden.' };
+  return { value: id };
+}
+
+/**
+ * Lädt Konten inkl. berechnetem Saldo.
+ * current_balance  = Startsaldo + Summe zugeordneter Einträge bis heute (aktueller Stand)
+ * projected_balance = Startsaldo + Summe aller zugeordneter Einträge (inkl. künftiger)
+ * @param {boolean} includeArchived
+ */
+function listAccounts(includeArchived = false) {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const rows = db.get().prepare(`
+    SELECT a.*,
+           a.starting_balance + COALESCE((
+             SELECT SUM(e.amount) FROM budget_entries e
+             WHERE e.account_id = a.id AND e.date <= ?
+           ), 0) AS current_balance,
+           a.starting_balance + COALESCE((
+             SELECT SUM(e.amount) FROM budget_entries e
+             WHERE e.account_id = a.id
+           ), 0) AS projected_balance,
+           (SELECT COUNT(*) FROM budget_entries e WHERE e.account_id = a.id) AS entry_count
+    FROM budget_accounts a
+    WHERE ? = 1 OR a.archived = 0
+    ORDER BY a.sort_order ASC, a.name COLLATE NOCASE ASC
+  `).all(today, includeArchived ? 1 : 0);
+  return rows.map((a) => ({
+    ...a,
+    starting_balance:  cents(a.starting_balance),
+    current_balance:   cents(a.current_balance),
+    projected_balance: cents(a.projected_balance),
+  }));
+}
+
+function nextAccountSortOrder() {
+  const row = db.get().prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM budget_accounts').get();
+  return row.next;
 }
 
 // --------------------------------------------------------
@@ -1161,6 +1216,137 @@ router.patch('/categories/:key/subcategories/reorder', (req, res) => {
  * Query: ?month=YYYY-MM&category=<cat>
  * Response: { data: Entry[] }
  */
+/**
+ * GET /api/v1/budget/accounts
+ * Listet Konten mit Startsaldo und laufendem Saldo; zusätzlich das Gesamt-Nettovermögen.
+ * Query: ?include_archived=1  (default: nur aktive Konten)
+ * Response: { data: { accounts: [], net_worth } }
+ */
+router.get('/accounts', (req, res) => {
+  try {
+    const includeArchived = req.query.include_archived === '1' || req.query.include_archived === 'true';
+    const accounts = listAccounts(includeArchived);
+    const netWorth = cents(accounts
+      .filter((a) => !a.archived)
+      .reduce((sum, a) => sum + a.current_balance, 0));
+    res.json({ data: { accounts, net_worth: netWorth } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
+/**
+ * POST /api/v1/budget/accounts
+ * Neues Konto anlegen.
+ * Body: { name, type?, starting_balance?, currency?, color? }
+ * Response: { data: Account }
+ */
+router.post('/accounts', (req, res) => {
+  try {
+    const vName    = str(req.body.name, 'Name', { max: MAX_SHORT });
+    const vType    = oneOf(req.body.type || 'checking', ACCOUNT_TYPE_KEYS, 'Kontotyp');
+    const vBalance = num(req.body.starting_balance ?? 0, 'Startsaldo', { required: false });
+    const vColor   = validateColor(req.body.color, 'Farbe');
+    const errors   = collectErrors([vName, vType, vBalance, vColor]);
+    if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
+
+    const currency = req.body.currency ? str(req.body.currency, 'Währung', { max: 8 }).value : null;
+    const color    = vColor.value;
+
+    const result = db.get().prepare(`
+      INSERT INTO budget_accounts (name, type, starting_balance, currency, color, sort_order, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      vName.value, vType.value, cents(vBalance.value ?? 0),
+      currency, color, nextAccountSortOrder(),
+      req.authUserId || req.session.userId
+    );
+
+    const account = listAccounts(true).find((a) => a.id === Number(result.lastInsertRowid));
+    res.status(201).json({ data: account });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
+/**
+ * PUT /api/v1/budget/accounts/:id
+ * Konto aktualisieren (Name, Typ, Startsaldo, Währung, Farbe, Archiv-Status).
+ * Response: { data: Account }
+ */
+router.put('/accounts/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const existing = db.get().prepare('SELECT * FROM budget_accounts WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Account not found', code: 404 });
+
+    const checks = [];
+    if (req.body.name !== undefined) checks.push(str(req.body.name, 'Name', { max: MAX_SHORT }));
+    if (req.body.type !== undefined) checks.push(oneOf(req.body.type, ACCOUNT_TYPE_KEYS, 'Kontotyp'));
+    if (req.body.starting_balance !== undefined) checks.push(num(req.body.starting_balance, 'Startsaldo'));
+    if (req.body.color !== undefined) checks.push(validateColor(req.body.color, 'Farbe'));
+    const errors = collectErrors(checks);
+    if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
+
+    const currency = req.body.currency !== undefined
+      ? (req.body.currency ? str(req.body.currency, 'Währung', { max: 8 }).value : null)
+      : existing.currency;
+    const color = req.body.color !== undefined
+      ? validateColor(req.body.color, 'Farbe').value
+      : existing.color;
+    const archived = req.body.archived !== undefined ? (req.body.archived ? 1 : 0) : existing.archived;
+
+    db.get().prepare(`
+      UPDATE budget_accounts
+      SET name             = COALESCE(?, name),
+          type             = COALESCE(?, type),
+          starting_balance = COALESCE(?, starting_balance),
+          currency         = ?,
+          color            = ?,
+          archived         = ?
+      WHERE id = ?
+    `).run(
+      req.body.name !== undefined ? String(req.body.name).trim() : null,
+      req.body.type !== undefined ? req.body.type : null,
+      req.body.starting_balance !== undefined ? cents(req.body.starting_balance) : null,
+      currency, color, archived, id
+    );
+
+    const account = listAccounts(true).find((a) => a.id === id);
+    res.json({ data: account });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
+/**
+ * DELETE /api/v1/budget/accounts/:id
+ * Konto löschen. Zugeordnete Einträge bleiben erhalten (account_id wird geleert).
+ * Response: 204 No Content
+ */
+router.delete('/accounts/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const existing = db.get().prepare('SELECT id FROM budget_accounts WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Account not found', code: 404 });
+
+    const tx = db.get().transaction(() => {
+      // Zuordnung explizit leeren (unabhängig vom FK-Pragma), Einträge bleiben bestehen.
+      db.get().prepare('UPDATE budget_entries SET account_id = NULL WHERE account_id = ?').run(id);
+      db.get().prepare('DELETE FROM budget_accounts WHERE id = ?').run(id);
+    });
+    tx();
+
+    res.status(204).end();
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Internal error', code: 500 });
+  }
+});
+
 router.get('/', (req, res) => {
   try {
     const today = new Date().toISOString().slice(0, 7);
@@ -1201,6 +1387,14 @@ router.get('/', (req, res) => {
       params.push(req.query.category);
     }
 
+    if (req.query.account_id) {
+      const accountId = parseInt(req.query.account_id, 10);
+      if (Number.isInteger(accountId) && accountId > 0) {
+        sql += ' AND b.account_id = ?';
+        params.push(accountId);
+      }
+    }
+
     sql += ' ORDER BY b.date DESC, b.created_at DESC';
 
     const entries = db.get().prepare(sql).all(...params);
@@ -1233,6 +1427,9 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Invalid subcategory.', code: 400 });
     }
 
+    const accountRef = validateAccountRef(req.body.account_id);
+    if (accountRef.error) return res.status(400).json({ error: accountRef.error, code: 400 });
+
     // Intervall + virtuelles Budget nur für wiederkehrende Einträge.
     const isRecurring = req.body.is_recurring ? 1 : 0;
     const interval    = isRecurring ? vInterval.value : 'monthly';
@@ -1244,12 +1441,12 @@ router.post('/', (req, res) => {
     const result = db.get().prepare(`
       INSERT INTO budget_entries
         (title, amount, category, subcategory, date, is_recurring, recurrence_rule,
-         recurrence_interval, recurrence_virtual, recurrence_full_amount, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         recurrence_interval, recurrence_virtual, recurrence_full_amount, account_id, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       vTitle.value, storeAmount, vCat.value || fallbackCategory, subcategory, vDate.value,
       isRecurring, vRrule.value,
-      interval, isVirtual, fullAmount,
+      interval, isVirtual, fullAmount, accountRef.value,
       req.authUserId || req.session.userId
     );
 
@@ -1415,6 +1612,15 @@ router.put('/:id', (req, res) => {
       return res.status(400).json({ error: 'Invalid subcategory.', code: 400 });
     }
 
+    // Konto-Zuordnung: undefined ⇒ unverändert; null/'' ⇒ Zuordnung entfernen; id ⇒ setzen.
+    const accountProvided = req.body.account_id !== undefined;
+    let accountValue = null;
+    if (accountProvided) {
+      const accountRef = validateAccountRef(req.body.account_id);
+      if (accountRef.error) return res.status(400).json({ error: accountRef.error, code: 400 });
+      accountValue = accountRef.value;
+    }
+
     // Wiederkehrungs-Felder auflösen (Intervall + virtuelles Budget).
     const finalRecurring = is_recurring !== undefined ? (is_recurring ? 1 : 0) : entry.is_recurring;
     const finalInterval = req.body.recurrence_interval !== undefined
@@ -1443,7 +1649,8 @@ router.put('/:id', (req, res) => {
             recurrence_rule        = ?,
             recurrence_interval    = ?,
             recurrence_virtual     = ?,
-            recurrence_full_amount = ?
+            recurrence_full_amount = ?,
+            account_id             = CASE WHEN ? = 1 THEN ? ELSE account_id END
         WHERE id = ?
       `).run(
         title?.trim() ?? null,
@@ -1456,6 +1663,8 @@ router.put('/:id', (req, res) => {
         finalInterval,
         finalVirtual,
         nextFull,
+        accountProvided ? 1 : 0,
+        accountValue,
         id
       );
 

@@ -470,9 +470,25 @@ Index: CREATE INDEX idx_carddav_addressbook_account ON carddav_addressbook_selec
 | recurrence_virtual | INTEGER | 0/1 — 1 = virtual budgeting (period amount smoothed evenly across months) |
 | recurrence_full_amount | REAL | For virtual series: the entered period amount (`amount` then holds the monthly share) |
 | recurrence_parent_id | INTEGER | FK → Budget Entries (generated instance points to original) |
+| account_id | INTEGER | FK → Budget Accounts, nullable (ON DELETE SET NULL); NULL = not assigned to an account |
 | created_by | INTEGER | FK → Users, NOT NULL |
 
 Recurring entries generate one instance per month on demand. Non-virtual series post the full amount only on due months (every `monthsPerInterval(interval)` months); **virtual** series store the smoothed monthly share on the original and post it every month, so a 1,200/year bill shows as 100/month in the summary, balance and CSV export.
+
+### Budget Accounts
+Separate accounts (checking, savings, cash, credit card, investment, other) shown in Budget → Accounts. Each account carries a starting balance; its **current balance** is `starting_balance + Σ assigned entries dated up to today`, and the **projected balance** additionally includes future-dated entries. The Accounts tab shows every account with its current balance plus the household **net worth** (sum of the active accounts' current balances). Entries optionally reference an account (`budget_entries.account_id`); the assignment is set from the entry modal. Deleting an account keeps its entries — their `account_id` is cleared. Account assignment is optional; existing entries stay unassigned.
+
+| Column | Type | Constraint |
+|--------|------|-----------|
+| name | TEXT | NOT NULL |
+| type | TEXT | `'checking'` \| `'savings'` \| `'cash'` \| `'credit'` \| `'investment'` \| `'other'`, default `'checking'` |
+| starting_balance | REAL | NOT NULL DEFAULT 0 (may be negative, e.g. credit card) |
+| currency | TEXT | Optional ISO code; falls back to the household currency |
+| color | TEXT | Optional HEX (`#RRGGBB`) |
+| archived | INTEGER | 0/1 — archived accounts are hidden by default and excluded from net worth |
+| sort_order | INTEGER | NOT NULL DEFAULT 0 |
+| created_by | INTEGER | FK → Users, NOT NULL |
+| created_at / updated_at | TEXT | ISO 8601 |
 
 ### Budget Categories
 Expense and income category list, DB-backed with stable English slug keys. Predefined set (8 expense, 5 income); users can add custom categories inline from the entry modal. A "Manage categories" button in the Budget tab header opens a modal (the reusable `oikos-category-manager` component) to rename, reorder, and delete categories. Deletion is blocked while a category is still referenced by entries (`409`) or when it is the last category of its type.
@@ -1444,7 +1460,7 @@ User management and app configuration. Logged-in users only.
 
 ### Budget (`/budget`)
 
-**Tabs:** Budget, Plan, Statistics, Subscriptions, Loans, Split Expenses.
+**Tabs:** Budget, Accounts, Plan, Statistics, Subscriptions, Loans, Split Expenses.
 
 **Views:**
 - Monthly overview: income vs. expenses, balance, bar chart by category (Canvas, no library)
@@ -1459,6 +1475,7 @@ User management and app configuration. Logged-in users only.
 - **Category bar chart accessibility:** the chart exposes a concise `.sr-only` summary (number of categories, largest category and its share) for assistive technologies (v0.55.0)
 - **Statistics tab:** dedicated range view (week, month, year) with a period stepper, summary cards for income/expense/balance plus comparison against the previous period, an SVG trend chart of income vs. expenses, category bars, an expense-share donut, and a CSV-export button for the active range. Backed by `GET /api/v1/budget/stats?range=week|month|year&anchor=YYYY-MM-DD`.
 - **Plan tab:** planned/estimated budget (Discussion #468). A monthly savings-goal card (progress ring, planned vs. net balance, on-track/reached/negative status) plus per-category budgets shown as planned-vs-actual progress bars (under/near/over-budget tone, each backed by a text label so meaning never depends on colour alone). Set/edit/delete via modal (destructive delete is confirmation-gated). Month-bound via the shared Budget month navigation. Backed by `GET /api/v1/budget/plans?month=YYYY-MM` and `PUT`/`DELETE /api/v1/budget/plans/:category`. Implications elsewhere: the Statistics tab draws a category target marker at the planned amount (month range only), and the dashboard Budget widget shows savings-goal progress when a goal is set.
+- **Accounts tab:** separate accounts (checking, savings, cash, credit card, investment, other), each with a starting balance and an optional accent color. The tab lists every account with its running current balance (starting balance + assigned entries up to today) and the household net worth. **Drill-down:** clicking an account row switches to the Budget tab filtered to that account (a chip clears the filter); a separate pencil icon opens the edit modal. **Archiving:** accounts can be archived from the edit modal — archived accounts are hidden by default (a "show archived" toggle reveals them with a badge) and excluded from net worth, without deleting their history. Entries optionally reference an account from the entry modal, and each transaction shows its account in the metadata line. Deleting an account keeps its entries (their `account_id` is cleared). Backed by `GET/POST /api/v1/budget/accounts` (`?include_archived=1`) and `PUT`/`DELETE /api/v1/budget/accounts/:id`; entries accept an optional `account_id`, and `GET /api/v1/budget?account_id=` filters by account.
 - **Loans tab:** create instalment-based loans (borrower, total amount, number of instalments, start month); record individual payments; remaining balance and due months shown automatically; paid-off loans marked as closed; filter budget transactions by loan
 - **Subscriptions tab:** recurring service CRUD with daily/weekly/monthly/yearly cycles and exact next-renewal calculation. Every active subscription creates a linked expense on the Budget tab for its next payment; edits synchronize it, disabling removes it from calculations, and renewal preserves the paid expense while creating the next one. Includes custom sortable categories and payment methods, searchable in-modal currency/category/payment controls, uploaded logos plus redirect-aware SSRF-protected public HTTPS logo discovery from site icons and public metadata, configurable reminder timing, filtering, sorting, and responsive analytics.
 - **Subscription finances:** native billing currencies, configurable base currency and monthly budget, 12-hour exchange-rate cache with optional Fixer refresh, monthly normalization and yearly projection, remaining/over-budget status, and category/payment-method charts.
