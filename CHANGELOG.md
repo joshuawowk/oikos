@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-07-13
+
+### Changed
+- UI/UX consistency pass across list and filter modules. Budget tabs now use the same shared tab component and keyboard behavior (arrow keys, Home/End, roving focus) as the Rewards and Housekeeping tabs.
+- Document filters (status and category) are now chip toggles instead of dropdown menus, matching the filter style already used in Contacts.
+- Search fields in Notes, Contacts, Documents, and Birthdays now share one persistent, labeled search field with a clear button, so search looks and behaves the same across those modules.
+- The Housekeeping page title now matches its navigation label.
+
+### Fixed
+- Budget: opening an account's transactions from the Accounts tab now moves the highlighted tab to "Budget" so it matches the content shown, instead of leaving the highlight on "Accounts".
+
 ## [1.19.1] - 2026-07-13
 
 ### Changed
