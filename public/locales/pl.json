@@ -627,7 +627,11 @@
         "taskChipAriaLabel": "Zadanie: {{title}}",
         "toggleHolidays": "Święta państwowe",
         "toggleSchool": "Ferie szkolne",
-        "assignedToMe": "Przypisane do mnie"
+        "assignedToMe": "Przypisane do mnie",
+        "deleteRecurringTitle": "Usuń wydarzenie cykliczne",
+        "deleteRecurringHint": "Usunąć tylko to wydarzenie czy całą serię?",
+        "deleteThisOccurrence": "Tylko to wydarzenie",
+        "deleteWholeSeries": "Cała seria"
     },
     "notes": {
         "title": "Notatki",
@@ -1753,7 +1757,14 @@
             "defaultAssignee": "Domyślne przypisanie",
             "defaultAssigneeNone": "Brak",
             "defaultAssigneeHint": "Nowo zsynchronizowane wydarzenia są automatycznie przypisywane do tej osoby."
-        }
+        },
+        "calendarDefaultsTitle": "Domyślne ustawienia nowych wydarzeń",
+        "calendarDefaultsDescription": "Ustawienia stosowane automatycznie do nowych wydarzeń.",
+        "calendarAssignMeLabel": "Przypisuj nowe wydarzenia do mnie",
+        "calendarDefaultRemindersLabel": "Domyślne przypomnienia",
+        "calendarDefaultRemindersHint": "Nowe wydarzenia automatycznie otrzymują te przypomnienia.",
+        "calendarDefaultRemindersMax": "Maksymalnie {{count}} domyślnych przypomnień.",
+        "calendarDefaultsSaved": "Zapisano ustawienia domyślne"
     },
     "login": {
         "tagline": "Witaj ponownie w swoim planerze rodzinnym.",

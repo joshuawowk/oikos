@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Uppgift: {{title}}",
         "toggleHolidays": "Helgdagar",
         "toggleSchool": "Skollov",
-        "assignedToMe": "Tilldelade mig"
+        "assignedToMe": "Tilldelade mig",
+        "deleteRecurringTitle": "Ta bort återkommande händelse",
+        "deleteRecurringHint": "Ta bort bara denna händelse eller hela serien?",
+        "deleteThisOccurrence": "Bara denna händelse",
+        "deleteWholeSeries": "Hela serien"
     },
     "notes": {
         "title": "Anteckningar",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Standardtilldelning",
             "defaultAssigneeNone": "Ingen",
             "defaultAssigneeHint": "Nyligen synkroniserade händelser tilldelas automatiskt den här personen."
-        }
+        },
+        "calendarDefaultsTitle": "Standardvärden för nya händelser",
+        "calendarDefaultsDescription": "Förinställningar som tillämpas automatiskt på nya händelser.",
+        "calendarAssignMeLabel": "Tilldela nya händelser till mig",
+        "calendarDefaultRemindersLabel": "Standardpåminnelser",
+        "calendarDefaultRemindersHint": "Nya händelser får dessa påminnelser automatiskt.",
+        "calendarDefaultRemindersMax": "Högst {{count}} standardpåminnelser.",
+        "calendarDefaultsSaved": "Standardvärden sparade"
     },
     "login": {
         "tagline": "Välkommen tillbaka till din familjeplanerare.",

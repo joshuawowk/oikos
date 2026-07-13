@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Görev: {{title}}",
         "toggleHolidays": "Resmi tatiller",
         "toggleSchool": "Okul tatilleri",
-        "assignedToMe": "Bana atananlar"
+        "assignedToMe": "Bana atananlar",
+        "deleteRecurringTitle": "Yinelenen etkinliği sil",
+        "deleteRecurringHint": "Yalnızca bu etkinlik mi yoksa tüm seri mi silinsin?",
+        "deleteThisOccurrence": "Yalnızca bu etkinlik",
+        "deleteWholeSeries": "Tüm seri"
     },
     "notes": {
         "title": "Notlar",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Varsayılan atama",
             "defaultAssigneeNone": "Yok",
             "defaultAssigneeHint": "Yeni eşitlenen etkinlikler otomatik olarak bu kişiye atanır."
-        }
+        },
+        "calendarDefaultsTitle": "Yeni etkinlikler için varsayılanlar",
+        "calendarDefaultsDescription": "Yeni etkinliklere otomatik uygulanan ön ayarlar.",
+        "calendarAssignMeLabel": "Yeni etkinlikleri bana ata",
+        "calendarDefaultRemindersLabel": "Varsayılan hatırlatıcılar",
+        "calendarDefaultRemindersHint": "Yeni etkinlikler bu hatırlatıcıları otomatik alır.",
+        "calendarDefaultRemindersMax": "En fazla {{count}} varsayılan hatırlatıcı.",
+        "calendarDefaultsSaved": "Varsayılanlar kaydedildi"
     },
     "login": {
         "tagline": "Aile planlayıcına tekrar hoş geldin.",

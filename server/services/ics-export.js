@@ -115,6 +115,20 @@ function buildVEvent(ev, dtstamp, showAssignees = false) {
   if (ev.description) lines.push(`DESCRIPTION:${escapeICSText(ev.description)}`);
   if (ev.location) lines.push(`LOCATION:${escapeICSText(ev.location)}`);
   if (ev.recurrence_rule) lines.push(`RRULE:${ev.recurrence_rule}`);
+  // Einzeln ausgenommene Vorkommen (EXDATE, #489). Zeit-Teil = Master-Startzeit,
+  // damit die EXDATE-Instanz exakt auf ein RRULE-Vorkommen trifft.
+  if (ev.recurrence_rule && Array.isArray(ev.exception_dates) && ev.exception_dates.length) {
+    const timeSuffix = ev.all_day ? '' : ev.start_datetime.slice(10); // 'T18:00' / 'T18:00:00Z' / ''
+    for (const exDate of ev.exception_dates) {
+      if (ev.all_day) {
+        lines.push(`EXDATE;VALUE=DATE:${formatDate(exDate)}`);
+      } else {
+        const occIso = exDate + timeSuffix;
+        const fmt = hasExplicitOffset(occIso) ? formatUTC(occIso) : formatLocal(occIso);
+        lines.push(`EXDATE:${fmt}`);
+      }
+    }
+  }
   lines.push('END:VEVENT');
   return lines.map(foldLine);
 }
@@ -156,6 +170,21 @@ function buildFeed(conn, userId, now = new Date()) {
     ORDER BY e.start_datetime ASC
   `).all(userId, windowStart)
     .filter(ev => !isRecurrenceExpired(ev.recurrence_rule, windowStart));
+
+  // Instanz-Ausnahmen (EXDATE, #489) für die wiederkehrenden Events des Feeds laden.
+  const recurringIds = rows.filter(ev => ev.recurrence_rule).map(ev => ev.id);
+  if (recurringIds.length) {
+    const placeholders = recurringIds.map(() => '?').join(',');
+    const exRows = conn.prepare(
+      `SELECT event_id, exception_date FROM calendar_event_exceptions WHERE event_id IN (${placeholders})`
+    ).all(...recurringIds);
+    const byEvent = new Map();
+    for (const r of exRows) {
+      if (!byEvent.has(r.event_id)) byEvent.set(r.event_id, []);
+      byEvent.get(r.event_id).push(r.exception_date);
+    }
+    for (const ev of rows) ev.exception_dates = byEvent.get(ev.id) || [];
+  }
 
   const dtstamp = formatUTC(now.toISOString());
   const out = [

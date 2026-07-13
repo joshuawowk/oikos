@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Úkol: {{title}}",
         "toggleHolidays": "Státní svátky",
         "toggleSchool": "Školní prázdniny",
-        "assignedToMe": "Přiřazeno mně"
+        "assignedToMe": "Přiřazeno mně",
+        "deleteRecurringTitle": "Odstranit opakovanou událost",
+        "deleteRecurringHint": "Odstranit jen tuto událost, nebo celou sérii?",
+        "deleteThisOccurrence": "Jen tuto událost",
+        "deleteWholeSeries": "Celou sérii"
     },
     "notes": {
         "title": "Nástěnka",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Výchozí přiřazení",
             "defaultAssigneeNone": "Žádné",
             "defaultAssigneeHint": "Nově synchronizované události se automaticky přiřadí této osobě."
-        }
+        },
+        "calendarDefaultsTitle": "Výchozí hodnoty pro nové události",
+        "calendarDefaultsDescription": "Předvolby automaticky použité na nové události.",
+        "calendarAssignMeLabel": "Přiřazovat nové události mně",
+        "calendarDefaultRemindersLabel": "Výchozí připomenutí",
+        "calendarDefaultRemindersHint": "Nové události tato připomenutí získají automaticky.",
+        "calendarDefaultRemindersMax": "Nejvýše {{count}} výchozích připomenutí.",
+        "calendarDefaultsSaved": "Výchozí hodnoty uloženy"
     },
     "login": {
         "tagline": "Vítejte zpět ve svém rodinném plánovači.",

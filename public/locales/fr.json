@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Tâche : {{title}}",
         "toggleHolidays": "Jours fériés",
         "toggleSchool": "Vacances scolaires",
-        "assignedToMe": "Attribués à moi"
+        "assignedToMe": "Attribués à moi",
+        "deleteRecurringTitle": "Supprimer l'événement récurrent",
+        "deleteRecurringHint": "Supprimer uniquement cet événement ou toute la série ?",
+        "deleteThisOccurrence": "Uniquement cet événement",
+        "deleteWholeSeries": "Toute la série"
     },
     "notes": {
         "title": "Notes",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Attribution par défaut",
             "defaultAssigneeNone": "Aucune",
             "defaultAssigneeHint": "Les événements nouvellement synchronisés sont automatiquement attribués à cette personne."
-        }
+        },
+        "calendarDefaultsTitle": "Valeurs par défaut des nouveaux événements",
+        "calendarDefaultsDescription": "Préréglages appliqués automatiquement aux nouveaux événements.",
+        "calendarAssignMeLabel": "M'attribuer les nouveaux événements",
+        "calendarDefaultRemindersLabel": "Rappels par défaut",
+        "calendarDefaultRemindersHint": "Les nouveaux événements reçoivent automatiquement ces rappels.",
+        "calendarDefaultRemindersMax": "Au maximum {{count}} rappels par défaut.",
+        "calendarDefaultsSaved": "Valeurs par défaut enregistrées"
     },
     "login": {
         "tagline": "Bon retour sur votre planificateur familial.",

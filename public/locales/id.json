@@ -627,7 +627,11 @@
         "taskChipAriaLabel": "Tugas: {{title}}",
         "toggleHolidays": "Hari libur",
         "toggleSchool": "Libur sekolah",
-        "assignedToMe": "Ditugaskan ke saya"
+        "assignedToMe": "Ditugaskan ke saya",
+        "deleteRecurringTitle": "Hapus acara berulang",
+        "deleteRecurringHint": "Hapus hanya acara ini atau seluruh rangkaian?",
+        "deleteThisOccurrence": "Hanya acara ini",
+        "deleteWholeSeries": "Seluruh rangkaian"
     },
     "notes": {
         "title": "Catatan",
@@ -1753,7 +1757,14 @@
             "defaultAssignee": "Penerima tugas default",
             "defaultAssigneeNone": "Tidak ada",
             "defaultAssigneeHint": "Acara yang baru disinkronkan otomatis ditugaskan ke orang ini."
-        }
+        },
+        "calendarDefaultsTitle": "Bawaan untuk acara baru",
+        "calendarDefaultsDescription": "Prasetel yang otomatis diterapkan ke acara baru.",
+        "calendarAssignMeLabel": "Tugaskan acara baru ke saya",
+        "calendarDefaultRemindersLabel": "Pengingat bawaan",
+        "calendarDefaultRemindersHint": "Acara baru otomatis mendapat pengingat ini.",
+        "calendarDefaultRemindersMax": "Maksimal {{count}} pengingat bawaan.",
+        "calendarDefaultsSaved": "Bawaan disimpan"
     },
     "login": {
         "tagline": "Selamat datang kembali di perencana keluarga Anda.",

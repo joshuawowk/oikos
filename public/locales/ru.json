@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Задача: {{title}}",
         "toggleHolidays": "Праздничные дни",
         "toggleSchool": "Школьные каникулы",
-        "assignedToMe": "Назначенные мне"
+        "assignedToMe": "Назначенные мне",
+        "deleteRecurringTitle": "Удалить повторяющееся событие",
+        "deleteRecurringHint": "Удалить только это событие или всю серию?",
+        "deleteThisOccurrence": "Только это событие",
+        "deleteWholeSeries": "Всю серию"
     },
     "notes": {
         "title": "Заметки",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Назначение по умолчанию",
             "defaultAssigneeNone": "Нет",
             "defaultAssigneeHint": "Новые синхронизированные события автоматически назначаются этому человеку."
-        }
+        },
+        "calendarDefaultsTitle": "Значения по умолчанию для новых событий",
+        "calendarDefaultsDescription": "Настройки, автоматически применяемые к новым событиям.",
+        "calendarAssignMeLabel": "Назначать новые события мне",
+        "calendarDefaultRemindersLabel": "Напоминания по умолчанию",
+        "calendarDefaultRemindersHint": "Новые события автоматически получают эти напоминания.",
+        "calendarDefaultRemindersMax": "Не более {{count}} напоминаний по умолчанию.",
+        "calendarDefaultsSaved": "Значения по умолчанию сохранены"
     },
     "login": {
         "tagline": "С возвращением в ваш семейный планировщик.",

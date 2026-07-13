@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Tarefa: {{title}}",
         "toggleHolidays": "Feriados",
         "toggleSchool": "Férias escolares",
-        "assignedToMe": "Atribuídos a mim"
+        "assignedToMe": "Atribuídos a mim",
+        "deleteRecurringTitle": "Excluir evento recorrente",
+        "deleteRecurringHint": "Excluir apenas este evento ou toda a série?",
+        "deleteThisOccurrence": "Apenas este evento",
+        "deleteWholeSeries": "Toda a série"
     },
     "notes": {
         "title": "Quadro de notas",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Atribuição padrão",
             "defaultAssigneeNone": "Nenhum",
             "defaultAssigneeHint": "Os eventos recém-sincronizados são atribuídos automaticamente a esta pessoa."
-        }
+        },
+        "calendarDefaultsTitle": "Padrões para novos eventos",
+        "calendarDefaultsDescription": "Predefinições aplicadas automaticamente a novos eventos.",
+        "calendarAssignMeLabel": "Atribuir novos eventos a mim",
+        "calendarDefaultRemindersLabel": "Lembretes padrão",
+        "calendarDefaultRemindersHint": "Novos eventos recebem estes lembretes automaticamente.",
+        "calendarDefaultRemindersMax": "No máximo {{count}} lembretes padrão.",
+        "calendarDefaultsSaved": "Padrões salvos"
     },
     "login": {
         "tagline": "Bem-vindo de volta ao teu planeador familiar.",

@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "タスク: {{title}}",
         "toggleHolidays": "祝日",
         "toggleSchool": "学校の休暇",
-        "assignedToMe": "自分に割り当て"
+        "assignedToMe": "自分に割り当て",
+        "deleteRecurringTitle": "繰り返しの予定を削除",
+        "deleteRecurringHint": "この予定だけを削除しますか、それともシリーズ全体を削除しますか？",
+        "deleteThisOccurrence": "この予定だけ",
+        "deleteWholeSeries": "シリーズ全体"
     },
     "notes": {
         "title": "メモボード",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "既定の割り当て先",
             "defaultAssigneeNone": "なし",
             "defaultAssigneeHint": "新しく同期された予定は自動的にこの人に割り当てられます。"
-        }
+        },
+        "calendarDefaultsTitle": "新しい予定の既定値",
+        "calendarDefaultsDescription": "新しい予定に自動的に適用される既定設定。",
+        "calendarAssignMeLabel": "新しい予定を自分に割り当てる",
+        "calendarDefaultRemindersLabel": "既定のリマインダー",
+        "calendarDefaultRemindersHint": "新しい予定にこれらのリマインダーが自動で設定されます。",
+        "calendarDefaultRemindersMax": "既定のリマインダーは最大 {{count}} 件です。",
+        "calendarDefaultsSaved": "既定値を保存しました"
     },
     "login": {
         "tagline": "家族のプランナーへおかえりなさい。",

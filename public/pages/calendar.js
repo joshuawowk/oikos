@@ -950,6 +950,11 @@ export async function render(container, { user }) {
   state.holidayPrefs  = prefsRes.data ?? {};
   state.weekStart     = weekStartIndex(prefsRes.data?.week_start);
   state.defaultDuration = Number(prefsRes.data?.calendar_default_duration) || 60;
+  // Standardwerte für neue Termine (#497/#498).
+  state.defaultReminders = Array.isArray(prefsRes.data?.calendar_default_reminders)
+    ? prefsRes.data.calendar_default_reminders.map(Number)
+    : [];
+  state.defaultAssignMe  = !!prefsRes.data?.calendar_default_assign_me;
   state.documentUploadBackend = documentOptionsRes.data?.active_upload_backend ?? 'local';
   state.layerHolidays = localStorage.getItem(LAYER_HOLIDAYS_KEY) !== 'false';
   state.layerSchool   = localStorage.getItem(LAYER_SCHOOL_KEY)   !== 'false';
@@ -2142,7 +2147,7 @@ function showEventPopup(ev, anchor) {
 
   popup.querySelector('#popup-delete').addEventListener('click', async () => {
     dismiss();
-    await deleteEvent(ev.id);
+    await requestDeleteEvent(ev);
   });
 
   // Escape schließt und gibt den Fokus an den Auslöser zurück; Außenklick schließt.
@@ -2250,12 +2255,17 @@ function reminderRowHtml({ offset = '0', amount = 1, unit = 'days' } = {}) {
     </div>`;
 }
 
-function renderCalendarReminderSection(reminders = [], event = null) {
+function renderCalendarReminderSection(reminders = [], event = null, defaultOffsets = []) {
   const list = Array.isArray(reminders) ? reminders : (reminders ? [reminders] : []);
-  const rows = list.map((rem) => ({
+  let rows = list.map((rem) => ({
     offset: reminderOffsetFromEvent(event, rem) || '0',
     ...customReminderFromEvent(event, rem),
   }));
+  // Neue Termine ohne bestehende Erinnerung: Standard-Erinnerungen vorbelegen (#497).
+  // Die Default-Offsets decken sich mit den Preset-Werten des Offset-Selects.
+  if (rows.length === 0 && Array.isArray(defaultOffsets) && defaultOffsets.length) {
+    rows = defaultOffsets.map((min) => ({ offset: String(min), amount: 1, unit: 'days' }));
+  }
   const enabled = rows.length > 0;
   const rowsHtml = (enabled ? rows : [{ offset: '0', amount: 1, unit: 'days' }])
     .map((r) => reminderRowHtml(r)).join('');
@@ -2667,7 +2677,7 @@ function openEventModal({ mode, event = null, date = null, reminder = null, time
 
       panel.querySelector('#modal-delete')?.addEventListener('click', async () => {
         closeModal({ force: true });
-        await deleteEvent(event.id);
+        await requestDeleteEvent(event);
       });
 
       panel.querySelector('#modal-save').addEventListener('click', () => saveEvent(panel, mode, event?.id, reminder, attachmentState));
@@ -2737,9 +2747,10 @@ function buildEventModalContent({ mode, event, date, reminder = null, time = nul
     : derivedEnd.time;
   const selectedIcon = eventIconName(isEdit ? event.icon : 'calendar');
 
+  // Neue Termine: optional den aktuellen Nutzer vorbelegen (#498).
   const selectedUserIds = isEdit
     ? (event.assigned_users?.map((u) => u.id) ?? (event.assigned_to ? [event.assigned_to] : []))
-    : [];
+    : (state.defaultAssignMe && state.currentUserId != null ? [state.currentUserId] : []);
   const visibility = (isEdit ? event.visibility : null) || 'all';
 
   // Sekundärfelder: wandern hinter „Weitere Einstellungen". Beim Bearbeiten
@@ -2898,7 +2909,7 @@ function buildEventModalContent({ mode, event, date, reminder = null, time = nul
 
     ${renderRRuleFields('event', isEdit ? event.recurrence_rule : null)}
 
-    ${renderCalendarReminderSection(reminder, event)}
+    ${renderCalendarReminderSection(reminder, event, isEdit ? [] : state.defaultReminders)}
 
     <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
       ${isEdit ? `<button class="btn btn--danger btn--icon" id="modal-delete" aria-label="${t('calendar.deleteEvent')}">
@@ -3105,6 +3116,89 @@ async function deleteEvent(id) {
         state.events = [...state.events, event];
         renderView();
       }
+      window.yuvomi?.showToast(err.data?.error ?? t('calendar.deleteError'), 'danger');
+    }
+  }, 5000);
+}
+
+/**
+ * Einstiegspunkt für das Löschen (#489). Lokale Serien fragen „nur dieser Termin"
+ * vs. „ganze Serie"; alles andere (Einzeltermine, externe Serien) wird direkt gelöscht.
+ */
+async function requestDeleteEvent(event) {
+  // Nur rein lokale Serien bekommen die Einzeltermin-Option (#489); extern
+  // synchronisierte (Google/Apple/CalDAV/ICS) behalten „ganze Serie löschen".
+  const isLocalSeries = !!event?.recurrence_rule
+    && (event.external_source ?? 'local') === 'local'
+    && !event.calendar_ref_id && !event.subscription_id;
+  if (!isLocalSeries) {
+    await deleteEvent(event.id);
+    return;
+  }
+  const choice = await recurringDeleteChoice();
+  if (choice === 'series') await deleteEvent(event.id);
+  else if (choice === 'this') await deleteSingleOccurrence(event);
+  // null → abgebrochen, nichts tun
+}
+
+/**
+ * Auswahl-Dialog für das Löschen wiederkehrender Termine (Blaupause:
+ * recurringChoiceModal in budget.js). Löst zu 'this' | 'series' | null auf.
+ */
+function recurringDeleteChoice() {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const finish = (value) => {
+      if (resolved) return;
+      resolved = true;
+      closeModal({ force: true });
+      resolve(value);
+    };
+    openSharedModal({
+      title: t('calendar.deleteRecurringTitle'),
+      size: 'sm',
+      content: `
+        <p class="form-hint" style="margin-bottom:var(--space-4)">${t('calendar.deleteRecurringHint')}</p>
+        <div class="modal-actions modal-actions--stack">
+          <button type="button" class="btn btn--secondary" id="rds-this">${t('calendar.deleteThisOccurrence')}</button>
+          <button type="button" class="btn btn--danger" id="rds-series">${t('calendar.deleteWholeSeries')}</button>
+          <button type="button" class="btn btn--ghost" id="rds-cancel">${t('common.cancel')}</button>
+        </div>`,
+      onClose: () => finish(null),
+      onSave(panel) {
+        panel.querySelector('#rds-this')?.addEventListener('click', () => finish('this'));
+        panel.querySelector('#rds-series')?.addEventListener('click', () => finish('series'));
+        panel.querySelector('#rds-cancel')?.addEventListener('click', () => finish(null));
+      },
+    });
+  });
+}
+
+/**
+ * Nimmt genau ein Vorkommen einer lokalen Serie aus (#489), mit optimistischer
+ * Entfernung und Undo-Toast wie beim regulären Löschen.
+ */
+async function deleteSingleOccurrence(event) {
+  const date       = event.start_datetime.slice(0, 10);
+  const matches    = (e) => e.id === event.id && e.start_datetime.slice(0, 10) === date;
+  const removed    = state.events.filter(matches);
+  state.events     = state.events.filter((e) => !matches(e));
+  renderView();
+
+  let undone = false;
+  window.yuvomi?.showToast(t('calendar.deletedToast'), 'default', 5000, () => {
+    undone = true;
+    state.events = [...state.events, ...removed];
+    renderView();
+  });
+
+  setTimeout(async () => {
+    if (undone) return;
+    try {
+      await api.post(`/calendar/${event.id}/exceptions`, { date });
+    } catch (err) {
+      state.events = [...state.events, ...removed];
+      renderView();
       window.yuvomi?.showToast(err.data?.error ?? t('calendar.deleteError'), 'danger');
     }
   }, 5000);

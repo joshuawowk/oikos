@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "任务：{{title}}",
         "toggleHolidays": "法定节假日",
         "toggleSchool": "学校假期",
-        "assignedToMe": "分配给我"
+        "assignedToMe": "分配给我",
+        "deleteRecurringTitle": "删除重复事件",
+        "deleteRecurringHint": "只删除此事件还是整个系列？",
+        "deleteThisOccurrence": "仅此事件",
+        "deleteWholeSeries": "整个系列"
     },
     "notes": {
         "title": "便签板",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "默认分配",
             "defaultAssigneeNone": "无",
             "defaultAssigneeHint": "新同步的日程会自动分配给此人。"
-        }
+        },
+        "calendarDefaultsTitle": "新事件的默认值",
+        "calendarDefaultsDescription": "自动应用于新事件的预设。",
+        "calendarAssignMeLabel": "将新事件分配给我",
+        "calendarDefaultRemindersLabel": "默认提醒",
+        "calendarDefaultRemindersHint": "新事件将自动获得这些提醒。",
+        "calendarDefaultRemindersMax": "最多 {{count}} 个默认提醒。",
+        "calendarDefaultsSaved": "已保存默认值"
     },
     "login": {
         "tagline": "欢迎回到您的家庭计划工具。",

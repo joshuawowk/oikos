@@ -627,7 +627,11 @@
         "taskChipAriaLabel": "Aufgabe: {{title}}",
         "toggleHolidays": "Feiertage",
         "toggleSchool": "Schulferien",
-        "assignedToMe": "Mir zugewiesen"
+        "assignedToMe": "Mir zugewiesen",
+        "deleteRecurringTitle": "Serientermin löschen",
+        "deleteRecurringHint": "Möchtest du nur diesen Termin oder die ganze Serie löschen?",
+        "deleteThisOccurrence": "Nur diesen Termin",
+        "deleteWholeSeries": "Ganze Serie"
     },
     "notes": {
         "title": "Notizen",
@@ -1753,7 +1757,14 @@
             "defaultAssignee": "Standard-Zuweisung",
             "defaultAssigneeNone": "Keine",
             "defaultAssigneeHint": "Neu synchronisierte Termine werden automatisch dieser Person zugewiesen."
-        }
+        },
+        "calendarDefaultsTitle": "Standardwerte für neue Termine",
+        "calendarDefaultsDescription": "Voreinstellungen, die neue Termine automatisch übernehmen.",
+        "calendarAssignMeLabel": "Neue Termine mir zuweisen",
+        "calendarDefaultRemindersLabel": "Standard-Erinnerungen",
+        "calendarDefaultRemindersHint": "Neue Termine erhalten diese Erinnerungen automatisch.",
+        "calendarDefaultRemindersMax": "Höchstens {{count}} Standard-Erinnerungen.",
+        "calendarDefaultsSaved": "Standardwerte gespeichert"
     },
     "login": {
         "tagline": "Willkommen zurück bei eurem Familienplaner.",

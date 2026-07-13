@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Завдання: {{title}}",
         "toggleHolidays": "Святкові дні",
         "toggleSchool": "Шкільні канікули",
-        "assignedToMe": "Призначені мені"
+        "assignedToMe": "Призначені мені",
+        "deleteRecurringTitle": "Видалити повторювану подію",
+        "deleteRecurringHint": "Видалити лише цю подію чи всю серію?",
+        "deleteThisOccurrence": "Лише цю подію",
+        "deleteWholeSeries": "Усю серію"
     },
     "notes": {
         "title": "Нотатки",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Призначення за замовчуванням",
             "defaultAssigneeNone": "Немає",
             "defaultAssigneeHint": "Нові синхронізовані події автоматично призначаються цій особі."
-        }
+        },
+        "calendarDefaultsTitle": "Значення за замовчуванням для нових подій",
+        "calendarDefaultsDescription": "Налаштування, що автоматично застосовуються до нових подій.",
+        "calendarAssignMeLabel": "Призначати нові події мені",
+        "calendarDefaultRemindersLabel": "Нагадування за замовчуванням",
+        "calendarDefaultRemindersHint": "Нові події автоматично отримують ці нагадування.",
+        "calendarDefaultRemindersMax": "Не більше {{count}} нагадувань за замовчуванням.",
+        "calendarDefaultsSaved": "Значення за замовчуванням збережено"
     },
     "login": {
         "tagline": "З поверненням до вашого сімейного планувальника.",

@@ -822,6 +822,9 @@ function buildPaths() {
     '/api/v1/calendar/{id}/reset': {
       post: op({ summary: 'Reset external calendar event to source state', tag: 'Calendar', params: [idParam()], stateChanging: true }),
     },
+    '/api/v1/calendar/{id}/exceptions': {
+      post: op({ summary: 'Exclude a single occurrence of a recurring event (EXDATE)', tag: 'Calendar', params: [idParam()], stateChanging: true, requestBody: jsonBody(null) }),
+    },
     '/api/v1/notes': {
       get: op({ summary: 'List notes', tag: 'Notes' }),
       post: op({ summary: 'Create note', tag: 'Notes', stateChanging: true, requestBody: jsonBody(null) }),

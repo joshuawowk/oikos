@@ -627,7 +627,11 @@
         "taskChipAriaLabel": "할 일: {{title}}",
         "toggleHolidays": "공휴일",
         "toggleSchool": "방학",
-        "assignedToMe": "나에게 할당됨"
+        "assignedToMe": "나에게 할당됨",
+        "deleteRecurringTitle": "반복 일정 삭제",
+        "deleteRecurringHint": "이 일정만 삭제할까요, 아니면 전체 시리즈를 삭제할까요?",
+        "deleteThisOccurrence": "이 일정만",
+        "deleteWholeSeries": "전체 시리즈"
     },
     "notes": {
         "title": "메모",
@@ -1753,7 +1757,14 @@
             "defaultAssignee": "기본 담당자",
             "defaultAssigneeNone": "없음",
             "defaultAssigneeHint": "새로 동기화된 일정은 자동으로 이 사람에게 할당됩니다."
-        }
+        },
+        "calendarDefaultsTitle": "새 일정 기본값",
+        "calendarDefaultsDescription": "새 일정에 자동으로 적용되는 기본 설정입니다.",
+        "calendarAssignMeLabel": "새 일정을 나에게 배정",
+        "calendarDefaultRemindersLabel": "기본 알림",
+        "calendarDefaultRemindersHint": "새 일정에 이 알림이 자동으로 추가됩니다.",
+        "calendarDefaultRemindersMax": "기본 알림은 최대 {{count}}개입니다.",
+        "calendarDefaultsSaved": "기본값이 저장되었습니다"
     },
     "login": {
         "tagline": "가족 플래너에 다시 오신 것을 환영합니다.",

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-07-13
+
+### Added
+- Delete a single occurrence of a recurring event: deleting an event in a series now asks whether to remove only that occurrence or the whole series. "Only this event" keeps the series running and skips just that date everywhere it appears (calendar, upcoming, dashboard, search), and the excluded date is also emitted as an `EXDATE` line in the ICS export feed. Offered for local series only; externally synced series (Google/Apple/CalDAV/ICS) keep whole-series deletion.
+- Default reminders for new events: set a list of reminder offsets in Settings → Calendar that every newly created event receives automatically (up to five, per user).
+- Assign new events to me by default: an optional per-user toggle in Settings → Calendar that pre-fills the current user as the assignee when creating an event.
+
 ## [1.18.4] - 2026-07-12
 
 ### Fixed

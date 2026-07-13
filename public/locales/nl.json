@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Taak: {{title}}",
         "toggleHolidays": "Feestdagen",
         "toggleSchool": "Schoolvakanties",
-        "assignedToMe": "Aan mij toegewezen"
+        "assignedToMe": "Aan mij toegewezen",
+        "deleteRecurringTitle": "Terugkerende afspraak verwijderen",
+        "deleteRecurringHint": "Alleen deze afspraak of de hele reeks verwijderen?",
+        "deleteThisOccurrence": "Alleen deze afspraak",
+        "deleteWholeSeries": "Hele reeks"
     },
     "notes": {
         "title": "Bord",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Standaardtoewijzing",
             "defaultAssigneeNone": "Geen",
             "defaultAssigneeHint": "Nieuw gesynchroniseerde afspraken worden automatisch aan deze persoon toegewezen."
-        }
+        },
+        "calendarDefaultsTitle": "Standaardwaarden voor nieuwe afspraken",
+        "calendarDefaultsDescription": "Voorinstellingen die automatisch op nieuwe afspraken worden toegepast.",
+        "calendarAssignMeLabel": "Nieuwe afspraken aan mij toewijzen",
+        "calendarDefaultRemindersLabel": "Standaardherinneringen",
+        "calendarDefaultRemindersHint": "Nieuwe afspraken krijgen deze herinneringen automatisch.",
+        "calendarDefaultRemindersMax": "Maximaal {{count}} standaardherinneringen.",
+        "calendarDefaultsSaved": "Standaardwaarden opgeslagen"
     },
     "login": {
         "tagline": "Welkom terug bij je gezinsplanner.",

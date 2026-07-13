@@ -880,6 +880,16 @@ const MIGRATIONS_SQL = {
       AND category NOT IN (SELECT key FROM contact_categories)
     GROUP BY category;
   `,
+
+  // SQL-String für Migration v85 (gespiegelt aus db.js MIGRATIONS)
+  85: `
+    CREATE TABLE IF NOT EXISTS calendar_event_exceptions (
+      event_id       INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+      exception_date TEXT    NOT NULL,
+      created_at     TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      PRIMARY KEY (event_id, exception_date)
+    );
+  `,
 };
 
 export { MIGRATIONS_SQL };

@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Εργασία: {{title}}",
         "toggleHolidays": "Αργίες",
         "toggleSchool": "Σχολικές διακοπές",
-        "assignedToMe": "Ανατεθειμένα σε μένα"
+        "assignedToMe": "Ανατεθειμένα σε μένα",
+        "deleteRecurringTitle": "Διαγραφή επαναλαμβανόμενου συμβάντος",
+        "deleteRecurringHint": "Διαγραφή μόνο αυτού του συμβάντος ή ολόκληρης της σειράς;",
+        "deleteThisOccurrence": "Μόνο αυτό το συμβάν",
+        "deleteWholeSeries": "Ολόκληρη τη σειρά"
     },
     "notes": {
         "title": "Σημειώσεις",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Προεπιλεγμένη ανάθεση",
             "defaultAssigneeNone": "Καμία",
             "defaultAssigneeHint": "Τα νέα συγχρονισμένα συμβάντα ανατίθενται αυτόματα σε αυτό το άτομο."
-        }
+        },
+        "calendarDefaultsTitle": "Προεπιλογές για νέα συμβάντα",
+        "calendarDefaultsDescription": "Προεπιλογές που εφαρμόζονται αυτόματα σε νέα συμβάντα.",
+        "calendarAssignMeLabel": "Ανάθεση νέων συμβάντων σε εμένα",
+        "calendarDefaultRemindersLabel": "Προεπιλεγμένες υπενθυμίσεις",
+        "calendarDefaultRemindersHint": "Τα νέα συμβάντα λαμβάνουν αυτόματα αυτές τις υπενθυμίσεις.",
+        "calendarDefaultRemindersMax": "Το πολύ {{count}} προεπιλεγμένες υπενθυμίσεις.",
+        "calendarDefaultsSaved": "Οι προεπιλογές αποθηκεύτηκαν"
     },
     "login": {
         "tagline": "Καλώς ήρθατε ξανά στον οικογενειακό σας οργανωτή.",

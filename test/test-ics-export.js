@@ -65,6 +65,7 @@ d2.exec(MIGRATIONS_SQL[10]);
 d2.exec(MIGRATIONS_SQL[11]);
 d2.exec(MIGRATIONS_SQL[61]);
 d2.exec(MIGRATIONS_SQL[80]);
+d2.exec(MIGRATIONS_SQL[85]); // calendar_event_exceptions (EXDATE, #489)
 d2.exec(`CREATE TABLE IF NOT EXISTS event_assignments (
   event_id INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
   user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -134,6 +135,21 @@ test('buildFeed: RRULE wird mit Präfix übernommen', () => {
   d2.prepare(`INSERT INTO calendar_events (title,start_datetime,all_day,external_source,recurrence_rule,created_by) VALUES ('Müll','2026-01-05T07:00:00Z',0,'local','FREQ=WEEKLY;BYDAY=MO',?)`).run(u1);
   const ics = buildFeed(d2, u1, NOW);
   assert(ics.includes('RRULE:FREQ=WEEKLY;BYDAY=MO'), 'RRULE fehlt: ' + ics);
+});
+
+test('buildFeed: EXDATE für ausgenommene Instanz einer Zeit-Serie (#489)', () => {
+  const id = d2.prepare(`INSERT INTO calendar_events (title,start_datetime,all_day,external_source,recurrence_rule,created_by) VALUES ('Gym','2026-02-03T18:00:00Z',0,'local','FREQ=WEEKLY;BYDAY=TU',?)`).run(u1).lastInsertRowid;
+  d2.prepare(`INSERT INTO calendar_event_exceptions (event_id,exception_date) VALUES (?, '2026-02-10')`).run(id);
+  const ics = buildFeed(d2, u1, NOW);
+  // Zeit-Teil der Master-Startzeit (18:00:00Z) auf das Ausnahme-Datum angewandt.
+  assert(ics.includes('EXDATE:20260210T180000Z'), 'EXDATE (Zeit) fehlt: ' + ics);
+});
+
+test('buildFeed: EXDATE mit VALUE=DATE für Ganztags-Serie (#489)', () => {
+  const id = d2.prepare(`INSERT INTO calendar_events (title,start_datetime,all_day,external_source,recurrence_rule,created_by) VALUES ('Standup','2026-03-02',1,'local','FREQ=WEEKLY;BYDAY=MO',?)`).run(u1).lastInsertRowid;
+  d2.prepare(`INSERT INTO calendar_event_exceptions (event_id,exception_date) VALUES (?, '2026-03-09')`).run(id);
+  const ics = buildFeed(d2, u1, NOW);
+  assert(ics.includes('EXDATE;VALUE=DATE:20260309'), 'EXDATE (Ganztags) fehlt: ' + ics);
 });
 
 test('buildFeed: wiederkehrendes Event mit abgelaufenem UNTIL (Vergangenheit) wird ausgeschlossen', () => {

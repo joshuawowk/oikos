@@ -400,6 +400,8 @@ test('module-specific settings leaves only reference their owned preferences and
       ],
       preferences: [
         'calendar_default_duration',
+        'calendar_default_reminders',
+        'calendar_default_assign_me',
         'week_start',
         'holiday_country',
         'holiday_subdivision',

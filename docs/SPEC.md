@@ -260,6 +260,25 @@ Join table for multi-person calendar event assignment (migration v32). Existing 
 | user_id | INTEGER | FK → Users (CASCADE delete), NOT NULL |
 | PRIMARY KEY | | (event_id, user_id) |
 
+### Calendar Event Exceptions
+Excluded single occurrences of a recurring series (EXDATE, migration v85). One row per excluded instance date.
+
+| Column | Type | Constraint |
+|--------|------|-----------|
+| event_id | INTEGER | FK → Calendar Events (CASCADE delete), NOT NULL |
+| exception_date | TEXT | YYYY-MM-DD — local start date of the excluded instance, NOT NULL |
+| created_at | TEXT | DATETIME, default now |
+| PRIMARY KEY | | (event_id, exception_date) |
+
+**Delete a single occurrence (migration v85):** deleting an event of a recurring series asks whether to remove *only this occurrence* or the *whole series*. "Only this occurrence" records an exception; the recurrence expansion then skips that date on every read path (list, upcoming/dashboard, search) while the series continues. Offered for **local series only** — externally synced series (Google/Apple/CalDAV via `calendar_ref_id`, ICS via `subscription_id`) keep whole-series deletion, since an EXDATE would return on the next sync. Exceptions are also emitted as `EXDATE` lines in the ICS export feed. `POST /api/v1/calendar/:id/exceptions { date }` records an exception; series deletion removes its exceptions via CASCADE.
+
+### Calendar defaults for new events (per-user)
+Two per-user preferences prefill the new-event dialog (stored in `sync_config` under a per-user key, like `module_order`):
+- **`calendar_default_reminders`** — a list of reminder offsets (minutes before start, subset of the reminder presets, max 5) that new events receive automatically.
+- **`calendar_default_assign_me`** — when on, new events are pre-assigned to the current user.
+
+Both are configured in Settings → Calendar and apply only when creating an event (never on edit); a date-based sync default assignee still takes precedence for imported events.
+
 ### External Calendars
 Display metadata (name, color) for synced Google/CalDAV calendars. Populated automatically during sync.
 

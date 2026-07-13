@@ -627,7 +627,11 @@
         "taskChipAriaLabel": "کار: {{title}}",
         "toggleHolidays": "تعطیلات رسمی",
         "toggleSchool": "تعطیلات مدرسه",
-        "assignedToMe": "واگذارشده به من"
+        "assignedToMe": "واگذارشده به من",
+        "deleteRecurringTitle": "حذف رویداد تکرارشونده",
+        "deleteRecurringHint": "فقط این رویداد حذف شود یا کل مجموعه؟",
+        "deleteThisOccurrence": "فقط این رویداد",
+        "deleteWholeSeries": "کل مجموعه"
     },
     "notes": {
         "title": "یادداشت‌ها",
@@ -1753,7 +1757,14 @@
             "defaultAssignee": "واگذاری پیش‌فرض",
             "defaultAssigneeNone": "هیچ‌کدام",
             "defaultAssigneeHint": "رویدادهای تازه همگام‌سازی‌شده به‌طور خودکار به این شخص واگذار می‌شوند."
-        }
+        },
+        "calendarDefaultsTitle": "مقادیر پیش‌فرض برای رویدادهای جدید",
+        "calendarDefaultsDescription": "تنظیمات پیش‌فرضی که به‌طور خودکار روی رویدادهای جدید اعمال می‌شوند.",
+        "calendarAssignMeLabel": "اختصاص رویدادهای جدید به من",
+        "calendarDefaultRemindersLabel": "یادآوری‌های پیش‌فرض",
+        "calendarDefaultRemindersHint": "رویدادهای جدید این یادآوری‌ها را به‌طور خودکار دریافت می‌کنند.",
+        "calendarDefaultRemindersMax": "حداکثر {{count}} یادآوری پیش‌فرض.",
+        "calendarDefaultsSaved": "مقادیر پیش‌فرض ذخیره شد"
     },
     "login": {
         "tagline": "دوباره به برنامه‌ریز خانوادگی‌تان خوش آمدید.",

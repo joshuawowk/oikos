@@ -51,6 +51,7 @@ db.exec(`
   );
 `);
 db.exec(MIGRATIONS_SQL[1]);
+db.exec(MIGRATIONS_SQL[85]); // calendar_event_exceptions (EXDATE, #489)
 
 // Testdaten einfügen
 const u1 = db.prepare(`INSERT INTO users (username, display_name, password_hash, avatar_color, role)
@@ -697,6 +698,12 @@ cdb.exec(`
     event_id INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
     user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     PRIMARY KEY (event_id, user_id)
+  );
+  CREATE TABLE calendar_event_exceptions (
+    event_id       INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+    exception_date TEXT    NOT NULL,
+    created_at     TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    PRIMARY KEY (event_id, exception_date)
   );
 `);
 

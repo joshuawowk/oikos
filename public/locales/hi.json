@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "कार्य: {{title}}",
         "toggleHolidays": "सार्वजनिक अवकाश",
         "toggleSchool": "स्कूल की छुट्टियाँ",
-        "assignedToMe": "मुझे सौंपे गए"
+        "assignedToMe": "मुझे सौंपे गए",
+        "deleteRecurringTitle": "आवर्ती इवेंट हटाएँ",
+        "deleteRecurringHint": "केवल यह इवेंट हटाएँ या पूरी शृंखला?",
+        "deleteThisOccurrence": "केवल यह इवेंट",
+        "deleteWholeSeries": "पूरी शृंखला"
     },
     "notes": {
         "title": "नोट बोर्ड",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "डिफ़ॉल्ट असाइनमेंट",
             "defaultAssigneeNone": "कोई नहीं",
             "defaultAssigneeHint": "नई सिंक की गई घटनाएँ स्वचालित रूप से इस व्यक्ति को सौंपी जाती हैं।"
-        }
+        },
+        "calendarDefaultsTitle": "नए इवेंट के लिए डिफ़ॉल्ट",
+        "calendarDefaultsDescription": "नए इवेंट पर स्वतः लागू होने वाली प्रीसेट।",
+        "calendarAssignMeLabel": "नए इवेंट मुझे असाइन करें",
+        "calendarDefaultRemindersLabel": "डिफ़ॉल्ट रिमाइंडर",
+        "calendarDefaultRemindersHint": "नए इवेंट को ये रिमाइंडर स्वतः मिल जाते हैं।",
+        "calendarDefaultRemindersMax": "अधिकतम {{count}} डिफ़ॉल्ट रिमाइंडर।",
+        "calendarDefaultsSaved": "डिफ़ॉल्ट सहेजे गए"
     },
     "login": {
         "tagline": "अपने पारिवारिक प्लानर में फिर से आपका स्वागत है।",

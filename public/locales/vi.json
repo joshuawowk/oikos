@@ -620,7 +620,11 @@
         "colorOverriddenByAssignee": "Màu sắc bị ghi đè bởi người được giao",
         "toggleHolidays": "Ngày lễ",
         "toggleSchool": "Kỳ nghỉ học",
-        "assignedToMe": "Được giao cho tôi"
+        "assignedToMe": "Được giao cho tôi",
+        "deleteRecurringTitle": "Xóa sự kiện lặp lại",
+        "deleteRecurringHint": "Chỉ xóa sự kiện này hay toàn bộ chuỗi?",
+        "deleteThisOccurrence": "Chỉ sự kiện này",
+        "deleteWholeSeries": "Toàn bộ chuỗi"
     },
     "notes": {
         "title": "Bảng ghi chú",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Người được giao mặc định",
             "defaultAssigneeNone": "Không có",
             "defaultAssigneeHint": "Các sự kiện mới đồng bộ sẽ tự động được giao cho người này."
-        }
+        },
+        "calendarDefaultsTitle": "Mặc định cho sự kiện mới",
+        "calendarDefaultsDescription": "Cài đặt sẵn tự động áp dụng cho sự kiện mới.",
+        "calendarAssignMeLabel": "Giao sự kiện mới cho tôi",
+        "calendarDefaultRemindersLabel": "Nhắc nhở mặc định",
+        "calendarDefaultRemindersHint": "Sự kiện mới tự động nhận các nhắc nhở này.",
+        "calendarDefaultRemindersMax": "Tối đa {{count}} nhắc nhở mặc định.",
+        "calendarDefaultsSaved": "Đã lưu mặc định"
     },
     "login": {
         "tagline": "Chào mừng bạn trở lại trình lập kế hoạch gia đình.",

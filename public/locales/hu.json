@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Feladat: {{title}}",
         "toggleHolidays": "Állami ünnepek",
         "toggleSchool": "Iskolai szünetek",
-        "assignedToMe": "Hozzám rendelve"
+        "assignedToMe": "Hozzám rendelve",
+        "deleteRecurringTitle": "Ismétlődő esemény törlése",
+        "deleteRecurringHint": "Csak ezt az eseményt vagy az egész sorozatot törli?",
+        "deleteThisOccurrence": "Csak ezt az eseményt",
+        "deleteWholeSeries": "Az egész sorozatot"
     },
     "notes": {
         "title": "Tábla",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Alapértelmezett hozzárendelés",
             "defaultAssigneeNone": "Nincs",
             "defaultAssigneeHint": "Az újonnan szinkronizált események automatikusan ehhez a személyhez lesznek rendelve."
-        }
+        },
+        "calendarDefaultsTitle": "Új események alapértékei",
+        "calendarDefaultsDescription": "Az új eseményekre automatikusan alkalmazott beállítások.",
+        "calendarAssignMeLabel": "Új események hozzám rendelése",
+        "calendarDefaultRemindersLabel": "Alapértelmezett emlékeztetők",
+        "calendarDefaultRemindersHint": "Az új események automatikusan megkapják ezeket az emlékeztetőket.",
+        "calendarDefaultRemindersMax": "Legfeljebb {{count}} alapértelmezett emlékeztető.",
+        "calendarDefaultsSaved": "Alapértékek mentve"
     },
     "login": {
         "tagline": "Üdv újra a családi tervezőben.",

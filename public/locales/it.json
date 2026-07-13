@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Attività: {{title}}",
         "toggleHolidays": "Giorni festivi",
         "toggleSchool": "Vacanze scolastiche",
-        "assignedToMe": "Assegnati a me"
+        "assignedToMe": "Assegnati a me",
+        "deleteRecurringTitle": "Elimina evento ricorrente",
+        "deleteRecurringHint": "Eliminare solo questo evento o l'intera serie?",
+        "deleteThisOccurrence": "Solo questo evento",
+        "deleteWholeSeries": "Intera serie"
     },
     "notes": {
         "title": "Bacheca",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Assegnazione predefinita",
             "defaultAssigneeNone": "Nessuno",
             "defaultAssigneeHint": "Gli eventi appena sincronizzati vengono assegnati automaticamente a questa persona."
-        }
+        },
+        "calendarDefaultsTitle": "Valori predefiniti per i nuovi eventi",
+        "calendarDefaultsDescription": "Preimpostazioni applicate automaticamente ai nuovi eventi.",
+        "calendarAssignMeLabel": "Assegna a me i nuovi eventi",
+        "calendarDefaultRemindersLabel": "Promemoria predefiniti",
+        "calendarDefaultRemindersHint": "I nuovi eventi ricevono automaticamente questi promemoria.",
+        "calendarDefaultRemindersMax": "Al massimo {{count}} promemoria predefiniti.",
+        "calendarDefaultsSaved": "Valori predefiniti salvati"
     },
     "login": {
         "tagline": "Bentornato nel tuo pianificatore familiare.",

@@ -18,6 +18,26 @@ const ASSIGNED_USERS_SQL = `(
   WHERE ea.event_id = e.id
 ) AS assigned_users_json`;
 
+/**
+ * Lädt die Instanz-Ausnahmen (EXDATE, #489) für die gegebenen Event-IDs als Map.
+ * @param {import('node:sqlite').DatabaseSync} d  Geöffnete DB-Verbindung
+ * @param {Array<number>} eventIds  IDs wiederkehrender Events
+ * @returns {Map<number, Set<string>>}  event.id → Set ausgenommener Daten (YYYY-MM-DD)
+ */
+export function loadEventExceptions(d, eventIds) {
+  const map = new Map();
+  if (!eventIds || eventIds.length === 0) return map;
+  const placeholders = eventIds.map(() => '?').join(',');
+  const rows = d.prepare(
+    `SELECT event_id, exception_date FROM calendar_event_exceptions WHERE event_id IN (${placeholders})`
+  ).all(...eventIds);
+  for (const row of rows) {
+    if (!map.has(row.event_id)) map.set(row.event_id, new Set());
+    map.get(row.event_id).add(row.exception_date);
+  }
+  return map;
+}
+
 // --------------------------------------------------------
 // RRULE-Expansion: alle Vorkommen eines wiederkehrenden Events
 // innerhalb [from, to] generieren (inklusive beider Grenzen).
@@ -27,9 +47,11 @@ const ASSIGNED_USERS_SQL = `(
  * @param {object[]} events  Rohe DB-Events (können recurrence_rule haben)
  * @param {string}   from    YYYY-MM-DD
  * @param {string}   to      YYYY-MM-DD
+ * @param {Map<number, Set<string>>?} exceptionsByEvent  event.id → Set ausgenommener
+ *        Instanz-Daten (YYYY-MM-DD); diese Vorkommen werden übersprungen (EXDATE, #489)
  * @returns {object[]}  Expandiertes, sortiertes Array
  */
-export function expandRecurringEvents(events, from, to) {
+export function expandRecurringEvents(events, from, to, exceptionsByEvent = null) {
   const result = [];
 
   for (const event of events) {
@@ -52,9 +74,18 @@ export function expandRecurringEvents(events, from, to) {
     let currentDate = event.start_datetime.slice(0, 10); // YYYY-MM-DD
     let iterations  = 0;
     const MAX_ITER  = 1000; // Sicherheitsgrenze
+    const exceptions = exceptionsByEvent?.get(event.id) ?? null; // ausgenommene Instanz-Daten (#489)
 
     while (currentDate <= to && iterations < MAX_ITER) {
       iterations++;
+
+      // Ausgenommenes Vorkommen (EXDATE, #489): überspringen, aber Serie weiterlaufen lassen.
+      if (exceptions?.has(currentDate)) {
+        const next = nextOccurrence(currentDate, event.recurrence_rule);
+        if (!next || next <= currentDate) break;
+        currentDate = next;
+        continue;
+      }
 
       // For multi-day events, check if the instance end reaches into [from, to]
       let instanceEnd = currentDate;
@@ -150,7 +181,10 @@ export function getUpcomingEvents(d, { userId = null, limit = 5, windowDays = 90
     ORDER BY e.start_datetime ASC
   `).all(nowDate, future, future, userId, userId, userId);
 
-  return expandRecurringEvents(rawEvents, nowDate, future)
+  const recurringIds = rawEvents.filter((e) => e.recurrence_rule).map((e) => e.id);
+  const exceptions   = loadEventExceptions(d, recurringIds);
+
+  return expandRecurringEvents(rawEvents, nowDate, future, exceptions)
     .filter((e) => {
       // All-day events store start_datetime as 'YYYY-MM-DD' (no time suffix).
       // Normalise to 'T00:00:00' before comparing, otherwise today's all-day

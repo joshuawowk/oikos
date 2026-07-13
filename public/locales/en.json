@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Task: {{title}}",
         "toggleHolidays": "Public Holidays",
         "toggleSchool": "School Holidays",
-        "assignedToMe": "Assigned to me"
+        "assignedToMe": "Assigned to me",
+        "deleteRecurringTitle": "Delete recurring event",
+        "deleteRecurringHint": "Delete only this event or the whole series?",
+        "deleteThisOccurrence": "Only this event",
+        "deleteWholeSeries": "Whole series"
     },
     "notes": {
         "title": "Board",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Default assignee",
             "defaultAssigneeNone": "None",
             "defaultAssigneeHint": "Newly synced events are automatically assigned to this person."
-        }
+        },
+        "calendarDefaultsTitle": "Defaults for new events",
+        "calendarDefaultsDescription": "Presets automatically applied to new events.",
+        "calendarAssignMeLabel": "Assign new events to me",
+        "calendarDefaultRemindersLabel": "Default reminders",
+        "calendarDefaultRemindersHint": "New events automatically get these reminders.",
+        "calendarDefaultRemindersMax": "At most {{count}} default reminders.",
+        "calendarDefaultsSaved": "Defaults saved"
     },
     "login": {
         "tagline": "Welcome back to your family planner.",

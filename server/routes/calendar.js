@@ -17,7 +17,7 @@ import * as caldavReminders from '../services/caldav-reminders-sync.js';
 import * as holidays from '../services/holidays.js';
 import { requireAdmin } from '../auth.js';
 import { str, color, datetime, rrule, collectErrors, MAX_TITLE, MAX_TEXT, DATE_RE, DATETIME_RE } from '../middleware/validate.js';
-import { expandRecurringEvents, getUpcomingEvents } from '../services/calendar-events.js';
+import { expandRecurringEvents, getUpcomingEvents, loadEventExceptions } from '../services/calendar-events.js';
 import { buildMatchQuery } from '../services/search.js';
 import { normalizeVisibility, visibilityWhere } from '../services/visibility.js';
 import {
@@ -296,8 +296,10 @@ router.get('/', (req, res) => {
 
     sql += ' ORDER BY e.start_datetime ASC, e.all_day DESC';
 
-    const rawEvents = db.get().prepare(sql).all(...params);
-    const events    = expandRecurringEvents(rawEvents, from, to).map(serializeEvent);
+    const rawEvents  = db.get().prepare(sql).all(...params);
+    const recurringIds = rawEvents.filter((e) => e.recurrence_rule).map((e) => e.id);
+    const exceptions   = loadEventExceptions(db.get(), recurringIds);
+    const events    = expandRecurringEvents(rawEvents, from, to, exceptions).map(serializeEvent);
     res.json({ data: events, from, to });
   } catch (err) {
     log.error('', err);
@@ -384,9 +386,12 @@ router.get('/search', (req, res) => {
     // 2-Jahres-Fenster: fängt auch Serien, deren nächste Instanz mehr als ein Jahr
     // voraus liegt (z. B. mehrjährige Intervalle). Findet sich keine, bleibt der Master.
     const future = new Date(Date.now() + 730 * 86400000).toISOString().slice(0, 10);
+    const searchExceptions = loadEventExceptions(
+      db.get(), rows.filter((r) => r.recurrence_rule).map((r) => r.id)
+    );
     const resolved = rows.map((row) => {
       if (!row.recurrence_rule) return row;
-      return expandRecurringEvents([row], today, future)[0] || row;
+      return expandRecurringEvents([row], today, future, searchExceptions)[0] || row;
     });
     // Nach der Auflösung neu chronologisch sortieren, damit die Frontend-Gruppierung
     // die tatsächlichen (nicht die Master-)Daten in Reihenfolge zeigt.
@@ -1268,6 +1273,48 @@ router.post('/:id/reset', (req, res) => {
 
     db.get().prepare('UPDATE calendar_events SET user_modified = 0 WHERE id = ?').run(id);
     res.json({ data: { reset: true } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// POST /api/v1/calendar/:id/exceptions
+// Nimmt ein einzelnes Vorkommen einer lokalen Serie aus (EXDATE, #489).
+// Body: { date: 'YYYY-MM-DD' } — Start-Datum der auszunehmenden Instanz.
+// Nur lokale (nicht extern synchronisierte) wiederkehrende Termine.
+// Response: 201 { data: { event_id, exception_date } }
+// --------------------------------------------------------
+router.post('/:id/exceptions', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Ungültige ID.', code: 400 });
+
+    const date = req.body?.date;
+    if (!DATE_RE.test(date || ''))
+      return res.status(400).json({ error: 'date muss YYYY-MM-DD sein.', code: 400 });
+
+    const event = db.get().prepare('SELECT * FROM calendar_events WHERE id = ?').get(id);
+    if (!event) return res.status(404).json({ error: 'Termin nicht gefunden', code: 404 });
+    if (!event.recurrence_rule)
+      return res.status(400).json({ error: 'Termin ist keine Serie.', code: 400 });
+    // Nur rein lokale Serien: extern synchronisierte (Google/Apple/CalDAV via
+    // calendar_ref_id, ICS-Abo via subscription_id) würden beim nächsten Sync
+    // wiederkehren; deren EXDATE-Propagierung ist bewusst out of scope (#489).
+    if (event.external_source !== 'local' || event.calendar_ref_id || event.subscription_id)
+      return res.status(400).json({ error: 'Externe Serien können nicht einzeln ausgenommen werden.', code: 400 });
+
+    const userId  = getUserId(req);
+    const isAdmin = isAdminUser(req);
+    if (!isAdmin && event.created_by !== userId)
+      return res.status(403).json({ error: 'Nicht autorisiert.', code: 403 });
+
+    db.get().prepare(
+      'INSERT OR IGNORE INTO calendar_event_exceptions (event_id, exception_date) VALUES (?, ?)'
+    ).run(id, date);
+
+    res.status(201).json({ data: { event_id: id, exception_date: date } });
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: 'Interner Fehler', code: 500 });

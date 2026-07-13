@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "Tarea: {{title}}",
         "toggleHolidays": "Días festivos",
         "toggleSchool": "Vacaciones escolares",
-        "assignedToMe": "Asignado a mí"
+        "assignedToMe": "Asignado a mí",
+        "deleteRecurringTitle": "Eliminar evento recurrente",
+        "deleteRecurringHint": "¿Eliminar solo este evento o toda la serie?",
+        "deleteThisOccurrence": "Solo este evento",
+        "deleteWholeSeries": "Toda la serie"
     },
     "notes": {
         "title": "Notas",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "Asignación predeterminada",
             "defaultAssigneeNone": "Ninguno",
             "defaultAssigneeHint": "Los eventos recién sincronizados se asignan automáticamente a esta persona."
-        }
+        },
+        "calendarDefaultsTitle": "Valores predeterminados para nuevos eventos",
+        "calendarDefaultsDescription": "Ajustes que se aplican automáticamente a los nuevos eventos.",
+        "calendarAssignMeLabel": "Asignarme los nuevos eventos",
+        "calendarDefaultRemindersLabel": "Recordatorios predeterminados",
+        "calendarDefaultRemindersHint": "Los nuevos eventos reciben estos recordatorios automáticamente.",
+        "calendarDefaultRemindersMax": "Como máximo {{count}} recordatorios predeterminados.",
+        "calendarDefaultsSaved": "Valores predeterminados guardados"
     },
     "login": {
         "tagline": "Bienvenido de nuevo a tu planificador familiar.",

@@ -620,7 +620,11 @@
         "taskChipAriaLabel": "مهمة: {{title}}",
         "toggleHolidays": "العطلات الرسمية",
         "toggleSchool": "العطلات المدرسية",
-        "assignedToMe": "المُسندة إليّ"
+        "assignedToMe": "المُسندة إليّ",
+        "deleteRecurringTitle": "حذف الحدث المتكرر",
+        "deleteRecurringHint": "حذف هذا الحدث فقط أم السلسلة بأكملها؟",
+        "deleteThisOccurrence": "هذا الحدث فقط",
+        "deleteWholeSeries": "السلسلة بأكملها"
     },
     "notes": {
         "title": "لوحة الملاحظات",
@@ -1746,7 +1750,14 @@
             "defaultAssignee": "الإسناد الافتراضي",
             "defaultAssigneeNone": "بلا",
             "defaultAssigneeHint": "تُسنَد الأحداث المُزامَنة حديثًا تلقائيًا إلى هذا الشخص."
-        }
+        },
+        "calendarDefaultsTitle": "الإعدادات الافتراضية للأحداث الجديدة",
+        "calendarDefaultsDescription": "إعدادات مسبقة تُطبَّق تلقائيًا على الأحداث الجديدة.",
+        "calendarAssignMeLabel": "إسناد الأحداث الجديدة إليّ",
+        "calendarDefaultRemindersLabel": "التذكيرات الافتراضية",
+        "calendarDefaultRemindersHint": "تحصل الأحداث الجديدة على هذه التذكيرات تلقائيًا.",
+        "calendarDefaultRemindersMax": "بحد أقصى {{count}} تذكيرات افتراضية.",
+        "calendarDefaultsSaved": "تم حفظ الإعدادات الافتراضية"
     },
     "login": {
         "tagline": "مرحبًا بعودتك إلى منظّم عائلتك.",

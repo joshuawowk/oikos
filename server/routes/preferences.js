@@ -46,6 +46,25 @@ const DEFAULT_CALENDAR_DURATION = 60;
 const MIN_CALENDAR_DURATION = 5;
 const MAX_CALENDAR_DURATION = 1440;
 
+// Standard-Erinnerungen für neue Termine (#497, per-user): erlaubte Offsets in
+// Minuten vor Terminbeginn (deckt sich mit den Presets im Event-Modal). Cap = 5,
+// analog MAX_REMINDERS_PER_ENTITY in server/routes/reminders.js.
+const VALID_REMINDER_OFFSETS = [0, 15, 60, 1440, 2880, 10080, 20160];
+const MAX_DEFAULT_REMINDERS = 5;
+
+// Persistierte Default-Reminder als sortiertes Zahlen-Array lesen (leer = keine).
+function parseDefaultReminders(raw) {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return [...new Set(arr.map(Number).filter((n) => VALID_REMINDER_OFFSETS.includes(n)))]
+      .sort((a, b) => a - b);
+  } catch {
+    return [];
+  }
+}
+
 const VALID_WEATHER_PROVIDERS = ['open-meteo', 'openweathermap'];
 const VALID_WEATHER_UNITS = ['metric', 'imperial'];
 
@@ -246,6 +265,9 @@ router.get('/', (req, res) => {
         mobile_nav_order: mobileNavOrder,
         housekeeping_payment_tasks: cfgGet('housekeeping_payment_tasks') === '1',
         calendar_default_duration: Number(cfgGet('calendar_default_duration')) || DEFAULT_CALENDAR_DURATION,
+        // Standardwerte für neue Termine (per-user, #497/#498).
+        calendar_default_reminders: parseDefaultReminders(cfgUserGet('calendar_default_reminders', req.authUserId)),
+        calendar_default_assign_me: cfgUserGet('calendar_default_assign_me', req.authUserId) === '1',
         // Modul-Feature-Schalter (haushaltweit). Default an: fehlender Wert =>
         // Feature aktiv, damit Bestandshaushalte ihr Verhalten behalten.
         health_cycle_enabled: cfgGet('health_cycle_enabled') !== '0',
@@ -281,7 +303,7 @@ router.get('/', (req, res) => {
 
 router.put('/', (req, res) => {
   try {
-    const { visible_meal_types, currency, date_format, time_format, week_start, region, app_name, dashboard_widgets, disabled_modules, module_order, mobile_nav_order, housekeeping_payment_tasks, calendar_default_duration, health_cycle_enabled, rewards_require_approval, weather_provider, weather_lat, weather_lon, weather_city, weather_units, weather_auto_locate, weather_user, holiday_country, holiday_subdivision, holiday_show_public, holiday_show_school, holiday_public_color, holiday_school_color } = req.body;
+    const { visible_meal_types, currency, date_format, time_format, week_start, region, app_name, dashboard_widgets, disabled_modules, module_order, mobile_nav_order, housekeeping_payment_tasks, calendar_default_duration, calendar_default_reminders, calendar_default_assign_me, health_cycle_enabled, rewards_require_approval, weather_provider, weather_lat, weather_lon, weather_city, weather_units, weather_auto_locate, weather_user, holiday_country, holiday_subdivision, holiday_show_public, holiday_show_school, holiday_public_color, holiday_school_color } = req.body;
 
     if (visible_meal_types !== undefined) {
       if (!Array.isArray(visible_meal_types)) {
@@ -393,6 +415,27 @@ router.put('/', (req, res) => {
         return res.status(400).json({ error: `calendar_default_duration must be an integer between ${MIN_CALENDAR_DURATION} and ${MAX_CALENDAR_DURATION}`, code: 400 });
       }
       cfgSet('calendar_default_duration', String(minutes));
+    }
+
+    // Standard-Erinnerungen für neue Termine (#497, per-user).
+    if (calendar_default_reminders !== undefined) {
+      if (!Array.isArray(calendar_default_reminders)) {
+        return res.status(400).json({ error: 'calendar_default_reminders muss ein Array sein', code: 400 });
+      }
+      const nums = calendar_default_reminders.map(Number);
+      if (nums.some((n) => !VALID_REMINDER_OFFSETS.includes(n))) {
+        return res.status(400).json({ error: `calendar_default_reminders: erlaubte Offsets (Minuten): ${VALID_REMINDER_OFFSETS.join(', ')}`, code: 400 });
+      }
+      const unique = [...new Set(nums)].sort((a, b) => a - b);
+      if (unique.length > MAX_DEFAULT_REMINDERS) {
+        return res.status(400).json({ error: `Maximal ${MAX_DEFAULT_REMINDERS} Standard-Erinnerungen.`, code: 400 });
+      }
+      cfgUserSet('calendar_default_reminders', req.authUserId, JSON.stringify(unique));
+    }
+
+    // Neue Termine standardmäßig mir zuweisen (#498, per-user).
+    if (calendar_default_assign_me !== undefined) {
+      cfgUserSet('calendar_default_assign_me', req.authUserId, calendar_default_assign_me ? '1' : '0');
     }
 
     // Haushaltweite Modul-Feature-Schalter — nur Admins.
@@ -608,6 +651,8 @@ router.put('/', (req, res) => {
         mobile_nav_order: savedMobileNavOrder,
         housekeeping_payment_tasks: savedHousekeepingPaymentTasks,
         calendar_default_duration: Number(cfgGet('calendar_default_duration')) || DEFAULT_CALENDAR_DURATION,
+        calendar_default_reminders: parseDefaultReminders(cfgUserGet('calendar_default_reminders', req.authUserId)),
+        calendar_default_assign_me: cfgUserGet('calendar_default_assign_me', req.authUserId) === '1',
         health_cycle_enabled: cfgGet('health_cycle_enabled') !== '0',
         rewards_require_approval: cfgGet('rewards_require_approval') !== '0',
         weather_provider: cfgGet('weather_provider') ?? null,
