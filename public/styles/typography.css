@@ -254,7 +254,7 @@
 .note-md-ul { list-style: disc; }
 .note-md-ol { list-style: decimal; }
 .note-md-ul li,
-.note-md-ol li { margin-block: 2px; }
+.note-md-ol li { margin-block: var(--space-0h); }
 
 /* Checkliste: eigene Box statt Listenpunkt */
 .note-md-checklist {

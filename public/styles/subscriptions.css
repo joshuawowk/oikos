@@ -327,7 +327,7 @@
 
 .subscription-card__meta span {
   display: inline-flex;
-  gap: 4px;
+  gap: var(--space-1);
   align-items: center;
 }
 
@@ -448,7 +448,7 @@
 
 .subscription-logo-picker small {
   display: inline-flex;
-  gap: 5px;
+  gap: var(--space-1);
   align-items: center;
   color: var(--color-text-secondary);
   text-align: center;
@@ -559,7 +559,7 @@
 
 .subscriptions-enabled-row > div {
   display: grid;
-  gap: 2px;
+  gap: var(--space-0h);
 }
 
 .subscriptions-enabled-row small {

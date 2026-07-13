@@ -207,7 +207,7 @@ yuvomi-datepicker[disabled] .ydp__trigger {
 .ydp-cal__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
+  gap: var(--space-0h);
 }
 
 .ydp-cal__wd {
@@ -313,7 +313,7 @@ yuvomi-datepicker[disabled] .ydp__trigger {
 .ydp-time__list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0h);
   max-height: 15rem;
   overflow-y: auto;
   scrollbar-width: thin;

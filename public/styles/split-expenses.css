@@ -29,7 +29,7 @@
 .split-group-header h2,
 .split-card h3 {
   margin: 0;
-  letter-spacing: 0;
+  letter-spacing: var(--tracking-normal);
   color: var(--color-text-primary);
 }
 
@@ -193,7 +193,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0h);
 }
 
 .split-group__name,
