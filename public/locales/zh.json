@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "清除搜索",
         "save": "保存",
         "cancel": "取消",
         "delete": "删除",

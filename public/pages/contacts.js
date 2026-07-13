@@ -10,6 +10,7 @@ import { stagger, vibrate } from '/utils/ux.js';
 import { t } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 import '/components/category-manager.js';
 
 // --------------------------------------------------------
@@ -87,6 +88,7 @@ let state = {
   selected:       new Set(),
 };
 let _container = null;
+let contactsSearch = null;
 
 // --------------------------------------------------------
 // Entry Point
@@ -99,15 +101,7 @@ export async function render(container, { user }) {
     <div class="contacts-page">
       <div class="page-toolbar page-toolbar--wrap contacts-toolbar">
         <h1 class="page-toolbar__title">${t('contacts.title')}</h1>
-        <label class="contacts-toolbar__search page-toolbar__center" for="contacts-search">
-          <span class="contacts-toolbar__search-label sr-only">${t('contacts.searchPlaceholder')}</span>
-          <span class="contacts-toolbar__search-control">
-            <i data-lucide="search" class="contacts-toolbar__search-icon" aria-hidden="true"></i>
-            <input type="search" class="contacts-toolbar__search-input"
-                   id="contacts-search" placeholder="${t('contacts.searchPlaceholder')}"
-                   autocomplete="off">
-          </span>
-        </label>
+        ${renderPageSearch({ id: 'contacts-search', label: t('contacts.searchPlaceholder'), placeholder: t('contacts.searchPlaceholder'), value: state.searchQuery, clearLabel: t('common.searchClear'), className: 'contacts-toolbar__search page-toolbar__center' })}
         <div class="page-toolbar__actions">
           <button class="btn btn--icon btn--ghost" id="contacts-manage-cats" aria-label="${t('contacts.manageCategories')}" title="${t('contacts.manageCategories')}">
             <i data-lucide="tags" style="width:16px;height:16px;" aria-hidden="true"></i>
@@ -157,8 +151,7 @@ export async function render(container, { user }) {
       return;
     }
     if (e.target.closest('[data-action="reset-filters"]')) {
-      const search = _container.querySelector('#contacts-search');
-      if (search) search.value = '';
+      contactsSearch?.clear();
       state.searchQuery    = '';
       state.activeCategory = null;
       _container.querySelectorAll('.contact-filter-chip').forEach((chip) => {
@@ -208,13 +201,12 @@ export async function render(container, { user }) {
   }
 
   // Suche
-  let searchTimer;
-  _container.querySelector('#contacts-search').addEventListener('input', (e) => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      state.searchQuery = e.target.value.trim();
+  contactsSearch = wirePageSearch(_container, {
+    id: 'contacts-search',
+    onQuery: (value) => {
+      state.searchQuery = value.trim();
       renderList();
-    }, 200);
+    },
   });
 
   // Kategorie-Filter

@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "Vymazat hledání",
         "save": "Uložit",
         "cancel": "Zrušit",
         "delete": "Smazat",

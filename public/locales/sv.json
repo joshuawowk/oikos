@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "Rensa sökning",
         "save": "Spara",
         "cancel": "Avbryt",
         "delete": "Radera",

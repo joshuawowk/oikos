@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "Aramayı temizle",
         "save": "Kaydet",
         "cancel": "İptal",
         "delete": "Sil",

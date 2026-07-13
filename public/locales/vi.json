@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "Xóa tìm kiếm",
         "save": "Lưu",
         "cancel": "Hủy",
         "delete": "Xóa",

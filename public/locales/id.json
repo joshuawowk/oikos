@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "Hapus pencarian",
         "save": "Simpan",
         "cancel": "Batal",
         "delete": "Hapus",

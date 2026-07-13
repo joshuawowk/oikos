@@ -36,90 +36,16 @@
 /* Gerüst (Shell + Titel) jetzt geteilt via .page-toolbar in layout.css.
  * margin-inline-start:auto drängt die Suche ans logische Zeilenende (ersetzt das frühere
  * justify-content:space-between des bespoke Toolbars). */
+/* Layout only — control visual lives in page-search.css (shared). */
 .notes-toolbar__search {
   flex: 1 1 0;
   max-width: 280px;
-  min-width: 0;
   margin-inline-start: auto;
-}
-
-.notes-toolbar__search-control {
-  display: block;
-  position: relative;
 }
 
 .notes-toolbar .page-toolbar__title {
   flex: 0 0 auto;
 }
-
-.notes-toolbar__search-icon {
-  position: absolute;
-  inset-inline-start: var(--space-2);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-secondary);
-  pointer-events: none;
-}
-
-.notes-toolbar__search-input {
-  width: 100%;
-  padding: var(--space-2) calc(var(--space-2) + 24px) var(--space-2) calc(var(--space-2) * 2 + 16px);
-  border: 1px solid var(--glass-border-subtle);
-  border-radius: var(--radius-glass-button);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  font-size: var(--text-base);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-/* Native Clear-Kreuz von type=search unterdrücken — wir liefern ein
- * eigenes, konsistent gestyltes und lokalisiertes Clear-Control. */
-.notes-toolbar__search-input::-webkit-search-cancel-button { display: none; }
-
-.notes-toolbar__search-input:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
-}
-
-.notes-toolbar__search-clear {
-  position: absolute;
-  inset-inline-end: var(--space-1);
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-.notes-toolbar__search-clear > i { width: 14px; height: 14px; }
-
-/* Trefferfläche auf Fingergröße erweitern, ohne die visuelle Größe zu ändern
- * (gleiches Muster wie .note-card__pin/__delete). */
-.notes-toolbar__search-clear::before {
-  content: '';
-  position: absolute;
-  inset: -10px;
-}
-
-.notes-toolbar__search-clear:hover,
-.notes-toolbar__search-clear:focus-visible {
-  background: var(--color-overlay-light);
-  color: var(--color-text-primary);
-}
-
-.notes-toolbar__search-clear[hidden] { display: none; }
 
 /* --------------------------------------------------------
  * Masonry-Grid

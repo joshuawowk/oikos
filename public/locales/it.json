@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "Cancella ricerca",
         "save": "Salva",
         "cancel": "Annulla",
         "delete": "Elimina",

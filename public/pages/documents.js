@@ -10,6 +10,7 @@ import { t, formatDate } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { stagger } from '/utils/ux.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 
 const CATEGORIES = ['medical', 'school', 'identity', 'insurance', 'finance', 'home', 'vehicle', 'legal', 'travel', 'pets', 'warranty', 'taxes', 'work', 'other'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -86,13 +87,7 @@ export async function render(container) {
     <div class="documents-page">
       <div class="page-toolbar documents-toolbar">
         <h1 class="page-toolbar__title">${t('documents.title')}</h1>
-        <label class="documents-toolbar__search" for="documents-search">
-          <span class="documents-toolbar__search-label sr-only">${t('documents.searchPlaceholder')}</span>
-          <span class="documents-toolbar__search-control">
-            <i data-lucide="search" class="documents-toolbar__search-icon" aria-hidden="true"></i>
-            <input class="documents-toolbar__search-input" id="documents-search" type="search" placeholder="${t('documents.searchPlaceholder')}" autocomplete="off">
-          </span>
-        </label>
+        ${renderPageSearch({ id: 'documents-search', label: t('documents.searchPlaceholder'), placeholder: t('documents.searchPlaceholder'), value: state.query, clearLabel: t('common.searchClear'), className: 'documents-toolbar__search' })}
         <details class="documents-secondary-controls">
           <summary class="btn btn--secondary btn--icon documents-secondary-controls__trigger" aria-label="${t('nav.more')}">
             <i data-lucide="sliders-horizontal" class="icon-md" aria-hidden="true"></i>
@@ -235,14 +230,12 @@ function bindPageEvents() {
       }
     });
   }
-  let documentsSearchTimer;
-  _container.querySelector('#documents-search')?.addEventListener('input', (e) => {
-    const value = e.target.value.trim().toLowerCase();
-    clearTimeout(documentsSearchTimer);
-    documentsSearchTimer = setTimeout(() => {
-      state.query = value;
+  wirePageSearch(_container, {
+    id: 'documents-search',
+    onQuery: (value) => {
+      state.query = value.trim().toLowerCase();
       renderDocuments();
-    }, 200);
+    },
   });
   _container.querySelector('#documents-status')?.addEventListener('click', async (e) => {
     const chip = e.target.closest('[data-status]');

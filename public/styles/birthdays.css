@@ -14,47 +14,8 @@
  * Kopf: Struktur (Flex/Padding/Sticky/3px-Streifen) kommt aus .page-toolbar
  * (Canonical Page Head) in layout.css — hier nur die Suche.
  * -------------------------------------------------------- */
-.birthdays-toolbar__search {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.birthdays-toolbar__search-control {
-  display: block;
-  position: relative;
-}
-
-.birthdays-toolbar__search-icon {
-  position: absolute;
-  inset-inline-start: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-secondary);
-  pointer-events: none;
-}
-
-.birthdays-toolbar__search-input {
-  width: 100%;
-  min-height: var(--target-base);
-  padding-block: var(--space-2);
-  padding-inline: 36px var(--space-3);
-  border-radius: var(--radius-glass-button);
-  border: 1.5px solid var(--glass-border-subtle);
-  background-color: var(--color-surface-2);
-  color: var(--color-text-primary);
-  font-size: var(--text-base);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.birthdays-toolbar__search-input:focus {
-  outline: none;
-  border-color: var(--c-accent);
-  background-color: var(--color-surface);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 20%, transparent);
-}
+/* Toolbar search uses the shared .page-search control (page-search.css);
+ * .page-toolbar__center handles its placement. No module visual needed. */
 
 .birthdays-hint {
   margin: 0 var(--space-4);

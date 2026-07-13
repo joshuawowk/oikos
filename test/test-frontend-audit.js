@@ -1292,8 +1292,10 @@ test('phase 3 mobile Tasks toolbar collapses secondary controls into one overflo
 test('responsive adaptation keeps Notes vertical and prevents intrinsic-width overflow', () => {
   const notes = read('../public/styles/notes.css');
   const dashboard = read('../public/styles/dashboard.css');
+  const pageSearch = read('../public/styles/page-search.css');
 
-  assert.match(notes, /\.notes-toolbar__search\s*\{[\s\S]*min-width:\s*0/);
+  // The shared search control guards its own intrinsic-width overflow.
+  assert.match(pageSearch, /\.page-search\s*\{[\s\S]*min-width:\s*0/);
   assert.match(notes, /\.notes-toolbar\s+\.page-toolbar__title\s*\{[\s\S]*flex:\s*0\s+0\s+auto/);
   assert.match(notes, /\.notes-grid\s*\{[\s\S]*display:\s*grid/);
   assert.match(notes, /\.notes-grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
@@ -1464,20 +1466,18 @@ test('hardening keeps Birthday cards bounded with extreme localized content', ()
 
 test('hardening uses logical alignment for RTL-sensitive adapted controls', () => {
   const notes = read('../public/styles/notes.css');
-  const documents = read('../public/styles/documents.css');
-  const birthdays = read('../public/styles/birthdays.css');
   const tasks = read('../public/styles/tasks.css');
+  const pageSearch = read('../public/styles/page-search.css');
 
   assert.match(notes, /margin-inline-start:\s*auto/);
-  assert.match(notes, /\.notes-toolbar__search-icon\s*\{[\s\S]*inset-inline-start:/);
+  // The shared search control's leading icon uses logical inset for RTL.
+  assert.match(pageSearch, /\.page-search__icon\s*\{[\s\S]*inset-inline-start:/);
   assert.match(notes, /\.note-card__pin\s*\{[\s\S]*inset-inline-end:/);
-  assert.match(documents, /\.documents-toolbar__search-icon\s*\{[\s\S]*inset-inline-start:/);
   assert.match(tasks, /\.tasks-toolbar__secondary-panel\s*\{[\s\S]*inset-inline-end:\s*0/);
   assert.match(
     tasks,
     /\[dir=['"]rtl['"]\] \.tasks-toolbar__secondary-panel\s*\{[\s\S]*inset-inline-start:\s*0;[\s\S]*inset-inline-end:\s*auto/
   );
-  assert.match(birthdays, /\.birthdays-toolbar__search-icon\s*\{[\s\S]*inset-inline-start:/);
 });
 
 test('route failures expose a localized recoverable alert instead of raw technical errors', () => {
@@ -2265,15 +2265,33 @@ test('Budget places Subscriptions between Budget and Loans with secure rendering
 });
 
 test('search fields keep visible labels after users enter a query', () => {
-  const fields = [
+  // The shared page-search building block renders the label+input pair once;
+  // page-toolbar modules opt in by calling renderPageSearch with their field id.
+  // Split-expenses keeps its own sidebar-filter markup (visible label above the
+  // control, server-side reload) as a documented, distinct pattern.
+  const pageSearch = read('../public/utils/page-search.js');
+  assert.match(pageSearch, /<label[^>]*for="\$\{esc\(id\)\}"/);
+  assert.match(pageSearch, /<input[^>]*id="\$\{esc\(id\)\}"/);
+
+  const viaComponent = [
     ['../public/pages/birthdays.js', 'birthdays-search'],
     ['../public/pages/contacts.js', 'contacts-search'],
     ['../public/pages/notes.js', 'notes-search'],
     ['../public/pages/documents.js', 'documents-search'],
+  ];
+  for (const [file, id] of viaComponent) {
+    const source = read(file);
+    assert.match(
+      source,
+      new RegExp(`renderPageSearch\\(\\{[^}]*id:\\s*['"]${id}['"]`),
+      `${file} must render #${id} via the shared page-search component`,
+    );
+  }
+
+  const inlineLabel = [
     ['../public/pages/split-expenses.js', 'split-group-search'],
   ];
-
-  for (const [file, id] of fields) {
+  for (const [file, id] of inlineLabel) {
     const source = read(file);
     assert.match(
       source,

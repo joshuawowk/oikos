@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "खोज साफ़ करें",
         "save": "सहेजें",
         "cancel": "रद्द करें",
         "delete": "हटाएं",

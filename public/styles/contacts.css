@@ -38,52 +38,8 @@
  * -------------------------------------------------------- */
 /* Struktur (Flex/Padding/Sticky/3px-Streifen) kommt aus .page-toolbar
  * (Canonical Page Head) in layout.css — hier nur noch Contacts-Spezifika. */
-.contacts-toolbar__search {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.contacts-toolbar__search-label {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.contacts-toolbar__search-control {
-  display: block;
-  position: relative;
-}
-
-.contacts-toolbar__search-icon {
-  position: absolute;
-  left: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-disabled);
-  pointer-events: none;
-}
-
-.contacts-toolbar__search-input {
-  width: 100%;
-  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
-  border-radius: var(--radius-glass-button);
-  border: 1.5px solid var(--glass-border-subtle);
-  background-color: var(--color-surface-2);
-  color: var(--color-text-primary);
-  font-size: var(--text-base);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-  min-height: 36px;
-}
-
-.contacts-toolbar__search-input:focus {
-  outline: none;
-  border-color: var(--c-accent);
-  background-color: var(--color-surface);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 20%, transparent);
-}
+/* Toolbar search uses the shared .page-search control (page-search.css);
+ * .page-toolbar__center handles its placement. No module visual needed. */
 
 /* --------------------------------------------------------
  * Kategorie-Filter (horizontal scroll)

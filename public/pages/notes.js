@@ -11,6 +11,7 @@ import { t } from '/i18n.js';
 import { esc, renderMarkdownLight } from '/utils/html.js';
 import { getReadableTextColor } from '/utils/color.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 
 // --------------------------------------------------------
 // Konstanten
@@ -58,19 +59,7 @@ export async function render(container, { user }) {
     <div class="notes-page">
       <div class="page-toolbar notes-toolbar">
         <h1 class="page-toolbar__title">${t('notes.title')}</h1>
-        <label class="notes-toolbar__search" for="notes-search">
-          <span class="sr-only">${t('notes.searchPlaceholder')}</span>
-          <span class="notes-toolbar__search-control">
-            <i data-lucide="search" class="notes-toolbar__search-icon" aria-hidden="true"></i>
-            <input type="search" id="notes-search" class="notes-toolbar__search-input"
-                   placeholder="${t('notes.searchPlaceholder')}" autocomplete="off"
-                   value="${esc(state.filterQuery)}">
-            <button type="button" class="notes-toolbar__search-clear" id="notes-search-clear"
-                    aria-label="${t('notes.searchClear')}" ${state.filterQuery ? '' : 'hidden'}>
-              <i data-lucide="x" aria-hidden="true"></i>
-            </button>
-          </span>
-        </label>
+        ${renderPageSearch({ id: 'notes-search', label: t('notes.searchPlaceholder'), placeholder: t('notes.searchPlaceholder'), value: state.filterQuery, clearLabel: t('common.searchClear'), className: 'notes-toolbar__search' })}
         <button class="btn btn--primary toolbar-new-btn" id="notes-add-btn">
           <i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
           ${t('notes.addNoteLabel')}
@@ -115,20 +104,13 @@ export async function render(container, { user }) {
   _container.querySelector('#notes-add-btn').addEventListener('click', addHandler);
   _container.querySelector('#fab-new-note').addEventListener('click', addHandler);
 
-  const searchInput = _container.querySelector('#notes-search');
-  const searchClear = _container.querySelector('#notes-search-clear');
-  const syncClear = () => { searchClear.hidden = !searchInput.value; };
-  searchInput.addEventListener('input', (e) => {
-    state.filterQuery = e.target.value;
-    syncClear();
-    renderGrid();
-  });
-  searchClear.addEventListener('click', () => {
-    searchInput.value = '';
-    state.filterQuery = '';
-    syncClear();
-    renderGrid();
-    searchInput.focus();
+  wirePageSearch(_container, {
+    id: 'notes-search',
+    delay: 0,
+    onQuery: (value) => {
+      state.filterQuery = value;
+      renderGrid();
+    },
   });
 }
 

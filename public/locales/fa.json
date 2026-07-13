@@ -1,5 +1,6 @@
 {
     "common": {
+        "searchClear": "پاک کردن جستجو",
         "save": "ذخیره",
         "cancel": "لغو",
         "delete": "حذف",
