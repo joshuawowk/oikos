@@ -166,6 +166,7 @@ let state = {
 };
 let _container = null;
 let _user = null;
+let _tablist = null;   // wireTablist-Handle: erlaubt programmatische Tab-Wechsel (sync)
 
 // --------------------------------------------------------
 // Formatierung
@@ -380,7 +381,7 @@ function wireNav() {
   // Tabindex + ARIA) — dieselbe Grammatik wie Rewards/Haushaltshilfe statt einer
   // modul-eigenen Nachbildung (utils/tablist.js). wireTablist malt den aktiven
   // Tab (sub-tab--active/aria/tabindex); renderBody übernimmt nur noch den Inhalt.
-  wireTablist(_container.querySelector('.budget-tabs'), {
+  _tablist = wireTablist(_container.querySelector('.budget-tabs'), {
     activeId: state.activeTab,
     onChange: (id) => {
       state.activeTab = id;
@@ -771,6 +772,9 @@ function wireAccountsPage() {
     el.addEventListener('click', async () => {
       state.accountFilterId = parseInt(el.dataset.drill, 10);
       state.activeTab = 'budget';
+      // Aktive Pille mitziehen: dieser Wechsel läuft nicht über die Tab-Leiste,
+      // daher malt wireTablist ihn nur über sync() nach (updateTabs tut es nicht mehr).
+      _tablist?.sync('budget');
       await loadMonth(state.month);
       renderBody();
     });
