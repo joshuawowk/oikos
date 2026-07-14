@@ -1,8 +1,11 @@
 /**
  * Modul: API-Client
  * Zweck: Fetch-Wrapper mit Session-Auth, einheitlicher Fehlerbehandlung und JSON-Parsing
- * Abhängigkeiten: keine
+ * Abhängigkeiten: sw-register (clearApiCache bei Logout)
  */
+
+import { clearApiCache } from '/sw-register.js';
+import { setPermissions, clearPermissions } from '/permissions.js';
 
 const API_BASE = '/api/v1';
 
@@ -33,16 +36,25 @@ async function apiFetch(path, options = {}, _retried = false) {
   const stateChanging = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
   const { headers: optionHeaders = {}, ...fetchOptions } = options;
 
-  const response = await fetch(url, {
-    credentials: 'same-origin',
-    cache: 'no-store',
-    ...fetchOptions,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(stateChanging ? { 'X-CSRF-Token': getCsrfToken() } : {}),
-      ...optionHeaders,
-    },
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(stateChanging ? { 'X-CSRF-Token': getCsrfToken() } : {}),
+        ...optionHeaders,
+      },
+    });
+  } catch (err) {
+    // Offline/Netzfehler bei state-changing Requests (POST/PUT/PATCH/DELETE):
+    // klaren ApiError werfen statt nacktem TypeError, damit die UI eine
+    // verständliche „offline"-Meldung zeigen kann (read-only Offline-Modus).
+    if (stateChanging) throw new ApiError('offline', 0);
+    throw err;
+  }
 
   if (response.status === 401) {
     // Beim Login-Endpunkt bedeutet 401 "falsche Zugangsdaten", nicht "Session abgelaufen".
@@ -143,15 +155,55 @@ const api = {
 // --------------------------------------------------------
 
 const auth = {
-  login: (username, password) => api.post('/auth/login', { username, password }),
-  logout: () => api.post('/auth/logout'),
-  me: () => api.get('/auth/me'),
+  login: async (username, password) => {
+    const res = await api.post('/auth/login', { username, password });
+    setPermissions(res?.permissions);
+    return res;
+  },
+  logout: async () => {
+    try {
+      return await api.post('/auth/logout');
+    } finally {
+      clearPermissions();
+      // API-Cache IMMER leeren — auch wenn der Logout-Request offline oder bei
+      // nicht erreichbarem Server fehlschlägt. Der Settings-Handler navigiert in
+      // seinem finally trotzdem zu /login, daher darf hier kein offline gecachter
+      // Stand des vorigen Nutzers am selben Gerät zurückbleiben.
+      clearApiCache();
+    }
+  },
+  me: async () => {
+    const res = await api.get('/auth/me');
+    setPermissions(res?.permissions);
+    return res;
+  },
   setup: (username, display_name, password) => api.post('/auth/setup', { username, display_name, password }),
   getUsers: () => api.get('/auth/users'),
   createUser: (data) => api.post('/auth/users', data),
   updateUser: (id, data) => api.patch(`/auth/users/${id}`, data),
   updateProfile: (data) => api.patch('/auth/me/profile', data),
   deleteUser: (id) => api.delete(`/auth/users/${id}`),
+  forgotPassword: (identifier) => api.post('/auth/forgot-password', { identifier }),
+  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
 };
 
-export { api, auth, ApiError };
+// --------------------------------------------------------
+// E-Mail (SMTP) – Admin-Konfiguration
+// --------------------------------------------------------
+
+const email = {
+  getConfig: () => api.get('/email/config'),
+  saveConfig: (cfg) => api.put('/email/config', cfg),
+  test: (to) => api.post('/email/test', to ? { to } : {}),
+};
+
+const notifications = {
+  providers: () => api.get('/notifications/providers'),
+  listChannels: () => api.get('/notifications/channels'),
+  createChannel: (body) => api.post('/notifications/channels', body),
+  updateChannel: (id, body) => api.put(`/notifications/channels/${id}`, body),
+  deleteChannel: (id) => api.delete(`/notifications/channels/${id}`),
+  testChannel: (id) => api.post(`/notifications/channels/${id}/test`, {}),
+};
+
+export { api, auth, email, notifications, ApiError };

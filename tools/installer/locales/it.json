@@ -7,7 +7,10 @@
     "generating": "…",
     "optional": "Facoltativo",
     "stepCounter": "Passo {{n}} di {{total}}",
-    "toggleVisibility": "Mostra o nascondi il valore"
+    "toggleVisibility": "Mostra o nascondi il valore",
+    "copy": "Copia",
+    "copied": "Copiato ✓",
+    "language": "Lingua"
   },
   "config": {
     "title": "Configurazione di base",
@@ -28,7 +31,8 @@
     "sessionHint": "Firma i cookie di sessione del browser.",
     "dbLabel": "Chiave di cifratura del database",
     "dbHint": "Cifra il database SQLite a riposo.",
-    "errBoth": "Entrambe le chiavi sono obbligatorie."
+    "errBoth": "Entrambe le chiavi sono obbligatorie.",
+    "dangerWarn": "Salva subito queste chiavi. Se le perdi, i tuoi dati cifrati saranno irrecuperabili: non esiste un reset."
   },
   "weather": {
     "title": "Widget Meteo",
@@ -73,11 +77,23 @@
     "google": "Google Calendar",
     "apple": "Apple CalDAV",
     "documentWebdav": "Documenti WebDAV",
+    "documentLocal": "Documenti locali",
     "save": "Salva e avvia Docker",
     "saving": "Salvataggio …",
     "errSave": "Impossibile salvare .env.",
     "weatherEnabled": "attivato ({{city}})",
-    "configured": "configurato"
+    "configured": "configurato",
+    "finalNote": "Questo scrive il tuo .env (un file esistente viene salvato) e avvia il container.",
+    "confirm": "Fai di nuovo clic per confermare",
+    "access": "Accesso",
+    "accessProxy": "Reverse proxy (HTTPS)",
+    "accessDirect": "Diretto / HTTP",
+    "email": "E-mail",
+    "oidc": "Single sign-on",
+    "backups": "Backup",
+    "webdavBackup": "Backup esterni",
+    "on": "attivo",
+    "off": "disattivato"
   },
   "docker": {
     "title": "Avvio di Yuvomi",
@@ -110,7 +126,10 @@
   "done": {
     "title": "Yuvomi è pronto!",
     "subtitle": "Il tuo organizer familiare è in funzione e il tuo account amministratore è configurato.",
-    "open": "Apri Yuvomi →"
+    "open": "Apri Yuvomi →",
+    "backupReminder": "Ricorda di salvare ora il file .env: contiene le tue chiavi.",
+    "download": "Scarica il file .env",
+    "savedTo": "Salvato in {{path}}"
   },
   "advanced": {
     "tag": "Avanzate · opzionale",
@@ -139,6 +158,68 @@
     "documentWebdavUsernameLabel": "Nome utente",
     "documentWebdavPasswordLabel": "Password",
     "documentWebdavPathLabel": "Percorso base",
-    "documentWebdavPathHint": "Cartella remota per i documenti. Lascia vuoto per usare yuvomi-documents."
+    "documentWebdavPathHint": "Cartella remota per i documenti. Lascia vuoto per usare yuvomi-documents.",
+    "documentLocal": "Archiviazione locale dei documenti",
+    "documentLocalEnable": "Salva i nuovi documenti in una cartella locale",
+    "documentLocalPathLabel": "Percorso della cartella",
+    "documentLocalPathHint": "Percorso all'interno del contenitore. Lascia vuoto per /documents.",
+    "sectionNetwork": "Rete",
+    "sectionIntegrations": "Integrazioni e backup",
+    "errSchedule": "Pianificazione cron non valida (attesi cinque campi separati da spazi, es. 0 2 * * *).",
+    "errKeep": "I backup da conservare devono essere un numero positivo.",
+    "webdavBackup": "Backup esterni (WebDAV)",
+    "webdavBackupHint": "Copia ogni backup su un server WebDAV (es. Nextcloud) così sopravvive a un guasto del disco.",
+    "webdavBackupEnable": "Invia i backup anche su WebDAV",
+    "webdavBackupUrlLabel": "URL WebDAV",
+    "webdavBackupUsernameLabel": "Nome utente",
+    "webdavBackupPasswordLabel": "Password",
+    "webdavBackupPathLabel": "Percorso remoto",
+    "sectionMore": "Altre opzioni",
+    "fixerLabel": "Chiave API Fixer (cambi valuta in tempo reale)",
+    "fixerHint": "Facoltativa. Converte le valute degli abbonamenti con tassi in tempo reale. Gli abbonamenti funzionano anche senza.",
+    "pushSubjectLabel": "Indirizzo di contatto push",
+    "pushSubjectHint": "Inviato ai servizi push come contatto del tuo server. Lascia vuoto per il valore predefinito."
+  },
+  "welcome": {
+    "title": "Ti diamo il benvenuto in Yuvomi",
+    "subtitle": "Mettiamo in funzione il tuo organizer familiare privato. Scegli come configurarlo.",
+    "simpleTitle": "Configurazione semplice",
+    "simpleBadge": "Consigliata",
+    "simpleDesc": "Pensiamo noi ai dettagli tecnici. Ideale per usare Yuvomi a casa.",
+    "simpleTime": "Circa 2 minuti",
+    "advancedTitle": "Configurazione avanzata",
+    "advancedDesc": "Controllo totale: reverse proxy, sincronizzazione calendario, e-mail, single sign-on e backup.",
+    "advancedTime": "Ogni opzione, passo dopo passo"
+  },
+  "simple": {
+    "title": "Tutto pronto",
+    "subtitle": "Abbiamo preparato tutto con valori sicuri. Ora crea solo il tuo account.",
+    "itemKeysTitle": "Chiavi di sicurezza generate",
+    "itemKeysDesc": "La sessione e il database vengono cifrati automaticamente.",
+    "itemAccessTitle": "Accesso locale",
+    "itemAccessDesc": "Raggiungibile su {{url}} da questo dispositivo.",
+    "itemBackupsTitle": "Backup giornalieri attivi",
+    "itemBackupsDesc": "Ogni notte viene conservato un backup locale.",
+    "backupReminder": "Dopo la configurazione, salva il file .env generato: contiene le tue uniche chiavi di cifratura.",
+    "switchAdvanced": "Servono più opzioni? Passa alla configurazione avanzata",
+    "start": "Configura e avvia Yuvomi"
+  },
+  "email": {
+    "title": "E-mail e reimpostazione password",
+    "subtitle": "Consenti ai familiari di reimpostare una password dimenticata via e-mail. Facoltativo — salta se non serve.",
+    "enable": "Attiva l’invio di e-mail",
+    "hint": "Usa il tuo server SMTP (provider di posta, self-hosted o un servizio transazionale).",
+    "hostLabel": "Server SMTP",
+    "portLabel": "Porta",
+    "secureLabel": "Cifratura",
+    "secureStarttls": "STARTTLS (porta 587)",
+    "secureSsl": "SSL/TLS (porta 465)",
+    "secureNone": "Nessuna (sconsigliato)",
+    "userLabel": "Nome utente",
+    "passLabel": "Password",
+    "fromLabel": "Indirizzo mittente",
+    "fromHint": "L’indirizzo «Da» che vedranno i destinatari. Molti provider richiedono che coincida con il nome utente.",
+    "fromNameLabel": "Nome mittente",
+    "errIncomplete": "Il server SMTP e l’indirizzo mittente sono obbligatori."
   }
 }

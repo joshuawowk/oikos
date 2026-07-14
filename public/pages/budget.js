@@ -2,17 +2,23 @@
  * Modul: Budget-Tracker (Budget)
  * Zweck: Monatsübersicht, Kategorie-Balkendiagramm (Canvas), Transaktionsliste,
  *        CRUD, CSV-Export
- * Abhängigkeiten: /api.js, /router.js (window.oikos)
+ * Abhängigkeiten: /api.js, /router.js (window.yuvomi)
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal, confirmModal } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, confirmModal, advancedSection } from '/components/modal.js';
 import { stagger, vibrate } from '/utils/ux.js';
+import { wireTablist } from '/utils/tablist.js';
 import { t, formatDate, getLocale } from '/i18n.js';
 import { esc } from '/utils/html.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
 import { render as renderSplitExpenses } from '/pages/split-expenses.js';
+import { openSubscriptionModal, render as renderSubscriptions } from '/pages/subscriptions.js';
+import { renderStats } from '/pages/budget-stats.js';
+import { renderPlans } from '/pages/budget-plans.js';
 import { toLocalDateKey } from '/utils/date.js';
 import { budgetCategoryLabel } from '/utils/category-labels.js';
+import '/components/category-manager.js';
 
 // --------------------------------------------------------
 // Konstanten
@@ -53,6 +59,12 @@ const SUBCATEGORY_I18N = () => ({
   insurance_other:          t('budget.subcatInsuranceOther'),
   investments:              t('budget.subcatInvestments'),
   taxes:                    t('budget.subcatTaxes'),
+  subscription_entertainment: t('budget.subcatSubscriptionEntertainment'),
+  subscription_productivity:  t('budget.subcatSubscriptionProductivity'),
+  subscription_utilities:     t('budget.subcatSubscriptionUtilities'),
+  subscription_health:        t('budget.subcatSubscriptionHealth'),
+  subscription_education:     t('budget.subcatSubscriptionEducation'),
+  subscription_other:         t('budget.subcatSubscriptionOther'),
 });
 
 function categoryLabel(category) {
@@ -101,6 +113,38 @@ function getMonthName(monthIndex) {
 }
 
 // --------------------------------------------------------
+// Konten (#495)
+// --------------------------------------------------------
+
+// Muss mit ACCOUNT_TYPE_KEYS in server/routes/budget.js übereinstimmen.
+const ACCOUNT_TYPES = ['checking', 'savings', 'cash', 'credit', 'investment', 'other'];
+const ACCOUNT_TYPE_ICONS = {
+  checking:   'landmark',
+  savings:    'piggy-bank',
+  cash:       'wallet',
+  credit:     'credit-card',
+  investment: 'trending-up',
+  other:      'circle-dollar-sign',
+};
+
+// Kuratierte Konto-Akzentfarben (Modul-Tokens). Leerer Wert = Modul-Akzent (Teal).
+const ACCOUNT_COLORS = ['#0F766E', '#2563EB', '#7C3AED', '#DB2777', '#C2410C', '#15803D', '#A16207', '#0969DA'];
+
+function accountTypeLabel(type) {
+  return t(`budget.accountType_${ACCOUNT_TYPES.includes(type) ? type : 'other'}`);
+}
+
+// Akzentfarbe eines Kontos für die Kachel; Fallback auf den Modul-Akzent.
+function accountAccent(color) {
+  return esc(color) || 'var(--module-accent)';
+}
+
+function accountName(id) {
+  if (id == null) return '';
+  return state.accounts.find((a) => a.id === id)?.name || '';
+}
+
+// --------------------------------------------------------
 // State
 // --------------------------------------------------------
 
@@ -110,6 +154,10 @@ let state = {
   summary:     null,
   prevSummary: null, // Vormonat für Monatsvergleich
   loans:       { loans: [], summary: { active_count: 0, remaining_amount: 0, remaining_installments: 0 } },
+  accounts:    [],
+  netWorth:    0,
+  accountFilterId: null,      // aktiver Konto-Filter für die Transaktionsliste (Drilldown)
+  accountsShowArchived: false,
   activeTab:   'budget',
   loanFilterId: null,
   loanStatusFilter: 'active',
@@ -118,6 +166,7 @@ let state = {
 };
 let _container = null;
 let _user = null;
+let _tablist = null;   // wireTablist-Handle: erlaubt programmatische Tab-Wechsel (sync)
 
 // --------------------------------------------------------
 // Formatierung
@@ -149,9 +198,11 @@ function setHtml(element, html) {
 
 async function loadMonth(month) {
   const prevMonth = addMonths(month, -1);
+  // Konto-Drilldown: Transaktionsliste optional auf ein Konto filtern.
+  const accountQuery = state.accountFilterId ? `&account_id=${state.accountFilterId}` : '';
   try {
     const [entriesRes, summaryRes, prevSummaryRes, loansRes] = await Promise.all([
-      api.get(`/budget?month=${month}`),
+      api.get(`/budget?month=${month}${accountQuery}`),
       api.get(`/budget/summary?month=${month}`),
       api.get(`/budget/summary?month=${prevMonth}`),
       api.get('/budget/loans'),
@@ -168,7 +219,21 @@ async function loadMonth(month) {
     state.summary     = { income: 0, expenses: 0, balance: 0, byCategory: [] };
     state.prevSummary = null;
     state.loans       = { loans: [], summary: { active_count: 0, remaining_amount: 0, remaining_installments: 0 } };
-    window.oikos?.showToast(t('budget.loadError'), 'danger');
+    window.yuvomi?.showToast(t('budget.loadError'), 'danger');
+  }
+}
+
+async function loadAccounts() {
+  try {
+    // Immer inkl. archivierter Konten laden: für die Namensauflösung in der
+    // Transaktionsliste (ein Eintrag kann einem archivierten Konto gehören) und
+    // den optionalen „Archivierte anzeigen"-Modus. net_worth ignoriert archivierte
+    // serverseitig; die Kachel-Liste filtert clientseitig.
+    const res = await api.get('/budget/accounts?include_archived=1');
+    state.accounts = res.data?.accounts ?? [];
+    state.netWorth = res.data?.net_worth ?? 0;
+  } catch (err) {
+    console.error('[Budget] loadAccounts Fehler:', err);
   }
 }
 
@@ -183,7 +248,7 @@ async function loadBudgetMeta() {
   } catch (err) {
     console.error('[Budget] meta Fehler:', err);
     state.meta = { expenseCategories: [], incomeCategories: [], expenseSubcategories: {} };
-    window.oikos?.showToast(t('budget.metaLoadError'), 'danger');
+    window.yuvomi?.showToast(t('budget.metaLoadError'), 'danger');
   }
 }
 
@@ -210,34 +275,42 @@ export async function render(container, { user }) {
 
   setHtml(container, `
     <div class="budget-page">
-      <h1 class="sr-only">${t('budget.title')}</h1>
-      <div class="budget-nav">
-        <button class="btn btn--icon" id="budget-prev" aria-label="${t('budget.prevMonth')}">
-          <i data-lucide="chevron-left" aria-hidden="true"></i>
-        </button>
-        <button class="budget-nav__today" id="budget-today">${t('budget.currentMonth')}</button>
-        <span class="budget-nav__label" id="budget-label"></span>
-        <div class="budget-tabs" role="tablist" aria-label="${t('budget.tabsLabel')}">
-          ${user?.access_scope === 'split_guest' ? '' : `
-          <button class="budget-tab" id="budget-tab-budget" type="button" role="tab" aria-selected="true" data-tab="budget">
-            ${t('budget.budgetTab')}
+      <div class="page-toolbar page-toolbar--wrap budget-nav">
+        <h1 class="page-toolbar__title">${t('budget.title')}</h1>
+        <div class="page-toolbar__center budget-nav__month">
+          <button class="btn btn--icon" id="budget-prev" aria-label="${t('budget.prevMonth')}">
+            <i data-lucide="chevron-left" aria-hidden="true"></i>
           </button>
-          <button class="budget-tab" id="budget-tab-loans" type="button" role="tab" aria-selected="false" data-tab="loans">
-            ${t('budget.loansTab')}
-          </button>`}
-          <button class="budget-tab" id="budget-tab-split-expenses" type="button" role="tab" aria-selected="false" data-tab="split-expenses">
-            ${t('splitExpenses.tabLabel')}
+          <button class="budget-nav__today" id="budget-today">${t('budget.currentMonth')}</button>
+          <span class="budget-nav__label" id="budget-label"></span>
+          <button class="btn btn--icon" id="budget-next" aria-label="${t('budget.nextMonth')}">
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
           </button>
         </div>
-        <button class="btn btn--primary btn--icon toolbar-new-btn" id="budget-add" aria-label="${t('budget.addEntryLabel')}">
-          <i data-lucide="plus" aria-hidden="true"></i>
-        </button>
-        <button class="btn btn--icon" id="budget-next" aria-label="${t('budget.nextMonth')}">
-          <i data-lucide="chevron-right" aria-hidden="true"></i>
-        </button>
+        <div class="page-toolbar__actions">
+          <div class="budget-tabs" role="tablist" aria-label="${t('budget.tabsLabel')}">
+            ${[
+              ...(user?.access_scope === 'split_guest' ? [] : [
+                ['budget',        t('budget.budgetTab')],
+                ['accounts',      t('budget.accountsTab')],
+                ['plan',          t('budget.planTab')],
+                ['subscriptions', t('subscriptions.tabLabel')],
+                ['loans',         t('budget.loansTab')],
+                ['reports',       t('budget.reportsTab')],
+              ]),
+              ['split-expenses',  t('splitExpenses.tabLabel')],
+            ].map(([id, label]) => {
+              const on = id === state.activeTab;
+              return `<button class="sub-tab${on ? ' sub-tab--active' : ''}" id="budget-tab-${id}" type="button" role="tab" data-tab-id="${id}" aria-controls="budget-body" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}"><span class="sub-tab__label">${label}</span></button>`;
+            }).join('')}
+          </div>
+          <button class="btn btn--primary btn--icon toolbar-new-btn" id="budget-add" aria-label="${t('budget.addEntryLabel')}">
+            <i data-lucide="plus" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
-      <div id="budget-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-        <div style="padding:2rem;text-align:center;color:var(--color-text-disabled);">${t('budget.loadingIndicator')}</div>
+      <div id="budget-body" role="tabpanel" tabindex="0" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+        ${renderSkeletonList({ rows: 6, lines: 2 })}
       </div>
       <button class="page-fab" id="fab-new-budget" aria-label="${t('budget.newEntryFabLabel')}">
         <i data-lucide="plus" class="icon-xl" aria-hidden="true"></i>
@@ -248,7 +321,9 @@ export async function render(container, { user }) {
   if (window.lucide) lucide.createIcons({ el: container });
 
   if (user?.access_scope !== 'split_guest') {
-    await loadMonth(state.month);
+    // Konten einmalig beim Mount laden (Salden sind monatsunabhängig; kein
+    // Nachladen pro Monatswechsel). Namensliste versorgt die Transaktions-Meta.
+    await Promise.all([loadMonth(state.month), loadAccounts()]);
   } else {
     state.summary = { income: 0, expenses: 0, balance: 0, byCategory: [] };
     state.prevSummary = null;
@@ -286,22 +361,58 @@ function wireNav() {
       _container.querySelector('#split-add-expense')?.click();
       return;
     }
+    if (state.activeTab === 'subscriptions') {
+      openSubscriptionModal();
+      return;
+    }
+    if (state.activeTab === 'plan') {
+      _container.querySelector('#budget-plan-add')?.click();
+      return;
+    }
+    if (state.activeTab === 'accounts') {
+      openAccountModal();
+      return;
+    }
     openBudgetModal({ mode: 'create' });
   };
   _container.querySelector('#budget-add').addEventListener('click', addHandler);
   _container.querySelector('#fab-new-budget').addEventListener('click', addHandler);
-  _container.querySelectorAll('.budget-tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      state.activeTab = tab.dataset.tab;
+  // Geteilte Tablist-Verhaltensschicht (Klick + Pfeiltasten/Home/End + Roving-
+  // Tabindex + ARIA) — dieselbe Grammatik wie Rewards/Haushaltshilfe statt einer
+  // modul-eigenen Nachbildung (utils/tablist.js). wireTablist malt den aktiven
+  // Tab (sub-tab--active/aria/tabindex); renderBody übernimmt nur noch den Inhalt.
+  _tablist = wireTablist(_container.querySelector('.budget-tabs'), {
+    activeId: state.activeTab,
+    onChange: (id) => {
+      state.activeTab = id;
       renderBody();
-    });
+    },
   });
+  // Edge-Fade live nachführen, während der Nutzer die Tab-Leiste scrollt.
+  // (Re-Render ruft updateTabsFade ohnehin auf; daher kein window-resize-
+  // Listener, der bei Re-Navigation lecken würde.) Aktiven Tab in Sicht holen.
+  const tabsEl = _container.querySelector('.budget-tabs');
+  tabsEl?.addEventListener('scroll', updateTabsFade, { passive: true });
+  _container.querySelector('.sub-tab--active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   updateLabel();
 }
 
 function updateLabel() {
   const lbl = _container.querySelector('#budget-label');
   if (lbl) lbl.textContent = formatMonthLabel(state.month);
+}
+
+// Scroll-Affordance der Tab-Leiste: Rand ausblenden, solange auf der Seite
+// weitere Tabs verborgen sind (Mobil; auf Desktop passen alle → keine Maske).
+function updateTabsFade() {
+  const el = _container?.querySelector('.budget-tabs');
+  if (!el) return;
+  // Epsilon > Scroll-Snap/Padding-Ruhelage (~2px), sonst flackert der Rand-Fade
+  // schon bei minimalem Offset am Anfang/Ende.
+  const eps = 8;
+  const max = el.scrollWidth - el.clientWidth;
+  el.classList.toggle('has-fade-start', el.scrollLeft > eps);
+  el.classList.toggle('has-fade-end', el.scrollLeft < max - eps);
 }
 
 // --------------------------------------------------------
@@ -316,10 +427,45 @@ function renderBody() {
   const s    = state.summary;
   const p    = state.prevSummary;
   updateTabs();
+  if (state.activeTab === 'reports') {
+    setHtml(body, '<div class="budget-tab-panel budget-tab-panel--reports" id="budget-reports-panel"></div>');
+    renderStats(body.querySelector('#budget-reports-panel'), {
+      user: _user, currency: state.currency,
+      formatAmount, categoryLabel, esc,
+    }).catch((err) => console.error('[Budget] stats render error:', err));
+    return;
+  }
+  if (state.activeTab === 'plan') {
+    setHtml(body, '<div class="budget-tab-panel budget-tab-panel--plan" id="budget-plan-panel"></div>');
+    renderPlans(body.querySelector('#budget-plan-panel'), {
+      user: _user, currency: state.currency, month: state.month,
+      formatAmount, categoryLabel, esc,
+      expenseCategories: expenseCategories(),
+    }).catch((err) => console.error('[Budget] plans render error:', err));
+    return;
+  }
   if (state.activeTab === 'loans') {
     setHtml(body, renderLoansPage());
     wireLoansPage();
     if (window.lucide) lucide.createIcons({ el: body });
+    return;
+  }
+  if (state.activeTab === 'accounts') {
+    const paint = () => {
+      setHtml(body, renderAccountsPage());
+      wireAccountsPage();
+      if (window.lucide) lucide.createIcons({ el: body });
+    };
+    paint(); // sofort aus dem State (beim Mount geladen)
+    // Salden nach zwischenzeitlichen Einträgen frisch ziehen, ohne den Wechsel zu blockieren.
+    loadAccounts().then(() => { if (state.activeTab === 'accounts') paint(); });
+    return;
+  }
+  if (state.activeTab === 'subscriptions') {
+    setHtml(body, '<div class="budget-tab-panel budget-tab-panel--subscriptions" id="budget-subscriptions-panel"></div>');
+    renderSubscriptions(body.querySelector('#budget-subscriptions-panel'), { user: _user }).catch((err) => {
+      console.error('[Budget] subscriptions render error:', err);
+    });
     return;
   }
   if (state.activeTab === 'split-expenses') {
@@ -371,12 +517,22 @@ function renderBody() {
       <div class="budget-list-header">
         <div>
           <span class="budget-list-header__title">${t('budget.transactions')}</span>
+          ${state.accountFilterId ? `
+          <button class="budget-account-chip" id="budget-clear-account-filter" type="button"
+                  aria-label="${t('budget.clearAccountFilter')}">
+            <i data-lucide="wallet" class="icon-xs" aria-hidden="true"></i>
+            <span>${esc(accountName(state.accountFilterId))}</span>
+            <i data-lucide="x" class="icon-xs" aria-hidden="true"></i>
+          </button>` : ''}
         </div>
         <div class="budget-list-header__actions">
+        <button class="btn btn--icon btn--ghost" id="budget-manage-categories"
+          aria-label="${t('budget.manageCategories')}" title="${t('budget.manageCategories')}">
+          <i data-lucide="tags" class="icon-md" aria-hidden="true"></i>
+        </button>
         ${state.entries.length ? `
-        <a href="/api/v1/budget/export?month=${state.month}" class="btn btn--secondary"
-           style="font-size:var(--text-sm);padding:var(--space-1) var(--space-3);">
-          <i data-lucide="download" style="width:14px;height:14px;margin-right:4px;" aria-hidden="true"></i>CSV
+        <a href="/api/v1/budget/export?month=${state.month}" class="btn btn--secondary budget-csv-export">
+          <i data-lucide="download" class="icon-sm" aria-hidden="true"></i>CSV
         </a>` : ''}
         </div>
       </div>
@@ -390,6 +546,12 @@ function renderBody() {
   if (window.lucide) lucide.createIcons({ el: body });
   _container.querySelector('#empty-cta-budget')?.addEventListener('click', () => {
     document.querySelector('.page-fab')?.click();
+  });
+  _container.querySelector('#budget-manage-categories')?.addEventListener('click', openCategoryManager);
+  _container.querySelector('#budget-clear-account-filter')?.addEventListener('click', async () => {
+    state.accountFilterId = null;
+    await loadMonth(state.month);
+    renderBody();
   });
   stagger(_container.querySelector('#budget-list')?.querySelectorAll('.budget-entry') ?? []);
 
@@ -408,25 +570,32 @@ function renderBody() {
 function updateTabs() {
   _container.classList.toggle('budget-page--split-active', state.activeTab === 'split-expenses' || _user?.access_scope === 'split_guest');
   _container.classList.toggle('budget-page--loans-active', state.activeTab === 'loans');
-  _container.querySelectorAll('.budget-tab').forEach((tab) => {
-    const active = tab.dataset.tab === state.activeTab;
-    tab.classList.toggle('budget-tab--active', active);
-    tab.setAttribute('aria-selected', String(active));
-  });
+  _container.classList.toggle('budget-page--subscriptions-active', state.activeTab === 'subscriptions');
+  // Tab-Optik (aktive Pille, aria-selected, Roving-Tabindex) trägt jetzt
+  // wireTablist; hier bleiben nur Panel-Verknüpfung und Scroll-Fade.
+  const panel = _container.querySelector('#budget-body');
+  if (panel) panel.setAttribute('aria-labelledby', `budget-tab-${state.activeTab}`);
+  updateTabsFade();
   const splitActive = state.activeTab === 'split-expenses' || _user?.access_scope === 'split_guest';
   const loansActive = state.activeTab === 'loans';
+  const subscriptionsActive = state.activeTab === 'subscriptions';
+  const reportsActive = state.activeTab === 'reports';
+  const accountsActive = state.activeTab === 'accounts';
   ['#budget-today', '#budget-label', '#budget-add'].forEach((selector) => {
     const el = _container.querySelector(selector);
-    if (el) el.hidden = splitActive;
+    if (el) el.hidden = splitActive || subscriptionsActive || reportsActive || accountsActive;
   });
   ['#budget-prev', '#budget-next'].forEach((selector) => {
     const el = _container.querySelector(selector);
-    if (el) el.hidden = splitActive || loansActive;
+    if (el) el.hidden = splitActive || loansActive || subscriptionsActive || reportsActive || accountsActive;
   });
   const fab = _container.querySelector('#fab-new-budget');
   if (fab) {
     fab.hidden = false;
-    fab.setAttribute('aria-label', splitActive ? t('splitExpenses.addExpense') : t('budget.newEntryFabLabel'));
+    fab.setAttribute('aria-label', splitActive
+      ? t('splitExpenses.addExpense')
+      : subscriptionsActive ? t('subscriptions.add')
+      : accountsActive ? t('budget.addAccount') : t('budget.newEntryFabLabel'));
   }
 }
 
@@ -456,10 +625,10 @@ function renderCategoryBars(byCategory) {
       <div class="budget-bar-row">
         <div class="budget-bar-row__label" title="${esc(categoryLabel(c.category))}">${esc(categoryLabel(c.category))}</div>
         <div class="budget-bar-row__track">
-          <div class="budget-bar-row__fill ${cls}" style="width:${pct}%;"></div>
+          <div class="budget-bar-row__fill ${cls}" style="--bar-scale:${pct / 100}"></div>
         </div>
         <div class="budget-bar-row__amount" style="color:${isExpense ? 'var(--color-danger)' : 'var(--color-success)'};">
-          ${formatAmount(c.total)}
+          ${isExpense ? '' : '+'}${formatAmount(c.total)}
         </div>
       </div>
     `;
@@ -490,26 +659,266 @@ function renderEntries() {
     const sign      = isIncome ? '+' : '';
     const date      = formatEntryDate(e.date);
     const recurTag  = e.is_recurring
-      ? ` 🔁${e.recurrence_virtual ? ' ' + t('budget.virtualBudgetBadge') : ''}`
-      : (e.recurrence_parent_id ? ' ↩' : '');
+      ? ` <span class="budget-recur-mark" role="img" aria-label="${t('budget.recurringLabel')}"><i data-lucide="repeat" class="icon-xs" aria-hidden="true"></i></span>${e.recurrence_virtual ? ' ' + t('budget.virtualBudgetBadge') : ''}`
+      : (e.recurrence_parent_id ? ` <span class="budget-recur-mark" role="img" aria-label="${t('budget.recurringInstanceLabel')}"><i data-lucide="corner-down-left" class="icon-xs" aria-hidden="true"></i></span>` : '');
     const categoryMeta = isIncome || !e.subcategory
       ? categoryLabel(e.category)
       : `${categoryLabel(e.category)} · ${subcategoryLabel(e.subcategory)}`;
+    const acctName = accountName(e.account_id);
+    const acctMeta = acctName
+      ? ` · <span class="budget-entry__account"><i data-lucide="wallet" class="icon-xs" aria-hidden="true"></i>${esc(acctName)}</span>`
+      : '';
 
     return `
       <div class="budget-entry" data-id="${e.id}">
         <div class="budget-entry__indicator ${indClass}"></div>
         <div class="budget-entry__body">
           <div class="budget-entry__title">${esc(e.title)}</div>
-          <div class="budget-entry__meta">${date} · ${esc(categoryMeta)}${recurTag}</div>
+          <div class="budget-entry__meta">${date} · ${esc(categoryMeta)}${acctMeta}${recurTag}</div>
         </div>
         <div class="budget-entry__amount ${amtClass}">${sign}${formatAmount(e.amount)}</div>
-        <button class="budget-entry__delete" data-action="delete" data-id="${e.id}" aria-label="${t('budget.deleteLabel')}">
+        <button class="row-action row-action--danger" data-action="delete" data-id="${e.id}" aria-label="${t('budget.deleteLabel')}">
           <i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i>
         </button>
       </div>
     `;
   }).join('');
+}
+
+function renderAccountsPage() {
+  const all = state.accounts ?? [];
+  const hasArchived = all.some((a) => a.archived);
+  const visible = all.filter((a) => state.accountsShowArchived || !a.archived);
+  const netClass = state.netWorth >= 0 ? 'budget-networth--positive' : 'budget-networth--negative';
+
+  const archiveToggle = hasArchived ? `
+      <button class="budget-accounts__toggle" id="budget-toggle-archived" type="button" aria-pressed="${state.accountsShowArchived}">
+        <i data-lucide="${state.accountsShowArchived ? 'eye-off' : 'archive'}" class="icon-xs" aria-hidden="true"></i>
+        ${state.accountsShowArchived ? t('budget.hideArchivedAccounts') : t('budget.showArchivedAccounts')}
+      </button>` : '';
+
+  const header = `
+    <div class="budget-accounts__header">
+      <div class="budget-networth ${netClass}">
+        <span class="budget-networth__label">${t('budget.netWorth')}</span>
+        <span class="budget-networth__amount">${formatAmount(state.netWorth)}</span>
+      </div>
+      <div class="budget-accounts__header-actions">
+        ${archiveToggle}
+        <button class="btn btn--secondary" id="budget-add-account" type="button">
+          <i data-lucide="plus" class="icon-sm" aria-hidden="true"></i>${t('budget.addAccount')}
+        </button>
+      </div>
+    </div>`;
+
+  if (!all.length) {
+    return `
+      <div class="budget-tab-panel budget-tab-panel--accounts">
+        ${header}
+        <div class="empty-state">
+          <i data-lucide="wallet" class="empty-state__icon" aria-hidden="true"></i>
+          <div class="empty-state__title">${t('budget.accountsEmptyTitle')}</div>
+          <div class="empty-state__description">${t('budget.accountsEmptyDescription')}</div>
+          <button class="btn btn--primary empty-state__cta" id="budget-add-account-empty" type="button">
+            <i data-lucide="plus" aria-hidden="true" class="icon-md"></i>${t('budget.addAccount')}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  const cards = visible.map((a) => {
+    const balClass = a.current_balance >= 0 ? 'budget-account__balance--positive' : 'budget-account__balance--negative';
+    const icon = ACCOUNT_TYPE_ICONS[a.type] || ACCOUNT_TYPE_ICONS.other;
+    const archivedBadge = a.archived
+      ? `<span class="budget-account__badge">${t('budget.archivedBadge')}</span>`
+      : '';
+    return `
+      <div class="budget-account ${a.archived ? 'budget-account--archived' : ''}" style="--account-accent:${accountAccent(a.color)}">
+        <button class="budget-account__main" type="button" data-drill="${a.id}"
+                aria-label="${t('budget.viewAccountTransactions', { name: a.name })} · ${t('budget.currentBalance')} ${formatAmount(a.current_balance)}">
+          <span class="budget-account__icon"><i data-lucide="${icon}" class="icon-md" aria-hidden="true"></i></span>
+          <span class="budget-account__body">
+            <span class="budget-account__name"><span class="budget-account__name-text">${esc(a.name)}</span>${archivedBadge}</span>
+            <span class="budget-account__type">${esc(accountTypeLabel(a.type))}</span>
+          </span>
+          <span class="budget-account__figures">
+            <span class="budget-account__balance ${balClass}">${formatAmount(a.current_balance)}</span>
+            <span class="budget-account__starting">${t('budget.startingBalanceShort')} ${formatAmount(a.starting_balance)}</span>
+          </span>
+          <i data-lucide="chevron-right" class="budget-account__chevron icon-sm" aria-hidden="true"></i>
+        </button>
+        <button class="budget-account__edit" type="button" data-edit="${a.id}" aria-label="${t('budget.editAccount')}">
+          <i data-lucide="pencil" class="icon-sm" aria-hidden="true"></i>
+        </button>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="budget-tab-panel budget-tab-panel--accounts">
+      ${header}
+      <div class="budget-accounts__list">${cards}</div>
+    </div>`;
+}
+
+function wireAccountsPage() {
+  _container.querySelector('#budget-add-account')?.addEventListener('click', () => openAccountModal());
+  _container.querySelector('#budget-add-account-empty')?.addEventListener('click', () => openAccountModal());
+  _container.querySelector('#budget-toggle-archived')?.addEventListener('click', () => {
+    state.accountsShowArchived = !state.accountsShowArchived;
+    renderBody();
+  });
+  // Zeilen-Klick öffnet den Kontoauszug (Drilldown-Filter), das Stift-Icon bearbeitet.
+  _container.querySelectorAll('.budget-account__main[data-drill]').forEach((el) => {
+    el.addEventListener('click', async () => {
+      state.accountFilterId = parseInt(el.dataset.drill, 10);
+      state.activeTab = 'budget';
+      // Aktive Pille mitziehen: dieser Wechsel läuft nicht über die Tab-Leiste,
+      // daher malt wireTablist ihn nur über sync() nach (updateTabs tut es nicht mehr).
+      _tablist?.sync('budget');
+      await loadMonth(state.month);
+      renderBody();
+    });
+  });
+  _container.querySelectorAll('.budget-account__edit[data-edit]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const account = state.accounts.find((a) => a.id === parseInt(el.dataset.edit, 10));
+      if (account) openAccountModal(account);
+    });
+  });
+}
+
+function openAccountModal(account = null) {
+  const isEdit = !!account;
+  const typeOpts = ACCOUNT_TYPES.map((key) =>
+    `<option value="${key}" ${isEdit && account.type === key ? 'selected' : ''}>${esc(accountTypeLabel(key))}</option>`
+  ).join('');
+
+  const currentColor = isEdit ? (account.color || '') : '';
+  const swatch = (value, styleColor, label) =>
+    `<button type="button" class="budget-color-swatch ${currentColor === value ? 'is-active' : ''}"
+             data-color="${value}" style="--swatch:${styleColor}" aria-label="${label}" aria-pressed="${currentColor === value}"></button>`;
+  const colorSwatches = swatch('', 'var(--module-accent)', t('budget.accountColorDefault'))
+    + ACCOUNT_COLORS.map((c) => swatch(c, c, c)).join('');
+
+  const content = `
+    <div class="form-group">
+      <label class="form-label" for="am-name">${t('budget.accountNameLabel')}<span class="required-marker" aria-hidden="true"> *</span></label>
+      <input type="text" class="form-input" id="am-name" maxlength="100"
+             placeholder="${t('budget.accountNamePlaceholder')}" value="${esc(isEdit ? account.name : '')}">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="am-type">${t('budget.accountTypeLabel')}</label>
+      <select class="form-input" id="am-type">${typeOpts}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="am-balance">${t('budget.startingBalanceLabel')}</label>
+      <input type="number" class="form-input" id="am-balance" step="0.01" inputmode="decimal"
+             placeholder="0.00" value="${isEdit ? account.starting_balance : ''}">
+      <p class="form-hint">${t('budget.startingBalanceHint')}</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">${t('budget.accountColorLabel')}</label>
+      <div class="budget-color-picker" id="am-color" role="group" aria-label="${t('budget.accountColorLabel')}">${colorSwatches}</div>
+    </div>
+
+    <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
+      <div style="display:flex;gap:var(--space-2)">
+      ${isEdit ? `<button class="btn btn--danger btn--icon" id="am-delete" aria-label="${t('budget.deleteAccount')}">
+        <i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i>
+      </button>
+      <button class="btn btn--secondary btn--icon" id="am-archive"
+              aria-label="${account.archived ? t('budget.unarchiveAccount') : t('budget.archiveAccount')}"
+              title="${account.archived ? t('budget.unarchiveAccount') : t('budget.archiveAccount')}">
+        <i data-lucide="${account.archived ? 'archive-restore' : 'archive'}" class="icon-md" aria-hidden="true"></i>
+      </button>` : '<div></div>'}
+      </div>
+      <div style="display:flex;gap:var(--space-3)">
+        <button class="btn btn--secondary" id="am-cancel">${t('common.cancel')}</button>
+        <button class="btn btn--primary" id="am-save">${isEdit ? t('common.save') : t('common.add')}</button>
+      </div>
+    </div>`;
+
+  openSharedModal({
+    title: isEdit ? t('budget.editAccount') : t('budget.newAccount'),
+    content,
+    size: 'sm',
+    onSave(panel) {
+      let selectedColor = currentColor;
+      const colorPicker = panel.querySelector('#am-color');
+      colorPicker?.querySelectorAll('.budget-color-swatch').forEach((sw) => {
+        sw.addEventListener('click', () => {
+          selectedColor = sw.dataset.color;
+          colorPicker.querySelectorAll('.budget-color-swatch').forEach((o) => {
+            const active = o === sw;
+            o.classList.toggle('is-active', active);
+            o.setAttribute('aria-pressed', String(active));
+          });
+        });
+      });
+
+      panel.querySelector('#am-cancel').addEventListener('click', closeModal);
+
+      panel.querySelector('#am-archive')?.addEventListener('click', async () => {
+        const nextArchived = !account.archived;
+        try {
+          await api.put(`/budget/accounts/${account.id}`, { archived: nextArchived });
+          closeModal({ force: true });
+          await loadAccounts();
+          renderBody();
+          window.yuvomi?.showToast(nextArchived ? t('budget.accountArchivedToast') : t('budget.accountRestoredToast'), 'success');
+        } catch (err) {
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+        }
+      });
+
+      panel.querySelector('#am-delete')?.addEventListener('click', async () => {
+        const ok = await confirmModal(
+          t('budget.deleteAccountConfirm', { name: account.name }),
+          { confirmLabel: t('common.delete'), danger: true },
+        );
+        if (!ok) return;
+        try {
+          await api.delete(`/budget/accounts/${account.id}`);
+          closeModal({ force: true });
+          await loadMonth(state.month);
+          renderBody();
+          window.yuvomi?.showToast(t('budget.accountDeletedToast'), 'success');
+        } catch (err) {
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+        }
+      });
+
+      panel.querySelector('#am-save').addEventListener('click', async () => {
+        const saveBtn = panel.querySelector('#am-save');
+        const name    = panel.querySelector('#am-name').value.trim();
+        const type    = panel.querySelector('#am-type').value;
+        const rawBal  = panel.querySelector('#am-balance').value;
+        const startingBalance = rawBal === '' ? 0 : parseFloat(rawBal);
+
+        if (!name) { window.yuvomi?.showToast(t('common.titleRequired'), 'error'); return; }
+        if (isNaN(startingBalance)) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = '…';
+        try {
+          const body = { name, type, starting_balance: startingBalance, color: selectedColor || null };
+          if (isEdit) {
+            await api.put(`/budget/accounts/${account.id}`, body);
+          } else {
+            await api.post('/budget/accounts', body);
+          }
+          closeModal({ force: true });
+          await loadAccounts();
+          renderBody();
+          window.yuvomi?.showToast(isEdit ? t('budget.accountSavedToast') : t('budget.accountAddedToast'), 'success');
+        } catch (err) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = isEdit ? t('common.save') : t('common.add');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+        }
+      });
+    },
+  });
 }
 
 function renderLoansDashboard() {
@@ -629,12 +1038,12 @@ function renderLoanPaymentEntry(loan, payment) {
         <div class="budget-entry__meta">${meta}</div>
       </div>
       <div class="budget-entry__amount budget-entry__amount--income">+${formatAmount(payment.amount)}</div>
-      <div class="budget-entry__actions">
+      <div class="row-actions">
         ${entry ? `
-        <button class="budget-entry__delete" data-action="loan-payment-edit" data-loan-id="${loan.id}" data-payment-id="${payment.id}" data-entry-id="${entry.id}" aria-label="${t('common.edit')}">
+        <button class="row-action" data-action="loan-payment-edit" data-loan-id="${loan.id}" data-payment-id="${payment.id}" data-entry-id="${entry.id}" aria-label="${t('common.edit')}">
           <i data-lucide="pencil" class="icon-md" aria-hidden="true"></i>
         </button>` : ''}
-        <button class="budget-entry__delete" data-action="loan-payment-delete" data-loan-id="${loan.id}" data-payment-id="${payment.id}" data-entry-id="${entry?.id ?? ''}" aria-label="${t('budget.deleteLabel')}">
+        <button class="row-action row-action--danger" data-action="loan-payment-delete" data-loan-id="${loan.id}" data-payment-id="${payment.id}" data-entry-id="${entry?.id ?? ''}" aria-label="${t('budget.deleteLabel')}">
           <i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i>
         </button>
       </div>
@@ -795,8 +1204,10 @@ function renderLoanCard(loan) {
         <strong>${formatAmount(loan.remaining_amount)}</strong>
         <span>${t('budget.loanRemainingOf', { total: formatAmount(loan.total_amount) })}</span>
       </div>
-      <div class="budget-loan-card__progress" aria-label="${paidPct}%">
-        <span style="width:${paidPct}%"></span>
+      <div class="budget-loan-card__progress" role="progressbar"
+           aria-valuenow="${paidPct}" aria-valuemin="0" aria-valuemax="100"
+           aria-label="${t('budget.loanProgressLabel')}">
+        <span style="--bar-scale:${paidPct / 100}"></span>
       </div>
       <div class="budget-loan-card__footer">
         <span>${t('budget.loanNextDue', { month: nextDue })}</span>
@@ -846,6 +1257,35 @@ function formatEntryDate(dateStr) {
 // Modal
 // --------------------------------------------------------
 
+function openCategoryManager() {
+  let manager = null;
+  const onChanged = async () => {
+    await loadBudgetMeta();
+    renderBody();
+  };
+  openSharedModal({
+    title: t('budget.manageCategories'),
+    content: '<yuvomi-category-manager></yuvomi-category-manager>',
+    size: 'lg',
+    onSave: (panel) => {
+      manager = panel.querySelector('yuvomi-category-manager');
+      manager.addEventListener('category-manager-changed', onChanged);
+      manager.configure({
+        basePath: '/budget/categories',
+        groups: [
+          { key: 'expense', labelKey: 'budget.expenses', addLabelKey: 'budget.addCategory', subcategories: true },
+          { key: 'income',  labelKey: 'budget.income',   addLabelKey: 'budget.addCategory' },
+        ],
+        supportsSubcategories: true,
+        labelResolver: (item) => item.label ?? budgetCategoryLabel(item.key, item.name, t),
+        titleKey: 'budget.manageCategories',
+        hintKey: 'category.manageHint',
+      });
+    },
+    onClose: () => manager?.removeEventListener('category-manager-changed', onChanged),
+  });
+}
+
 function openBudgetModal({ mode, entry = null, initialType = '' }) {
   const isEdit = mode === 'edit';
   const today  = toLocalDateKey(new Date());
@@ -871,6 +1311,16 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
     `<option value="${esc(s.key)}" ${initialSubcategory === s.key ? 'selected' : ''}>${esc(subcategoryLabel(s))}</option>`
   ).join('');
 
+  const hasAccounts = (state.accounts?.length ?? 0) > 0;
+  const accountOpts = `<option value="">${t('budget.noAccount')}</option>` + (state.accounts ?? []).map((a) =>
+    `<option value="${a.id}" ${isEdit && entry.account_id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`
+  ).join('');
+  const accountField = hasAccounts ? `
+        <div class="form-group">
+          <label class="form-label" for="bm-account">${t('budget.accountLabel')}</label>
+          <select class="form-input" id="bm-account">${accountOpts}</select>
+        </div>` : '';
+
   const content = `
     <div class="amount-type-toggle ${isEdit ? 'amount-type-toggle--entry-only' : ''}">
       <button class="amount-type-btn amount-type-btn--expenses ${isExpense ? 'amount-type-btn--active' : ''}"
@@ -890,7 +1340,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
     <div class="form-group js-entry-field">
       <label class="form-label" for="bm-amount">${t('budget.amountLabel')}<span class="required-marker" aria-hidden="true"> *</span></label>
       <input type="number" class="form-input" id="bm-amount"
-             placeholder="${t('budget.amountPlaceholder')}" step="0.01" min="0"
+             placeholder="${t('budget.amountPlaceholder')}" step="0.01" min="0.01"
              inputmode="decimal" value="${absAmount}">
     </div>
 
@@ -902,41 +1352,46 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
       <select class="form-input" id="bm-category">${catOpts}</select>
     </div>
 
-    <div class="form-group js-entry-field" id="bm-subcategory-group" ${isExpense ? '' : 'hidden'}>
-      <div class="budget-field-header">
-        <label class="form-label" for="bm-subcategory">${t('budget.subcategoryLabel')}</label>
-        <button class="btn btn--secondary budget-inline-add" type="button" id="bm-add-subcategory">${t('budget.addSubcategory')}</button>
-      </div>
-      <select class="form-input" id="bm-subcategory">${subcatOpts}</select>
-    </div>
-
     <div class="form-group js-entry-field">
       <label class="form-label" for="bm-date">${t('budget.dateLabel')}</label>
-      <input type="date" class="form-input" id="bm-date"
-             value="${isEdit ? entry.date : today}">
+      <yuvomi-datepicker type="date" id="bm-date"
+             value="${isEdit ? entry.date : today}"></yuvomi-datepicker>
     </div>
 
-    <div class="form-group js-entry-field">
-      <label class="toggle">
-        <input type="checkbox" id="bm-recurring" ${isEdit && entry.is_recurring ? 'checked' : ''}>
-        <span class="toggle__track"></span>
-        <span>${t('budget.recurringLabel')}</span>
-      </label>
-    </div>
+    <div class="js-entry-field">
+      ${advancedSection(`
+        ${accountField}
+        <div class="form-group" id="bm-subcategory-group" ${isExpense ? '' : 'hidden'}>
+          <div class="budget-field-header">
+            <label class="form-label" for="bm-subcategory">${t('budget.subcategoryLabel')}</label>
+            <button class="btn btn--secondary budget-inline-add" type="button" id="bm-add-subcategory">${t('budget.addSubcategory')}</button>
+          </div>
+          <select class="form-input" id="bm-subcategory">${subcatOpts}</select>
+        </div>
 
-    <div class="form-group js-entry-field" id="bm-recurrence-options" ${isEdit && entry.is_recurring ? '' : 'hidden'}>
-      <label class="form-label" for="bm-interval">${t('budget.recurringIntervalLabel')}</label>
-      <select class="form-input" id="bm-interval">
-        ${intervalOption('monthly', 'budget.intervalMonthly')}
-        ${intervalOption('half_year', 'budget.intervalHalfYear')}
-        ${intervalOption('yearly', 'budget.intervalYearly')}
-      </select>
-      <label class="toggle" style="margin-top:var(--space-3)">
-        <input type="checkbox" id="bm-virtual" ${isEdit && entry.recurrence_virtual ? 'checked' : ''}>
-        <span class="toggle__track"></span>
-        <span>${t('budget.virtualBudgetLabel')}</span>
-      </label>
-      <p style="color:var(--color-text-secondary);font-size:var(--text-sm);margin-top:var(--space-1)">${t('budget.virtualBudgetHint')}</p>
+        <div class="form-group">
+          <label class="toggle">
+            <input type="checkbox" id="bm-recurring" ${isEdit && entry.is_recurring ? 'checked' : ''}>
+            <span class="toggle__track"></span>
+            <span>${t('budget.recurringLabel')}</span>
+          </label>
+        </div>
+
+        <div class="form-group" id="bm-recurrence-options" ${isEdit && entry.is_recurring ? '' : 'hidden'}>
+          <label class="form-label" for="bm-interval">${t('budget.recurringIntervalLabel')}</label>
+          <select class="form-input" id="bm-interval">
+            ${intervalOption('monthly', 'budget.intervalMonthly')}
+            ${intervalOption('half_year', 'budget.intervalHalfYear')}
+            ${intervalOption('yearly', 'budget.intervalYearly')}
+          </select>
+          <label class="toggle" style="margin-top:var(--space-3)">
+            <input type="checkbox" id="bm-virtual" ${isEdit && entry.recurrence_virtual ? 'checked' : ''}>
+            <span class="toggle__track"></span>
+            <span>${t('budget.virtualBudgetLabel')}</span>
+          </label>
+          <p style="color:var(--color-text-secondary);font-size:var(--text-sm);margin-top:var(--space-1)">${t('budget.virtualBudgetHint')}</p>
+        </div>`,
+        { open: isEdit && (entry.is_recurring || !!entry.subcategory || entry.account_id != null) })}
     </div>
 
     <div id="bm-loan-fields" hidden>
@@ -1052,9 +1507,9 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
           const res = await api.post('/budget/categories', { name: name.trim(), type: currentType });
           await loadBudgetMeta();
           updateCategoryOptions(res.data.key);
-          window.oikos?.showToast(t('budget.categoryAddedToast'), 'success');
+          window.yuvomi?.showToast(t('budget.categoryAddedToast'), 'success');
         } catch (err) {
-          window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
         }
       };
 
@@ -1072,9 +1527,9 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
           const res = await api.post(`/budget/categories/${encodeURIComponent(category)}/subcategories`, { name: name.trim() });
           await loadBudgetMeta();
           updateSubcategoryOptions(res.data.key);
-          window.oikos?.showToast(t('budget.subcategoryAddedToast'), 'success');
+          window.yuvomi?.showToast(t('budget.subcategoryAddedToast'), 'success');
         } catch (err) {
-          window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
         }
       };
 
@@ -1115,10 +1570,14 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
         const recurring  = panel.querySelector('#bm-recurring').checked ? 1 : 0;
         const interval   = panel.querySelector('#bm-interval').value;
         const virtual    = recurring && panel.querySelector('#bm-virtual').checked ? 1 : 0;
+        const accountSel = panel.querySelector('#bm-account');
+        // Konto-Feld erscheint nur, wenn Konten existieren. Fehlt es, bleibt die
+        // Zuordnung beim Bearbeiten unverändert (account_id nicht mitsenden).
+        const accountId  = accountSel ? (accountSel.value === '' ? null : parseInt(accountSel.value, 10)) : undefined;
 
-        if (!title)           { window.oikos?.showToast(t('common.titleRequired'), 'error'); return; }
-        if (isNaN(absVal) || absVal <= 0) { window.oikos?.showToast(t('budget.validAmountRequired'), 'error'); return; }
-        if (!date) { window.oikos?.showToast(t('calendar.invalidDate'), 'error'); return; }
+        if (!title)           { window.yuvomi?.showToast(t('common.titleRequired'), 'error'); return; }
+        if (isNaN(absVal) || absVal <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
+        if (!date) { window.yuvomi?.showToast(t('calendar.invalidDate'), 'error'); return; }
 
         const amount = currentType === 'expense' ? -absVal : absVal;
 
@@ -1127,21 +1586,47 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
 
         try {
           const body = { title, amount, category, subcategory, date, is_recurring: recurring, recurrence_interval: interval, recurrence_virtual: virtual };
+          if (accountId !== undefined) body.account_id = accountId;
           if (mode === 'create') {
             const res = await api.post('/budget', body);
             state.entries.unshift(res.data);
+            await loadMonth(state.month);
+            closeModal({ force: true });
+            renderBody();
+            window.yuvomi?.showToast(t('budget.addedToast'), 'success');
+          } else if (entry.recurrence_parent_id) {
+            // Kind-Instanz: Nutzer fragen, ob nur dieser oder alle zukünftigen
+            saveBtn.disabled = false;
+            saveBtn.textContent = t('common.save');
+            closeModal({ force: true });
+            const scope = await recurringChoiceModal({
+              title: t('budget.recurringSeriesScope'),
+              thisLabel: t('budget.recurringThisOnly'),
+              seriesLabel: t('budget.recurringEditSeries'),
+            });
+            if (scope === null) { openBudgetModal({ mode: 'edit', entry }); return; }
+            if (scope === 'series') {
+              await api.put(`/budget/${entry.id}/series`, body);
+              window.yuvomi?.showToast(t('budget.recurringSeriesSaved'), 'success');
+            } else {
+              const res = await api.put(`/budget/${entry.id}`, body);
+              const idx = state.entries.findIndex((e) => e.id === entry.id);
+              if (idx !== -1) state.entries[idx] = res.data;
+              window.yuvomi?.showToast(t('budget.savedToast'), 'success');
+            }
+            await loadMonth(state.month);
+            renderBody();
           } else {
             const res = await api.put(`/budget/${entry.id}`, body);
             const idx = state.entries.findIndex((e) => e.id === entry.id);
             if (idx !== -1) state.entries[idx] = res.data;
+            await loadMonth(state.month);
+            closeModal({ force: true });
+            renderBody();
+            window.yuvomi?.showToast(t('budget.savedToast'), 'success');
           }
-          await loadMonth(state.month);
-
-          closeModal({ force: true });
-          renderBody();
-          window.oikos?.showToast(mode === 'create' ? t('budget.addedToast') : t('budget.savedToast'), 'success');
         } catch (err) {
-          window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
           saveBtn.disabled    = false;
           saveBtn.textContent = isEdit ? t('common.save') : t('common.add');
         }
@@ -1204,10 +1689,10 @@ async function saveLoanFromPanel(panel, saveBtn, { loan = null, closeAfterSave =
   const start_month = panel.querySelector('#lm-start').value;
   const notes = panel.querySelector('#lm-notes').value.trim();
 
-  if (!borrower) { window.oikos?.showToast(t('budget.loanBorrowerRequired'), 'error'); return; }
-  if (isNaN(total_amount) || total_amount <= 0) { window.oikos?.showToast(t('budget.validAmountRequired'), 'error'); return; }
-  if (!Number.isInteger(installment_count) || installment_count < 1) { window.oikos?.showToast(t('budget.loanInstallmentsRequired'), 'error'); return; }
-  if (!/^\d{4}-\d{2}$/.test(start_month)) { window.oikos?.showToast(t('budget.loanStartMonthRequired'), 'error'); return; }
+  if (!borrower) { window.yuvomi?.showToast(t('budget.loanBorrowerRequired'), 'error'); return; }
+  if (isNaN(total_amount) || total_amount <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
+  if (!Number.isInteger(installment_count) || installment_count < 1) { window.yuvomi?.showToast(t('budget.loanInstallmentsRequired'), 'error'); return; }
+  if (!/^\d{4}-\d{2}$/.test(start_month)) { window.yuvomi?.showToast(t('budget.loanStartMonthRequired'), 'error'); return; }
 
   saveBtn.disabled = true;
   saveBtn.textContent = '...';
@@ -1221,9 +1706,9 @@ async function saveLoanFromPanel(panel, saveBtn, { loan = null, closeAfterSave =
     await loadMonth(state.month);
     if (closeAfterSave) closeModal({ force: true });
     renderBody();
-    window.oikos?.showToast(isEdit ? t('budget.loanSavedToast') : t('budget.loanAddedToast'), 'success');
+    window.yuvomi?.showToast(isEdit ? t('budget.loanSavedToast') : t('budget.loanAddedToast'), 'success');
   } catch (err) {
-    window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
     saveBtn.disabled = false;
     saveBtn.textContent = isEdit ? t('common.save') : t('budget.createLoan');
   }
@@ -1231,7 +1716,7 @@ async function saveLoanFromPanel(panel, saveBtn, { loan = null, closeAfterSave =
 
 function openLoanModal(loan = null) {
   const isEdit = Boolean(loan);
-  const todayMonth = new Date().toISOString().slice(0, 7);
+  const todayMonth = toLocalDateKey(new Date()).slice(0, 7);
   const content = `
     <div class="form-group">
       <label class="form-label" for="lm-borrower">${t('budget.loanBorrowerLabel')}</label>
@@ -1290,18 +1775,35 @@ async function markLoanPayment(id) {
   if (!loan?.next_installment_number) return;
   const today = toLocalDateKey(new Date());
   try {
-    await api.post(`/budget/loans/${id}/payments`, {
+    const res = await api.post(`/budget/loans/${id}/payments`, {
       installment_number: loan.next_installment_number,
       amount: loan.next_installment_number === loan.installment_count
         ? loan.remaining_amount
         : Math.min(loan.installment_amount, loan.remaining_amount),
       paid_date: today,
     });
+    const paymentId = res.data?.payment?.id;
     await loadMonth(state.month);
     renderBody();
-    window.oikos?.showToast(t('budget.loanPaymentAddedToast'), 'success');
+    vibrate(30);
+
+    // Undo wie bei Löschungen: die eine Geld-Aktion, die eine Verpflichtung
+    // *erzeugt*, bekommt dasselbe 5-Sekunden-Netz — Rücknahme löscht die Rate.
+    if (paymentId) {
+      window.yuvomi?.showToast(t('budget.loanPaymentAddedToast'), 'default', 5000, async () => {
+        try {
+          await api.delete(`/budget/loans/${id}/payments/${paymentId}`);
+          await loadMonth(state.month);
+          renderBody();
+        } catch (err) {
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+        }
+      });
+    } else {
+      window.yuvomi?.showToast(t('budget.loanPaymentAddedToast'), 'success');
+    }
   } catch (err) {
-    window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
   }
 }
 
@@ -1313,7 +1815,7 @@ async function deleteLoan(id) {
   renderBody();
 
   let undone = false;
-  window.oikos?.showToast(t('budget.loanDeletedToast'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('budget.loanDeletedToast'), 'default', 5000, () => {
     undone = true;
     state.loans.loans = [...state.loans.loans, loan];
     renderBody();
@@ -1328,7 +1830,7 @@ async function deleteLoan(id) {
     } catch (err) {
       state.loans.loans = [...state.loans.loans, loan];
       renderBody();
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
     }
   }, 5000);
 }
@@ -1343,7 +1845,7 @@ async function deleteLoanPayment(loanId, paymentId) {
   }
 
   let undone = false;
-  window.oikos?.showToast(t('budget.deletedToast'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('budget.deletedToast'), 'default', 5000, () => {
     undone = true;
     if (loan && payment) {
       loan.payments = [...(loan.payments || []), payment];
@@ -1362,7 +1864,7 @@ async function deleteLoanPayment(loanId, paymentId) {
         loan.payments = [...(loan.payments || []), payment];
         renderBody();
       }
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
 }
@@ -1373,12 +1875,24 @@ async function deleteLoanPayment(loanId, paymentId) {
 
 async function deleteEntry(id) {
   const entry = state.entries.find((e) => e.id === id);
+
+  if (entry && (entry.is_recurring || entry.recurrence_parent_id)) {
+    const scope = await recurringChoiceModal({
+      title: t('budget.recurringSeriesScope'),
+      thisLabel: t('budget.recurringThisOnly'),
+      seriesLabel: t('budget.recurringEntireSeries'),
+      seriesDanger: true,
+    });
+    if (scope === null) return;
+    if (scope === 'series') { await deleteEntrySeries(id); return; }
+  }
+
   state.entries = state.entries.filter((e) => e.id !== id);
   renderBody();
   vibrate([30, 50, 30]);
 
   let undone = false;
-  window.oikos?.showToast(t('budget.deletedToast'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('budget.deletedToast'), 'default', 5000, () => {
     undone = true;
     if (entry) {
       state.entries = [...state.entries, entry].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1397,7 +1911,7 @@ async function deleteEntry(id) {
         state.entries = [...state.entries, entry].sort((a, b) => new Date(b.date) - new Date(a.date));
         renderBody();
       }
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
 }
@@ -1405,3 +1919,59 @@ async function deleteEntry(id) {
 // --------------------------------------------------------
 // Hilfsfunktion
 // --------------------------------------------------------
+
+/**
+ * Zeigt ein Modal mit zwei Wahloptionen für wiederkehrende Einträge.
+ * Gibt 'this' | 'series' | null (abgebrochen) zurück.
+ */
+function recurringChoiceModal({ title, thisLabel, seriesLabel, seriesDanger = false }) {
+  return new Promise((resolve) => {
+    let resolved = false;
+    function finish(value) {
+      if (resolved) return;
+      resolved = true;
+      closeModal({ force: true });
+      resolve(value);
+    }
+    openSharedModal({
+      title,
+      size: 'sm',
+      content: `
+        <div class="modal-actions modal-actions--stack">
+          <button type="button" class="btn btn--secondary" id="rcs-this">${thisLabel}</button>
+          <button type="button" class="btn ${seriesDanger ? 'btn--danger' : 'btn--primary'}" id="rcs-series">${seriesLabel}</button>
+          <button type="button" class="btn btn--ghost" id="rcs-cancel">${t('common.cancel')}</button>
+        </div>`,
+      onClose: () => finish(null),
+      onSave(panel) {
+        panel.querySelector('#rcs-this')?.addEventListener('click', () => finish('this'));
+        panel.querySelector('#rcs-series')?.addEventListener('click', () => finish('series'));
+        panel.querySelector('#rcs-cancel')?.addEventListener('click', () => finish(null));
+      },
+    });
+  });
+}
+
+async function deleteEntrySeries(id) {
+  const entry = state.entries.find((e) => e.id === id);
+  const parentId = entry?.recurrence_parent_id ?? (entry?.is_recurring ? entry.id : id);
+  state.entries = state.entries.filter((e) => e.id !== parentId && e.recurrence_parent_id !== parentId);
+  renderBody();
+  vibrate([30, 50, 30]);
+
+  let undone = false;
+  window.yuvomi?.showToast(t('budget.recurringSeriesDeleted'), 'default', 5000, () => { undone = true; });
+
+  setTimeout(async () => {
+    if (undone) return;
+    try {
+      await api.delete(`/budget/${id}/series`);
+      await loadMonth(state.month);
+      renderBody();
+    } catch (err) {
+      await loadMonth(state.month);
+      renderBody();
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+    }
+  }, 5000);
+}

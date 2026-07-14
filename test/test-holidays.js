@@ -64,13 +64,21 @@ function makeApiMock() {
     const s = String(url);
     calls.push(s);
     const path = new URL(s).pathname;
+    const country = new URL(s).searchParams.get('countryIsoCode');
     if (path === '/PublicHolidays') {
+      if (country === 'BR') return okJson([]);
       return okJson([{ startDate: '2026-01-01', endDate: '2026-01-01',
         name: [{ language: 'DE', text: 'Neujahr' }, { language: 'EN', text: "New Year's Day" }] }]);
     }
     if (path === '/SchoolHolidays') {
-      return okJson([{ startDate: '2026-07-20', endDate: '2026-08-30',
-        name: [{ language: 'DE', text: 'Sommerferien' }, { language: 'EN', text: 'Summer break' }] }]);
+      return okJson([
+        { startDate: '2026-07-20', endDate: '2026-08-30',
+          name: [{ language: 'DE', text: 'Sommerferien' }, { language: 'EN', text: 'Summer break' }] },
+        // Sub-regionale Insel-Ausnahme (Sylt/Föhr/…): abweichendes Enddatum,
+        // von OpenHolidays mit "Exception" getaggt – muss verworfen werden (#434).
+        { startDate: '2026-07-20', endDate: '2026-08-23', tags: ['Exception'],
+          name: [{ language: 'DE', text: 'Sommerferien' }, { language: 'EN', text: 'Summer break' }] },
+      ]);
     }
     if (path === '/Countries') {
       return okJson([
@@ -91,6 +99,7 @@ function makeApiMock() {
 }
 
 const SYNC_YEAR_SPAN = 4; // currentYear-1 .. currentYear+2
+const BRAZIL_PUBLIC_HOLIDAYS_PER_YEAR = 10;
 
 beforeEach(() => { resetState(); __setFetchImpl(null); });
 
@@ -154,6 +163,48 @@ test('getForRange: subdivision – national + matching region shown, other regio
   assert.deepEqual(names, ['Bavaria only', 'National']);
 });
 
+test('getForRange: collapses identical holidays left over from an old scope – no duplicates (#434)', () => {
+  // Simuliert einen Alt-Cache aus der Zeit vor dem DELETE-all-Fix: derselbe
+  // Feiertag liegt sowohl im länderweiten (NULL-) als auch im heutigen
+  // Regions-Scope. Der Kalender darf ihn trotzdem nur einmal anzeigen.
+  setConfig({ holiday_country: 'DE', holiday_subdivision: 'DE-SH', holiday_show_public: '1' });
+  seedHoliday({ type: 'public', subdivision: null,    start: '2026-01-01', end: '2026-01-01', name: 'Neujahr' });
+  seedHoliday({ type: 'public', subdivision: 'DE-SH', start: '2026-01-01', end: '2026-01-01', name: 'Neujahr' });
+  seedHoliday({ type: 'public', subdivision: '',      start: '2026-01-01', end: '2026-01-01', name: 'Neujahr' });
+  const rows = getForRange('2026-01-01', '2026-12-31');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].name, 'Neujahr');
+});
+
+test('getForRange: collapses overlapping same-name school variants into one union span (#434, CH-BE)', () => {
+  // OpenHolidays liefert für Kanton Bern zwei "Sommerferien" mit abweichenden
+  // Terminen (deutsch- vs. französischsprachige Schulregion, groups CH-BE-VS/-EO).
+  // Kein "Exception"-Tag, unterschiedliche Daten → beide landen im Cache. Der
+  // Kalender darf trotzdem nur EINEN Balken zeigen: die Union-Spanne.
+  setConfig({ holiday_country: 'CH', holiday_subdivision: 'CH-BE', holiday_show_school: '1' });
+  seedHoliday({ type: 'school', country: 'CH', subdivision: 'CH-BE',
+    start: '2026-07-04', end: '2026-08-09', name: 'Sommerferien' });
+  seedHoliday({ type: 'school', country: 'CH', subdivision: 'CH-BE',
+    start: '2026-07-06', end: '2026-08-14', name: 'Sommerferien' });
+
+  const rows = getForRange('2026-07-01', '2026-08-31');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].name, 'Sommerferien');
+  assert.equal(rows[0].start_date, '2026-07-04'); // frühester Start
+  assert.equal(rows[0].end_date, '2026-08-14');   // spätestes Ende
+});
+
+test('getForRange: keeps non-overlapping same-name entries separate (movable days)', () => {
+  // Gleichnamige, aber zeitlich getrennte Einträge (z. B. mehrere bewegliche
+  // Ferientage) dürfen NICHT zu einer Monatsspanne verschmolzen werden.
+  setConfig({ holiday_country: 'CH', holiday_show_school: '1' });
+  seedHoliday({ type: 'school', country: 'CH', start: '2026-03-02', end: '2026-03-02', name: 'Ferientag' });
+  seedHoliday({ type: 'school', country: 'CH', start: '2026-06-15', end: '2026-06-15', name: 'Ferientag' });
+  const rows = getForRange('2026-01-01', '2026-12-31');
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((r) => r.start_date), ['2026-03-02', '2026-06-15']);
+});
+
 // ---- sync --------------------------------------------------------------------
 
 test('sync: no country → no fetch, synced 0', async () => {
@@ -178,7 +229,7 @@ test('sync: public-only fetches PublicHolidays per year, caches them, sets last_
   __setFetchImpl(mock);
   setConfig({ holiday_country: 'DE', holiday_show_public: '1', holiday_show_school: '0' });
 
-  const res = await sync();
+  const res = await sync(true);
 
   assert.equal(res.synced, SYNC_YEAR_SPAN);
   assert.ok(mock.calls.every((u) => u.includes('/PublicHolidays')));
@@ -195,19 +246,96 @@ test('sync: public-only fetches PublicHolidays per year, caches them, sets last_
 test('sync: is idempotent – re-running does not duplicate cached rows', async () => {
   __setFetchImpl(makeApiMock());
   setConfig({ holiday_country: 'DE', holiday_show_public: '1', holiday_show_school: '0' });
-  await sync();
-  await sync();
+  await sync(true);
+  await sync(true);
   const pub = db.prepare("SELECT COUNT(*) c FROM holiday_cache WHERE type='public'").get().c;
   assert.equal(pub, SYNC_YEAR_SPAN);
+});
+
+test('sync: switching region purges the previous scope – no duplicate holidays (#434)', async () => {
+  __setFetchImpl(makeApiMock());
+  // 1. Erst länderweit synchronisieren (subdivision NULL → nationale Feiertage).
+  setConfig({ holiday_country: 'DE', holiday_show_public: '1', holiday_show_school: '0' });
+  await sync(true);
+  // 2. Nutzer wählt danach eine Region und synchronisiert erneut.
+  setConfig({ holiday_subdivision: 'DE-SH' });
+  await sync(true);
+
+  // Cache darf pro Jahr nur einen Satz enthalten (kein NULL- + Regions-Duplikat).
+  const total = db.prepare("SELECT COUNT(*) c FROM holiday_cache WHERE type='public'").get().c;
+  assert.equal(total, SYNC_YEAR_SPAN);
+
+  // Die veralteten länderweiten (NULL-)Zeilen wurden entfernt; es bleibt nur
+  // der aktuell gewählte Regions-Scope übrig.
+  const stale = db.prepare("SELECT COUNT(*) c FROM holiday_cache WHERE subdivision IS NULL").get().c;
+  assert.equal(stale, 0);
 });
 
 test('sync: both layers enabled caches public and school entries', async () => {
   __setFetchImpl(makeApiMock());
   setConfig({ holiday_country: 'DE', holiday_show_public: '1', holiday_show_school: '1' });
-  const res = await sync();
+  const res = await sync(true);
   assert.equal(res.synced, SYNC_YEAR_SPAN * 2);
   assert.equal(db.prepare("SELECT COUNT(*) c FROM holiday_cache WHERE type='public'").get().c, SYNC_YEAR_SPAN);
   assert.equal(db.prepare("SELECT COUNT(*) c FROM holiday_cache WHERE type='school'").get().c, SYNC_YEAR_SPAN);
+});
+
+test('sync: drops "Exception"-tagged sub-regional holiday variants – no duplicate school breaks (#434)', async () => {
+  __setFetchImpl(makeApiMock());
+  // Schleswig-Holstein: OpenHolidays liefert neben den regulären Sommerferien
+  // eine zweite, "Exception"-getaggte Variante mit früherem Enddatum (Inseln).
+  setConfig({ holiday_country: 'DE', holiday_subdivision: 'DE-SH',
+    holiday_show_public: '0', holiday_show_school: '1' });
+
+  const res = await sync(true);
+
+  // Pro Jahr bleibt nur der reguläre Eintrag – die Insel-Ausnahme wird verworfen.
+  assert.equal(res.synced, SYNC_YEAR_SPAN);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM holiday_cache WHERE type='school'").get().c, SYNC_YEAR_SPAN);
+  const ends = db.prepare("SELECT DISTINCT end_date FROM holiday_cache WHERE type='school'").all().map((r) => r.end_date);
+  assert.deepEqual(ends, ['2026-08-30']); // nur das reguläre Enddatum, nicht 2026-08-23
+});
+
+test('sync: Brazil public holidays use PT and local fallback when OpenHolidays has no rows', async () => {
+  const mock = makeApiMock();
+  __setFetchImpl(mock);
+  setConfig({ holiday_country: 'BR', holiday_show_public: '1', holiday_show_school: '0' });
+
+  const res = await sync(true);
+
+  assert.equal(res.synced, SYNC_YEAR_SPAN * BRAZIL_PUBLIC_HOLIDAYS_PER_YEAR);
+  assert.ok(mock.calls.every((url) => url.includes('countryIsoCode=BR')));
+  assert.ok(mock.calls.every((url) => url.includes('languageIsoCode=PT')));
+
+  const currentYear = new Date().getFullYear();
+  const names = db.prepare(
+    "SELECT name FROM holiday_cache WHERE country='BR' AND type='public' AND year=? ORDER BY start_date"
+  ).all(currentYear).map((row) => row.name);
+  assert.ok(names.includes('Tiradentes'));
+  assert.ok(names.includes('Dia Nacional de Zumbi e da Consciência Negra'));
+  assert.ok(names.includes('Natal'));
+});
+
+test('sync: throttles automatic sync if executed within 30 days', async () => {
+  const mock = makeApiMock();
+  __setFetchImpl(mock);
+  setConfig({ holiday_country: 'DE', holiday_show_public: '1', holiday_show_school: '0' });
+
+  // First sync (force=false) - should run because DB has no last_sync
+  const res1 = await sync(false);
+  assert.equal(res1.synced, SYNC_YEAR_SPAN);
+  const firstCallCount = mock.calls.length;
+  assert.ok(firstCallCount > 0);
+
+  // Second sync (force=false) - should throttle (skip)
+  const res2 = await sync(false);
+  assert.deepEqual(res2, { synced: 0 });
+  assert.equal(mock.calls.length, firstCallCount); // no new API calls
+
+  // Third sync (force=true) - should bypass throttle
+  const res3 = await sync(true);
+  assert.equal(res3.synced, SYNC_YEAR_SPAN);
+  assert.equal(mock.calls.length, firstCallCount * 2); // new API calls made
 });
 
 // ---- getCountries / getSubdivisions -----------------------------------------

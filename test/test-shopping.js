@@ -7,6 +7,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
+import { url } from '../server/middleware/validate.js';
+import { aggregateMealIngredients } from '../server/services/shopping-import.js';
 
 let passed = 0;
 let failed = 0;
@@ -24,6 +26,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
   applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );`);
 db.exec(MIGRATIONS_SQL[1]);
+db.exec(MIGRATIONS_SQL[44]); // FTS5 search_index + Item-Trigger (indiziert notes)
 
 const u1 = db.prepare(`INSERT INTO users (username, display_name, password_hash, role)
   VALUES ('admin', 'Admin', 'x', 'admin')`).run();
@@ -37,6 +40,69 @@ test('Einkaufslisten-Zeilen toggeln nur außerhalb interaktiver Controls', () =>
   assert(/button, a, input, select, textarea, \[data-no-row-toggle\]/.test(source), 'Interaktive Controls müssen ignoriert werden');
   assert(/closest\('\.shopping-item'\)/.test(source), 'Klicks müssen auf Einkaufszeilen begrenzt sein');
   assert(/data-item-id/.test(source), 'Zeilen-Toggle muss die Artikel-ID aus data-item-id lesen');
+});
+
+// --------------------------------------------------------
+// Kategorie-Verwaltung wandert nach Shopping (Task 7)
+// --------------------------------------------------------
+test('Shopping-Seite importiert den Category-Manager und öffnet ihn bei manage=categories', () => {
+  const source = readFileSync(new URL('../public/pages/shopping.js', import.meta.url), 'utf8');
+  assert(/components\/shopping-category-manager\.js/.test(source), 'shopping.js muss den Category-Manager importieren');
+  assert(/yuvomi-shopping-category-manager/.test(source), 'shopping.js muss das Custom Element verwenden');
+  assert(/manage.*===\s*'categories'|get\('manage'\)|manage=categories|'manage'/.test(source), 'shopping.js muss den manage-Query-Parameter auswerten');
+  assert(/shopping\.manageCategories/.test(source), 'Eine übersetzte „Kategorien verwalten"-Aktion muss vorhanden sein');
+  assert(/shopping-categories-changed/.test(source), 'shopping.js muss auf das shopping-categories-changed-Event reagieren');
+});
+
+test('Shopping-Seite bietet einen Essensplan-Import mit Datumsbereich an', () => {
+  const source = readFileSync(new URL('../public/pages/shopping.js', import.meta.url), 'utf8');
+  assert(/data-action="import-meals"/.test(source), 'Shopping-Header muss eine Import-Aktion aus dem Essensplan anbieten');
+  assert(/function openMealPlanImport/.test(source), 'Shopping-Seite muss einen Import-Dialog für den Essensplan besitzen');
+  assert(/api\.post\(`\/shopping\/\$\{state\.activeListId\}\/import-meal-plan`/.test(source), 'Import-Dialog muss die Shopping-Range-Import-Route aufrufen');
+  assert(/shopping\.importMealsEmpty/.test(source), 'Import-Dialog muss leere Bereiche mit einer Shopping-spezifischen Meldung behandeln');
+  assert(/type="date" id="shopping-import-from"/.test(source), 'Import-Dialog muss ein Von-Datum anbieten');
+  assert(/type="date" id="shopping-import-to"/.test(source), 'Import-Dialog muss ein Bis-Datum anbieten');
+  assert(/addLocalDays\(today, 6\)/.test(source), 'Import-Dialog muss standardmäßig 7 Tage (heute + 6) vorauswählen');
+});
+
+test('Shopping-Category-Manager-Komponente erfüllt die Web-Component-Verträge', () => {
+  const source = readFileSync(new URL('../public/components/shopping-category-manager.js', import.meta.url), 'utf8');
+  assert(/customElements\.define\(\s*'yuvomi-shopping-category-manager'/.test(source), 'Tag-Name muss yuvomi-shopping-category-manager sein');
+  assert(/connectedCallback/.test(source) && /disconnectedCallback/.test(source), 'Lifecycle-Callbacks müssen vorhanden sein');
+  assert(/api\.get\('\/shopping\/categories'\)/.test(source), 'Komponente muss Kategorien per API laden');
+  assert(/api\.post\('\/shopping\/categories'/.test(source), 'Hinzufügen muss POST nutzen');
+  assert(/api\.put\(`\/shopping\/categories\/\$\{[^}]+\}`/.test(source), 'Umbenennen muss PUT nutzen');
+  assert(/api\.patch\('\/shopping\/categories\/reorder'/.test(source), 'Reorder muss PATCH nutzen');
+  assert(/api\.delete\(`\/shopping\/categories\/\$\{[^}]+\}`/.test(source), 'Löschen muss DELETE nutzen');
+  assert(/shopping-categories-changed/.test(source), 'Mutationen müssen shopping-categories-changed dispatchen');
+  assert(/import\s*\{\s*esc\s*\}\s*from\s*'\/utils\/html\.js'/.test(source), 'User-Daten müssen via esc() escaped werden');
+  assert(!/\.innerHTML\s*=/.test(source), 'Komponente darf innerHTML nicht zuweisen');
+  // disconnectedCallback muss Listener wieder abräumen (kein Leak)
+  const disconnectFn = source.match(/disconnectedCallback\(\)\s*\{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert(/removeEventListener/.test(disconnectFn), 'disconnectedCallback muss Listener entfernen');
+});
+
+test('Shopping-Category-Manager rollt optimistisches Reorder bei API-Fehler zurück', () => {
+  const source = readFileSync(new URL('../public/components/shopping-category-manager.js', import.meta.url), 'utf8');
+  const moveFn = source.match(/async _move\([\s\S]*?\n  \}/)?.[0] ?? '';
+  assert(moveFn, '_move-Methode muss auffindbar sein');
+  // Snapshot vor der Mutation, Rollback im catch (analog zu den Task-5/6-Leaves).
+  assert(/const snapshot = \[\.\.\.this\._cats\]/.test(moveFn), '_move muss vor der Mutation einen Snapshot ziehen');
+  const catchBlock = moveFn.match(/catch \(err\) \{[\s\S]*?\n    \}/)?.[0] ?? '';
+  assert(catchBlock, '_move muss einen catch-Block besitzen');
+  assert(/this\._cats = snapshot/.test(catchBlock), 'catch muss this._cats auf den Snapshot zurücksetzen');
+  assert(/this\._renderList\(\)/.test(catchBlock), 'catch muss die wiederhergestellte Liste neu rendern');
+  assert(!/this\._notifyChanged\(\)/.test(catchBlock), 'catch darf kein shopping-categories-changed dispatchen');
+});
+
+test('Shopping-Seite räumt den shopping-categories-changed-Listener in onClose ab', () => {
+  const source = readFileSync(new URL('../public/pages/shopping.js', import.meta.url), 'utf8');
+  const fn = source.match(/async function openCategoryManager[\s\S]*?\n\}/)?.[0] ?? '';
+  assert(fn, 'openCategoryManager muss auffindbar sein');
+  // Manager-Referenz im äußeren Scope, damit onClose ihn abräumen kann (kein Leak bei Modal-Reuse).
+  assert(/let manager = null/.test(fn), 'Manager-Referenz muss im äußeren Scope gehalten werden');
+  assert(/manager\.addEventListener\('shopping-categories-changed'/.test(fn), 'onSave muss den Listener registrieren');
+  assert(/manager\?\.removeEventListener\('shopping-categories-changed'/.test(fn), 'onClose muss den Listener wieder entfernen');
 });
 
 let listId, list2Id, itemId1, itemId2, itemId3;
@@ -198,6 +264,45 @@ test('Autocomplete - kein Match gibt leeres Array', () => {
   assert(results.length === 0, 'Kein Match erwartet');
 });
 
+test('Essensplan-Import aggregiert gleiche Zutaten mit numerischen Mengen', () => {
+  const result = aggregateMealIngredients([
+    { id: 1, meal_id: 10, name: 'Tomaten', quantity: '2', category: 'Obst & Gemüse' },
+    { id: 2, meal_id: 11, name: 'Tomaten', quantity: '3', category: 'Obst & Gemüse' },
+  ]);
+  assert(result.length === 1, `Erwartet 1 aggregierten Eintrag, erhalten ${result.length}`);
+  assert(result[0].name === 'Tomaten', 'Name muss erhalten bleiben');
+  assert(result[0].quantity === '5', `Erwartet summierte Menge 5, erhalten ${result[0].quantity}`);
+  assert(result[0].added_from_meal === null, 'Bei mehreren Mahlzeiten darf kein einzelner meal-Verweis gesetzt werden');
+});
+
+test('Essensplan-Import aggregiert gleiche Zutaten mit Einheiten', () => {
+  const result = aggregateMealIngredients([
+    { id: 1, meal_id: 10, name: 'Reis', quantity: '100 g', category: 'Sonstiges' },
+    { id: 2, meal_id: 11, name: 'Reis', quantity: '50 g', category: 'Sonstiges' },
+  ]);
+  assert(result.length === 1, `Erwartet 1 aggregierten Eintrag, erhalten ${result.length}`);
+  assert(result[0].quantity === '150 g', `Erwartet summierte Menge 150 g, erhalten ${result[0].quantity}`);
+});
+
+test('Essensplan-Import summiert auch Mengen mit gleicher Einheit', () => {
+  const result = aggregateMealIngredients([
+    { id: 1, meal_id: 10, name: 'Eier', quantity: '1 pack', category: 'Milchprodukte' },
+    { id: 2, meal_id: 11, name: 'Eier', quantity: '1 pack', category: 'Milchprodukte' },
+    { id: 3, meal_id: 12, name: 'Eier', quantity: '2 pack', category: 'Milchprodukte' },
+  ]);
+  assert(result.length === 1, `Erwartet 1 aggregierten Eintrag, erhalten ${result.length}`);
+  assert(result[0].quantity === '4 pack', `Erwartet summierte Menge 4 pack, erhalten ${result[0].quantity}`);
+});
+
+test('Essensplan-Import zählt rein textuelle Mengen sichtbar zusammen', () => {
+  const result = aggregateMealIngredients([
+    { id: 1, meal_id: 10, name: 'Salz', quantity: 'nach Geschmack', category: 'Sonstiges' },
+    { id: 2, meal_id: 11, name: 'Salz', quantity: 'nach Geschmack', category: 'Sonstiges' },
+  ]);
+  assert(result.length === 1, `Erwartet 1 aggregierten Eintrag, erhalten ${result.length}`);
+  assert(result[0].quantity === '2 x nach Geschmack', `Erwartet 2 x nach Geschmack, erhalten ${result[0].quantity}`);
+});
+
 // --------------------------------------------------------
 // Zähler-Abfrage
 // --------------------------------------------------------
@@ -245,6 +350,127 @@ test('Abhaken aktualisiert nur die betroffene Zeile statt die ganze Liste neu zu
   // updateItemRow darf den Listen-Container nicht leeren
   const rowFn = source.match(/function updateItemRow[\s\S]*?\n}/)?.[0] ?? '';
   assert(!/#items-list/.test(rowFn), 'updateItemRow darf den Listen-Container nicht ansprechen/leeren');
+});
+
+// --------------------------------------------------------
+test('Klick-Delegation wird pro #list-content nur einmal gebunden (Issue #398)', () => {
+  const source = readFileSync(new URL('../public/pages/shopping.js', import.meta.url), 'utf8');
+  const wireFn = source.match(/function wireListContentEvents[\s\S]*?\n}/)?.[0] ?? '';
+  assert(wireFn, 'wireListContentEvents muss auffindbar sein');
+
+  // Die Klick-Delegation hängt am stabilen #list-content (nur Kinder werden via
+  // replaceChildren ersetzt). switchList/rename rufen wireListContentEvents erneut auf —
+  // ohne Guard würde der Listener dupliziert und ein Toggle-Klick höbe sich auf.
+  const guardIdx = wireFn.search(/dataset\.eventsWired/);
+  const clickIdx = wireFn.search(/addEventListener\('click'/);
+  assert(guardIdx >= 0, 'wireListContentEvents muss einen Einmal-Guard (dataset.eventsWired) besitzen');
+  assert(clickIdx >= 0, 'wireListContentEvents muss die Klick-Delegation binden');
+  assert(guardIdx < clickIdx, 'Der Einmal-Guard muss vor der Klick-Bindung greifen');
+
+  // Rename-per-Enter hängt an einem pro Render neu erzeugten Element und muss
+  // weiterhin bei jedem Aufruf verdrahtet werden.
+  assert(/function wireRenameKeydown/.test(source), 'wireRenameKeydown-Helper muss existieren');
+});
+
+// --------------------------------------------------------
+// Rich-Attribute: notes + url (#426)
+// --------------------------------------------------------
+test('Artikel speichert notes + url und gibt sie zurück', () => {
+  const r = db.prepare(`INSERT INTO shopping_items (list_id, name, category, notes, url)
+    VALUES (?, 'Wasserfilter', 'Haushalt', 'Modell BWT 814873', 'https://example.com/filter')`).run(listId);
+  const item = db.prepare('SELECT notes, url FROM shopping_items WHERE id = ?').get(r.lastInsertRowid);
+  assert(item.notes === 'Modell BWT 814873', `notes: ${item.notes}`);
+  assert(item.url === 'https://example.com/filter', `url: ${item.url}`);
+});
+
+test('notes/url sind optional (NULL erlaubt)', () => {
+  const r = db.prepare(`INSERT INTO shopping_items (list_id, name, category) VALUES (?, 'Salz', 'Sonstiges')`).run(listId);
+  const item = db.prepare('SELECT notes, url FROM shopping_items WHERE id = ?').get(r.lastInsertRowid);
+  assert(item.notes === null && item.url === null, 'notes/url default NULL');
+});
+
+test('FTS-Suche findet Artikel über die Notiz (body indiziert notes)', () => {
+  const r = db.prepare(`INSERT INTO shopping_items (list_id, name, category, notes)
+    VALUES (?, 'Batterien', 'Haushalt', 'Zzxglobber Spezialgroesse')`).run(listId);
+  const hit = db.prepare(`SELECT entity_id FROM search_index WHERE entity = 'item' AND search_index MATCH ?`).get('Zzxglobber');
+  assert(hit && Number(hit.entity_id) === Number(r.lastInsertRowid), 'Artikel muss über die Notiz auffindbar sein');
+});
+
+test('FTS-Update spiegelt geänderte Notiz', () => {
+  const r = db.prepare(`INSERT INTO shopping_items (list_id, name, category, notes)
+    VALUES (?, 'Kaffee', 'Getränke', 'alteNotiz')`).run(listId);
+  db.prepare('UPDATE shopping_items SET notes = ? WHERE id = ?').run('Qwxplumbus', r.lastInsertRowid);
+  const hit = db.prepare(`SELECT entity_id FROM search_index WHERE entity = 'item' AND search_index MATCH ?`).get('Qwxplumbus');
+  assert(hit && Number(hit.entity_id) === Number(r.lastInsertRowid), 'Aktualisierte Notiz muss im Index landen');
+  const stale = db.prepare(`SELECT entity_id FROM search_index WHERE entity = 'item' AND search_index MATCH ?`).get('alteNotiz');
+  assert(!stale, 'Alte Notiz darf nicht mehr im Index sein');
+});
+
+// --------------------------------------------------------
+// url()-Validator (XSS-Härtung: nur http/https)
+// --------------------------------------------------------
+test('url() akzeptiert http/https', () => {
+  assert(url('https://example.com', 'URL').value === 'https://example.com', 'https ok');
+  assert(url('http://x.io/pfad?q=1', 'URL').value === 'http://x.io/pfad?q=1', 'http ok');
+  assert(url('https://example.com', 'URL').error === null, 'kein Fehler bei gültiger URL');
+});
+
+test('url() blockt javascript:/data:/ftp: (XSS-Schutz)', () => {
+  assert(url('javascript:alert(1)', 'URL').error, 'javascript: muss abgelehnt werden');
+  assert(url('data:text/html,<script>', 'URL').error, 'data: muss abgelehnt werden');
+  assert(url('ftp://host/file', 'URL').error, 'ftp: muss abgelehnt werden');
+  assert(url('javascript:alert(1)', 'URL').value === null, 'kein Wert bei Ablehnung');
+});
+
+test('url() lehnt Unsinn ab und erlaubt Leerwert', () => {
+  assert(url('kein link', 'URL').error, 'ungültige URL muss Fehler geben');
+  assert(url('', 'URL').value === null && url('', 'URL').error === null, 'leer ist erlaubt (optional)');
+  assert(url(null, 'URL').error === null, 'null ist erlaubt');
+  assert(url('https://x.io/' + 'a'.repeat(2100), 'URL').error, 'Überlänge muss abgelehnt werden');
+});
+
+// --------------------------------------------------------
+// Frontend: Detail-Drawer (Progressive Disclosure)
+// --------------------------------------------------------
+test('shopping.js rendert Detail-Button + Indikatoren und öffnet den Drawer', () => {
+  const source = readFileSync(new URL('../public/pages/shopping.js', import.meta.url), 'utf8');
+  assert(/data-action="item-details"/.test(source), 'Zeile muss einen Details-Button (item-details) haben');
+  assert(/function renderItemMeta/.test(source), 'renderItemMeta muss die Indikatoren rendern');
+  assert(/function openItemDetails/.test(source), 'openItemDetails muss existieren');
+  const fn = source.match(/function openItemDetails[\s\S]*?\n\}/)?.[0] ?? '';
+  assert(/openModal\(/.test(fn), 'Detail-Drawer muss openModal nutzen');
+  assert(/api\.patch\(`\/shopping\/items\/\$\{item\.id\}`/.test(fn), 'Speichern muss per PATCH erfolgen');
+  assert(/rel="noopener noreferrer"/.test(fn) && /target="_blank"/.test(fn), 'Link-Vorschau muss rel=noopener + target=_blank setzen');
+  assert(/esc\(/.test(fn), 'User-Daten im Drawer müssen via esc() escaped werden');
+  assert(!/\.innerHTML\s*=/.test(fn), 'Drawer darf innerHTML nicht zuweisen');
+  // Aktion muss verdrahtet sein.
+  assert(/action === 'item-details'/.test(source), 'wireListContentEvents muss die item-details-Aktion behandeln');
+});
+
+test('Detail-Refresh ersetzt nur die Meta-Indikatoren, nicht das .shopping-item (Swipe-Closures bleiben intakt)', () => {
+  const source = readFileSync(new URL('../public/pages/shopping.js', import.meta.url), 'utf8');
+  const fn = source.match(/function refreshItemMeta[\s\S]*?\n\}/)?.[0] ?? '';
+  assert(fn, 'refreshItemMeta muss existieren');
+  assert(!/#items-list/.test(fn), 'refreshItemMeta darf die Liste nicht neu aufbauen');
+});
+
+// --------------------------------------------------------
+// Route: notes/url-Validierung
+// --------------------------------------------------------
+test('shopping-Route validiert und persistiert notes/url', () => {
+  const source = readFileSync(new URL('../server/routes/shopping.js', import.meta.url), 'utf8');
+  assert(/import\s*\{[^}]*\burl\b[^}]*\}\s*from\s*'\.\.\/middleware\/validate\.js'/.test(source), 'Route muss den url()-Validator importieren');
+  assert(/url\(req\.body\.url,\s*'URL'\)/.test(source), 'POST muss req.body.url über url() validieren');
+  assert(/INSERT INTO shopping_items \(list_id, name, quantity, category, notes, url\)/.test(source), 'INSERT muss notes/url enthalten');
+  assert(/SET is_checked = \?, name = \?, quantity = \?, category = \?, notes = \?, url = \?/.test(source), 'UPDATE muss notes/url enthalten');
+});
+
+test('shopping-Route bietet einen Datumsbereich-Import aus dem Essensplan an', () => {
+  const source = readFileSync(new URL('../server/routes/shopping.js', import.meta.url), 'utf8');
+  assert(/router\.post\('\/:listId\/import-meal-plan'/.test(source), 'Shopping-Route muss eine Import-Route für den Essensplan bereitstellen');
+  assert(/aggregateMealIngredients/.test(source), 'Import-Route muss aggregierte Zutaten verwenden');
+  assert(/m\.date BETWEEN \? AND \?/.test(source), 'Import-Route muss Mahlzeiten nach Datumsbereich filtern');
+  assert(/mi\.on_shopping_list = 0/.test(source), 'Bereits übertragene Zutaten dürfen nicht erneut importiert werden');
 });
 
 // --------------------------------------------------------

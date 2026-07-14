@@ -16,10 +16,16 @@ import { createLogger } from './logger.js';
 import { deleteBirthdayArtifacts, syncBirthdayArtifacts } from './services/birthdays.js';
 import * as oidcClient from 'openid-client';
 import { isOidcEnabled, getConfig as getOidcConfig } from './services/oidc.js';
+import { emailService as defaultEmailService } from './services/email.js';
+import { passwordResetService as defaultResetService } from './services/password-reset.js';
+import { parseScopes, serializeScopes, normalizeScopes } from './scopes.js';
+import { resolvePermissions, buildSessionModuleAccess, clientPermissions } from './permissions.js';
 
 const log = createLogger('Auth');
 const router = express.Router();
-const API_TOKEN_PREFIX = 'oikos_';
+// Präfix für NEUE API-Tokens. Bereits ausgegebene `oikos_`-Tokens bleiben gültig:
+// validiert wird über den Hash des gesamten Tokens, nicht über den Präfix.
+const API_TOKEN_PREFIX = 'yuvomi_';
 const FAMILY_ROLES = ['dad', 'mom', 'parent', 'child', 'grandparent', 'relative', 'other'];
 const MAX_AVATAR_DATA_LENGTH = 768 * 1024;
 const USER_PUBLIC_COLUMNS = `
@@ -118,12 +124,20 @@ if (!process.env.SESSION_SECRET) {
   throw new Error('[Auth] SESSION_SECRET must be set in .env. Run: node setup.js');
 }
 
-const sessionMiddleware = session({
+// Session-Cookie-Name. Legacy „Oikos"-Installationen nutzten `oikos.sid`; der
+// Name ist nun `yuvomi.sid`. Der Wechsel ist NAHTLOS (kein Zwangs-Logout): der
+// signierte Session-Wert ist nur über den Wert (die sid) signiert, nicht über den
+// Cookie-Namen — daher kann ein vorhandenes `oikos.sid` transparent als
+// `yuvomi.sid` weitergereicht werden (siehe sessionMiddleware unten).
+const SESSION_COOKIE = 'yuvomi.sid';
+const LEGACY_SESSION_COOKIE = 'oikos.sid';
+
+const expressSession = session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  name: 'oikos.sid',
+  name: SESSION_COOKIE,
   cookie: {
     httpOnly: true,
     // secure=false by default; set SESSION_SECURE=true when behind an HTTPS reverse proxy
@@ -135,6 +149,41 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 Tage in ms
   },
 });
+
+/**
+ * Session-Middleware mit nahtloser Legacy-Cookie-Migration.
+ * Trägt ein vorhandenes `oikos.sid`-Cookie einmalig als `yuvomi.sid` nach, sodass
+ * bestehende Anmeldungen über das Rename hinweg gültig bleiben (gleiche signierte
+ * sid, gleiches SESSION_SECRET). Das alte Cookie wird dabei verworfen.
+ */
+function sessionMiddleware(req, res, next) {
+  const header = req.headers.cookie;
+  if (header && header.includes(`${LEGACY_SESSION_COOKIE}=`) && !header.includes(`${SESSION_COOKIE}=`)) {
+    const match = header.match(/(?:^|;\s*)oikos\.sid=([^;]+)/);
+    if (match) {
+      const legacyValue = match[1];
+      // 1. Legacy-Wert zusätzlich unter dem neuen Namen exponieren, damit
+      //    express-session die Session in DIESEM Request findet.
+      req.headers.cookie = `${header}; ${SESSION_COOKIE}=${legacyValue}`;
+      // 2. Den neuen Cookie EXPLIZIT setzen — mit demselben (bereits signierten,
+      //    bereits URL-kodierten) Wert und denselben Attributen wie expressSession.
+      //    Sonst sendet express-session bei read-only-Requests (/auth/me, /version),
+      //    die die Session nicht verändern, KEIN Set-Cookie — und der Browser bliebe
+      //    nach dem Verwerfen von oikos.sid komplett ohne Session-Cookie zurück.
+      res.cookie(SESSION_COOKIE, legacyValue, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.SESSION_SECURE === 'true',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        path: '/',
+        encode: (v) => v, // Wert ist bereits kodiert → kein Doppel-Encoding
+      });
+      // 3. Erst jetzt das Legacy-Cookie verwerfen (der neue Cookie ist gesetzt).
+      res.clearCookie(LEGACY_SESSION_COOKIE, { path: '/' });
+    }
+  }
+  return expressSession(req, res, next);
+}
 
 // --------------------------------------------------------
 // Rate Limiting für Login
@@ -148,6 +197,18 @@ const loginLimiter = rateLimit({
   message: { error: 'Zu viele Login-Versuche. Bitte warte kurz.', code: 429 },
 });
 
+// Eigener Limiter für Passwort-Reset: zählt ALLE Antworten (kein
+// skipSuccessfulRequests). /forgot-password antwortet aus Anti-Enumeration-
+// Gründen immer mit 200 — würden erfolgreiche Antworten übersprungen, könnte
+// ein bekannter Account unbegrenzt Reset-Mails/Token erzeugen.
+const passwordResetLimiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60_000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_ATTEMPTS) || 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte warte kurz.', code: 429 },
+});
+
 function hashApiToken(token) {
   return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
 }
@@ -155,7 +216,7 @@ function hashApiToken(token) {
 function extractApiToken(req) {
   const auth = req.headers.authorization || '';
   if (auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
-  return String(req.headers['x-api-key'] || '').trim();
+  return String(req.headers['x-api-key'] || req.headers['api-key'] || '').trim();
 }
 
 function publicApiToken(row) {
@@ -165,6 +226,7 @@ function publicApiToken(row) {
     token_prefix: row.token_prefix,
     created_by: row.created_by,
     creator_name: row.creator_name,
+    scopes: parseScopes(row.scopes),
     expires_at: row.expires_at,
     revoked_at: row.revoked_at,
     last_used_at: row.last_used_at,
@@ -312,6 +374,19 @@ function updateUserRoleSessions(userId, role) {
   }
 }
 
+function invalidateUserSessions(userId, exceptSid) {
+  const allSessions = db.get().prepare('SELECT sid, sess FROM sessions').all();
+  for (const row of allSessions) {
+    if (row.sid === exceptSid) continue;
+    try {
+      const sess = JSON.parse(row.sess);
+      if (sess.userId === userId) {
+        db.get().prepare('DELETE FROM sessions WHERE sid = ?').run(row.sid);
+      }
+    } catch { /* ignore malformed session */ }
+  }
+}
+
 function authenticateApiToken(req) {
   const token = extractApiToken(req);
   if (!token) return null;
@@ -358,6 +433,8 @@ function requireAuth(req, res, next) {
     req.authMethod = 'api_token';
     req.authUserId = apiToken.created_by;
     req.authRole = apiToken.role;
+    // null = kein Scoping (voller rollenbasierter Zugriff, Legacy-Token).
+    req.authScopes = parseScopes(apiToken.scopes);
     return next();
   }
 
@@ -365,6 +442,21 @@ function requireAuth(req, res, next) {
     req.authMethod = 'session';
     req.authUserId = req.session.userId;
     req.authRole = req.session.role;
+    // Interaktive Sessions kennen kein Token-Scoping.
+    req.authScopes = null;
+    // Rollen-/Mitglied-basierte Modulrechte (#467). Admins: null = Vollzugriff.
+    // Nur für Nicht-Admins auflösen; die Modul→Access-Map wertet die
+    // /api/v1-Middleware in server/index.js aus. Fehlerfrei fail-open (nur bei
+    // Auflösungsfehlern — echte Denies stammen aus gesetzten Rechten).
+    req.sessionModuleAccess = null;
+    if (req.authRole !== 'admin') {
+      try {
+        const u = db.get().prepare('SELECT id, role, family_role FROM users WHERE id = ?').get(req.authUserId);
+        if (u) req.sessionModuleAccess = buildSessionModuleAccess(resolvePermissions(db.get(), u));
+      } catch (err) {
+        log.error('Permission resolution failed:', err.message);
+      }
+    }
     return next();
   }
   res.status(401).json({ error: 'Not authenticated.', code: 401 });
@@ -410,23 +502,55 @@ function setupAuthSession(req, res, user) {
 /**
  * Findet oder erstellt einen User anhand der (validierten) OIDC-Claims.
  *
- * Sicherheit: KEIN automatisches Linking bestehender lokaler Accounts. Die
- * Username-Regex verbietet '@', es gibt keine email-Spalte, und Linking ohne
- * email_verified-Prüfung wäre ein Account-Takeover-Vektor. Identität wird
- * ausschließlich über den (kryptografisch validierten) `sub` etabliert.
+ * Identität primär über den (kryptografisch validierten) `sub`. Existiert kein
+ * sub-Match, wird ein bestehender lokaler Account NUR verknüpft, wenn der IdP
+ * `email_verified: true` liefert UND genau ein noch nicht OIDC-gebundener Account
+ * dieselbe E-Mail führt. Ohne verifizierte E-Mail (oder bei Mehrdeutigkeit) wird
+ * ein separater Account angelegt — Linking auf unverifizierte E-Mails wäre ein
+ * Account-Takeover-Vektor.
+ *
+ * Ausnahme: `OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM=true` — Opt-in für IdPs, die
+ * den Claim zwar weglassen, aber nur verifizierte Adressen ausgeben (z. B. ältere
+ * Authentik-Deployments). Nur setzen, wenn der IdP vollständig unter eigener
+ * Kontrolle steht und keine unverifizierten E-Mails zulässt.
  *
  * @param {import('better-sqlite3').Database} database
- * @param {{ sub: string, email?: string, name?: string, preferred_username?: string }} claims
+ * @param {{ sub: string, email?: string, email_verified?: boolean, name?: string, preferred_username?: string }} claims
  * @returns {{ id: number, role: string, [key: string]: any }}
  */
 export function findOrCreateOidcUser(database, claims) {
-  const { sub, email, name, preferred_username } = claims;
+  const { sub, email, email_verified, name, preferred_username } = claims;
 
   // 1. Bestehenden OIDC-Nutzer über den eindeutigen sub finden
   const existing = database.prepare('SELECT * FROM users WHERE oidc_sub = ?').get(sub);
   if (existing) return existing;
 
-  // 2. Eindeutigen username ableiten (Kollision mit bestehenden Usernamen vermeiden)
+  // 2. Linking an bestehenden lokalen Account — ausschließlich bei verifizierter
+  //    E-Mail oder explizitem Opt-in via OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM.
+  //    Family-User-E-Mails hängen an contacts.email (Primär) bzw.
+  //    contact_emails.value (Sekundär). Verknüpft wird nur, wenn GENAU EIN noch
+  //    nicht OIDC-gebundener Account die E-Mail führt; 0 oder >1 Treffer →
+  //    sicherheitshalber neuer Account.
+  const trustMissingVerified = process.env.OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM === 'true';
+  if (email && (email_verified === true || (trustMissingVerified && email_verified !== false))) {
+    const matches = database.prepare(`
+      SELECT DISTINCT u.id
+      FROM users u
+      JOIN contacts c ON c.family_user_id = u.id
+      LEFT JOIN contact_emails ce ON ce.contact_id = c.id
+      WHERE u.oidc_sub IS NULL
+        AND (lower(c.email) = lower(?) OR lower(ce.value) = lower(?))
+    `).all(email, email);
+
+    if (matches.length === 1) {
+      database.prepare(
+        'UPDATE users SET oidc_sub = ?, oidc_provider = ? WHERE id = ?',
+      ).run(sub, process.env.OIDC_ISSUER ?? null, matches[0].id);
+      return database.prepare('SELECT * FROM users WHERE id = ?').get(matches[0].id);
+    }
+  }
+
+  // 3. Eindeutigen username ableiten (Kollision mit bestehenden Usernamen vermeiden)
   const base = (preferred_username || email || `oidc-${sub}`).slice(0, 64);
   let username = base;
   for (let n = 1; database.prepare('SELECT 1 FROM users WHERE username = ?').get(username); n++) {
@@ -503,6 +627,7 @@ router.post('/login', loginLimiter, async (req, res) => {
           family_role:  user.family_role,
           access_scope: db.get().prepare('SELECT 1 FROM split_expense_guest_users WHERE user_id = ?').get(user.id) ? 'split_guest' : 'family',
         },
+        permissions: clientPermissions(db.get(), user),
         csrfToken: req.session.csrfToken,
       });
     } catch (sessionErr) {
@@ -514,6 +639,105 @@ router.post('/login', loginLimiter, async (req, res) => {
     res.status(500).json({ error: 'Internal server error.', code: 500 });
   }
 });
+
+/**
+ * Registriert die öffentlichen Forgot-/Reset-Routen auf dem gegebenen Router.
+ * Dependency-Injection für Tests (DB, Email-Service, Reset-Service, baseUrl).
+ */
+export function buildResetRoutes(targetRouter, {
+  database = null,
+  emailService = defaultEmailService,
+  resetService = defaultResetService,
+  baseUrl = process.env.BASE_URL || '',
+  limiter = passwordResetLimiter,
+} = {}) {
+  const getDb = () => (database || db.get());
+
+  function resolveUser(identifier) {
+    const id = String(identifier || '').trim();
+    if (!id) return null;
+    const byName = getDb().prepare('SELECT id FROM users WHERE username = ?').get(id);
+    if (byName) return byName.id;
+    const byEmail = getDb().prepare(
+      'SELECT family_user_id AS id FROM contacts WHERE email = ? AND family_user_id IS NOT NULL LIMIT 1'
+    ).get(id);
+    return byEmail?.id ?? null;
+  }
+
+  function emailFor(userId) {
+    const row = getDb().prepare(
+      'SELECT email FROM contacts WHERE family_user_id = ? AND email IS NOT NULL AND email != \'\' LIMIT 1'
+    ).get(userId);
+    return row?.email ?? null;
+  }
+
+  targetRouter.post('/forgot-password', limiter, async (req, res) => {
+    try {
+      const { identifier } = req.body || {};
+      const userId = resolveUser(identifier);
+      // Anti-enumeration: identical response regardless of outcome.
+      if (userId && emailService.isConfigured()) {
+        const to = emailFor(userId);
+        // Reset links MUST use an explicitly configured, trusted origin.
+        // Never derive it from the request Host header (password-reset
+        // poisoning: a forged Host would point the victim's token at an
+        // attacker-controlled domain).
+        const origin = String(baseUrl || '').trim().replace(/\/$/, '');
+        if (to && origin) {
+          const { token } = resetService.createToken(userId);
+          const link = `${origin}/reset-password?token=${token}`;
+          await emailService.sendMail({
+            to,
+            subject: 'Reset your Yuvomi password',
+            text: `Open this link to choose a new password (valid for 1 hour): ${link}`,
+            html: `<p>Open this link to choose a new password (valid for 1 hour):</p>`
+              + `<p><a href="${link}">${link}</a></p>`,
+          }).catch((err) => log.error('Reset mail failed:', err.message));
+        } else if (to && !origin) {
+          log.warn('BASE_URL not configured; password-reset link not sent.');
+        }
+      }
+      res.json({ data: { ok: true } });
+    } catch (err) {
+      log.error('forgot-password error:', err.message);
+      // Still return generic success to avoid leaking failures.
+      res.json({ data: { ok: true } });
+    }
+  });
+
+  targetRouter.post('/reset-password', limiter, async (req, res) => {
+    try {
+      const { token, password } = req.body || {};
+      if (!token || !password) {
+        return res.status(400).json({ error: 'Token and password are required.', code: 400 });
+      }
+      if (String(password).length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long.', code: 400 });
+      }
+      const userId = resetService.verifyToken(token);
+      if (!userId) {
+        return res.status(400).json({ error: 'Invalid or expired token.', code: 400 });
+      }
+      const hash = await bcrypt.hash(password, 12);
+      getDb().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
+      resetService.consumeToken(token);
+      // Best-effort: invalidate existing sessions for this user.
+      try {
+        const rows = getDb().prepare('SELECT sid, sess FROM sessions').all();
+        for (const r of rows) {
+          try { if (JSON.parse(r.sess)?.userId === userId) getDb().prepare('DELETE FROM sessions WHERE sid = ?').run(r.sid); }
+          catch { /* ignore malformed session rows */ }
+        }
+      } catch { /* sessions table may not exist in tests */ }
+      res.json({ data: { ok: true } });
+    } catch (err) {
+      log.error('reset-password error:', err.message);
+      res.status(500).json({ error: 'Internal server error.', code: 500 });
+    }
+  });
+}
+
+buildResetRoutes(router);
 
 /**
  * POST /api/v1/auth/logout
@@ -528,7 +752,8 @@ router.post('/logout', requireAuth, csrfMiddleware, (req, res) => {
       log.error('Logout error:', err);
       return res.status(500).json({ error: 'Logout failed.', code: 500 });
     }
-    res.clearCookie('oikos.sid');
+    res.clearCookie(SESSION_COOKIE);
+    res.clearCookie(LEGACY_SESSION_COOKIE); // best effort: verwaistes Legacy-Cookie räumen
     res.json({ ok: true });
   });
 });
@@ -623,6 +848,8 @@ router.get('/oidc/callback', async (req, res) => {
     const user = findOrCreateOidcUser(db.get(), {
       sub:                claims.sub,
       email:              userinfo.email,
+      // email_verified kann je nach Provider im UserInfo oder im ID-Token stehen
+      email_verified:     userinfo.email_verified ?? claims.email_verified,
       name:               userinfo.name,
       preferred_username: userinfo.preferred_username,
     });
@@ -725,7 +952,7 @@ router.get('/me', requireAuth, (req, res) => {
     }
 
     if (req.authMethod === 'api_token') {
-      return res.json({ user: publicUser(user) });
+      return res.json({ user: publicUser(user), permissions: clientPermissions(db.get(), user) });
     }
 
     // CSRF-Token erneuern falls vorhanden (wichtig fuer iOS-PWA-Resume:
@@ -741,7 +968,7 @@ router.get('/me', requireAuth, (req, res) => {
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
-    res.json({ user: publicUser(user), csrfToken: req.session.csrfToken });
+    res.json({ user: publicUser(user), permissions: clientPermissions(db.get(), user), csrfToken: req.session.csrfToken });
   } catch (err) {
     log.error('/me error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });
@@ -798,15 +1025,33 @@ router.post('/api-tokens', requireAuth, requireAdmin, csrfMiddleware, (req, res)
       return res.status(400).json({ error: 'Expiration date must be in the future.', code: 400 });
     }
 
+    // scopes: fehlend/null → uneingeschränktes Token (Voll-Zugriff, Default wie bisher).
+    // Explizit gesetzt → Least-Privilege-Allowlist; muss mind. einen gültigen Scope
+    // enthalten, ungültige/unbekannte Einträge werden abgewiesen (kein stilles Verwerfen).
+    let serializedScopes = null;
+    if (req.body.scopes !== undefined && req.body.scopes !== null) {
+      if (!Array.isArray(req.body.scopes)) {
+        return res.status(400).json({ error: 'scopes must be an array of "module:read"/"module:write" strings.', code: 400 });
+      }
+      const normalized = normalizeScopes(req.body.scopes);
+      if (normalized.length !== req.body.scopes.length) {
+        return res.status(400).json({ error: 'scopes contains unknown or duplicate entries.', code: 400 });
+      }
+      if (normalized.length === 0) {
+        return res.status(400).json({ error: 'Provide at least one scope, or omit scopes for full access.', code: 400 });
+      }
+      serializedScopes = serializeScopes(normalized);
+    }
+
     const token = API_TOKEN_PREFIX + crypto.randomBytes(32).toString('base64url');
     const tokenHash = hashApiToken(token);
     const tokenPrefix = token.slice(0, 12);
     const normalizedExpiresAt = expiresAt ? new Date(expiresAt).toISOString() : null;
 
     const result = db.get().prepare(`
-      INSERT INTO api_tokens (name, token_hash, token_prefix, created_by, expires_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(name, tokenHash, tokenPrefix, req.authUserId, normalizedExpiresAt);
+      INSERT INTO api_tokens (name, token_hash, token_prefix, created_by, expires_at, scopes)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(name, tokenHash, tokenPrefix, req.authUserId, normalizedExpiresAt, serializedScopes);
 
     const row = db.get().prepare(`
       SELECT t.*, u.display_name AS creator_name
@@ -925,7 +1170,9 @@ router.post('/users', requireAuth, requireAdmin, csrfMiddleware, async (req, res
 
 /**
  * PATCH /api/v1/auth/users/:id
- * Admin only. Updates a family member profile and system-admin flag.
+ * Admin only. Updates a family member profile, system-admin flag, and
+ * optionally resets the member's password (e.g. when they forgot it and
+ * have no working email for the self-service reset flow).
  */
 router.patch('/users/:id', requireAuth, requireAdmin, csrfMiddleware, async (req, res) => {
   try {
@@ -966,8 +1213,15 @@ router.patch('/users/:id', requireAuth, requireAdmin, csrfMiddleware, async (req
       return res.status(400).json({ error: memberFields.errors.join(' '), code: 400 });
     }
 
+    const newPassword = req.body.password !== undefined ? String(req.body.password) : '';
+    if (newPassword && newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long.', code: 400 });
+    }
+
     const adminError = assertAdminWouldRemain(userId, nextRole);
     if (adminError) return res.status(400).json({ error: adminError, code: 400 });
+
+    const newPasswordHash = newPassword ? await bcrypt.hash(newPassword, 12) : null;
 
     db.transaction(() => {
       db.get().prepare(`
@@ -975,6 +1229,10 @@ router.patch('/users/:id', requireAuth, requireAdmin, csrfMiddleware, async (req
         SET username = ?, display_name = ?, avatar_color = ?, avatar_data = ?, role = ?, family_role = ?
         WHERE id = ?
       `).run(username, displayName, avatarColor || '#007AFF', avatarData ?? null, nextRole, familyRole, userId);
+
+      if (newPasswordHash) {
+        db.get().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newPasswordHash, userId);
+      }
 
       syncFamilyMemberArtifacts(db.get(), userId, {
         displayName,
@@ -985,6 +1243,10 @@ router.patch('/users/:id', requireAuth, requireAdmin, csrfMiddleware, async (req
         actorUserId: req.authUserId,
       });
     });
+
+    if (newPasswordHash) {
+      invalidateUserSessions(userId, req.sessionID);
+    }
 
     if (nextRole !== existing.role) {
       updateUserRoleSessions(userId, nextRole);
@@ -1079,18 +1341,7 @@ router.patch('/me/password', requireAuth, csrfMiddleware, async (req, res) => {
     const hash = await bcrypt.hash(new_password, 12);
     db.get().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.authUserId);
 
-    // Alle anderen Sessions dieses Users invalidieren (aktuelle behalten)
-    const currentSid = req.sessionID;
-    const allSessions = db.get().prepare('SELECT sid, sess FROM sessions').all();
-    for (const row of allSessions) {
-      if (row.sid === currentSid) continue;
-      try {
-        const sess = JSON.parse(row.sess);
-        if (sess.userId === req.authUserId) {
-          db.get().prepare('DELETE FROM sessions WHERE sid = ?').run(row.sid);
-        }
-      } catch { /* ignore malformed session */ }
-    }
+    invalidateUserSessions(req.authUserId, req.sessionID);
 
     res.json({ ok: true });
   } catch (err) {
@@ -1115,6 +1366,9 @@ router.delete('/users/:id', requireAuth, requireAdmin, csrfMiddleware, (req, res
     const result = db.transaction(() => {
       const birthday = db.get().prepare('SELECT * FROM birthdays WHERE family_user_id = ?').get(userId);
       if (birthday) deleteBirthdayArtifacts(db.get(), birthday);
+      // Standard-Zuweisungen von Sync-Zielen lösen (kein FK auf diesen Spalten, #459).
+      db.get().prepare('UPDATE ics_subscriptions SET default_assignee_user_id = NULL WHERE default_assignee_user_id = ?').run(userId);
+      db.get().prepare('UPDATE external_calendars SET default_assignee_user_id = NULL WHERE default_assignee_user_id = ?').run(userId);
       return db.get().prepare('DELETE FROM users WHERE id = ?').run(userId);
     });
 
@@ -1139,5 +1393,9 @@ router.delete('/users/:id', requireAuth, requireAdmin, csrfMiddleware, (req, res
     res.status(500).json({ error: 'Internal server error.', code: 500 });
   }
 });
+
+setInterval(() => {
+  try { defaultResetService.cleanupExpired(); } catch { /* best effort */ }
+}, 60 * 60_000).unref();
 
 export { router, sessionMiddleware, requireAuth, requireAdmin, syncFamilyMemberArtifacts, normalizeAvatarData };

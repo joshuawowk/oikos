@@ -39,7 +39,7 @@ test('search: baut Query-URL, setzt Token-Header, mappt Treffer', async () => {
   const adapter = new PaperlessAdapter(account);
   const results = await adapter.search('strom', { limit: 10 });
 
-  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?query=strom&page_size=10');
+  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?page_size=10&query=strom');
   assert.equal(calls[0].opts.headers.Authorization, 'Token tok123');
   assert.equal(results.length, 1);
   assert.deepEqual(results[0], {
@@ -49,11 +49,16 @@ test('search: baut Query-URL, setzt Token-Header, mappt Treffer', async () => {
   });
 });
 
-test('search: leerer Query liefert leeres Array ohne fetch', async () => {
-  mockFetch(() => { throw new Error('should not fetch'); });
+test('search: leerer Query listet alle Dokumente (ohne query-Param)', async () => {
+  mockFetch(() => jsonResponse({
+    count: 1,
+    results: [{ id: 42, title: 'A', original_file_name: 'a.pdf', created: null }],
+  }));
   const adapter = new PaperlessAdapter(account);
-  assert.deepEqual(await adapter.search('   '), []);
-  assert.equal(calls.length, 0);
+  const results = await adapter.search('   ', { limit: 20 });
+
+  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?page_size=20');
+  assert.equal(results.length, 1);
 });
 
 test('search: HTTP-Fehler wirft mit Statuscode', async () => {
@@ -111,6 +116,39 @@ test('testConnection: ok=false bei 403', async () => {
   const out = await adapter.testConnection();
   assert.equal(out.ok, false);
   assert.equal(out.status, 403);
+});
+
+test('testConnection: fordert explizite API-Version im Accept-Header an', async () => {
+  mockFetch(() => jsonResponse({}));
+  const adapter = new PaperlessAdapter(account);
+  await adapter.testConnection();
+  assert.match(calls[0].opts.headers.Accept, /application\/json; version=\d+/);
+});
+
+test('testConnection: 406 löst Fallback ohne Version aus (#438)', async () => {
+  mockFetch((_url, opts) => {
+    const hasVersion = /version=/.test(opts.headers.Accept);
+    return jsonResponse(hasVersion ? { detail: 'Not Acceptable' } : { documents: 'x' }, hasVersion ? 406 : 200);
+  });
+  const adapter = new PaperlessAdapter(account);
+  const out = await adapter.testConnection();
+  assert.equal(calls.length, 2);
+  assert.match(calls[0].opts.headers.Accept, /version=/);
+  assert.equal(calls[1].opts.headers.Accept, 'application/json');
+  assert.equal(out.ok, true);
+  assert.equal(out.status, 200);
+});
+
+test('search: 406 auf versionierten Request fällt auf unversioniert zurück (#438)', async () => {
+  mockFetch((_url, opts) => {
+    if (/version=/.test(opts.headers.Accept)) return jsonResponse({ detail: 'Not Acceptable' }, 406);
+    return jsonResponse({ results: [{ id: 5, title: 'Vertrag', original_file_name: 'v.pdf' }] });
+  });
+  const adapter = new PaperlessAdapter(account);
+  const results = await adapter.search('vertrag');
+  assert.equal(calls.length, 2);
+  assert.equal(results.length, 1);
+  assert.equal(results[0].id, '5');
 });
 
 test('upload: POSTet multipart an post_document/, gibt taskId zurück', async () => {

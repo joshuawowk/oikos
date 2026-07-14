@@ -66,12 +66,13 @@ router.post('/accounts', (req, res) => {
     const vName = str(req.body.name, 'Name', { max: MAX_TITLE });
     const vUrl = str(req.body.base_url, 'Base URL', { max: 500 });
     const vToken = str(req.body.api_token, 'API token', { max: 500 });
-    for (const v of [vName, vUrl, vToken]) if (v.error) return res.status(400).json({ error: v.error, code: 400 });
+    const vOrgId = provider === 'papra' ? str(req.body.org_id, 'Organization ID', { max: 200 }) : { value: '', error: null };
+    for (const v of [vName, vUrl, vToken, vOrgId]) if (v.error) return res.status(400).json({ error: v.error, code: 400 });
     if (!/^https?:\/\//i.test(vUrl.value)) return res.status(400).json({ error: 'Base URL must start with http(s)://', code: 400 });
 
     const result = db.get().prepare(`
-      INSERT INTO dms_accounts (provider, name, base_url, api_token) VALUES (?, ?, ?, ?)
-    `).run(provider, vName.value, vUrl.value.replace(/\/+$/, ''), vToken.value);
+      INSERT INTO dms_accounts (provider, name, base_url, org_id, api_token) VALUES (?, ?, ?, ?, ?)
+    `).run(provider, vName.value, vUrl.value.replace(/\/+$/, ''), vOrgId.value, vToken.value);
     res.status(201).json({ data: publicAccount(getAccount(result.lastInsertRowid)) });
   } catch (err) {
     if (err.message?.includes('UNIQUE constraint')) {
@@ -117,8 +118,9 @@ router.get('/search', async (req, res) => {
     if (!isAdmin(req)) return res.status(403).json({ error: 'Not authorized.', code: 403 });
     const account = getAccount(Number(req.query.account_id));
     if (!account) return res.status(404).json({ error: 'DMS account not found.', code: 404 });
+    // Leerer Query ist erlaubt: er listet alle Dokumente des DMS, damit der Nutzer
+    // durchblättern und verlinken kann, ohne exakte Suchbegriffe zu kennen (Issue #449).
     const q = String(req.query.q || '').trim();
-    if (!q) return res.status(400).json({ error: 'Query is required.', code: 400 });
     const results = await adapterFactory(account).search(q, { limit: 20 });
     res.json({ data: results });
   } catch (err) {
@@ -146,12 +148,17 @@ router.post('/link', async (req, res) => {
     const visibility = VISIBILITIES.includes(req.body.visibility) ? req.body.visibility : 'family';
     const meta = JSON.stringify({ correspondent: doc.correspondent ?? null, tags: doc.tags ?? [] });
 
+    // Echten MIME-Typ und Dateigröße aus dem DMS übernehmen, falls der Adapter sie
+    // liefert (Papra), sonst aus dem Dateinamen ableiten bzw. 0 (Issue #451).
+    const mimeType = doc.mime || mimeFromFilename(doc.filename);
+    const fileSize = Number.isFinite(doc.size) && doc.size >= 0 ? doc.size : 0;
+
     const result = db.get().prepare(`
       INSERT INTO family_documents
         (name, category, visibility, original_name, mime_type, file_size, content_data,
          storage_provider, storage_backend, storage_key, dms_account_id, external_url, external_meta, created_by)
-      VALUES (?, ?, ?, ?, ?, 0, '', 'external', 'dms', ?, ?, ?, ?, ?)
-    `).run(doc.title, category, visibility, doc.filename, mimeFromFilename(doc.filename), dmsId, account.id, doc.url, meta, userId(req));
+      VALUES (?, ?, ?, ?, ?, ?, '', 'external', 'dms', ?, ?, ?, ?, ?)
+    `).run(doc.title, category, visibility, doc.filename, mimeType, fileSize, dmsId, account.id, doc.url, meta, userId(req));
 
     const row = db.get().prepare('SELECT * FROM family_documents WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ data: row });

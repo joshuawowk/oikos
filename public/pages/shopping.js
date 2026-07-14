@@ -8,9 +8,11 @@ import { api } from '/api.js';
 import { stagger, vibrate } from '/utils/ux.js';
 import { t } from '/i18n.js';
 import { esc } from '/utils/html.js';
-import { promptModal } from '/components/modal.js';
+import { promptModal, openModal, closeModal } from '/components/modal.js';
 import { DEFAULT_CATEGORY_NAME, categoryLabel } from '/utils/shopping-categories.js';
+import { addLocalDays, toLocalDateKey } from '/utils/date.js';
 import { renderKitchenTabsBar } from '/utils/kitchen-tabs.js';
+import '/components/shopping-category-manager.js';
 
 // --------------------------------------------------------
 // Konstanten
@@ -89,7 +91,7 @@ async function toggleShoppingItem(id, checked, container) {
       updateListCounter(state.activeListId, 0, newVal ? -1 : 1);
       renderTabs(container);
     }
-    window.oikos.showToast(err.message, 'danger');
+    window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
   }
 }
 
@@ -112,7 +114,10 @@ function renderTabs(container) {
   }).join('');
 
   bar.replaceChildren();
+  // Führender Listen-Marker: signalisiert „das hier sind Listen" und grenzt die
+  // Leiste sichtbar von den Küchen-Modul-Tabs darüber ab (dekorativ, aria-hidden).
   bar.insertAdjacentHTML('beforeend', `
+    <i data-lucide="list" class="list-tabs-bar__marker" aria-hidden="true"></i>
     ${tabsHtml}
     <button class="list-tab__new" data-action="new-list" aria-label="${t('shopping.newListButton')}">
       <i data-lucide="plus" class="icon-md" aria-hidden="true"></i>
@@ -124,18 +129,26 @@ function renderTabs(container) {
 function renderListContent(container) {
   const content = container.querySelector('#list-content');
   if (!content) return;
+  content.removeAttribute('aria-busy');
 
   if (!state.activeList) {
     content.replaceChildren();
+    // Geteilte .empty-state-Grammatik (wie Rezepte + leere Liste): Titel,
+    // Beschreibung und eine primäre CTA — nicht nur ein Textverweis auf das +.
     content.insertAdjacentHTML('beforeend', `
-      <div class="no-lists">
-        <i data-lucide="shopping-cart" class="no-lists__icon" aria-hidden="true"></i>
-        <div style="font-size:var(--text-lg);font-weight:var(--font-weight-semibold)">${t('shopping.noLists')}</div>
-        <div style="font-size:var(--text-sm);color:var(--color-text-secondary)">
-          ${t('shopping.noListsDescription')}
-        </div>
+      <div class="empty-state">
+        <i data-lucide="shopping-cart" class="empty-state__icon" aria-hidden="true"></i>
+        <div class="empty-state__title">${t('shopping.noLists')}</div>
+        <div class="empty-state__description">${t('shopping.noListsDescription')}</div>
+        <button class="btn btn--primary empty-state__cta" id="empty-cta-newlist">
+          <i data-lucide="plus" aria-hidden="true" class="icon-md"></i>
+          ${t('shopping.newListButton')}
+        </button>
       </div>`);
     if (window.lucide) window.lucide.createIcons({ el: content });
+    content.querySelector('#empty-cta-newlist')?.addEventListener('click', () => {
+      container.querySelector('[data-action="new-list"]')?.click();
+    });
     return;
   }
 
@@ -157,6 +170,17 @@ function renderListContent(container) {
             <i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i>
             ${t('shopping.clearChecked', { count: checkedCount })}
           </button>` : ''}
+        <button class="btn btn--ghost list-header__import-btn" data-action="import-meals"
+                aria-label="${t('shopping.importMeals')}" title="${t('shopping.importMeals')}"
+                style="color:var(--color-text-secondary)">
+          <i data-lucide="utensils" class="icon-md" aria-hidden="true"></i>
+          <span>${t('shopping.importMeals')}</span>
+        </button>
+        <button class="btn btn--ghost btn--icon" data-action="manage-categories"
+                aria-label="${t('shopping.manageCategories')}" title="${t('shopping.manageCategories')}"
+                style="color:var(--color-text-secondary)">
+          <i data-lucide="tags" class="icon-md" aria-hidden="true"></i>
+        </button>
         <button class="btn btn--ghost btn--icon" data-action="delete-list"
                 data-id="${state.activeList.id}" aria-label="${t('shopping.deleteListLabel')}"
                 style="color:var(--color-text-secondary)">
@@ -226,6 +250,18 @@ function renderItems() {
     </div>`).join('');
 }
 
+/**
+ * Dezente Inline-Indikatoren (Progressive Disclosure): zeigen an, dass ein
+ * Artikel zusätzliche Details (Link/Notiz) trägt, ohne die Zeile zu überladen.
+ * Rein visuell (aria-hidden) — der Zugang läuft über den beschrifteten Details-Button.
+ */
+function renderItemMeta(item) {
+  const bits = [];
+  if (item.url)   bits.push('<i data-lucide="link" class="item-meta__icon" aria-hidden="true"></i>');
+  if (item.notes) bits.push('<i data-lucide="sticky-note" class="item-meta__icon" aria-hidden="true"></i>');
+  return bits.length ? `<span class="item-meta">${bits.join('')}</span>` : '';
+}
+
 function renderItem(item) {
   const isDone = Boolean(item.is_checked);
   return `
@@ -246,9 +282,13 @@ function renderItem(item) {
           <i data-lucide="check" class="item-check__icon" aria-hidden="true"></i>
         </button>
         <div class="item-body">
-          <div class="item-name">${esc(item.name)}</div>
+          <div class="item-name">${esc(item.name)}${renderItemMeta(item)}</div>
           ${item.quantity ? `<div class="item-quantity">${esc(item.quantity)}</div>` : ''}
         </div>
+        <button class="item-details" data-action="item-details" data-id="${item.id}"
+                aria-label="${t('shopping.detailsLabel', { name: esc(item.name) })}">
+          <i data-lucide="pencil" class="icon-md" aria-hidden="true"></i>
+        </button>
         <button class="item-delete" data-action="delete-item" data-id="${item.id}"
                 aria-label="${t('shopping.deleteItemLabel', { name: esc(item.name) })}">
           <i data-lucide="x" class="icon-md" aria-hidden="true"></i>
@@ -392,7 +432,7 @@ function wireQuickAdd(container) {
       nameInput.classList.add('quick-add__input--flash');
       nameInput.addEventListener('animationend', () => nameInput.classList.remove('quick-add__input--flash'), { once: true });
     } catch (err) {
-      window.oikos.showToast(err.message, 'danger');
+      window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
     }
   });
 }
@@ -402,7 +442,7 @@ function wireQuickAdd(container) {
 // Zeigt den Nudge-Hinweis maximal 3x (gespeichert in localStorage).
 // --------------------------------------------------------
 
-const SWIPE_HINT_KEY  = 'oikos:swipeHintSeen';
+const SWIPE_HINT_KEY  = 'yuvomi:swipeHintSeen';
 const SWIPE_HINT_MAX  = 3;
 
 function maybeShowSwipeHint(container) {
@@ -535,7 +575,7 @@ function wireSwipeGestures(container) {
               updateListCounter(state.activeListId, 0, newVal ? -1 : 1);
               renderTabs(container);
             }
-            window.oikos.showToast(err.message, 'danger');
+            window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
           }
         }, 200);
 
@@ -554,7 +594,7 @@ function wireSwipeGestures(container) {
             renderTabs(container);
           } catch (err) {
             resetCard(true);
-            window.oikos.showToast(err.message, 'danger');
+            window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
           }
         }, 200);
 
@@ -601,6 +641,93 @@ function updateItemRow(container, item) {
       <span>${isDone ? t('shopping.swipeBack') : t('shopping.swipeCheck')}</span>`);
     if (window.lucide) window.lucide.createIcons({ el: reveal });
   }
+}
+
+/**
+ * Aktualisiert nur die Detail-Indikatoren (Link/Notiz) einer Zeile, ohne das
+ * .shopping-item-Element zu ersetzen — so bleiben die Swipe-Gesten-Closures
+ * (die die Karte einmalig referenzieren) intakt.
+ */
+function refreshItemMeta(container, item) {
+  const card = container.querySelector(`.shopping-item[data-item-id="${item.id}"]`);
+  const nameEl = card?.querySelector('.item-name');
+  if (!nameEl) return;
+  nameEl.querySelector('.item-meta')?.remove();
+  const metaHtml = renderItemMeta(item);
+  if (metaHtml) {
+    nameEl.insertAdjacentHTML('beforeend', metaHtml);
+    if (window.lucide) window.lucide.createIcons({ el: nameEl });
+  }
+}
+
+/**
+ * Detail-Drawer (Progressive Disclosure): bearbeitet die optionalen Rich-Felder
+ * URL + Notiz eines Artikels. Der Quick-Add bleibt bewusst schlank; alles
+ * Weiterführende lebt hier. Speichern per PATCH, danach nur die Zeile auffrischen.
+ */
+function openItemDetails(itemId, container) {
+  const item = state.items.find((i) => i.id === itemId);
+  if (!item) return;
+
+  const linkPreview = (value) => {
+    const v = String(value ?? '').trim();
+    if (!/^https?:\/\//i.test(v)) return '';
+    return `
+      <a class="item-details__link" href="${esc(v)}" target="_blank" rel="noopener noreferrer">
+        <i data-lucide="external-link" class="icon-sm" aria-hidden="true"></i>${t('shopping.openLink')}
+      </a>`;
+  };
+
+  openModal({
+    title: item.name,
+    size: 'md',
+    content: `
+      <form id="item-details-form" class="item-details-form" novalidate autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="item-details-url">${t('shopping.urlLabel')}</label>
+          <input class="form-input" type="url" id="item-details-url" inputmode="url"
+                 placeholder="${t('shopping.urlPlaceholder')}" value="${esc(item.url || '')}">
+          <div class="item-details__link-wrap" id="item-details-link">${linkPreview(item.url)}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="item-details-notes">${t('shopping.notesLabel')}</label>
+          <textarea class="form-input" id="item-details-notes" rows="4"
+                    placeholder="${t('shopping.notesPlaceholder')}">${esc(item.notes || '')}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn--primary">${t('common.save')}</button>
+        </div>
+      </form>`,
+    onSave: (panel) => {
+      const form    = panel.querySelector('#item-details-form');
+      const urlEl   = panel.querySelector('#item-details-url');
+      const notesEl = panel.querySelector('#item-details-notes');
+      const preview = panel.querySelector('#item-details-link');
+
+      urlEl?.addEventListener('input', () => {
+        preview.replaceChildren();
+        const html = linkPreview(urlEl.value);
+        if (html) {
+          preview.insertAdjacentHTML('beforeend', html);
+          if (window.lucide) window.lucide.createIcons({ el: preview });
+        }
+      });
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const notes = notesEl.value.trim() || null;
+        const url   = urlEl.value.trim() || null;
+        try {
+          const data = await api.patch(`/shopping/items/${item.id}`, { notes, url });
+          Object.assign(item, data.data);
+          refreshItemMeta(container, item);
+          closeModal();
+        } catch (err) {
+          window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
+        }
+      });
+    },
+  });
 }
 
 function updateItemsList(container) {
@@ -655,6 +782,59 @@ function updateListCounter(listId, totalDelta, checkedDelta) {
   }
 }
 
+function openMealPlanImport(container) {
+  if (!state.activeListId) return;
+  const today = toLocalDateKey(new Date());
+  const defaultTo = addLocalDays(today, 6);
+
+  openModal({
+    title: t('shopping.importMealsTitle'),
+    size: 'sm',
+    content: `
+      <form id="shopping-import-meals-form" class="shopping-import-meals-form" novalidate autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="shopping-import-from">${t('calendar.fromLabel')}</label>
+          <yuvomi-datepicker type="date" id="shopping-import-from" value="${esc(today)}"></yuvomi-datepicker>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="shopping-import-to">${t('calendar.toLabel')}</label>
+          <yuvomi-datepicker type="date" id="shopping-import-to" value="${esc(defaultTo)}"></yuvomi-datepicker>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn--secondary" id="shopping-import-cancel">${t('common.cancel')}</button>
+          <button type="submit" class="btn btn--primary">${t('shopping.importMealsAction')}</button>
+        </div>
+      </form>`,
+    onSave: (panel) => {
+      const form = panel.querySelector('#shopping-import-meals-form');
+      const cancelBtn = panel.querySelector('#shopping-import-cancel');
+      cancelBtn?.addEventListener('click', () => closeModal());
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const from = panel.querySelector('#shopping-import-from')?.value || '';
+        const to = panel.querySelector('#shopping-import-to')?.value || '';
+        if (!from || !to) return;
+        try {
+          const data = await api.post(`/shopping/${state.activeListId}/import-meal-plan`, { from, to });
+          if (!data.data?.transferred) {
+            window.yuvomi.showToast(t('shopping.importMealsEmpty'), 'default');
+            return;
+          }
+          await Promise.all([loadLists(), loadItems(state.activeListId)]);
+          renderTabs(container);
+          renderListContent(container);
+          wireListContentEvents(container);
+          closeModal();
+          const count = Number(data.data.transferred) || 0;
+          window.yuvomi.showToast(count === 1 ? t('meals.transferSuccess', { count }) : t('meals.transferSuccessPlural', { count }), 'success');
+        } catch (err) {
+          window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
+        }
+      });
+    },
+  });
+}
+
 // --------------------------------------------------------
 // API-Aktionen
 // --------------------------------------------------------
@@ -666,7 +846,7 @@ async function loadLists() {
   } catch (err) {
     console.error('[Shopping] loadLists Fehler:', err);
     state.lists = [];
-    window.oikos?.showToast(t('shopping.listsLoadError'), 'danger');
+    window.yuvomi?.showToast(t('shopping.listsLoadError'), 'danger');
   }
 }
 
@@ -690,13 +870,16 @@ async function loadItems(listId) {
 async function switchList(listId, container) {
   state.activeListId = listId;
   renderTabs(container);
+  // Lade-Feedback beim Listenwechsel: dimmt den alten Inhalt (CSS), meldet
+  // Screenreadern „busy" — bis renderListContent den neuen Inhalt setzt.
+  container.querySelector('#list-content')?.setAttribute('aria-busy', 'true');
   try {
     await loadItems(listId);
   } catch (err) {
     console.error('[Shopping] loadItems Fehler:', err);
     state.items = [];
     state.activeList = state.lists.find((l) => l.id === listId) ?? null;
-    window.oikos?.showToast(t('shopping.itemsLoadError'), 'danger');
+    window.yuvomi?.showToast(t('shopping.itemsLoadError'), 'danger');
   }
   renderListContent(container);
   wireListContentEvents(container);
@@ -723,7 +906,7 @@ function wireTabBar(container) {
         state.lists.push({ ...data.data, item_total: 0, item_checked: 0 });
         await switchList(data.data.id, container);
       } catch (err) {
-        window.oikos.showToast(err.message, 'danger');
+        window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
       }
     }
   });
@@ -732,6 +915,16 @@ function wireTabBar(container) {
 function wireListContentEvents(container) {
   const content = container.querySelector('#list-content');
   if (!content) return;
+
+  // Die Klick-Delegation an das stabile #list-content-Element nur EINMAL anhängen.
+  // renderListContent ersetzt lediglich die Kinder (replaceChildren), nicht das
+  // Element selbst — würde der Listener bei jedem switchList/rename erneut gebunden,
+  // feuerte ein Toggle-Klick mehrfach und höbe sich auf (Issue #398).
+  if (content.dataset.eventsWired) {
+    wireRenameKeydown(content);
+    return;
+  }
+  content.dataset.eventsWired = 'true';
 
   content.addEventListener('click', async (e) => {
     const target = e.target.closest('[data-action]');
@@ -753,7 +946,12 @@ function wireListContentEvents(container) {
       await toggleShoppingItem(id, checked, container);
     }
 
-    // ---- Artikel löschen (mit Undo, 4s Fenster) ----
+    // ---- Artikel-Details (URL/Notiz) bearbeiten ----
+    if (action === 'item-details') {
+      openItemDetails(Number(target.dataset.id), container);
+    }
+
+    // ---- Artikel löschen (mit Undo, 5s Fenster) ----
     if (action === 'delete-item') {
       const id        = Number(target.dataset.id);
       const item      = state.items.find((i) => i.id === id);
@@ -766,10 +964,10 @@ function wireListContentEvents(container) {
       renderTabs(container);
 
       let undone = false;
-      window.oikos.showToast(
+      window.yuvomi.showToast(
         t('shopping.itemDeletedToast', { name: snapshot?.name ?? '' }),
         'default',
-        4000,
+        5000,
         () => {
           // Undo: Artikel wiederherstellen
           undone = true;
@@ -797,12 +995,12 @@ function wireListContentEvents(container) {
             updateListCounter(state.activeListId, 1, snapshot.is_checked ? 1 : 0);
             renderTabs(container);
           }
-          window.oikos.showToast(err.message, 'danger');
+          window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
         }
-      }, 4100);
+      }, 5100);
     }
 
-    // ---- Abgehakte löschen (mit Undo, 4s Fenster) ----
+    // ---- Abgehakte löschen (mit Undo, 5s Fenster) ----
     if (action === 'clear-checked') {
       const checked = state.items.filter((i) => i.is_checked);
       const count   = checked.length;
@@ -817,10 +1015,10 @@ function wireListContentEvents(container) {
       renderTabs(container);
 
       let undone = false;
-      window.oikos.showToast(
+      window.yuvomi.showToast(
         t('shopping.itemsRemovedToast', { count }),
         'default',
-        4000,
+        5000,
         () => {
           undone = true;
           snapshot.forEach((item) => state.items.push(item));
@@ -841,9 +1039,18 @@ function wireListContentEvents(container) {
           updateItemsList(container);
           updateListCounter(state.activeListId, count, count);
           renderTabs(container);
-          window.oikos.showToast(err.message, 'danger');
+          window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
         }
-      }, 4100);
+      }, 5100);
+    }
+
+    // ---- Kategorien verwalten ----
+    if (action === 'manage-categories') {
+      openCategoryManager(container);
+    }
+
+    if (action === 'import-meals') {
+      openMealPlanImport(container);
     }
 
     // ---- Liste umbenennen ----
@@ -859,7 +1066,7 @@ function wireListContentEvents(container) {
         renderListContent(container);
         wireListContentEvents(container);
       } catch (err) {
-        window.oikos.showToast(err.message, 'danger');
+        window.yuvomi.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
       }
     }
 
@@ -868,7 +1075,7 @@ function wireListContentEvents(container) {
       const deletedListId = state.activeListId;
 
       let undone = false;
-      window.oikos.showToast(t('shopping.deletedListToast'), 'default', 5000, () => {
+      window.yuvomi.showToast(t('shopping.deletedListToast'), 'default', 5000, () => {
         undone = true;
         // Liste wurde nie optimistisch ausgeblendet → kein visuelles Restore nötig
       });
@@ -888,7 +1095,7 @@ function wireListContentEvents(container) {
             renderListContent(container);
           }
         } catch (err) {
-          window.oikos.showToast(err.message ?? t('common.unknownError'), 'danger');
+          window.yuvomi.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
           await loadLists();
           renderTabs(container);
         }
@@ -896,9 +1103,70 @@ function wireListContentEvents(container) {
     }
   });
 
-  // Rename per Enter
+  wireRenameKeydown(content);
+}
+
+/**
+ * Verdrahtet „Rename per Enter" auf dem Listen-Header. Das Element wird bei jedem
+ * renderListContent neu erzeugt, daher muss diese Bindung pro Render erfolgen —
+ * im Gegensatz zur delegierten Klick-Bindung am stabilen #list-content (Issue #398).
+ */
+function wireRenameKeydown(content) {
   content.querySelector('[data-action="rename-list"]')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') e.currentTarget.click();
+  });
+}
+
+// --------------------------------------------------------
+// Kategorie-Verwaltung (kanonischer Ort, früher in Settings)
+// --------------------------------------------------------
+
+/**
+ * Öffnet den Kategorie-Manager in einem Modal. Reagiert auf
+ * `shopping-categories-changed`, um den lokalen State und die aktive Liste
+ * zu aktualisieren. Schließen navigiert zurück nach /shopping (Query entfernen).
+ * @param {Element} container Seiten-Container
+ * @param {object}  [opts]
+ * @param {boolean} [opts.fromDeepLink] true, wenn via ?manage=categories geöffnet
+ */
+async function openCategoryManager(container, { fromDeepLink = false } = {}) {
+  const { openModal } = await import('/components/modal.js');
+
+  let changed = false;
+  const onCategoriesChanged = async (e) => {
+    changed = true;
+    if (e.detail?.categories?.length) {
+      state.categories = e.detail.categories;
+    } else {
+      await loadCategories();
+    }
+  };
+
+  let manager = null;
+  openModal({
+    title: t('shopping.manageCategories'),
+    content: '<yuvomi-shopping-category-manager></yuvomi-shopping-category-manager>',
+    onSave: (panel) => {
+      manager = panel.querySelector('yuvomi-shopping-category-manager');
+      if (!manager) return;
+      manager.addEventListener('shopping-categories-changed', onCategoriesChanged);
+      // Überschrift fokussieren, sobald die Komponente gerendert hat.
+      requestAnimationFrame(() => manager?.focusHeading?.());
+    },
+    onClose: () => {
+      // Listener-Cleanup, damit beim Modal-Reuse kein Leak entsteht.
+      manager?.removeEventListener('shopping-categories-changed', onCategoriesChanged);
+      manager = null;
+      // Bei Mutationen die sichtbare Liste neu aufbauen (Gruppierung/Quick-Add-Select).
+      if (changed && state.activeList) {
+        renderListContent(container);
+        wireListContentEvents(container);
+      }
+      // Deep-Link-Query entfernen, wenn der Manager über die URL geöffnet wurde.
+      if (fromDeepLink && new URLSearchParams(window.location.search).has('manage')) {
+        window.yuvomi?.navigate?.('/shopping');
+      }
+    },
   });
 }
 
@@ -933,7 +1201,7 @@ export async function render(container, { user }) {
     }
   } catch (err) {
     console.error('[Shopping] Ladefehler:', err.message);
-    window.oikos.showToast(t('shopping.listsLoadError'), 'danger');
+    window.yuvomi.showToast(t('shopping.listsLoadError'), 'danger');
   }
 
   container.replaceChildren();
@@ -957,8 +1225,12 @@ export async function render(container, { user }) {
   container.querySelector('#fab-new-item')?.addEventListener('click', () => {
     const input = container.querySelector('#item-name-input');
     if (input) {
+      // FAB = Erstell-Flow (wie Meals/Recipes): die Quick-Add-Fläche sichtbar
+      // aktivieren — Scroll + Fokus + kurzer Puls als „hier entsteht das Neue".
       input.scrollIntoView({ behavior: 'smooth', block: 'center' });
       input.focus();
+      input.classList.add('quick-add__input--flash');
+      input.addEventListener('animationend', () => input.classList.remove('quick-add__input--flash'), { once: true });
     } else {
       // Keine Liste aktiv → neue Liste erstellen
       container.querySelector('[data-action="new-list"]')?.click();
@@ -970,6 +1242,11 @@ export async function render(container, { user }) {
   if (highlightId) {
     const el = container.querySelector(`[data-action="toggle-item"][data-id="${highlightId}"]`);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Deep-Link: ?manage=categories öffnet den Kategorie-Manager sofort.
+  if (new URLSearchParams(window.location.search).get('manage') === 'categories') {
+    openCategoryManager(container, { fromDeepLink: true });
   }
 }
 

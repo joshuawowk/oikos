@@ -7,7 +7,10 @@
     "generating": "…",
     "optional": "İsteğe bağlı",
     "stepCounter": "Adım {{n}} / {{total}}",
-    "toggleVisibility": "Değeri göster veya gizle"
+    "toggleVisibility": "Değeri göster veya gizle",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı ✓",
+    "language": "Dil"
   },
   "config": {
     "title": "Temel Yapılandırma",
@@ -28,7 +31,8 @@
     "sessionHint": "Tarayıcı oturum çerezlerini imzalar.",
     "dbLabel": "Veritabanı Şifreleme Anahtarı",
     "dbHint": "SQLite veritabanını beklemede şifreler.",
-    "errBoth": "Her iki anahtar da gereklidir."
+    "errBoth": "Her iki anahtar da gereklidir.",
+    "dangerWarn": "Bu anahtarları şimdi kaydedin. Kaybederseniz şifrelenmiş verileriniz kurtarılamaz — sıfırlama yoktur."
   },
   "weather": {
     "title": "Hava Durumu Widget",
@@ -73,11 +77,23 @@
     "google": "Google Takvim",
     "apple": "Apple CalDAV",
     "documentWebdav": "WebDAV belgeleri",
+    "documentLocal": "Yerel belgeler",
     "save": "Kaydet ve Docker'ı başlat",
     "saving": "Kaydediliyor …",
     "errSave": ".env kaydedilemedi.",
     "weatherEnabled": "etkin ({{city}})",
-    "configured": "yapılandırıldı"
+    "configured": "yapılandırıldı",
+    "finalNote": "Bu, .env dosyanızı yazar (mevcut olan yedeklenir) ve konteyneri başlatır.",
+    "confirm": "Onaylamak için tekrar tıklayın",
+    "access": "Erişim",
+    "accessProxy": "Ters proxy (HTTPS)",
+    "accessDirect": "Doğrudan / HTTP",
+    "email": "E-posta",
+    "oidc": "Tek oturum açma",
+    "backups": "Yedeklemeler",
+    "webdavBackup": "Harici yedeklemeler",
+    "on": "etkin",
+    "off": "devre dışı"
   },
   "docker": {
     "title": "Yuvomi başlatılıyor",
@@ -110,7 +126,10 @@
   "done": {
     "title": "Yuvomi hazır!",
     "subtitle": "Aile planlayıcınız çalışıyor ve yönetici hesabınız ayarlandı.",
-    "open": "Yuvomi'u aç →"
+    "open": "Yuvomi'u aç →",
+    "backupReminder": "Şimdi .env dosyanızı yedeklemeyi unutmayın — anahtarlarınızı içerir.",
+    "download": ".env dosyasını indir",
+    "savedTo": "Şuraya kaydedildi: {{path}}"
   },
   "advanced": {
     "tag": "Gelişmiş · isteğe bağlı",
@@ -139,6 +158,68 @@
     "documentWebdavUsernameLabel": "Kullanıcı adı",
     "documentWebdavPasswordLabel": "Parola",
     "documentWebdavPathLabel": "Temel yol",
-    "documentWebdavPathHint": "Belgeler için uzak klasör. yuvomi-documents kullanmak için boş bırakın."
+    "documentWebdavPathHint": "Belgeler için uzak klasör. yuvomi-documents kullanmak için boş bırakın.",
+    "documentLocal": "Yerel belge depolama",
+    "documentLocalEnable": "Yeni belgeleri yerel bir klasörde sakla",
+    "documentLocalPathLabel": "Klasör yolu",
+    "documentLocalPathHint": "Konteyner içindeki yol. /documents için boş bırakın.",
+    "sectionNetwork": "Ağ",
+    "sectionIntegrations": "Entegrasyonlar ve yedeklemeler",
+    "errSchedule": "Geçersiz cron zamanlaması (boşlukla ayrılmış beş alan beklenir, örn. 0 2 * * *).",
+    "errKeep": "Saklanacak yedek sayısı pozitif bir sayı olmalıdır.",
+    "webdavBackup": "Harici yedeklemeler (WebDAV)",
+    "webdavBackupHint": "Her yedeği bir WebDAV sunucusuna (örn. Nextcloud) kopyalar; böylece bir disk arızasından etkilenmez.",
+    "webdavBackupEnable": "Yedekleri WebDAV’a da gönder",
+    "webdavBackupUrlLabel": "WebDAV URL’si",
+    "webdavBackupUsernameLabel": "Kullanıcı adı",
+    "webdavBackupPasswordLabel": "Parola",
+    "webdavBackupPathLabel": "Uzak yol",
+    "sectionMore": "Diğer seçenekler",
+    "fixerLabel": "Fixer API anahtarı (canlı döviz kurları)",
+    "fixerHint": "İsteğe bağlı. Abonelik para birimlerini canlı kurlarla dönüştürür. Abonelikler bu olmadan da çalışır.",
+    "pushSubjectLabel": "Push iletişim adresi",
+    "pushSubjectHint": "Push hizmetlerine sunucunuzun iletişim bilgisi olarak gönderilir. Varsayılan için boş bırakın."
+  },
+  "welcome": {
+    "title": "Yuvomi’ye hoş geldiniz",
+    "subtitle": "Özel aile planlayıcınızı çalıştıralım. Nasıl kuracağınızı seçin.",
+    "simpleTitle": "Basit kurulum",
+    "simpleBadge": "Önerilen",
+    "simpleDesc": "Teknik ayrıntıları sizin için biz hallederiz. Yuvomi’yi evde çalıştırmak için idealdir.",
+    "simpleTime": "Yaklaşık 2 dakika",
+    "advancedTitle": "Gelişmiş kurulum",
+    "advancedDesc": "Tam kontrol: ters proxy, takvim senkronizasyonu, e-posta, tek oturum açma ve yedeklemeler.",
+    "advancedTime": "Her seçenek, adım adım"
+  },
+  "simple": {
+    "title": "Hazır",
+    "subtitle": "Her şeyi güvenli varsayılanlarla hazırladık. Şimdi yalnızca hesabınızı oluşturun.",
+    "itemKeysTitle": "Güvenlik anahtarları oluşturuldu",
+    "itemKeysDesc": "Oturumunuz ve veritabanınız otomatik olarak şifrelenir.",
+    "itemAccessTitle": "Yerel erişim",
+    "itemAccessDesc": "Bu makinede {{url}} adresinden erişilebilir.",
+    "itemBackupsTitle": "Günlük yedeklemeler açık",
+    "itemBackupsDesc": "Her gece yerel bir yedek saklanır.",
+    "backupReminder": "Kurulumdan sonra oluşturulan .env dosyasını yedekleyin — tek şifreleme anahtarlarınızı içerir.",
+    "switchAdvanced": "Daha fazla seçenek mi lazım? Gelişmiş kuruluma geçin",
+    "start": "Yuvomi’yi kur ve başlat"
+  },
+  "email": {
+    "title": "E-posta ve parola sıfırlama",
+    "subtitle": "Aile üyelerinin unuttukları parolayı e-postayla sıfırlamasına izin verin. İsteğe bağlı — gerekmiyorsa atlayın.",
+    "enable": "E-posta göndermeyi etkinleştir",
+    "hint": "Kendi SMTP sunucunuzu kullanır (e-posta sağlayıcısı, self-hosted veya bir işlemsel hizmet).",
+    "hostLabel": "SMTP sunucusu",
+    "portLabel": "Bağlantı noktası",
+    "secureLabel": "Şifreleme",
+    "secureStarttls": "STARTTLS (587. bağlantı noktası)",
+    "secureSsl": "SSL/TLS (465. bağlantı noktası)",
+    "secureNone": "Yok (önerilmez)",
+    "userLabel": "Kullanıcı adı",
+    "passLabel": "Parola",
+    "fromLabel": "Gönderen adresi",
+    "fromHint": "Alıcıların göreceği «Kimden» adresi. Birçok sağlayıcı bunun kullanıcı adıyla eşleşmesini gerektirir.",
+    "fromNameLabel": "Gönderen adı",
+    "errIncomplete": "SMTP sunucusu ve gönderen adresi gereklidir."
   }
 }

@@ -9,6 +9,7 @@ const MAX_TITLE    = 200;
 const MAX_TEXT     = 5000;
 const MAX_SHORT    = 100;
 const MAX_RRULE    = 300;
+const MAX_URL      = 2000;
 
 // Regex-Muster
 const DATE_RE     = /^\d{4}-\d{2}-\d{2}$/;
@@ -102,6 +103,31 @@ function color(val, field) {
 }
 
 /**
+ * Validiert eine optionale URL. Erlaubt ausschließlich http/https-Schemata,
+ * damit gespeicherte Werte gefahrlos als <a href> gerendert werden können
+ * (blockt javascript:/data:/file: etc. — XSS-Schutz an der Quelle).
+ * @param {any}    val
+ * @param {string} field
+ * @returns {{ value: string|null, error: string|null }}
+ */
+function url(val, field) {
+  if (val === undefined || val === null || val === '') return { value: null, error: null };
+  const s = String(val).trim();
+  if (!s) return { value: null, error: null };
+  if (s.length > MAX_URL)
+    return { value: null, error: `${field} may be at most ${MAX_URL} characters long.` };
+  let parsed;
+  try {
+    parsed = new URL(s);
+  } catch {
+    return { value: null, error: `${field} must be a valid URL.` };
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+    return { value: null, error: `${field} must be an http(s) URL.` };
+  return { value: s, error: null };
+}
+
+/**
  * Sammelt alle Fehler aus einem Array von Validierungsergebnissen.
  * @param {Array<{ error: string|null }>} results
  * @returns {string[]} Fehlerliste
@@ -180,7 +206,7 @@ function bool(val, field) {
 }
 
 export {
-  str, oneOf, date, time, datetime, month, num, color, rrule, id, bool, collectErrors,
-  MAX_TITLE, MAX_TEXT, MAX_SHORT, MAX_RRULE,
+  str, oneOf, date, time, datetime, month, num, color, url, rrule, id, bool, collectErrors,
+  MAX_TITLE, MAX_TEXT, MAX_SHORT, MAX_RRULE, MAX_URL,
   DATE_RE, TIME_RE, DATETIME_RE, COLOR_RE, MONTH_RE,
 };

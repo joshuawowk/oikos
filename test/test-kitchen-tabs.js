@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 const { KITCHEN_ROUTES, KITCHEN_STORAGE_KEY, getLastKitchenRoute, isKitchenRoute } = await (async () => {
-  global.window = { oikos: null };
+  global.window = { yuvomi: null };
   global.document = {
     createElement: () => ({
       className: '', dataset: {}, style: {},
@@ -30,8 +30,12 @@ test('KITCHEN_ROUTES enthält alle drei Sub-Routen', () => {
   assert.deepEqual(KITCHEN_ROUTES, ['/meals', '/recipes', '/shopping']);
 });
 
+test('KITCHEN_ROUTES ist eingefroren (kanonische Kitchen-Routen)', () => {
+  assert.equal(Object.isFrozen(KITCHEN_ROUTES), true);
+});
+
 test('KITCHEN_STORAGE_KEY ist korrekt', () => {
-  assert.equal(KITCHEN_STORAGE_KEY, 'oikos-kitchen-tab');
+  assert.equal(KITCHEN_STORAGE_KEY, 'yuvomi-kitchen-tab');
 });
 
 test('getLastKitchenRoute: Standardwert /meals wenn kein Storage-Eintrag', () => {
@@ -40,12 +44,12 @@ test('getLastKitchenRoute: Standardwert /meals wenn kein Storage-Eintrag', () =>
 });
 
 test('getLastKitchenRoute: gibt gespeicherte Route zurück', () => {
-  global.sessionStorage._d = { 'oikos-kitchen-tab': '/recipes' };
+  global.sessionStorage._d = { 'yuvomi-kitchen-tab': '/recipes' };
   assert.equal(getLastKitchenRoute(), '/recipes');
 });
 
 test('getLastKitchenRoute: ignoriert ungültige gespeicherte Route', () => {
-  global.sessionStorage._d = { 'oikos-kitchen-tab': '/admin' };
+  global.sessionStorage._d = { 'yuvomi-kitchen-tab': '/admin' };
   assert.equal(getLastKitchenRoute(), '/meals');
 });
 

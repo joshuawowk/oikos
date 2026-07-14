@@ -1,33 +1,42 @@
 /**
  * Modul: Pinnwand / Notizen (Notes)
  * Zweck: Masonry-Grid mit farbigen Sticky Notes, Pin-Toggle, CRUD
- * Abhängigkeiten: /api.js, /router.js (window.oikos)
+ * Abhängigkeiten: /api.js, /router.js (window.yuvomi)
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal, btnError } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, btnError, advancedSection } from '/components/modal.js';
 import { stagger, vibrate } from '/utils/ux.js';
 import { t } from '/i18n.js';
-import { esc } from '/utils/html.js';
+import { esc, renderMarkdownLight } from '/utils/html.js';
+import { getReadableTextColor } from '/utils/color.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 
 // --------------------------------------------------------
 // Konstanten
 // --------------------------------------------------------
 
+// Gedämpfte, paper-kompatible Sticker-Palette. Die frühere Material-Primär-
+// Palette (#FFEB3B/#80DEEA/#CE93D8 …) las gegen Warm-Paper, Violett-Akzent
+// und Plus Jakarta Sans wie eine billigere App (Critique P3). Diese Töne sind
+// hell + niedrig gesättigt, damit getReadableTextColor() dunklen Text wählt
+// und die Karten zur warmen Marken-Umgebung passen. Bestehende Notizen mit
+// alten Hex-Werten rendern weiterhin korrekt; die Palette gilt für neue Wahl.
 const NOTE_COLORS = [
-  '#FFEB3B', '#FFD54F', '#A5D6A7', '#80DEEA',
-  '#90CAF9', '#CE93D8', '#FFAB91', '#FFFFFF',
+  '#EFE3BE', '#E7D2A9', '#D2DEC6', '#C7DED9',
+  '#CAD8E4', '#D8D0E2', '#EBD1C2', '#FBFAF7',
 ];
 
 const NOTE_COLOR_NAMES = () => ({
-  '#FFEB3B': t('notes.colorYellow'),
-  '#FFD54F': t('notes.colorAmber'),
-  '#A5D6A7': t('notes.colorGreen'),
-  '#80DEEA': t('notes.colorTeal'),
-  '#90CAF9': t('notes.colorBlue'),
-  '#CE93D8': t('notes.colorPurple'),
-  '#FFAB91': t('notes.colorOrange'),
-  '#FFFFFF': t('notes.colorWhite'),
+  '#EFE3BE': t('notes.colorYellow'),
+  '#E7D2A9': t('notes.colorAmber'),
+  '#D2DEC6': t('notes.colorGreen'),
+  '#C7DED9': t('notes.colorTeal'),
+  '#CAD8E4': t('notes.colorBlue'),
+  '#D8D0E2': t('notes.colorPurple'),
+  '#EBD1C2': t('notes.colorOrange'),
+  '#FBFAF7': t('notes.colorWhite'),
 });
 
 // --------------------------------------------------------
@@ -36,19 +45,6 @@ const NOTE_COLOR_NAMES = () => ({
 
 let state = { notes: [], user: null, filterQuery: '' };
 let _container = null;
-
-// --------------------------------------------------------
-// Markdown-Light Renderer
-// --------------------------------------------------------
-
-function renderMarkdownLight(text) {
-  if (!text) return '';
-  return esc(text)
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
-    .replace(/^- (.+)$/gm,     '• $1')
-    .replace(/\n/g,            '<br>');
-}
 
 // --------------------------------------------------------
 // Entry Point
@@ -63,18 +59,13 @@ export async function render(container, { user }) {
     <div class="notes-page">
       <div class="page-toolbar notes-toolbar">
         <h1 class="page-toolbar__title">${t('notes.title')}</h1>
-        <div class="notes-toolbar__search">
-          <i data-lucide="search" class="notes-toolbar__search-icon" aria-hidden="true"></i>
-          <input type="search" id="notes-search" class="notes-toolbar__search-input"
-                 placeholder="${t('notes.searchPlaceholder')}" autocomplete="off"
-                 value="${esc(state.filterQuery)}">
-        </div>
+        ${renderPageSearch({ id: 'notes-search', label: t('notes.searchPlaceholder'), placeholder: t('notes.searchPlaceholder'), value: state.filterQuery, clearLabel: t('common.searchClear'), className: 'notes-toolbar__search' })}
         <button class="btn btn--primary toolbar-new-btn" id="notes-add-btn">
           <i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
           ${t('notes.addNoteLabel')}
         </button>
       </div>
-      <div id="notes-grid" class="notes-grid"></div>
+      <div id="notes-grid" class="notes-grid" aria-busy="true">${renderSkeletonList({ rows: 5, lines: 3 })}</div>
       <button class="page-fab" id="fab-new-note" aria-label="${t('notes.addNoteLabel')}">
         <i data-lucide="plus" style="width:24px;height:24px" aria-hidden="true"></i>
       </button>
@@ -88,8 +79,7 @@ export async function render(container, { user }) {
     state.notes = res.data;
   } catch (err) {
     console.error('[Notes] Laden fehlgeschlagen:', err);
-    state.notes = [];
-    window.oikos?.showToast(t('notes.loadError'), 'danger');
+    throw err;
   }
   const grid = container.querySelector('#notes-grid');
   grid.addEventListener('click', async (e) => {
@@ -109,12 +99,18 @@ export async function render(container, { user }) {
   renderGrid();
 
   const addHandler = () => openNoteModal({ mode: 'create' });
+  // #notes-add-btn ist per .toolbar-new-btn global ausgeblendet (FAB übernimmt),
+  // bleibt aber als einheitliches Modul-Muster erhalten (frontend-audit 1.9).
   _container.querySelector('#notes-add-btn').addEventListener('click', addHandler);
   _container.querySelector('#fab-new-note').addEventListener('click', addHandler);
 
-  _container.querySelector('#notes-search').addEventListener('input', (e) => {
-    state.filterQuery = e.target.value;
-    renderGrid();
+  wirePageSearch(_container, {
+    id: 'notes-search',
+    delay: 0,
+    onQuery: (value) => {
+      state.filterQuery = value;
+      renderGrid();
+    },
   });
 }
 
@@ -125,6 +121,7 @@ export async function render(container, { user }) {
 function renderGrid() {
   const grid = _container.querySelector('#notes-grid');
   if (!grid) return;
+  grid.removeAttribute('aria-busy');
 
   const q = state.filterQuery.trim().toLowerCase();
   const visible = q
@@ -138,7 +135,7 @@ function renderGrid() {
     const isFiltered = q.length > 0;
     grid.replaceChildren();
     grid.insertAdjacentHTML('beforeend', `
-      <div class="empty-state" style="column-span:all;">
+      <div class="empty-state">
         <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
@@ -173,7 +170,9 @@ function renderNoteCard(note) {
     ? note.creator_name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
     : '?';
 
-  const textColor = isLightColor(note.color) ? 'rgba(0,0,0,0.8)' : '#ffffff';
+  const textColor = getReadableTextColor(note.color);
+  const avatarColor = note.creator_color || '#8E8E93';
+  const avatarTextColor = getReadableTextColor(avatarColor);
 
   return `
     <div class="note-card ${note.pinned ? 'note-card--pinned' : ''}"
@@ -188,7 +187,7 @@ function renderNoteCard(note) {
       <div class="note-card__footer">
         <div class="note-card__creator">
           <span class="note-card__avatar"
-                style="background-color:${esc(note.creator_color || '#8E8E93')}">
+                style="background-color:${esc(avatarColor)};color:${avatarTextColor}">
             ${note.creator_avatar
               ? `<img src="${esc(note.creator_avatar)}" alt="${esc(note.creator_name || '')}" loading="lazy">`
               : initials}
@@ -393,27 +392,29 @@ function openNoteModal({ mode, note = null }) {
                 placeholder="${t('notes.contentPlaceholder')}"
                 style="resize:vertical;">${esc(isEdit ? note.content : '')}</textarea>
     </div>
-    <div class="form-group">
-      <label class="form-label" id="note-color-label">${t('notes.colorLabel')}</label>
-      <div class="note-color-picker" role="radiogroup" aria-labelledby="note-color-label">
-        ${NOTE_COLORS.map((c) => `
-          <div class="note-color-swatch ${c === selColor ? 'note-color-swatch--active' : ''}"
-               data-color="${c}"
-               style="background-color:${c};border:2px solid ${c === '#FFFFFF' ? '#E5E5EA' : c};"
-               role="radio"
-               tabindex="${c === selColor ? '0' : '-1'}"
-               aria-checked="${c === selColor ? 'true' : 'false'}"
-               aria-label="${NOTE_COLOR_NAMES()[c] ?? c}"></div>
-        `).join('')}
+    ${advancedSection(`
+      <div class="form-group">
+        <label class="form-label" id="note-color-label">${t('notes.colorLabel')}</label>
+        <div class="note-color-picker" role="radiogroup" aria-labelledby="note-color-label">
+          ${NOTE_COLORS.map((c) => `
+            <div class="note-color-swatch ${c === selColor ? 'note-color-swatch--active' : ''}"
+                 data-color="${c}"
+                 style="background-color:${c};border:2px solid ${c === '#FFFFFF' ? 'var(--color-border)' : c};"
+                 role="radio"
+                 tabindex="${c === selColor ? '0' : '-1'}"
+                 aria-checked="${c === selColor ? 'true' : 'false'}"
+                 aria-label="${NOTE_COLOR_NAMES()[c] ?? c}"></div>
+          `).join('')}
+        </div>
       </div>
-    </div>
-    <div class="form-group">
-      <label class="toggle">
-        <input type="checkbox" id="note-pinned" ${isEdit && note.pinned ? 'checked' : ''}>
-        <span class="toggle__track"></span>
-        <span>${t('notes.pinnedLabel')}</span>
-      </label>
-    </div>
+      <div class="form-group">
+        <label class="toggle">
+          <input type="checkbox" id="note-pinned" ${isEdit && note.pinned ? 'checked' : ''}>
+          <span class="toggle__track"></span>
+          <span>${t('notes.pinnedLabel')}</span>
+        </label>
+      </div>`,
+      { open: isEdit && (!!note.pinned || (!!note.color && note.color !== NOTE_COLORS[0])) })}
 
     <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
       <button class="btn btn--secondary" id="note-modal-cancel">${t('common.cancel')}</button>
@@ -482,7 +483,7 @@ function openNoteModal({ mode, note = null }) {
         const color   = panel.querySelector('.note-color-swatch--active')?.dataset.color || NOTE_COLORS[0];
         const pinned  = panel.querySelector('#note-pinned').checked ? 1 : 0;
 
-        if (!cnt) { window.oikos?.showToast(t('common.contentRequired'), 'error'); return; }
+        if (!cnt) { window.yuvomi?.showToast(t('common.contentRequired'), 'error'); return; }
 
         saveBtn.disabled    = true;
         saveBtn.textContent = '…';
@@ -499,9 +500,9 @@ function openNoteModal({ mode, note = null }) {
           }
           closeModal({ force: true });
           renderGrid();
-          window.oikos?.showToast(mode === 'create' ? t('notes.createdToast') : t('notes.savedToast'), 'success');
+          window.yuvomi?.showToast(mode === 'create' ? t('notes.createdToast') : t('notes.savedToast'), 'success');
         } catch (err) {
-          window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
           btnError(saveBtn);
           saveBtn.disabled    = false;
           saveBtn.textContent = isEdit ? t('common.save') : t('common.create');
@@ -523,7 +524,7 @@ async function togglePin(id) {
     state.notes.sort((a, b) => b.pinned - a.pinned);
     renderGrid();
   } catch (err) {
-    window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
   }
 }
 
@@ -535,7 +536,7 @@ async function deleteNote(id) {
   vibrate([30, 50, 30]);
 
   let undone = false;
-  window.oikos?.showToast(t('notes.deletedToast'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('notes.deletedToast'), 'default', 5000, () => {
     undone = true;
     if (note) {
       state.notes = [...state.notes, note].sort((a, b) => b.pinned - a.pinned);
@@ -552,19 +553,7 @@ async function deleteNote(id) {
         state.notes = [...state.notes, note].sort((a, b) => b.pinned - a.pinned);
         renderGrid();
       }
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
-}
-
-// --------------------------------------------------------
-// Hilfsfunktionen
-// --------------------------------------------------------
-
-function isLightColor(hex) {
-  if (!hex) return true;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 150;
 }

@@ -5,6 +5,7 @@
  */
 
 @import url('/styles/split-expenses.css');
+@import url('/styles/subscriptions.css');
 
 /* --------------------------------------------------------
  * Modul-Akzent
@@ -21,12 +22,18 @@
   max-width: var(--content-max-width);
   margin: 0 auto;
   overflow: hidden;
+  /* Container für die Summenkarten: reflowt nach eigenem Platz, nicht Viewport. */
+  container: budget-page / inline-size;
+  /* Freiraum am Ende jeder Scroll-Region, damit der schwebende FAB die letzte
+   * Zeile (Kategorie/Transaktion) nicht verdeckt — primär ein Mobil-Problem. */
+  --budget-fab-clearance: calc(var(--target-lg) + var(--space-6) + var(--space-4));
 }
 
 .budget-tab-panel--split-expenses {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  padding-bottom: var(--budget-fab-clearance);
 }
 
 .budget-page--split-active #budget-prev,
@@ -40,34 +47,20 @@
   .budget-page { height: 100dvh; }
 }
 
-@media (max-width: 640px) {
-  .budget-nav {
-    flex-wrap: wrap;
-  }
-
-  .budget-nav__label {
-    order: 3;
-    flex-basis: 100%;
-  }
-
-  .budget-tabs {
-    margin-left: auto;
-  }
-}
-
 /* --------------------------------------------------------
- * Monat-Navigation
+ * Monat-Navigation — Struktur (Flex/Sticky/3px-Streifen) kommt aus
+ * .page-toolbar (Canonical Page Head). Mobiles Umbrechen über
+ * .page-toolbar--wrap: der Monats-Block (.budget-nav__month = Center-Slot)
+ * rutscht als Gruppe auf Zeile 2. Hier nur Budget-Spezifika.
  * -------------------------------------------------------- */
 .budget-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-top: 3px solid var(--module-accent);
-  border-bottom: 1px solid var(--color-border);
   background-color: var(--color-surface);
-  flex-shrink: 0;
 }
+
+/* [hidden] durchsetzen: die Icon-Buttons (.btn) setzen display:flex mit gleicher
+ * Spezifität wie [hidden] und blieben so trotz hidden=true sichtbar. Betrifft die
+ * Monats-Pfeile, die in Tabs ohne Monatsbezug (Konten/Darlehen/…) ausgeblendet werden. */
+.budget-nav__month [hidden] { display: none !important; }
 
 .budget-nav__label {
   font-size: var(--text-base);
@@ -77,6 +70,7 @@
 }
 
 .budget-nav__today {
+  min-height: var(--target-lg);
   font-size: var(--text-sm);
   color: var(--color-accent);
   font-weight: var(--font-weight-medium);
@@ -92,43 +86,56 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  margin-left: auto;
-  padding: 2px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-2);
+  /* Geteilte Pillen-Grammatik (sub-tabs.css): transparente Leiste, keine Box.
+   * Bis zu 5 Tabs passen auf 380px nicht nebeneinander: horizontal scrollen
+   * statt Text zu stauchen oder den Add-Button vom Rand zu drängen. Tabs
+   * behalten ihre lesbare Größe (flex-shrink:0), der Streifen darf schrumpfen. */
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
-.budget-tab {
-  min-height: 40px;
-  padding: 0 var(--space-2);
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
+.budget-tabs::-webkit-scrollbar { display: none; }
+
+/* Scroll-Affordance: JS setzt has-fade-start/-end nur, wenn auf der jeweiligen
+ * Seite weitere Tabs verborgen sind → Rand wird ausgeblendet als „mehr hier"-
+ * Hinweis. Ohne Klasse (Desktop, alle Tabs sichtbar) keine Maske. */
+.budget-tabs.has-fade-end {
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--space-6)), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--space-6)), transparent);
 }
 
-.budget-tab--active {
-  color: var(--color-text-on-accent);
+.budget-tabs.has-fade-start {
+  mask-image: linear-gradient(to right, transparent, #000 var(--space-6));
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--space-6));
 }
 
-.budget-tab[data-tab="budget"].budget-tab--active {
-  background: var(--module-budget);
-  /* --module-budget kippt im Dark Mode auf helles Teal → dunkle Tinte.
-   * loans (--color-info) und split-expenses bleiben dunkel → behalten das
-   * weiße --color-text-on-accent aus der geteilten .budget-tab--active-Regel. */
-  color: var(--color-ink-on-vivid);
+.budget-tabs.has-fade-start.has-fade-end {
+  mask-image: linear-gradient(to right, transparent, #000 var(--space-6), #000 calc(100% - var(--space-6)), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--space-6), #000 calc(100% - var(--space-6)), transparent);
 }
 
-.budget-tab[data-tab="loans"].budget-tab--active {
-  background: var(--color-info);
+/* Tab-Buttons nutzen die geteilte .sub-tab-Pillen-Grammatik (sub-tabs.css) und
+ * das wireTablist-Verhalten (utils/tablist.js) — wie Belohnungen/Haushaltshilfe.
+ * Budget-spezifisch bleiben hier nur das Scroll-Snapping der scrollbaren Leiste
+ * und die pro-Sub-Domäne-Aktiv-Tönung. Der Default (.sub-tab--active) folgt
+ * bereits dem Modul-Akzent (--active-module-accent = --module-budget). Nur Tabs,
+ * die eine ANDERE Modul-Identität tragen, überschreiben den Tint. */
+.budget-tabs .sub-tab {
+  scroll-snap-align: start;
 }
 
-.budget-tab[data-tab="split-expenses"].budget-tab--active {
-  background: var(--module-split-expenses);
+.budget-tabs .sub-tab[data-tab-id="loans"].sub-tab--active {
+  background-color: color-mix(in srgb, var(--color-info) 14%, transparent);
+}
+
+.budget-tabs .sub-tab[data-tab-id="split-expenses"].sub-tab--active {
+  background-color: color-mix(in srgb, var(--module-split-expenses) 14%, transparent);
 }
 
 .budget-tab-panel {
@@ -145,6 +152,268 @@
 .budget-tab-panel--loans {
   overflow-y: auto;
   padding-top: var(--space-3);
+  padding-bottom: var(--budget-fab-clearance);
+}
+
+.budget-tab-panel--subscriptions {
+  overflow-y: auto;
+  padding-bottom: var(--budget-fab-clearance);
+}
+
+/* --------------------------------------------------------
+ * Konten (#495)
+ * -------------------------------------------------------- */
+.budget-tab-panel--accounts {
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--budget-fab-clearance);
+}
+
+.budget-accounts__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.budget-accounts__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.budget-accounts__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.budget-accounts__toggle:hover { color: var(--color-text-primary); background: var(--color-surface-hover); }
+.budget-accounts__toggle:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 2px; }
+
+.budget-networth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.budget-networth__label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.budget-networth__amount {
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.budget-networth--positive .budget-networth__amount { color: var(--color-success); }
+.budget-networth--negative .budget-networth__amount { color: var(--color-danger); }
+
+.budget-accounts__list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .budget-accounts__list { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Container: Zeile mit primärem Drilldown-Button + separatem Bearbeiten-Icon.
+ * --account-accent kommt inline je Konto (Fallback: Modul-Akzent). */
+.budget-account {
+  --account-accent: var(--module-accent);
+  display: flex;
+  align-items: stretch;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.budget-account:hover { border-color: var(--account-accent); }
+
+.budget-account--archived { opacity: 0.62; }
+
+.budget-account__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.budget-account__main:hover { background: var(--color-surface-hover); }
+.budget-account__main:active { background: var(--color-surface-hover); }
+.budget-account__main:focus-visible {
+  outline: 2px solid var(--account-accent);
+  outline-offset: -2px;
+}
+
+.budget-account__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--account-accent) 14%, transparent);
+  color: var(--account-accent);
+}
+
+.budget-account__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0h);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.budget-account__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  min-width: 0;
+}
+
+.budget-account__name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.budget-account__badge {
+  flex: 0 0 auto;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-3);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.budget-account__type {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.budget-account__figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-0h);
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.budget-account__balance {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.budget-account__balance--positive { color: var(--color-success); }
+.budget-account__balance--negative { color: var(--color-danger); }
+
+.budget-account__starting {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.budget-account__chevron {
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+}
+
+.budget-account__edit {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.budget-account__edit:hover { color: var(--account-accent); background: var(--color-surface-hover); }
+.budget-account__edit:focus-visible { outline: 2px solid var(--account-accent); outline-offset: -2px; }
+
+.budget-entry__account {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Konto-Filter-Chip in der Transaktionsliste (Drilldown-Kontext) */
+.budget-account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  padding: 2px var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--module-accent);
+  background: color-mix(in srgb, var(--module-accent) 12%, transparent);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.budget-account-chip:hover { background: color-mix(in srgb, var(--module-accent) 20%, transparent); }
+.budget-account-chip:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 2px; }
+
+/* Farbwahl im Konto-Modal */
+.budget-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.budget-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--swatch);
+  border: 2px solid var(--color-border);
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.budget-color-swatch:hover { transform: scale(1.1); }
+.budget-color-swatch:focus-visible { outline: 2px solid var(--color-text-primary); outline-offset: 2px; }
+.budget-color-swatch.is-active {
+  border-color: var(--color-text-primary);
+  box-shadow: 0 0 0 2px var(--color-surface-elevated), 0 0 0 4px var(--swatch);
 }
 
 /* --------------------------------------------------------
@@ -158,7 +427,7 @@
   flex-shrink: 0;
 }
 
-@media (min-width: 480px) {
+@container budget-page (min-width: 480px) {
   .budget-summary {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-3);
@@ -166,10 +435,13 @@
 }
 
 .budget-summary-card {
-  background-color: var(--glass-bg-card);
+  /* Arbeitsfläche = opak (Brief: Glass bleibt den Overlays/Modals vorbehalten,
+   * Inhalt muss auf einen Blick lesbar sein). */
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-glass-card);
   padding: var(--space-3);
-  box-shadow: var(--glass-shadow-sm);
+  box-shadow: var(--shadow-sm);
   text-align: center;
   position: relative;
 }
@@ -196,10 +468,7 @@
 }
 
 .budget-summary-card__label {
-  font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   margin-bottom: var(--space-1);
 }
 
@@ -232,12 +501,8 @@
 }
 
 .budget-chart-section__title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   margin-bottom: var(--space-2);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .budget-chart {
@@ -256,11 +521,17 @@
 .budget-bar-row__label {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  width: 90px;
+  width: 104px;
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Auf breiteren Layouts (Desktop/Tablet) haben die Kategorienamen reichlich
+ * Platz — Label aufweiten statt die deutschen Bezeichnungen abzuschneiden. */
+@container budget-page (min-width: 480px) {
+  .budget-bar-row__label { width: 168px; }
 }
 
 .budget-bar-row__track {
@@ -272,9 +543,12 @@
 }
 
 .budget-bar-row__fill {
+  width: 100%;
   height: 100%;
   border-radius: var(--radius-full);
-  transition: width var(--transition-slow);
+  transform: scaleX(var(--bar-scale, 0));
+  transform-origin: left center;
+  transition: transform var(--transition-slow);
 }
 
 .budget-bar-row__fill--income   { background-color: var(--color-success); }
@@ -295,10 +569,10 @@
 .budget-loans {
   margin: 0 var(--space-4) var(--space-3);
   padding: var(--space-3);
-  background-color: var(--glass-bg-card);
-  border: 1px solid var(--glass-border-subtle);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-glass-card);
-  box-shadow: var(--glass-shadow-sm);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
 
@@ -315,26 +589,26 @@
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-label);
 }
 
 .budget-loans__summary {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin-top: 2px;
+  margin-top: var(--space-0h);
 }
 
 .budget-loans__filters {
   display: flex;
   gap: var(--space-1);
-  padding: 2px;
+  padding: var(--space-0h);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface-2);
 }
 
 .budget-loans__filter {
-  min-height: 30px;
+  min-height: var(--target-lg);
   padding: 0 var(--space-2);
   border: 0;
   border-radius: var(--radius-xs);
@@ -348,7 +622,7 @@
 .budget-loans__filter i {
   width: 14px;
   height: 14px;
-  margin-right: 4px;
+  margin-right: var(--space-1);
   vertical-align: -2px;
 }
 
@@ -386,7 +660,7 @@
   font-size: var(--text-base);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
-  margin-top: 2px;
+  margin-top: var(--space-0h);
   white-space: nowrap;
 }
 
@@ -395,9 +669,6 @@
   grid-template-columns: 1fr;
   gap: var(--space-2);
   margin-top: var(--space-3);
-  max-height: min(58dvh, 640px);
-  overflow-y: auto;
-  padding-right: var(--space-1);
 }
 
 .budget-loans__empty {
@@ -427,8 +698,6 @@
 }
 
 .budget-loan-card__title {
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-semibold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -442,8 +711,8 @@
 }
 
 .budget-loan-card__filter {
-  width: 30px;
-  height: 30px;
+  width: var(--target-lg);
+  height: var(--target-lg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -485,9 +754,25 @@
 
 .budget-loan-card__progress span {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: inherit;
   background: var(--color-success);
+  transform: scaleX(var(--bar-scale, 0));
+  transform-origin: left center;
+  transition: transform var(--transition-slow);
+}
+
+[dir='rtl'] .budget-bar-row__fill,
+[dir='rtl'] .budget-loan-card__progress span {
+  transform-origin: right center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .budget-bar-row__fill,
+  .budget-loan-card__progress span {
+    transition: none;
+  }
 }
 
 .budget-loan-card__footer {
@@ -508,11 +793,7 @@
 
 .budget-loan-transactions__title,
 .loan-report__section-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   margin-bottom: var(--space-2);
 }
 
@@ -527,14 +808,14 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3);
-  border: 1px solid var(--glass-border-subtle);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-glass-inner);
-  background-color: var(--glass-bg-card);
+  background-color: var(--color-surface);
 }
 
 .budget-loan-transaction span {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-0h);
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
 }
@@ -559,9 +840,7 @@
 }
 
 .loan-report__title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-weight-bold);
-  margin-top: 2px;
+  margin-top: var(--space-0h);
 }
 
 .loan-report__status {
@@ -598,7 +877,7 @@
   display: block;
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-0h);
 }
 
 .budget-page .form-grid-2 {
@@ -607,7 +886,7 @@
   gap: var(--space-3);
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .budget-loans__header,
   .budget-loan-card__footer {
     align-items: stretch;
@@ -668,15 +947,26 @@
 .budget-list-header__filter {
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
-  margin-top: 2px;
+  margin-top: var(--space-0h);
 }
 
 .budget-list-header__title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+}
+
+.budget-csv-export {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+}
+
+.budget-recur-mark {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -0.15em;
+  color: var(--color-text-tertiary);
 }
 
 .budget-list {
@@ -684,6 +974,7 @@
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--budget-fab-clearance);
 }
 
 .budget-list,
@@ -744,8 +1035,6 @@
 }
 
 .budget-entry__title {
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -767,53 +1056,39 @@
 .budget-entry__amount--income   { color: var(--color-success); }
 .budget-entry__amount--expenses { color: var(--color-danger);  }
 
-.budget-entry__delete {
-  width: var(--target-base);
-  height: var(--target-base);
-  min-width: var(--target-base);
-  min-height: var(--target-base);
-  border-radius: var(--radius-sm);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-disabled);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity var(--transition-fast), color var(--transition-fast);
-  position: relative;
-}
+/* Zeilen-Aktionen (Bearbeiten/Löschen) nutzen die geteilte .row-action-
+ * Grammatik aus layout.css (Audit F1) — immer sichtbar (auch Desktop), 48px
+ * Touch-Fläche, Löschen als row-action--danger. */
 
-.budget-entry__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  flex-shrink: 0;
-}
+/* --------------------------------------------------------
+ * Mobil-Reflow (≤640px)
+ * - Budget-Tab scrollt als Ganzes (Summary + Chart + Liste), damit der
+ *   schwebende FAB keine Kategorie-/Transaktionszeile mehr verdeckt und das
+ *   9-zeilige Kategorie-Chart nicht abgeschnitten wird.
+ * - Tab-Leiste auf die Zeilenbreite kappen, damit sie horizontal scrollt
+ *   statt den letzten Tab abzuschneiden.
+ * -------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* Tab-Leiste auf die verfügbare Zeilenbreite kappen (Toolbar-Seitenpadding
+   * abziehen), damit overflow-x:auto greift statt den letzten Tab zu kappen.
+   * Der Eltern-Container begrenzt die Breite nicht, daher viewport-relativ. */
+  .budget-tabs { max-width: calc(100vw - var(--space-8)); }
 
-.budget-entry__delete::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-}
-
-.budget-entry:hover .budget-entry__delete {
-  opacity: 1;
-}
-
-.budget-entry--loan .budget-entry__delete {
-  opacity: 1;
-}
-
-@media (hover: none), (max-width: 640px) {
-  .budget-entry__delete {
-    opacity: 1;
+  .budget-tab-panel--budget {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--budget-fab-clearance);
   }
-}
 
-.budget-entry__delete:hover {
-  color: var(--color-danger);
+  .budget-tab-panel--budget .budget-list-section,
+  .budget-tab-panel--budget .budget-list {
+    flex: 0 0 auto;
+    overflow: visible;
+    min-height: 0;
+  }
+
+  /* Doppelte FAB-Clearance vermeiden: das Panel polstert bereits unten. */
+  .budget-tab-panel--budget .budget-list { padding-bottom: 0; }
 }
 
 
@@ -920,4 +1195,204 @@
 
 .budget-inline-modal__footer {
   justify-content: flex-end;
+}
+
+/* --------------------------------------------------------
+ * Statistik-Tab (Task 10)
+ * -------------------------------------------------------- */
+.budget-stats__controls { display:flex; flex-wrap:wrap; gap:var(--space-3); align-items:center; justify-content:space-between; margin-bottom:var(--space-4); }
+.budget-stats__ranges { display:inline-flex; gap:var(--space-1); background:var(--color-surface-2); border-radius:var(--radius-md); padding:var(--space-1); }
+.budget-stats__range { border:none; background:transparent; color:var(--color-text-secondary); font-size:var(--text-sm); padding:var(--space-1) var(--space-3); border-radius:var(--radius-sm); cursor:pointer; }
+.budget-stats__range.is-active { background:var(--color-surface); color:var(--color-text-primary); box-shadow:var(--shadow-sm); }
+.budget-stats__stepper { display:inline-flex; align-items:center; gap:var(--space-2); }
+.budget-stats__period { font-size:var(--text-sm); color:var(--color-text-secondary); }
+.budget-stats__trend { width:100%; height:auto; display:block; }
+.budget-stats__legend { display:flex; gap:var(--space-4); margin-top:var(--space-2); font-size:var(--text-sm); color:var(--color-text-secondary); }
+.budget-stats__legend--wrap { flex-wrap:wrap; gap:var(--space-2) var(--space-4); }
+.budget-stats__swatch { display:inline-block; width:10px; height:10px; border-radius:var(--radius-full); margin-right:var(--space-1); }
+.budget-stats__swatch--income { background:var(--color-success); }
+.budget-stats__swatch--expense { background:var(--color-danger); }
+.budget-stats__donut-wrap { display:flex; gap:var(--space-4); align-items:center; flex-wrap:wrap; }
+.budget-stats__donut { width:160px; height:160px; }
+.budget-stats__export { margin-top:var(--space-4); }
+
+/* Ziel-Marker im Reports-Tab: kleine Tick-Linie auf dem Kategorie-Balken beim
+ * geplanten Monatswert (nur bei range='month'). */
+.budget-bar-row__track { position: relative; }
+.budget-bar-row__target {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  left: calc(var(--target-pos, 0) * 100%);
+  transform: translateX(-1px);
+  background-color: var(--color-text-primary);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 1px var(--color-surface);
+  opacity: 0.75;
+}
+
+/* --------------------------------------------------------
+ * Budgetplan (geplantes/geschätztes Budget, #468)
+ * -------------------------------------------------------- */
+.budget-tab-panel--plan {
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4) var(--budget-fab-clearance);
+}
+
+.budget-plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Sparziel-Karte */
+.budget-plan-savings {
+  --plan-tone-color: var(--module-budget);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-4);
+  text-align: left;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-glass-card);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: box-shadow var(--transition-base), transform var(--transition-base), border-color var(--transition-base);
+}
+.budget-plan-savings:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.budget-plan-savings:focus-visible {
+  outline: 2px solid var(--module-accent, var(--color-accent));
+  outline-offset: 2px;
+}
+.budget-plan-savings--tone-under { --plan-tone-color: var(--color-success); }
+.budget-plan-savings--tone-near  { --plan-tone-color: var(--color-warning); }
+.budget-plan-savings--tone-over  { --plan-tone-color: var(--color-danger);  }
+
+.budget-plan-savings__ring { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+.budget-plan-savings__ring svg { width: 100%; height: 100%; display: block; }
+.budget-plan-savings__ring-track { stroke: var(--color-surface-2); }
+.budget-plan-savings__ring-fill {
+  stroke: var(--plan-tone-color);
+  transition: stroke-dasharray var(--transition-slow);
+}
+.budget-plan-savings__ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.budget-plan-savings__detail { flex: 1; min-width: 0; }
+.budget-plan-savings__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+.budget-plan-savings__amounts {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+.budget-plan-savings__amounts strong { font-size: var(--text-2xl); color: var(--color-text-primary); }
+.budget-plan-savings__amounts span { font-size: var(--text-sm); color: var(--color-text-secondary); }
+.budget-plan-savings__status { margin-top: var(--space-1); font-size: var(--text-sm); font-weight: var(--font-weight-medium); }
+.budget-plan-savings__status--under { color: var(--color-success); }
+.budget-plan-savings__status--near  { color: var(--color-warning); }
+.budget-plan-savings__status--over  { color: var(--color-danger);  }
+.budget-plan-savings__edit { width: 18px; height: 18px; color: var(--color-text-tertiary, var(--color-text-secondary)); flex-shrink: 0; align-self: flex-start; }
+
+/* Sparziel „noch nicht gesetzt" */
+.budget-plan-savings--empty { justify-content: space-between; }
+.budget-plan-savings__prompt { display: flex; align-items: center; gap: var(--space-3); }
+.budget-plan-savings__prompt > i { width: 32px; height: 32px; color: var(--module-budget); flex-shrink: 0; }
+.budget-plan-savings__prompt-title { font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.budget-plan-savings__prompt-desc { font-size: var(--text-sm); color: var(--color-text-secondary); }
+.budget-plan-savings__prompt-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--module-accent, var(--color-accent));
+  white-space: nowrap;
+}
+.budget-plan-savings__prompt-cta i { width: 16px; height: 16px; }
+
+/* Kategorie-Plan-Abschnitt */
+.budget-plan__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.budget-plan__section-title { font-size: var(--text-base); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.budget-plan__section-head .btn i { width: 16px; height: 16px; }
+.budget-plan__empty { padding: var(--space-6) var(--space-4); }
+
+#budget-plan-rows { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* Kategorie-Plan-Zeile */
+.budget-plan-row {
+  --plan-tone-color: var(--color-success);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+.budget-plan-row:hover { box-shadow: var(--shadow-sm); border-color: var(--color-border); }
+.budget-plan-row:focus-visible {
+  outline: 2px solid var(--module-accent, var(--color-accent));
+  outline-offset: 2px;
+}
+.budget-plan-row--tone-near { --plan-tone-color: var(--color-warning); }
+.budget-plan-row--tone-over { --plan-tone-color: var(--color-danger);  }
+
+.budget-plan-row__top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.budget-plan-row__label { font-weight: var(--font-weight-medium); color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.budget-plan-row__amounts { font-size: var(--text-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.budget-plan-row__amounts strong { color: var(--color-text-primary); }
+
+.budget-plan-row__track {
+  height: var(--space-2);
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.budget-plan-row__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background-color: var(--plan-tone-color);
+  transform: scaleX(var(--plan-scale, 0));
+  transform-origin: left center;
+  transition: transform var(--transition-slow);
+}
+.budget-plan-row__foot { font-size: var(--text-xs); color: var(--plan-tone-color); font-weight: var(--font-weight-medium); font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .budget-plan-savings,
+  .budget-plan-savings__ring-fill,
+  .budget-plan-row,
+  .budget-plan-row__fill { transition: none; }
+  .budget-plan-savings:hover { transform: none; }
 }

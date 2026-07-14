@@ -18,10 +18,15 @@ const log = createLogger('Google');
 import { google } from 'googleapis';
 import crypto from 'node:crypto';
 import * as db from '../db.js';
+import { decodeHtmlEntities } from '../utils/html-entities.js';
+import { nearestColorId } from '../utils/ical-color.js';
+import { assignDefaultToEvent } from './sync-assignment.js';
 
 const GOOGLE_COLOR = '#4285F4';
 
 function upsertExternalCalendar(source, externalId, name, color) {
+  // Provider-Namen können HTML-entity-encoded sein (Google liefert das z. B. für
+  // Import-Kalender) — zu Klartext normalisieren, sonst escaped die UI doppelt.
   const row = db.get().prepare(`
     INSERT INTO external_calendars (source, external_id, name, color)
     VALUES (?, ?, ?, ?)
@@ -29,7 +34,7 @@ function upsertExternalCalendar(source, externalId, name, color) {
       name  = excluded.name,
       color = excluded.color
     RETURNING id
-  `).get(source, externalId, name, color);
+  `).get(source, externalId, decodeHtmlEntities(name), color);
   return row.id;
 }
 
@@ -168,6 +173,11 @@ async function listCalendars() {
   const client   = loadAuthorizedClient();
   const calendar = google.calendar({ version: 'v3', auth: client });
   const enabledSet = new Set(enabledCalendarIds());
+  // Standard-Zuweisung je Kalender (#459) aus der geteilten external_calendars-Tabelle.
+  const assigneeMap = new Map(
+    db.get().prepare(`SELECT external_id, default_assignee_user_id FROM external_calendars WHERE source = 'google'`)
+      .all().map((r) => [r.external_id, r.default_assignee_user_id])
+  );
 
   const items = [];
   let pageToken;
@@ -182,6 +192,8 @@ async function listCalendars() {
         enabled:         enabledSet.has(cal.id),
         accessRole:      cal.accessRole ?? null,
         writable:        isWritableRole(cal.accessRole),
+        default_assignee_user_id: assigneeMap.get(cal.id) ?? null,
+        synced:          assigneeMap.has(cal.id),
       });
     }
     pageToken = res.data.nextPageToken;
@@ -299,6 +311,9 @@ async function sync() {
   const client   = loadAuthorizedClient();
   const calendar = google.calendar({ version: 'v3', auth: client });
 
+  // Event-Farbpalette (colorId → Hex) einmalig für den ganzen Sync laden.
+  const eventColorMap = await fetchEventColorMap(calendar);
+
   const calendarIds = enabledCalendarIds();
   // accessRole je Kalender, memoisiert über Inbound + Outbound hinweg.
   const roleCache = new Map();
@@ -345,7 +360,7 @@ async function sync() {
         throw err;
       }
 
-      upsertGoogleEvents(response.data.items || [], calRefId, calColor);
+      upsertGoogleEvents(response.data.items || [], calRefId, calColor, eventColorMap);
       pageToken    = response.data.nextPageToken;
       newSyncToken = response.data.nextSyncToken || newSyncToken;
     } while (pageToken);
@@ -381,7 +396,7 @@ async function sync() {
         continue;
       }
       try {
-        const gEvent  = localEventToGoogle(event);
+        const gEvent  = localEventToGoogle(event, eventColorMap);
         const created = await calendar.events.insert({ calendarId: targetId, requestBody: gEvent });
         const calRefId = upsertExternalCalendar('google', targetId, targetId, GOOGLE_COLOR);
         db.get().prepare(`
@@ -418,13 +433,55 @@ function localAllDayEndToExclusive(dateStr) {
 }
 
 // --------------------------------------------------------
+// Helfer: Event-Farbpalette (colorId → Hex)
+// --------------------------------------------------------
+
+// Die Event-Palette ist praktisch statisch — modul-weit cachen, damit nicht jeder
+// Sync (u. U. alle paar Minuten) einen colors.get-Roundtrip auslöst.
+let _eventColorCache = null; // { map: Record<string,string>, ts: number }
+const EVENT_COLOR_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Lädt Googles Event-Farbpalette und mappt colorId ("1".."11") auf den jeweiligen
+ * Hintergrund-Hex. Google liefert Event-Farben ausschließlich als Paletten-ID; die
+ * realen Hex-Werte stehen nur im colors-Endpoint. Ergebnis wird 24 h gecacht. Bei
+ * Fehlern → letzter Cache, sonst leeres Objekt (Sync fällt auf Kalenderfarbe zurück).
+ * @param {import('googleapis').calendar_v3.Calendar} calendar
+ * @returns {Promise<Record<string,string>>}
+ */
+async function fetchEventColorMap(calendar) {
+  if (_eventColorCache && (Date.now() - _eventColorCache.ts) < EVENT_COLOR_TTL_MS) {
+    return _eventColorCache.map;
+  }
+  try {
+    const res   = await calendar.colors.get();
+    const event = res.data?.event || {};
+    const map   = {};
+    for (const [id, def] of Object.entries(event)) {
+      if (def?.background) map[id] = String(def.background).toUpperCase();
+    }
+    _eventColorCache = { map, ts: Date.now() };
+    return map;
+  } catch (err) {
+    log.warn('Event color palette not available:', err.message);
+    return _eventColorCache?.map || {};
+  }
+}
+
+// --------------------------------------------------------
 // Helfer: Google-Event in lokale DB upserten
 // --------------------------------------------------------
 
-function upsertGoogleEvents(items, calRefId = null, calColor = GOOGLE_COLOR) {
+function upsertGoogleEvents(items, calRefId = null, calColor = GOOGLE_COLOR, colorMap = {}) {
   const del = db.get().prepare(`
     DELETE FROM calendar_events WHERE external_calendar_id = ? AND external_source = 'google'
   `);
+
+  // Standard-Zuweisung dieses Kalenders (#459) — einmal auflösen.
+  const defaultAssignee = calRefId
+    ? db.get().prepare('SELECT default_assignee_user_id FROM external_calendars WHERE id = ?')
+        .get(calRefId)?.default_assignee_user_id ?? null
+    : null;
 
   const insertOrUpdate = db.get().transaction((item) => {
     if (item.status === 'cancelled') {
@@ -442,27 +499,35 @@ function upsertGoogleEvents(items, calRefId = null, calColor = GOOGLE_COLOR) {
     const location    = item.location    || null;
     const rrule       = item.recurrence  ? item.recurrence[0] : null;
 
+    // Event-Eigenfarbe aus colorId auflösen (Google liefert nur die Paletten-ID),
+    // sonst Kalenderfarbe als Default.
+    const evColor = (item.colorId && colorMap[item.colorId]) || calColor;
+
     const existing = db.get().prepare(
       'SELECT id FROM calendar_events WHERE external_calendar_id = ? AND external_source = ?'
     ).get(item.id, 'google');
 
     if (existing) {
-      // color wird bewusst NICHT aktualisiert: benutzerdefinierte Event-Farben
-      // sollen über Syncs hinweg erhalten bleiben (Issue #219). Die Kalenderfarbe
-      // dient nur als Default beim ersten Import (INSERT).
+      // color nur überschreiben, solange der Nutzer nicht lokal umgefärbt hat
+      // (user_modified = 0). Dadurch bleiben benutzerdefinierte Event-Farben über
+      // Syncs hinweg erhalten (Issue #219), während echte Google-Farbänderungen
+      // weiterhin durchkommen. Titel/Zeit bleiben unverändert remote-geführt.
       db.get().prepare(`
         UPDATE calendar_events
         SET title = ?, description = ?, start_datetime = ?, end_datetime = ?,
-            all_day = ?, location = ?, recurrence_rule = ?, calendar_ref_id = ?
+            all_day = ?, location = ?, recurrence_rule = ?,
+            color = CASE WHEN user_modified = 0 THEN ? ELSE color END,
+            calendar_ref_id = ?
         WHERE id = ?
-      `).run(title, description, startDt, endDt, allDay ? 1 : 0, location, rrule, calRefId, existing.id);
+      `).run(title, description, startDt, endDt, allDay ? 1 : 0, location, rrule, evColor, calRefId, existing.id);
     } else {
-      db.get().prepare(`
+      const inserted = db.get().prepare(`
         INSERT INTO calendar_events
           (title, description, start_datetime, end_datetime, all_day,
            location, color, external_calendar_id, external_source, recurrence_rule, calendar_ref_id, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'google', ?, ?, 1)
-      `).run(title, description, startDt, endDt, allDay ? 1 : 0, location, calColor, item.id, rrule, calRefId);
+      `).run(title, description, startDt, endDt, allDay ? 1 : 0, location, evColor, item.id, rrule, calRefId);
+      assignDefaultToEvent(db.get(), inserted.lastInsertRowid, defaultAssignee);
     }
   });
 
@@ -503,13 +568,21 @@ function normalizeRecurrenceUntil(rule, allDay) {
   }).join(';');
 }
 
-function localEventToGoogle(event) {
+function localEventToGoogle(event, colorMap = {}) {
   const allDay = !!event.all_day;
   const gEvent = {
     summary:     event.title,
     description: event.description || undefined,
     location:    event.location    || undefined,
   };
+
+  // Event-Farbe verlustbehaftet auf die nächste der 11 Google-colorIds mappen.
+  // Ohne verfügbare Palette (colors.get fehlgeschlagen) bleibt colorId ungesetzt,
+  // dann erbt das Event in Google die Kalenderfarbe.
+  if (event.color) {
+    const colorId = nearestColorId(event.color, colorMap);
+    if (colorId) gEvent.colorId = colorId;
+  }
 
   if (allDay) {
     const startDate = event.start_datetime.slice(0, 10);
@@ -539,4 +612,5 @@ export const __test = {
   localEventToGoogle, googleAllDayEndToInclusive, localAllDayEndToExclusive,
   upsertGoogleEvents, upsertExternalCalendar, setReadonly, isReadonly, isWritableRole,
   listSelection, setCalendarEnabled, recordSyncToken, getSyncToken, enabledCalendarIds,
+  fetchEventColorMap,
 };

@@ -18,10 +18,14 @@ import { buildOpenApiSpec } from './openapi.js';
 import * as googleCalendar from './services/google-calendar.js';
 import * as appleCalendar from './services/apple-calendar.js';
 import * as icsSubscription from './services/ics-subscription.js';
+import * as icsExport from './services/ics-export.js';
 import * as caldavReminders from './services/caldav-reminders-sync.js';
 import * as holidays from './services/holidays.js';
 import { startScheduler as startBackupScheduler } from './services/backup-scheduler.js';
 import { startScheduler as startSplitExpenseScheduler } from './services/split-expenses-scheduler.js';
+import { startScheduler as startPushScheduler } from './services/push-scheduler.js';
+import { startScheduler as startMedicationScheduler } from './services/medication-scheduler.js';
+import { emailService } from './services/email.js';
 import dashboardRouter from './routes/dashboard.js';
 import tasksRouter from './routes/tasks.js';
 import shoppingRouter from './routes/shopping.js';
@@ -33,6 +37,7 @@ import contactsRouter from './routes/contacts.js';
 import cardavRouter from './routes/cardav.js';
 import birthdaysRouter from './routes/birthdays.js';
 import budgetRouter from './routes/budget.js';
+import subscriptionsRouter from './routes/subscriptions.js';
 import documentsRouter from './routes/documents.js';
 import dmsRouter from './routes/dms.js';
 import splitExpensesRouter from './routes/split-expenses.js';
@@ -44,6 +49,15 @@ import familyRouter from './routes/family.js';
 import backupRouter from './routes/backup.js';
 import housekeepingRouter from './routes/housekeeping.js';
 import modulesRouter from './routes/modules.js';
+import pushRouter from './routes/push.js';
+import emailRouter from './routes/email.js';
+import notificationsRouter from './routes/notifications.js';
+import healthRouter from './routes/health.js';
+import rewardsRouter from './routes/rewards.js';
+import permissionsRouter from './routes/permissions.js';
+import changelogRouter from './routes/changelog.js';
+import mcpRouter from './mcp/server.js';
+import { moduleForPath, requiredAccess, tokenAllows } from './scopes.js';
 
 const log     = createLogger('Server');
 const logSync = createLogger('Sync');
@@ -168,6 +182,10 @@ if (process.env.NODE_ENV === 'production' && process.env.ENABLE_API_DOCS !== 'tr
 app.use(express.static(path.join(import.meta.dirname, '..', 'public'), {
   etag: true,
   lastModified: true,
+  // Kein automatischer Trailing-Slash-Redirect für Verzeichnisse (z. B. /settings →
+  // /settings/), sonst kollidiert das public/settings/-Verzeichnis mit der SPA-Route
+  // /settings und der Client-Router landet beim Hard-Load auf dem Dashboard.
+  redirect: false,
   setHeaders(res, filePath) {
     const ext = path.extname(filePath).toLowerCase();
     const isPwaIcon = /\/icons\/(icon-|apple-touch-icon|favicon)/.test(filePath);
@@ -211,10 +229,22 @@ function buildVersionPayload(includeVersion = false) {
     // Fail-safe: bei DB-Fehler kein Setup erzwingen
     setupRequired = false;
   }
+  // Password reset can only deliver when SMTP is configured AND an explicit
+  // BASE_URL origin is set (the request Host is deliberately not trusted, to
+  // prevent reset poisoning). Expose the capability so the login page can gate
+  // the "forgot password" affordance instead of offering a dead end.
+  let passwordResetEnabled = false;
+  try {
+    passwordResetEnabled = emailService.isConfigured()
+      && Boolean(String(process.env.BASE_URL || '').trim());
+  } catch {
+    passwordResetEnabled = false;
+  }
   return {
     ...(includeVersion ? { version: APP_VERSION } : {}),
     app_name: appName,
     setup_required: setupRequired,
+    password_reset_enabled: passwordResetEnabled,
   };
 }
 
@@ -278,8 +308,40 @@ app.get('/api/v1/openapi.json', requireAuth, requireAdmin, sendOpenApi);
 // /openapi.json liegt außerhalb von /api/, daher Rate-Limiter explizit als Route-Middleware.
 app.get('/openapi.json', apiLimiter, requireAuth, requireAdmin, sendOpenApi);
 
+// --------------------------------------------------------
+// Öffentlicher read-only ICS-Feed (Discussion #387)
+// Außerhalb /api/v1: keine Session/CSRF — Token in URL ist das Geheimnis.
+// --------------------------------------------------------
+const feedLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.get('/feed/calendar/:token.ics', feedLimiter, (req, res) => {
+  try {
+    const userId = icsExport.findUserIdByFeedToken(db.get(), req.params.token);
+    if (!userId) return res.status(404).type('text/plain').send('Not found');
+    const ics = icsExport.buildFeed(db.get(), userId);
+    res.set('Cache-Control', 'private, no-store');
+    res.set('Content-Disposition', 'inline; filename="yuvomi.ics"');
+    res.type('text/calendar; charset=utf-8').send(ics);
+  } catch (err) {
+    log.error('', err);
+    res.status(500).type('text/plain').send('Internal error');
+  }
+});
+
+// MCP-Endpoint (Streamable HTTP, stateless): Auth über bestehende Bearer-API-Tokens.
+// Eigener Namespace außerhalb von /api/v1 → kein CSRF, kein Guest-Guard.
+app.use('/mcp', apiLimiter, requireAuth, mcpRouter);
+
 // Alle weiteren API-Routen erfordern Authentifizierung + CSRF-Schutz
 app.use('/api/v1', requireAuth);
+// System-Metadaten: authentifiziert, aber bewusst vor Guest-/Token-Scope-Gates
+// wie /version behandelt. Keine Haushaltsdaten, nur upstream Release Notes.
+app.use('/api/v1/changelog', changelogRouter);
 app.use('/api/v1', (req, res, next) => {
   try {
     const guest = db.get().prepare('SELECT 1 FROM split_expense_guest_users WHERE user_id = ?').get(req.authUserId);
@@ -294,6 +356,37 @@ app.use('/api/v1', (req, res, next) => {
     return res.status(403).json({ error: 'This account can only access Split expenses.', code: 403 });
   }
 });
+// Token-Scopes: Nur für Token-Auth relevant. Ein gescoptes Token (scopes !== null)
+// darf ein Modul nur in der gewährten Zugriffsart (read/write) erreichen; jeder
+// nicht abgedeckte /api/v1-Pfad wird verweigert (Least Privilege). Deckt damit
+// zugleich die MCP-OpenAPI-Brücke ab, da diese per Loopback mit demselben Token
+// hier durchläuft.
+app.use('/api/v1', (req, res, next) => {
+  if (req.authMethod !== 'api_token' || req.authScopes == null) return next();
+  const moduleKey = moduleForPath(req.path);
+  const access = requiredAccess(req.method);
+  if (tokenAllows(req.authScopes, moduleKey, access)) return next();
+  return res.status(403).json({ error: 'Token scope does not permit this operation.', code: 403 });
+});
+// Rollen-/Mitglied-Rechte: Für eingeschränkte Mitglieds-Sessions (#467). Anders
+// als Token-Scopes ist dies eine DENY-Liste — nur konfigurierte Module werden
+// gesperrt, jeder unbekannte Pfad (/auth, /preferences, /settings-Daten …) bleibt
+// erreichbar, damit die App bedienbar bleibt. Admins haben sessionModuleAccess
+// === null (Bypass), ebenso unbeschränkte Mitglieder (Fast-Path).
+app.use('/api/v1', (req, res, next) => {
+  const access = req.sessionModuleAccess;
+  if (!access) return next();
+  const moduleKey = moduleForPath(req.path);
+  if (!moduleKey || !(moduleKey in access)) return next();
+  const level = access[moduleKey];
+  if (level === 'none') {
+    return res.status(403).json({ error: 'You do not have access to this module.', code: 403 });
+  }
+  if (level === 'read' && requiredAccess(req.method) === 'write') {
+    return res.status(403).json({ error: 'You have read-only access to this module.', code: 403 });
+  }
+  return next();
+});
 app.use('/api/v1', csrfMiddleware);
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/tasks', tasksRouter);
@@ -305,6 +398,7 @@ app.use('/api/v1/notes', notesRouter);
 app.use('/api/v1/contacts/cardav', cardavRouter);
 app.use('/api/v1/contacts', contactsRouter);
 app.use('/api/v1/birthdays', birthdaysRouter);
+app.use('/api/v1/budget/subscriptions', subscriptionsRouter);
 app.use('/api/v1/budget', budgetRouter);
 app.use('/api/v1/documents/dms', dmsRouter);
 app.use('/api/v1/documents', documentsRouter);
@@ -317,11 +411,22 @@ app.use('/api/v1/family', familyRouter);
 app.use('/api/v1/backup', backupRouter);
 app.use('/api/v1/housekeeping', housekeepingRouter);
 app.use('/api/v1/modules', modulesRouter);
+app.use('/api/v1/push', pushRouter);
+app.use('/api/v1/email', emailRouter);
+app.use('/api/v1/notifications', notificationsRouter);
+app.use('/api/v1/health', healthRouter);
+app.use('/api/v1/rewards', rewardsRouter);
+app.use('/api/v1/permissions', permissionsRouter);
 
 // --------------------------------------------------------
 // Health-Check (für Docker)
 // --------------------------------------------------------
-app.get('/health', (req, res) => {
+app.get('/health', (req, res, next) => {
+  // Browser-Navigation (Deep-Link/Reload/Bookmark auf den Gesundheit-Übersicht-Tab,
+  // Client-Route ebenfalls /health) erwartet die SPA, nicht den JSON-Healthcheck.
+  // Docker/Monitoring senden Accept: */* (ohne text/html) und bekommen weiter JSON,
+  // damit der Container-Healthcheck nicht mit der SPA-Wurzelroute kollidiert.
+  if (req.headers.accept && req.headers.accept.includes('text/html')) return next();
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -399,6 +504,8 @@ app.listen(PORT, () => {
   // Backup-Scheduler starten
   startBackupScheduler();
   startSplitExpenseScheduler();
+  startPushScheduler();
+  startMedicationScheduler();
 });
 
 export default app;

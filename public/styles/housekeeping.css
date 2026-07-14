@@ -19,11 +19,17 @@
   white-space: nowrap;
 }
 
+/* „Bereits erfasst" ist ein Status, kein deaktiviertes Steuerelement — daher
+ * lesbarer Sekundärton statt des kaum sichtbaren Disabled-Grau (Audit F9). */
 .housekeeping-check-small:disabled {
   background: var(--color-surface-3);
-  color: var(--color-text-disabled);
+  color: var(--color-text-secondary);
   border-color: var(--color-border);
-  cursor: not-allowed;
+  cursor: default;
+}
+
+.housekeeping-check-small:disabled i {
+  color: var(--color-success);
 }
 
 .housekeeping-tabs {
@@ -72,7 +78,7 @@
 }
 
 .housekeeping-card {
-  border-top: 3px solid var(--module-accent);
+  border-color: color-mix(in srgb, var(--module-accent) 24%, var(--glass-border-subtle));
   border-radius: var(--radius-glass-card);
   box-shadow: var(--glass-shadow-sm);
   padding: var(--space-4);
@@ -80,9 +86,6 @@
 
 .housekeeping-card h2 {
   margin: 0 0 var(--space-3);
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0;
 }
 
 .housekeeping-worker-strip {
@@ -100,9 +103,9 @@
   gap: var(--space-3);
 }
 
-.housekeeping-worker-strip div:last-child {
+.housekeeping-worker-strip__identity {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -183,13 +186,12 @@
 .housekeeping-metric span,
 .housekeeping-section-heading span {
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
 }
 
 .housekeeping-metric strong {
   font-size: var(--text-xl);
   line-height: 1.15;
-  letter-spacing: 0;
+  letter-spacing: var(--tracking-normal);
 }
 
 .housekeeping-section-heading {
@@ -354,8 +356,6 @@
 
 .housekeeping-task__body h2 {
   margin: 0;
-  font-size: var(--text-base);
-  letter-spacing: 0;
 }
 
 .housekeeping-task__body p {
@@ -438,7 +438,7 @@
 
 .housekeeping-report-item div {
   display: grid;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 .housekeeping-report-item span {
@@ -501,7 +501,7 @@
 
 .housekeeping-staff-row div:nth-child(2) {
   display: grid;
-  gap: 2px;
+  gap: var(--space-0h);
   min-width: 0;
 }
 
@@ -544,7 +544,7 @@
 
 .housekeeping-staff-log-row > div:first-child {
   display: grid;
-  gap: 2px;
+  gap: var(--space-0h);
   min-width: 0;
 }
 
@@ -560,7 +560,7 @@
 }
 
 .housekeeping-log-action {
-  min-height: var(--target-sm);
+  min-height: var(--target-lg);
   padding-inline: var(--space-3);
   gap: var(--space-2);
 }
@@ -619,7 +619,7 @@
   font-weight: var(--font-weight-semibold);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 767px) {
   .housekeeping-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -630,12 +630,17 @@
     justify-content: flex-start;
   }
 
-  .housekeeping-metrics,
-  .housekeeping-metrics--compact,
+  /* Stat-Kacheln bleiben mehrspaltig (kompakte Bento-Dichte statt vier
+   * vollbreiter Einzelwert-Karten, Audit F5). Nur die Formular-Raster fallen
+   * auf eine Spalte. */
   .housekeeping-form-grid,
   .housekeeping-form-grid--wide,
   .housekeeping-profile-editor {
     grid-template-columns: 1fr;
+  }
+
+  .housekeeping-metrics--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .housekeeping-avatar--lg {
@@ -666,8 +671,10 @@
   }
 }
 
-@media (max-width: 420px) {
-  .housekeeping-check-small span {
-    display: none;
+@media (max-width: 640px) {
+  /* Der Button ist mobil vollbreit (grid-column: 1 / -1) — das Label bleibt
+   * sichtbar, statt eine leere Pille mit nacktem Icon zu zeigen (Audit F9). */
+  .housekeeping-check-small {
+    gap: var(--space-2);
   }
 }

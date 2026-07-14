@@ -31,6 +31,26 @@ export function startOfLocalWeekKey(dateKey, weekStartsOn = 1) {
 }
 
 /**
+ * Wochenstart-Präferenz (haushaltweit) → JS-getDay()-Index (0=So … 6=Sa).
+ * Unbekannte Werte fallen auf Montag (1) zurück, den bisherigen Fixwert.
+ */
+export const WEEK_START_INDEX = { monday: 1, sunday: 0, saturday: 6 };
+
+export function weekStartIndex(value) {
+  return WEEK_START_INDEX[value] ?? 1;
+}
+
+/**
+ * Liefert die sieben getDay()-Indizes in Anzeigereihenfolge für einen gegebenen
+ * Wochenstart. `weekStart` darf ein Index (0/1/6) oder eine Präferenz ('monday'
+ * …) sein. Beispiel: weekStart='sunday' → [0,1,2,3,4,5,6].
+ */
+export function weekdayOrder(weekStart = 1) {
+  const start = typeof weekStart === 'number' ? weekStart : weekStartIndex(weekStart);
+  return Array.from({ length: 7 }, (_, i) => (start + i) % 7);
+}
+
+/**
  * Verschiebt einen End-Datums-Key um dieselbe Tagesdifferenz, um die der Start
  * gewandert ist – so bleibt die Dauer eines Termins erhalten, wenn der Nutzer
  * das Startdatum ändert (analog zum Verhalten von Google Calendar).

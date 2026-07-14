@@ -8,13 +8,30 @@ import { createLogger } from '../logger.js';
 import express from 'express';
 import * as db from '../db.js';
 import { str, oneOf, collectErrors, MAX_TITLE, MAX_TEXT, MAX_SHORT } from '../middleware/validate.js';
+import { uniqueKey } from '../utils/category-slug.js';
 
 const log = createLogger('Contacts');
 
 const router  = express.Router();
 
-const VALID_CATEGORIES = ['Arzt', 'Schule/Kita', 'Behörde', 'Versicherung',
-                           'Handwerker', 'Notfall', 'Sonstiges'];
+const FALLBACK_CATEGORY = 'misc';
+
+/** Verwaltbare Kontakt-Kategorien aus der DB (nach sort_order). */
+function loadContactCategories() {
+  return db.get().prepare(
+    'SELECT key, name, label_key, icon, sort_order FROM contact_categories ORDER BY sort_order ASC, key ASC'
+  ).all();
+}
+
+/** Nur die Keys — für die dynamische Kategorie-Validierung. */
+function validContactCategoryKeys() {
+  return loadContactCategories().map((c) => c.key);
+}
+
+/** Anzahl Kontakte, die eine Kategorie referenzieren (Guard vor dem Löschen). */
+function contactCategoryInUseCount(key) {
+  return db.get().prepare('SELECT COUNT(*) AS n FROM contacts WHERE category = ?').get(key).n;
+}
 
 /**
  * Loads multi-value fields (phones, emails, addresses) for a contact.
@@ -150,6 +167,103 @@ function validateAddresses(addresses) {
   return { valid: true };
 }
 
+// --------------------------------------------------------
+// Kategorie-Verwaltung (#357)
+// Statische /categories-Pfade MÜSSEN vor den dynamischen /:id-Routen stehen.
+// --------------------------------------------------------
+
+// GET /api/v1/contacts/categories → { data: ContactCategory[] }
+router.get('/categories', (_req, res) => {
+  try {
+    res.json({ data: loadContactCategories() });
+  } catch (err) {
+    log.error('GET /categories error:', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// POST /api/v1/contacts/categories  Body: { name } → { data: ContactCategory }
+router.post('/categories', (req, res) => {
+  try {
+    const vName = str(req.body.name, 'Name', { max: MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM contact_categories WHERE COALESCE(name, key) = ? COLLATE NOCASE
+    `).get(vName.value);
+    if (conflict) return res.status(409).json({ error: 'Category already exists.', code: 409, reason: 'category_exists' });
+
+    const maxOrder = db.get().prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM contact_categories').get().m;
+    const key = uniqueKey(db.get(), 'contact_categories', vName.value);
+    db.get().prepare(
+      "INSERT INTO contact_categories (key, name, label_key, icon, sort_order) VALUES (?, ?, NULL, 'tag', ?)"
+    ).run(key, vName.value, maxOrder + 1);
+
+    const cat = db.get().prepare('SELECT key, name, label_key, icon, sort_order FROM contact_categories WHERE key = ?').get(key);
+    res.status(201).json({ data: cat });
+  } catch (err) {
+    log.error('POST /categories error:', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// PATCH /api/v1/contacts/categories/reorder  Body: { order: string[] }
+router.patch('/categories/reorder', (req, res) => {
+  try {
+    const order = Array.isArray(req.body.order) ? req.body.order : [];
+    const update = db.get().prepare('UPDATE contact_categories SET sort_order = ? WHERE key = ?');
+    db.get().transaction(() => order.forEach((key, i) => update.run(i, key)))();
+    res.json({ data: loadContactCategories() });
+  } catch (err) {
+    log.error('PATCH /categories/reorder error:', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// PUT /api/v1/contacts/categories/:key  Body: { name } → umbenennen (Key bleibt stabil).
+router.put('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM contact_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const vName = str(req.body.name, 'Name', { max: MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM contact_categories WHERE COALESCE(name, key) = ? COLLATE NOCASE AND key != ?
+    `).get(vName.value, cat.key);
+    if (conflict) return res.status(409).json({ error: 'Category already exists.', code: 409, reason: 'category_exists' });
+
+    db.get().prepare('UPDATE contact_categories SET name = ?, label_key = NULL WHERE key = ?').run(vName.value, cat.key);
+    const updated = db.get().prepare('SELECT key, name, label_key, icon, sort_order FROM contact_categories WHERE key = ?').get(cat.key);
+    res.json({ data: updated });
+  } catch (err) {
+    log.error('PUT /categories/:key error:', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// DELETE /api/v1/contacts/categories/:key → 409 wenn in Benutzung oder letzte Kategorie.
+router.delete('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM contact_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const inUse = contactCategoryInUseCount(cat.key);
+    if (inUse > 0) {
+      return res.status(409).json({ error: `Category is in use by ${inUse} contact${inUse === 1 ? '' : 's'}.`, code: 409, count: inUse, reason: 'category_in_use' });
+    }
+    const total = db.get().prepare('SELECT COUNT(*) AS n FROM contact_categories').get().n;
+    if (total <= 1) return res.status(409).json({ error: 'Cannot delete the last category.', code: 409, reason: 'category_last' });
+
+    db.get().prepare('DELETE FROM contact_categories WHERE key = ?').run(cat.key);
+    res.status(204).end();
+  } catch (err) {
+    log.error('DELETE /categories/:key error:', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
 /**
  * GET /api/v1/contacts
  * Alle Kontakte, optional nach Kategorie gefiltert und nach Name gesucht.
@@ -162,7 +276,7 @@ router.get('/', (req, res) => {
     const params = [];
     const where  = ['NOT EXISTS (SELECT 1 FROM housekeeping_workers hw WHERE hw.user_id = contacts.family_user_id)'];
 
-    if (req.query.category && VALID_CATEGORIES.includes(req.query.category)) {
+    if (req.query.category && validContactCategoryKeys().includes(req.query.category)) {
       where.push('category = ?');
       params.push(req.query.category);
     }
@@ -193,7 +307,7 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const vName    = str(req.body.name,     'Name',    { max: MAX_TITLE });
-    const vCat     = oneOf(req.body.category || 'Sonstiges', VALID_CATEGORIES, 'Kategorie');
+    const vCat     = oneOf(req.body.category || FALLBACK_CATEGORY, validContactCategoryKeys(), 'Kategorie');
     const vPhone   = str(req.body.phone,   'Telefon', { max: MAX_SHORT, required: false });
     const vEmail   = str(req.body.email,   'E-Mail',  { max: MAX_TITLE, required: false });
     const vAddress = str(req.body.address, 'Adresse', { max: MAX_TEXT,  required: false });
@@ -228,7 +342,7 @@ router.post('/', (req, res) => {
       const result = db.get().prepare(`
         INSERT INTO contacts (name, category, phone, email, address, notes)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run(vName.value, vCat.value || 'Sonstiges', vPhone.value, vEmail.value,
+      `).run(vName.value, vCat.value || FALLBACK_CATEGORY, vPhone.value, vEmail.value,
              vAddress.value, vNotes.value);
 
       const contactId = result.lastInsertRowid;
@@ -310,7 +424,7 @@ router.put('/:id', (req, res) => {
 
     const checks = [];
     if (req.body.name     !== undefined) checks.push(str(req.body.name,     'Name',    { max: MAX_TITLE, required: false }));
-    if (req.body.category !== undefined) checks.push(oneOf(req.body.category, VALID_CATEGORIES, 'Kategorie'));
+    if (req.body.category !== undefined) checks.push(oneOf(req.body.category, validContactCategoryKeys(), 'Kategorie'));
     if (req.body.phone    !== undefined) checks.push(str(req.body.phone,    'Telefon', { max: MAX_SHORT, required: false }));
     if (req.body.email    !== undefined) checks.push(str(req.body.email,    'E-Mail',  { max: MAX_TITLE, required: false }));
     if (req.body.address  !== undefined) checks.push(str(req.body.address,  'Adresse', { max: MAX_TEXT,  required: false }));
@@ -461,7 +575,7 @@ router.delete('/:id', (req, res) => {
  */
 router.get('/meta', (_req, res) => {
   try {
-    res.json({ data: { categories: VALID_CATEGORIES } });
+    res.json({ data: { categories: loadContactCategories() } });
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: 'Interner Fehler', code: 500 });

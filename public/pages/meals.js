@@ -1,17 +1,20 @@
 /**
  * Modul: Essensplan (Meals)
  * Zweck: Wochenansicht mit Mahlzeit-CRUD, Zutaten-Verwaltung und Einkaufslisten-Integration
- * Abhängigkeiten: /api.js, /router.js (window.oikos)
+ * Abhängigkeiten: /api.js, /router.js (window.yuvomi)
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal as closeSharedModal, selectModal } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal as closeSharedModal, selectModal, confirmModal, advancedSection } from '/components/modal.js';
 import { stagger } from '/utils/ux.js';
-import { t, formatDate, dateInputPlaceholder, formatDateInput, parseDateInput, isDateInputValid } from '/i18n.js';
+import { t, formatDate, formatDateInput, parseDateInput, isDateInputValid } from '/i18n.js';
 import { esc } from '/utils/html.js';
-import { DEFAULT_CATEGORY_NAME, categoryLabel } from '/utils/shopping-categories.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
+import { DEFAULT_CATEGORY_NAME } from '/utils/shopping-categories.js';
 import { renderKitchenTabsBar } from '/utils/kitchen-tabs.js';
+import { ingredientRowHTML } from '/utils/ingredient-row.js';
 import { addLocalDays, startOfLocalWeekKey, toLocalDateKey } from '/utils/date.js';
+import { normalizeRecipeMealTypes, recipeSupportsMealType } from '/utils/recipe-meal-types.js';
 
 // --------------------------------------------------------
 // Konstanten
@@ -47,6 +50,7 @@ let state = {
 
 // Container-Referenz für Hilfsfunktionen (wird in render() gesetzt)
 let _container = null;
+let _dragRecipeId = null;
 
 // --------------------------------------------------------
 // Datumshelfer
@@ -77,19 +81,74 @@ function mealCategories() {
   return state.categories.filter((c) => !EXCLUDED_MEAL_CATEGORY_NAMES.has(c.name));
 }
 
-function buildMobileMealDays(currentWeek, today = toLocalDateKey(new Date())) {
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i));
-  const todayIndex = weekDays.indexOf(today);
-  const visibleDays = todayIndex >= 0
-    ? Array.from({ length: 3 }, (_, i) => addDays(today, i))
-    : weekDays.slice(0, 3);
+function recipeMealTypeOptions() {
+  return [
+    { key: 'breakfast', label: t('meals.typeBreakfast') },
+    { key: 'lunch', label: t('meals.typeLunch') },
+    { key: 'dinner', label: t('meals.typeDinner') },
+    { key: 'snack', label: t('meals.typeSnack') },
+  ];
+}
 
+function mealPayloadFromRecipe(recipe, date, mealType) {
   return {
-    primary: visibleDays[0] ?? currentWeek,
-    nextDays: visibleDays.slice(1),
-    visibleDays,
-    hasToday: todayIndex >= 0,
+    date,
+    meal_type: mealType,
+    title: recipe.title,
+    notes: recipe.notes || null,
+    recipe_url: recipe.recipe_url || null,
+    recipe_id: recipe.id,
+    ingredients: (recipe.ingredients || []).map((ingredient) => ({
+      name: ingredient.name,
+      quantity: ingredient.quantity || null,
+      category: ingredient.category || DEFAULT_CATEGORY_NAME,
+    })),
   };
+}
+
+function buildRandomMealAssignments({ weekStart, visibleMealTypes, meals, recipes, replaceExisting = false, pick = Math.random }) {
+  const assignments = [];
+  const deleteMealIds = [];
+  const previousDayByMealType = new Map();
+  let hasOpenSlot = false;
+  let hasCompatibleSlot = false;
+
+  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+    const date = addDays(weekStart, dayOffset);
+    let previousRecipeIdSameDay = null;
+    for (const mealType of visibleMealTypes) {
+      const slotMeals = meals.filter((meal) => meal.date === date && meal.meal_type === mealType);
+      if (!replaceExisting && slotMeals.length) continue;
+      hasOpenSlot = true;
+      const compatible = recipes.filter((recipe) => recipeSupportsMealType(recipe, mealType));
+      if (!compatible.length) continue;
+      hasCompatibleSlot = true;
+      const blockedIds = new Set([previousRecipeIdSameDay, previousDayByMealType.get(mealType)].filter(Boolean));
+      const preferred = compatible.filter((recipe) => !blockedIds.has(recipe.id));
+      const pool = preferred.length ? preferred : compatible;
+      const index = Math.floor(Math.max(0, Math.min(0.999999, Number(pick()) || 0)) * pool.length);
+      const recipe = pool[index] || pool[0];
+      assignments.push({
+        date,
+        mealType,
+        recipe,
+        payload: mealPayloadFromRecipe(recipe, date, mealType),
+      });
+      previousRecipeIdSameDay = recipe.id;
+      previousDayByMealType.set(mealType, recipe.id);
+      if (replaceExisting) deleteMealIds.push(...slotMeals.map((meal) => meal.id));
+    }
+  }
+
+  const reason = assignments.length
+    ? null
+    : !hasOpenSlot
+      ? 'week_full'
+      : !hasCompatibleSlot
+        ? 'no_compatible_recipes'
+        : 'no_assignments';
+
+  return { assignments, deleteMealIds: [...new Set(deleteMealIds)], reason };
 }
 
 // --------------------------------------------------------
@@ -100,23 +159,13 @@ async function loadWeek(week) {
   try {
     const currentWeek = getMondayOf(week);
     const res = await api.get(`/meals?week=${currentWeek}`);
-    const mobileDays = buildMobileMealDays(currentWeek);
-    const extraWeeks = [...new Set(
-      mobileDays.visibleDays
-        .map((date) => getMondayOf(date))
-        .filter((monday) => monday !== currentWeek)
-    )];
-    const extraMeals = await Promise.all(extraWeeks.map((monday) => api.get(`/meals?week=${monday}`)));
-    state.meals       = [
-      ...res.data,
-      ...extraMeals.flatMap((extra) => Array.isArray(extra.data) ? extra.data : []),
-    ];
+    state.meals       = Array.isArray(res.data) ? res.data : [];
     state.currentWeek = currentWeek;
   } catch (err) {
     console.error('[Meals] loadWeek Fehler:', err);
     state.meals       = [];
     state.currentWeek = getMondayOf(week);
-    window.oikos?.showToast(t('meals.loadError'), 'danger');
+    window.yuvomi?.showToast(t('meals.loadError'), 'danger');
   }
 }
 
@@ -171,13 +220,19 @@ export async function render(container, { user }) {
           <i data-lucide="chevron-left" aria-hidden="true"></i>
         </button>
         <span class="week-nav__label" id="week-label"></span>
-        <button class="week-nav__today" id="week-today">${t('meals.today')}</button>
+        <div class="week-nav__actions">
+          <button class="week-nav__today" id="week-today">${t('meals.today')}</button>
+          <button class="btn btn--secondary week-nav__randomize" id="week-randomize">${t('meals.randomizePlan')}</button>
+        </div>
         <button class="btn btn--icon" id="week-next" aria-label="${t('meals.nextWeek')}">
           <i data-lucide="chevron-right" aria-hidden="true"></i>
         </button>
       </div>
-      <div class="week-grid" id="week-grid">
-        <div style="margin:auto;padding:2rem;text-align:center;color:var(--color-text-disabled)">${t('meals.loadingIndicator')}</div>
+      <div class="meals-layout">
+        <div class="week-grid" id="week-grid">
+          <div style="grid-column:1/-1">${renderSkeletonList({ rows: 5, lines: 2 })}</div>
+        </div>
+        <aside class="recipe-sidebar" id="recipe-sidebar"></aside>
       </div>
       <button class="page-fab" id="fab-new-meal" aria-label="${t('meals.addMealTitle')}">
         <i data-lucide="plus" class="icon-xl" aria-hidden="true"></i>
@@ -193,7 +248,9 @@ export async function render(container, { user }) {
 
   await Promise.all([loadWeek(monday), loadLists(), loadPreferences(), loadCategories(), loadRecipes()]);
   renderWeekGrid();
+  renderRecipeSidebar();
   wireNav();
+  wireRecipeSidebar();
 
   const selectedRecipeId = Number(new URLSearchParams(window.location.search).get('recipe'));
   if (selectedRecipeId) {
@@ -223,32 +280,17 @@ function renderWeekGrid() {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(state.currentWeek, i));
   const dayNames = DAY_NAMES();
-  const mobileDays = buildMobileMealDays(state.currentWeek);
-  const mobileVisibleDates = new Set(mobileDays.visibleDays);
-  const firstNextMobileDate = mobileDays.nextDays[0] ?? null;
-  const days = [
-    ...weekDays,
-    ...mobileDays.visibleDays.filter((date) => !weekDays.includes(date)),
-  ];
+  // Default-Typ für den mobilen Per-Tag-Add-Button (Modal lässt den Typ ändern).
+  const firstType = state.visibleMealTypes[0] ?? 'lunch';
 
   grid.replaceChildren();
-  grid.insertAdjacentHTML('beforeend', days.map((date) => {
+  grid.insertAdjacentHTML('beforeend', weekDays.map((date) => {
     const mealsForDay = state.meals.filter((m) => m.date === date);
     const todayClass  = isToday(date) ? 'day-header--today' : '';
     const dayNameIndex = (new Date(`${date}T00:00:00`).getDay() + 6) % 7;
-    const extraClass = weekDays.includes(date) ? '' : 'day-column--mobile-extra';
-    const mobileClass = mobileVisibleDates.has(date)
-      ? date === mobileDays.primary ? 'day-column--mobile-primary' : 'day-column--mobile-next'
-      : 'day-column--mobile-hidden';
-    const mobileSection = mobileDays.hasToday && date === mobileDays.primary
-      ? `<div class="mobile-meal-section">${t('meals.todaySection')}</div>`
-      : mobileDays.hasToday && date === firstNextMobileDate
-        ? `<div class="mobile-meal-section">${t('meals.nextDaysSection')}</div>`
-        : '';
 
     return `
-      ${mobileSection}
-      <div class="day-column ${extraClass} ${mobileClass}">
+      <div class="day-column">
         <div class="day-header ${todayClass}">
           <span class="day-header__name">${dayNames[dayNameIndex]}</span>
           <span class="day-header__date">${formatDayDate(date)}</span>
@@ -256,16 +298,80 @@ function renderWeekGrid() {
         <div class="day-slots">
           ${MEAL_TYPES().filter((type) => state.visibleMealTypes.includes(type.key)).map((type) => renderSlot(date, type, mealsForDay)).join('')}
         </div>
+        <button class="day-add" data-action="add-meal" data-date="${date}" data-type="${firstType}" aria-label="${t('meals.addMealTitle')}">
+          <i data-lucide="plus" class="icon-sm" aria-hidden="true"></i>
+          <span>${t('meals.addMealTitle')}</span>
+        </button>
       </div>
     `;
   }).join(''));
 
+  grid.removeAttribute('aria-busy');
   if (window.lucide) lucide.createIcons({ el: grid });
   stagger(grid.querySelectorAll('.meal-card'));
   wireGrid(grid);
+
+  // Auf schmalen Viewports (gestapelte Tage) den heutigen Tag in den Blick scrollen.
+  if (window.matchMedia?.('(max-width: 640px)').matches) {
+    grid.querySelector('.day-header--today')?.closest('.day-column')
+      ?.scrollIntoView({ block: 'start' });
+  }
 }
 
-export const __test = { buildMobileMealDays };
+function renderRecipeSidebar() {
+  const sidebar = _container.querySelector('#recipe-sidebar');
+  if (!sidebar) return;
+  sidebar.replaceChildren();
+
+  const title = document.createElement('h2');
+  title.className = 'recipe-sidebar__title';
+  title.textContent = t('recipes.title');
+  sidebar.appendChild(title);
+
+  const hint = document.createElement('p');
+  hint.className = 'recipe-sidebar__hint';
+  hint.textContent = t('recipes.dragToMealsHint');
+  sidebar.appendChild(hint);
+
+  if (!state.recipes.length) {
+    const empty = document.createElement('div');
+    empty.className = 'recipe-sidebar__empty';
+    empty.textContent = t('recipes.emptyTitle');
+    sidebar.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'recipe-sidebar__list';
+
+  state.recipes.forEach((recipe) => {
+    const card = document.createElement('article');
+    card.className = 'recipe-sidebar__card';
+    card.draggable = true;
+    card.dataset.recipeId = String(recipe.id);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'recipe-sidebar__card-title';
+    titleEl.textContent = recipe.title;
+    card.appendChild(titleEl);
+
+    const types = document.createElement('div');
+    types.className = 'recipe-sidebar__card-types';
+    recipeMealTypeOptions()
+      .filter((option) => normalizeRecipeMealTypes(recipe.meal_types).includes(option.key))
+      .forEach((option) => {
+        const badge = document.createElement('span');
+        badge.className = `meal-type-badge meal-type-badge--${option.key}`;
+        badge.textContent = option.label;
+        types.appendChild(badge);
+      });
+    card.appendChild(types);
+
+    list.appendChild(card);
+  });
+
+  sidebar.appendChild(list);
+}
 
 function renderSlot(date, type, mealsForDay) {
   const meals = mealsForDay.filter((m) => m.meal_type === type.key);
@@ -274,9 +380,6 @@ function renderSlot(date, type, mealsForDay) {
     return `
       <div class="meal-slot meal-slot--empty" data-date="${date}" data-type="${type.key}">
         <div class="meal-slot__type-label">${type.label}</div>
-        <div class="empty-state empty-state--compact">
-          <div class="empty-state__description">${t('meals.noMealPlanned')}</div>
-        </div>
         <button
           class="meal-slot__add-btn"
           data-action="add-meal"
@@ -296,13 +399,16 @@ function renderSlot(date, type, mealsForDay) {
     const ingLabel    = ingCount > 0 ? (ingCount !== 1 ? t('meals.ingredientCountPlural', { count: ingCount }) : t('meals.ingredientCount', { count: ingCount })) : '';
     const ingDoneLabel = ingCount > 0 && ingDone === ingCount ? ' ✓' : '';
     const canTransfer  = ingCount > 0 && ingDone < ingCount;
+    const recurrenceBadge = meal.recurrence_template_id
+      ? `<span class="meal-card__recurrence" aria-label="${t('meals.recurrenceBadge')}"><i data-lucide="repeat-2" class="icon-sm" aria-hidden="true"></i></span>`
+      : '';
 
     return `
       <div class="meal-card"
            data-action="edit-meal"
            data-meal-id="${meal.id}"
            role="button" tabindex="0">
-        <div class="meal-card__title">${esc(meal.title)}</div>
+        <div class="meal-card__title"><span class="meal-card__title-text">${esc(meal.title)}</span>${recurrenceBadge}</div>
         ${ingLabel ? `<div class="meal-card__meta">
           <span class="meal-card__ingredients-count">${ingLabel}${esc(ingDoneLabel)}</span>
         </div>` : ''}
@@ -348,13 +454,21 @@ function renderSlot(date, type, mealsForDay) {
 // Event-Delegation
 // --------------------------------------------------------
 
+function setWeekBusy() {
+  // Sichtbares Lade-Feedback beim Wochenwechsel (dimmt das Raster via CSS,
+  // meldet Screenreadern „busy"), bis renderWeekGrid das Attribut wieder entfernt.
+  _container.querySelector('#week-grid')?.setAttribute('aria-busy', 'true');
+}
+
 function wireNav() {
   _container.querySelector('#week-prev')?.addEventListener('click', async () => {
+    setWeekBusy();
     await loadWeek(addDays(state.currentWeek, -7));
     renderWeekGrid();
   });
 
   _container.querySelector('#week-next')?.addEventListener('click', async () => {
+    setWeekBusy();
     await loadWeek(addDays(state.currentWeek, 7));
     renderWeekGrid();
   });
@@ -362,12 +476,22 @@ function wireNav() {
   _container.querySelector('#week-today')?.addEventListener('click', async () => {
     const monday = getMondayOf(toLocalDateKey(new Date()));
     if (monday === state.currentWeek) return;
+    setWeekBusy();
     await loadWeek(monday);
     renderWeekGrid();
   });
+
+  _container.querySelector('#week-randomize')?.addEventListener('click', openRandomizeModal);
 }
 
 function wireGrid(grid) {
+  // Delegation am stabilen #week-grid nur EINMAL binden. renderWeekGrid läuft bei
+  // jedem Wochenwechsel erneut, ersetzt aber nur die Kinder (replaceChildren) —
+  // ohne Guard akkumulierten click/keydown/pointerdown-Listener und feuerten
+  // add-/delete-/transfer-meal mehrfach (Muster wie shopping.js#wireListContentEvents).
+  if (grid.dataset.eventsWired) return;
+  grid.dataset.eventsWired = 'true';
+
   grid.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -409,7 +533,133 @@ function wireGrid(grid) {
     }
   });
 
+  grid.addEventListener('dragover', (e) => {
+    if (!_dragRecipeId) return;
+    const slot = e.target.closest('.meal-slot');
+    if (!slot) return;
+    const recipe = state.recipes.find((entry) => entry.id === _dragRecipeId);
+    if (!recipe || !recipeSupportsMealType(recipe, slot.dataset.type)) return;
+    e.preventDefault();
+    clearRecipeDropTargets();
+    slot.classList.add('meal-slot--drop-target');
+  });
+
+  grid.addEventListener('drop', async (e) => {
+    if (!_dragRecipeId) return;
+    const slot = e.target.closest('.meal-slot');
+    const recipeId = _dragRecipeId;
+    _dragRecipeId = null;
+    clearRecipeDropTargets();
+    if (!slot) return;
+    const recipe = state.recipes.find((entry) => entry.id === recipeId);
+    if (!recipe || !recipeSupportsMealType(recipe, slot.dataset.type)) return;
+    e.preventDefault();
+    const slotMeals = state.meals.filter((meal) => meal.date === slot.dataset.date && meal.meal_type === slot.dataset.type);
+    if (slotMeals.length) {
+      const confirmed = await confirmModal(t('meals.replaceExistingConfirm'), { confirmLabel: t('common.confirm') });
+      if (!confirmed) return;
+    }
+    await addRecipeToSlot(recipe, slot.dataset.date, slot.dataset.type, { replaceMeals: slotMeals });
+  });
+
   wireDragDrop(grid);
+}
+
+function wireRecipeSidebar() {
+  const sidebar = _container.querySelector('#recipe-sidebar');
+  if (!sidebar || sidebar.dataset.eventsWired) return;
+  sidebar.dataset.eventsWired = 'true';
+
+  sidebar.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.recipe-sidebar__card');
+    if (!card) return;
+    _dragRecipeId = Number(card.dataset.recipeId);
+    card.classList.add('recipe-sidebar__card--dragging');
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', card.dataset.recipeId);
+  });
+
+  sidebar.addEventListener('dragend', (e) => {
+    e.target.closest('.recipe-sidebar__card')?.classList.remove('recipe-sidebar__card--dragging');
+    _dragRecipeId = null;
+    clearRecipeDropTargets();
+  });
+}
+
+function clearRecipeDropTargets() {
+  _container.querySelectorAll('.meal-slot--drop-target').forEach((slot) => slot.classList.remove('meal-slot--drop-target'));
+}
+
+async function addRecipeToSlot(recipe, date, mealType, { replaceMeals = [] } = {}) {
+  try {
+    const payload = mealPayloadFromRecipe(recipe, date, mealType);
+    if (replaceMeals.length) {
+      const res = await api.post('/meals/apply-plan', { assignments: [payload], replace_existing: true });
+      state.meals = state.meals.filter((entry) => !(entry.date === date && entry.meal_type === mealType));
+      state.meals.push(...(res.data || []));
+    } else {
+      const res = await api.post('/meals', payload);
+      state.meals.push(res.data);
+    }
+    renderWeekGrid();
+  } catch (err) {
+    window.yuvomi?.showToast(window.yuvomi?.friendlyError?.(err) ?? t('common.errorGeneric'), 'error');
+  }
+}
+
+function openRandomizeModal() {
+  openSharedModal({
+    title: t('meals.randomizeTitle'),
+    size: 'sm',
+    content: `
+      <div class="meal-randomize-modal">
+        <label class="toggle meal-randomize-modal__toggle">
+          <input type="checkbox" id="meal-randomize-replace">
+          <span class="toggle__track"></span>
+          <span>${t('meals.randomizeReplaceExisting')}</span>
+        </label>
+        <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
+          <button class="btn btn--secondary" id="meal-randomize-cancel">${t('common.cancel')}</button>
+          <button class="btn btn--primary" id="meal-randomize-run">${t('meals.randomizePlan')}</button>
+        </div>
+      </div>`,
+    onSave(panel) {
+      panel.querySelector('#meal-randomize-cancel')?.addEventListener('click', closeModal);
+      panel.querySelector('#meal-randomize-run')?.addEventListener('click', () => runRandomize(panel));
+    },
+  });
+}
+
+async function runRandomize(panel) {
+  const replaceExisting = Boolean(panel.querySelector('#meal-randomize-replace')?.checked);
+  const runBtn = panel.querySelector('#meal-randomize-run');
+  const plan = buildRandomMealAssignments({
+    weekStart: state.currentWeek,
+    visibleMealTypes: state.visibleMealTypes,
+    meals: state.meals,
+    recipes: state.recipes,
+    replaceExisting,
+  });
+
+  if (!plan.assignments.length) {
+    window.yuvomi?.showToast(
+      plan.reason === 'week_full' ? t('meals.randomizeWeekFull') : t('meals.randomizeNoRecipes'),
+      'info'
+    );
+    return;
+  }
+
+  runBtn.disabled = true;
+  try {
+    await api.post('/meals/apply-plan', { assignments: plan.assignments.map((assignment) => assignment.payload), replace_existing: replaceExisting });
+    await loadWeek(state.currentWeek);
+    closeModal({ force: true });
+    renderWeekGrid();
+    window.yuvomi?.showToast(t('meals.randomizeSuccess', { count: plan.assignments.length }), 'success');
+  } catch (err) {
+    runBtn.disabled = false;
+    window.yuvomi?.showToast(window.yuvomi?.friendlyError?.(err) ?? t('common.errorGeneric'), 'error');
+  }
 }
 
 // --------------------------------------------------------
@@ -652,10 +902,12 @@ function openMealModal(opts) {
 
         ingList.replaceChildren();
         ingList.insertAdjacentHTML('beforeend', (recipe.ingredients || [])
-          .map((ing) => {
-            const scaledQty = scaleQuantityText(ing.quantity ?? '', factor);
-            return ingredientRowHTML(ing.name, scaledQty, null, ing.category ?? DEFAULT_CATEGORY_NAME);
-          })
+          .map((ing) => ingredientRowHTML({
+            name: ing.name,
+            quantity: scaleQuantityText(ing.quantity ?? '', factor),
+            category: ing.category ?? DEFAULT_CATEGORY_NAME,
+            categories: mealCategories(),
+          }))
           .join(''));
 
         if (window.lucide) lucide.createIcons({ el: ingList });
@@ -675,12 +927,12 @@ function openMealModal(opts) {
 
         ingList.replaceChildren();
         ingList.insertAdjacentHTML('beforeend', (currentAppliedRecipe.ingredients || [])
-          .map((ing) => ingredientRowHTML(
-            ing.name,
-            scaleQuantityText(ing.quantity ?? '', Math.max(factor, 0.1)),
-            null,
-            ing.category ?? DEFAULT_CATEGORY_NAME
-          ))
+          .map((ing) => ingredientRowHTML({
+            name: ing.name,
+            quantity: scaleQuantityText(ing.quantity ?? '', Math.max(factor, 0.1)),
+            category: ing.category ?? DEFAULT_CATEGORY_NAME,
+            categories: mealCategories(),
+          }))
           .join(''));
 
         if (window.lucide) lucide.createIcons({ el: ingList });
@@ -689,7 +941,7 @@ function openMealModal(opts) {
       saveAsRecipeBtn?.addEventListener('click', async () => {
         const title = panel.querySelector('#modal-title').value.trim();
         if (!title) {
-          window.oikos?.showToast(t('meals.titleRequired'), 'error');
+          window.yuvomi?.showToast(t('meals.titleRequired'), 'error');
           return;
         }
 
@@ -705,6 +957,7 @@ function openMealModal(opts) {
         try {
           const created = await api.post('/recipes', { title, notes, recipe_url, ingredients });
           state.recipes.push(created.data);
+          renderRecipeSidebar();
 
           if (recipeSelect) {
             const option = document.createElement('option');
@@ -714,9 +967,9 @@ function openMealModal(opts) {
             recipeSelect.value = String(created.data.id);
           }
 
-          window.oikos?.showToast(t('recipes.created'), 'success');
+          window.yuvomi?.showToast(t('recipes.created'), 'success');
         } catch (err) {
-          window.oikos?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
         } finally {
           saveAsRecipeBtn.disabled = false;
         }
@@ -726,21 +979,10 @@ function openMealModal(opts) {
         recipeSelect.value = String(presetRecipeId);
         applyRecipe(presetRecipeId);
       }
-      panel.querySelectorAll('.js-date-input').forEach((input) => {
-        input.addEventListener('keydown', (e) => {
-          if (e.ctrlKey || e.metaKey || e.altKey) return;
-          if (e.key.length !== 1) return;
-          if (!/[\d./\-]/.test(e.key)) e.preventDefault();
-        });
-        input.addEventListener('blur', () => {
-          const parsed = parseDateInput(input.value);
-          if (parsed) input.value = formatDateInput(parsed);
-        });
-      });
 
       addIngBtn.addEventListener('click', () => {
         const tmp  = document.createElement('div');
-        tmp.insertAdjacentHTML('beforeend', ingredientRowHTML('', '', null));
+        tmp.insertAdjacentHTML('beforeend', ingredientRowHTML({ categories: mealCategories() }));
         const row = tmp.firstElementChild;
         ingList.appendChild(row);
         if (window.lucide) lucide.createIcons({ el: ingList });
@@ -762,16 +1004,16 @@ function openMealModal(opts) {
         try {
           const res = await api.post(`/meals/${state.modal.meal.id}/to-shopping-list`, { listId });
           if (res.data.transferred > 0) {
-            window.oikos?.showToast(res.data.transferred !== 1 ? t('meals.transferSuccessPlural', { count: res.data.transferred }) : t('meals.transferSuccess', { count: res.data.transferred }), 'success');
+            window.yuvomi?.showToast(res.data.transferred !== 1 ? t('meals.transferSuccessPlural', { count: res.data.transferred }) : t('meals.transferSuccess', { count: res.data.transferred }), 'success');
             await loadWeek(state.currentWeek);
             closeModal({ force: true });
             renderWeekGrid();
           } else {
-            window.oikos?.showToast(t('meals.transferAlreadyDone'), 'info');
+            window.yuvomi?.showToast(t('meals.transferAlreadyDone'), 'info');
             btn.disabled = false;
           }
         } catch (err) {
-          window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
           btn.disabled = false;
         }
       });
@@ -782,8 +1024,9 @@ function openMealModal(opts) {
   });
 }
 
-function buildModalContent({ mode, date, mealType, meal }) {
+function buildModalContent({ mode, date, mealType, meal, presetRecipeId = null }) {
   const isEdit   = mode === 'edit';
+  const isRecurring = isEdit && meal.recurrence_template_id;
   const typeOpts = MEAL_TYPES().map((mt) =>
     `<option value="${mt.key}" ${mt.key === mealType ? 'selected' : ''}>${mt.label}</option>`
   ).join('');
@@ -793,7 +1036,13 @@ function buildModalContent({ mode, date, mealType, meal }) {
     : `<option value="" disabled>${t('meals.noShoppingLists')}</option>`;
 
   const ingRows = isEdit && meal.ingredients?.length
-    ? meal.ingredients.map((ing) => ingredientRowHTML(ing.name, ing.quantity ?? '', ing.id, ing.category ?? DEFAULT_CATEGORY_NAME)).join('')
+    ? meal.ingredients.map((ing) => ingredientRowHTML({
+        name: ing.name,
+        quantity: ing.quantity ?? '',
+        id: ing.id,
+        category: ing.category ?? DEFAULT_CATEGORY_NAME,
+        categories: mealCategories(),
+      })).join('')
     : '';
 
   const hasIngOpen = isEdit && meal.ingredients?.some((i) => !i.on_shopping_list);
@@ -803,27 +1052,10 @@ function buildModalContent({ mode, date, mealType, meal }) {
     ...state.recipes.map((r) => `<option value="${r.id}" ${isEdit && meal.recipe_id === r.id ? 'selected' : ''}>${esc(r.title)}</option>`),
   ].join('');
 
-  return `
-    <div class="modal-grid modal-grid--2">
-      <div class="form-group">
-        <label class="form-label" for="modal-date">${t('meals.dateLabel')}</label>
-        <input type="text" class="form-input js-date-input" id="modal-date" value="${formatDateInput(date)}" placeholder="${dateInputPlaceholder()}" inputmode="numeric">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="modal-type">${t('meals.mealTypeLabel')}</label>
-        <select class="form-input" id="modal-type">${typeOpts}</select>
-      </div>
-    </div>
+  const advancedOpen = (isEdit && (!!meal.recipe_id || !!meal.notes || !!meal.recipe_url || isRecurring))
+    || !!presetRecipeId;
 
-    <div class="form-group" style="position:relative;">
-      <label class="form-label" for="modal-title">${t('meals.titleLabel')}</label>
-      <input type="text" class="form-input" id="modal-title"
-             placeholder="${t('meals.titlePlaceholder')}"
-             value="${esc(isEdit ? meal.title : '')}"
-             autocomplete="off">
-      <div id="modal-autocomplete" class="meal-modal__autocomplete" hidden></div>
-    </div>
-
+  const advancedFieldsHtml = `
     <div class="form-group">
       <label class="form-label" for="modal-recipe-id">${t('meals.savedRecipeLabel')}</label>
       <select class="form-input" id="modal-recipe-id">${recipeOptions}</select>
@@ -852,6 +1084,48 @@ function buildModalContent({ mode, date, mealType, meal }) {
              value="${esc(isEdit && meal.recipe_url ? meal.recipe_url : '')}">
     </div>
 
+    ${isEdit ? (isRecurring ? `
+    <div class="meal-recurrence-note">
+      <i data-lucide="repeat-2" class="icon-sm" aria-hidden="true"></i>
+      <span>${t('meals.recurrenceEditHint')}</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="modal-edit-scope">${t('meals.editScopeLabel')}</label>
+      <select class="form-input" id="modal-edit-scope">
+        <option value="single">${t('meals.editScopeSingle')}</option>
+        <option value="series">${t('meals.editScopeSeries')}</option>
+      </select>
+    </div>` : '') : `
+    <div class="meal-recurrence-option">
+      <label class="toggle">
+        <input type="checkbox" id="modal-repeat-weekly">
+        <span class="toggle__track"></span>
+        <span>${t('meals.recurrenceLabel')}</span>
+      </label>
+      <p class="form-hint">${t('meals.recurrenceHint')}</p>
+    </div>`}`;
+
+  return `
+    <div class="modal-grid modal-grid--2">
+      <div class="form-group">
+        <label class="form-label" for="modal-date">${t('meals.dateLabel')}</label>
+        <yuvomi-datepicker type="date" id="modal-date" value="${formatDateInput(date)}"></yuvomi-datepicker>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="modal-type">${t('meals.mealTypeLabel')}</label>
+        <select class="form-input" id="modal-type">${typeOpts}</select>
+      </div>
+    </div>
+
+    <div class="form-group" style="position:relative;">
+      <label class="form-label" for="modal-title">${t('meals.titleLabel')}</label>
+      <input type="text" class="form-input" id="modal-title"
+             placeholder="${t('meals.titlePlaceholder')}"
+             value="${esc(isEdit ? meal.title : '')}"
+             autocomplete="off">
+      <div id="modal-autocomplete" class="meal-modal__autocomplete" hidden></div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">${t('meals.ingredientsLabel')}</label>
       <div class="ingredient-list" id="ingredient-list">${ingRows}</div>
@@ -860,6 +1134,8 @@ function buildModalContent({ mode, date, mealType, meal }) {
         ${t('meals.addIngredient')}
       </button>
     </div>
+
+    ${advancedSection(advancedFieldsHtml, { open: advancedOpen })}
 
     ${isEdit && hasIngOpen ? `
     <div class="shopping-transfer">
@@ -879,27 +1155,6 @@ function buildModalContent({ mode, date, mealType, meal }) {
     </div>`;
 }
 
-function ingredientRowHTML(name, qty, id, category = DEFAULT_CATEGORY_NAME) {
-  const availableCategories = mealCategories();
-  const resolvedCategory = availableCategories.some((c) => c.name === category)
-    ? category
-    : (availableCategories[0]?.name ?? DEFAULT_CATEGORY_NAME);
-  const catOptions = availableCategories.length
-    ? availableCategories.map((c) => `<option value="${esc(c.name)}" ${c.name === resolvedCategory ? 'selected' : ''}>${esc(categoryLabel(c.name))}</option>`).join('')
-    : `<option value="${DEFAULT_CATEGORY_NAME}" selected>${t('meals.ingredientCategoryDefault')}</option>`;
-
-  return `
-    <div class="ingredient-row" data-ing-id="${id ?? ''}">
-      <input type="text" class="form-input ingredient-row__name" placeholder="${t('meals.ingredientNamePlaceholder')}" value="${esc(name)}">
-      <input type="text" class="form-input ingredient-row__qty" placeholder="${t('meals.ingredientQtyPlaceholder')}" value="${esc(qty)}">
-      <select class="form-input ingredient-row__cat" aria-label="${t('meals.ingredientCategoryLabel')}">${catOptions}</select>
-      <button class="ingredient-row__remove" data-action="remove-ingredient" type="button" aria-label="${t('meals.removeIngredient')}">
-        <i data-lucide="x" class="icon-sm" aria-hidden="true"></i>
-      </button>
-    </div>
-  `;
-}
-
 function closeModal({ force = false } = {}) {
   closeSharedModal({ force });
   state.modal = null;
@@ -914,14 +1169,17 @@ async function saveModal(overlay) {
   const notes     = overlay.querySelector('#modal-notes').value.trim() || null;
   const recipe_url = overlay.querySelector('#modal-recipe-url').value.trim() || null;
   const recipe_id = overlay.querySelector('#modal-recipe-id')?.value || null;
+  const repeat_weekly = state.modal?.mode === 'create'
+    ? Boolean(overlay.querySelector('#modal-repeat-weekly')?.checked)
+    : false;
 
   if (!date || !isDateInputValid(dateRaw)) {
-    window.oikos?.showToast(t('calendar.invalidDate'), 'error');
+    window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
     return;
   }
 
   if (!title) {
-    window.oikos?.showToast(t('meals.titleRequired'), 'error');
+    window.yuvomi?.showToast(t('meals.titleRequired'), 'error');
     return;
   }
 
@@ -934,34 +1192,41 @@ async function saveModal(overlay) {
     const { mode, meal } = state.modal;
 
     if (mode === 'create') {
-      const res     = await api.post('/meals', { date, meal_type, title, notes, recipe_url, recipe_id, ingredients });
+      const res     = await api.post('/meals', { date, meal_type, title, notes, recipe_url, recipe_id, ingredients, repeat_weekly });
       state.meals.push(res.data);
     } else {
-      // Update meal meta
-      await api.put(`/meals/${meal.id}`, { date, meal_type, title, notes, recipe_url, recipe_id });
+      const scope = overlay.querySelector('#modal-edit-scope')?.value || 'single';
 
-      // Sync ingredients
-      const existingIds = new Set((meal.ingredients ?? []).map((i) => i.id));
-      const keptIds     = new Set(
-        ingredients.filter((i) => i.id).map((i) => parseInt(i.id, 10))
-      );
+      if (scope === 'series') {
+        // Ganze Serie: Template + alle Instanzen inkl. Zutaten serverseitig aktualisieren.
+        await api.put(`/meals/${meal.id}?scope=series`, { meal_type, title, notes, recipe_url, recipe_id, ingredients });
+      } else {
+        // Nur diese Instanz
+        await api.put(`/meals/${meal.id}`, { date, meal_type, title, notes, recipe_url, recipe_id });
 
-      for (const id of existingIds) {
-        if (!keptIds.has(id)) await api.delete(`/meals/ingredients/${id}`);
+        // Zutaten synchronisieren
+        const existingIds = new Set((meal.ingredients ?? []).map((i) => i.id));
+        const keptIds     = new Set(
+          ingredients.filter((i) => i.id).map((i) => parseInt(i.id, 10))
+        );
+
+        for (const id of existingIds) {
+          if (!keptIds.has(id)) await api.delete(`/meals/ingredients/${id}`);
+        }
+        for (const ing of ingredients) {
+          if (!ing.id) await api.post(`/meals/${meal.id}/ingredients`, { name: ing.name, quantity: ing.quantity, category: ing.category });
+        }
       }
-      for (const ing of ingredients) {
-        if (!ing.id) await api.post(`/meals/${meal.id}/ingredients`, { name: ing.name, quantity: ing.quantity, category: ing.category });
-      }
 
-      // Reload updated meal
+      // Aktualisierte Woche laden
       await loadWeek(state.currentWeek);
     }
 
     closeModal({ force: true });
     renderWeekGrid();
-    window.oikos?.showToast(mode === 'create' ? t('meals.addMealTitle') : t('meals.editMeal'), 'success');
+    window.yuvomi?.showToast(mode === 'create' ? t('meals.addMealTitle') : t('meals.editMeal'), 'success');
   } catch (err) {
-    window.oikos?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
     saveBtn.disabled    = false;
     saveBtn.textContent = state.modal?.mode === 'edit' ? t('common.save') : t('common.add');
   }
@@ -984,11 +1249,34 @@ function collectModalIngredients(overlay) {
 
 async function deleteMeal(mealId) {
   const meal = state.meals.find((m) => m.id === mealId);
+
+  // Wiederkehrende Mahlzeit: Einzeltermin oder ganze Serie löschen.
+  if (meal?.recurrence_template_id) {
+    const choice = await selectModal(t('meals.deleteRecurringTitle'), [
+      { value: 'single', label: t('meals.deleteScopeSingle') },
+      { value: 'series', label: t('meals.deleteScopeSeries') },
+    ]);
+    if (choice === null) return;
+
+    if (choice === 'series') {
+      try {
+        await api.delete(`/meals/${mealId}?scope=series`);
+        await loadWeek(state.currentWeek);
+        renderWeekGrid();
+        window.yuvomi?.showToast(t('meals.seriesDeletedToast'), 'success');
+      } catch (err) {
+        window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      }
+      return;
+    }
+    // choice === 'single' → weiter mit der Undo-Löschung unten
+  }
+
   const itemEl = _container.querySelector(`.meal-card[data-meal-id="${mealId}"]`);
   if (itemEl) itemEl.style.display = 'none';
 
   let undone = false;
-  window.oikos?.showToast(t('meals.deletedToast'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('meals.deletedToast'), 'default', 5000, () => {
     undone = true;
     if (itemEl) itemEl.style.display = '';
   });
@@ -1001,7 +1289,7 @@ async function deleteMeal(mealId) {
       renderWeekGrid();
     } catch (err) {
       if (itemEl) itemEl.style.display = '';
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
 }
@@ -1012,7 +1300,7 @@ async function deleteMeal(mealId) {
 
 async function transferMeal(mealId) {
   if (!state.lists.length) {
-    window.oikos?.showToast(t('meals.noShoppingLists'), 'error');
+    window.yuvomi?.showToast(t('meals.noShoppingLists'), 'error');
     return;
   }
 
@@ -1028,16 +1316,18 @@ async function transferMeal(mealId) {
   try {
     const res = await api.post(`/meals/${mealId}/to-shopping-list`, { listId });
     if (res.data.transferred > 0) {
-      window.oikos?.showToast(res.data.transferred !== 1 ? t('meals.transferSuccessPlural', { count: res.data.transferred }) : t('meals.transferSuccess', { count: res.data.transferred }), 'success');
+      window.yuvomi?.showToast(res.data.transferred !== 1 ? t('meals.transferSuccessPlural', { count: res.data.transferred }) : t('meals.transferSuccess', { count: res.data.transferred }), 'success');
       await loadWeek(state.currentWeek);
       renderWeekGrid();
     } else {
-      window.oikos?.showToast(t('meals.transferAlreadyDone'), 'info');
+      window.yuvomi?.showToast(t('meals.transferAlreadyDone'), 'info');
     }
   } catch (err) {
-    window.oikos?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
   }
 }
+
+export const __test = { buildRandomMealAssignments, mealPayloadFromRecipe };
 
 // --------------------------------------------------------
 // Hilfsfunktion

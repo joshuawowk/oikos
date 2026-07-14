@@ -21,21 +21,14 @@
   min-height: 100dvh;
   width: 100%;
   padding: var(--space-4);
+  /* Ein einzelner, zurückhaltender Violett-Hauch am oberen Rand – genug für den
+   * warmen Marken-Peak, ohne die Akzent-Scarcity-Regel (≤10 %) zu sprengen. Die
+   * violette Identität trägt die Marke selbst (Tile/Wortmarke/CTA), nicht der BG. */
   background:
     radial-gradient(
-      ellipse 200% 70% at 50% -20%,
-      color-mix(in srgb, var(--color-accent) 18%, transparent),
-      transparent 62%
-    ),
-    radial-gradient(
-      ellipse 90% 50% at 105% 110%,
-      color-mix(in srgb, var(--color-accent-active) 12%, transparent),
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse 60% 40% at -10% 55%,
-      color-mix(in srgb, var(--color-accent) 8%, transparent),
-      transparent 58%
+      ellipse 160% 60% at 50% -20%,
+      color-mix(in srgb, var(--color-accent) 10%, transparent),
+      transparent 60%
     ),
     var(--color-bg);
 }
@@ -46,11 +39,33 @@
   margin-bottom: var(--space-8);
 }
 
+/* Marken-Anker: App-Tile mit dem Yuvomi-Zeichen (drei transluzente Kreise).
+ * Selbstbewusst (gefülltes Tile, weicher Schatten) und warm – „Würde ohne Kälte". */
+.login-hero__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-16);
+  height: var(--space-16);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 1px 0 color-mix(in srgb, var(--color-text-on-accent) 22%, transparent);
+}
+
+.login-hero__mark svg {
+  width: 55%;
+  height: 55%;
+}
+
 .login-hero__title {
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: var(--type-login-hero-size);
   font-weight: var(--font-weight-bold);
   color: var(--color-accent);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
   margin-bottom: var(--space-2);
 }
 
@@ -85,12 +100,68 @@
   margin-bottom: var(--space-4);
 }
 
+/* Die Fehlerregion wird nach einem Fehlschlag programmatisch fokussiert
+ * (tabindex="-1"), damit sehende Tastaturnutzer sie bemerken. Die rote Box
+ * kommuniziert den Zustand bereits – kein zusätzlicher Fokusring nötig. */
+.login-error:focus {
+  outline: none;
+}
+
+/* Caps-Lock-Hinweis am Passwortfeld */
+.login-capslock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+}
+
+/* Das display:flex oben überschreibt sonst das UA-display:none des
+ * hidden-Attributs – Hinweis würde permanent sichtbar sein. */
+.login-capslock[hidden] {
+  display: none;
+}
+
+.login-capslock i {
+  width: var(--text-base, 1rem);
+  height: var(--text-base, 1rem);
+  flex-shrink: 0;
+}
+
+/* Nach falschen Zugangsdaten wird der Recovery-Link betont, damit der Nutzer
+ * einen Ausweg sieht statt es blind erneut zu versuchen. */
+.login-form__forgot--emphasis a {
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-accent);
+}
+
 .login-version {
   margin-top: var(--space-4);
+  /* Platz reservieren, damit die spät nachgeladene Version das zentrierte
+   * Formular nicht nach oben schiebt (CLS). */
+  min-height: var(--text-sm);
   font-size: var(--text-xs);
   color: var(--color-text-tertiary, var(--color-text-secondary));
   text-align: center;
-  opacity: 0.6;
+}
+
+/* „oder"-Trenner zwischen Passwort- und SSO-Anmeldung */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
 }
 
 /* Passwort-Sichtbarkeit-Toggle */
@@ -103,24 +174,31 @@
 .input-password-wrapper .input {
   flex: 1;
   min-width: 0;
-  padding-right: calc(var(--space-10) + var(--space-2));
+  /* logisch statt physisch, damit der Toggle-Platz in RTL auf der richtigen
+   * Seite reserviert wird (ar/fa) */
+  padding-inline-end: calc(var(--target-lg) + var(--space-1));
 }
 
 .password-toggle {
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: 0;
   bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-10);
+  /* Komfortable Daumen-Trefferfläche (≥44 px) statt der bisherigen 40 px */
+  width: var(--target-lg);
   padding: 0;
   background: none;
   border: none;
   cursor: pointer;
   color: var(--color-text-secondary);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  /* logische Ecken: rundet in RTL automatisch die richtige Seite */
+  border-start-start-radius: 0;
+  border-start-end-radius: var(--radius-md);
+  border-end-end-radius: var(--radius-md);
+  border-end-start-radius: 0;
   transition: color var(--transition-fast);
 }
 

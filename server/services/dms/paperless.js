@@ -6,6 +6,12 @@
  */
 
 const REQUEST_TIMEOUT_MS = 8000;
+// Paperless-ngx handelt seine REST-API über einen versionierten Accept-Header aus.
+// Fehlt die Version, antworten manche Instanzen/Reverse-Proxies mit 406 Not
+// Acceptable (Issue #438). Wir fordern daher explizit eine breit unterstützte
+// Version an und fallen bei 406 auf den unversionierten Default zurück, damit auch
+// ältere Instanzen ohne diese Version weiterhin funktionieren.
+const API_VERSION = 9;
 
 export class PaperlessAdapter {
   constructor(account) {
@@ -14,16 +20,32 @@ export class PaperlessAdapter {
     this.token = account.api_token;
   }
 
-  headers(extra = {}) {
-    return { Authorization: `Token ${this.token}`, Accept: 'application/json', ...extra };
+  headers(extra = {}, { version = API_VERSION } = {}) {
+    const accept = version ? `application/json; version=${version}` : 'application/json';
+    return { Authorization: `Token ${this.token}`, Accept: accept, ...extra };
   }
 
-  async #request(path, opts = {}) {
-    const res = await fetch(`${this.base}${path}`, {
+  async #fetch(path, opts = {}) {
+    const url = `${this.base}${path}`;
+    const res = await fetch(url, {
       ...opts,
       headers: this.headers(opts.headers),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+    // 406 = Instanz kennt die angefragte API-Version nicht. Nur für Requests ohne
+    // Body erneut versuchen (FormData-Streams sind nicht wiederverwendbar).
+    if (res.status === 406 && !opts.body) {
+      return fetch(url, {
+        ...opts,
+        headers: this.headers(opts.headers, { version: null }),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    }
+    return res;
+  }
+
+  async #request(path, opts = {}) {
+    const res = await this.#fetch(path, opts);
     if (!res.ok) {
       const err = new Error(`DMS request failed (${res.status})`);
       err.status = res.status;
@@ -38,8 +60,10 @@ export class PaperlessAdapter {
 
   async search(query, { limit = 20 } = {}) {
     const q = String(query || '').trim();
-    if (!q) return [];
-    const params = new URLSearchParams({ query: q, page_size: String(limit) });
+    // Leerer Query listet alle Dokumente (Paperless: /api/documents/ ohne query
+    // liefert die volle Liste) — ermöglicht Durchblättern statt exaktes Raten.
+    const params = new URLSearchParams({ page_size: String(limit) });
+    if (q) params.set('query', q);
     const res = await this.#request(`/api/documents/?${params.toString()}`);
     const body = await res.json();
     return (body.results || []).map((r) => ({
@@ -87,10 +111,7 @@ export class PaperlessAdapter {
 
   async testConnection() {
     try {
-      const res = await fetch(`${this.base}/api/`, {
-        headers: this.headers(),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
+      const res = await this.#fetch('/api/');
       return { ok: res.ok, status: res.status };
     } catch (err) {
       return { ok: false, status: 0, error: err.message };

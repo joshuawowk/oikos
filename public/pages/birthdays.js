@@ -1,15 +1,22 @@
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal, confirmModal } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, confirmModal, advancedSection } from '/components/modal.js';
 import { stagger, deleteWithUndo } from '/utils/ux.js';
-import { t, formatDate, dateInputPlaceholder, formatDateInput, parseDateInput, isDateInputValid } from '/i18n.js';
+import { t, formatDate, parseDateInput, isDateInputValid } from '/i18n.js';
 import { esc } from '/utils/html.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
+import { toLocalDateKey } from '/utils/date.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 
 let state = {
   birthdays: [],
-  upcoming: [],
   query: '',
+  loading: true,
 };
 let _container = null;
+
+// Inline-SVG (Lucide-Stil) – das self-hostete Icon-Subset lässt sich nicht
+// grep-verifizieren, darum die Torte als eingebettetes SVG für den „Heute"-Höhepunkt.
+const CAKE_SVG = `<svg class="birthday-cake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3M12 8v3M17 8v3"/><path d="M7 4h.01M12 4h.01M17 4h.01"/></svg>`;
 
 function initials(name) {
   return String(name || '')
@@ -21,26 +28,22 @@ function initials(name) {
 }
 
 const REMINDER_OFFSETS = () => [
-  { value: '',     label: t('reminders.offsetNone')   },
-  { value: '0',    label: t('reminders.offsetAtTime') },
-  { value: '15',   label: t('reminders.offset15min')  },
-  { value: '60',   label: t('reminders.offset1hour')  },
-  { value: '1440', label: t('reminders.offset1day')   },
-  { value: '2880', label: t('reminders.offset2days')  },
+  { value: '',      label: t('reminders.offsetNone')  },
+  { value: '1440',  label: t('reminders.offset1day')  },
+  { value: '2880',  label: t('reminders.offset2days') },
   { value: '10080', label: t('reminders.offset1week') },
-  { value: '20160', label: t('reminders.offset2weeks') },
   { value: 'custom', label: t('reminders.offsetCustom') },
 ];
 
 function renderBirthdayReminderSection(birthday = null) {
-  const currentOffset = birthday?.reminder_offset ?? '0';
+  const currentOffset = birthday?.reminder_offset ?? '1440';
   const customAmount = birthday?.reminder_custom_amount || 1;
   const customUnit = birthday?.reminder_custom_unit || 'days';
   return `
     <div class="reminder-section">
       <div class="form-group" style="margin:0">
         <label class="form-label" for="bd-reminder-offset">${t('reminders.offsetLabel')}</label>
-        <select class="form-input" id="bd-reminder-offset" style="min-height:44px">
+        <select class="form-input birthday-modal__select" id="bd-reminder-offset">
           ${REMINDER_OFFSETS().map((o) =>
             `<option value="${o.value}" ${currentOffset === o.value ? 'selected' : ''}>${esc(o.label)}</option>`
           ).join('')}
@@ -64,10 +67,20 @@ function renderBirthdayReminderSection(birthday = null) {
     </div>`;
 }
 
-function ageNote(birthday) {
-  if (birthday.days_until === 0) return t('birthdays.ageNoteToday', { age: birthday.next_age });
-  if (birthday.days_until === 1) return t('birthdays.ageNoteTomorrow', { age: birthday.next_age });
-  return t('birthdays.ageNoteDays', { age: birthday.next_age, days: birthday.days_until });
+// Datum + Alter in einer Zeile: „12.08.2026 · wird 30". Der Countdown lebt
+// getrennt im Chip, damit keine Zahl doppelt erscheint.
+function ageMeta(birthday) {
+  const date = formatDate(birthday.next_birthday);
+  return `${date} · ${t('birthdays.turnsAge', { age: birthday.next_age })}`;
+}
+
+// Countdown-Chip mit einheitlichem Wort-Register (kein „5d"-Kürzel):
+// Heute / Morgen / in N Tagen. `mod` steuert die visuelle Stufe.
+function countdownChip(birthday) {
+  if (birthday.days_until === 0) return { label: t('common.today'), mod: 'today' };
+  if (birthday.days_until === 1) return { label: t('common.tomorrow'), mod: 'soon' };
+  const mod = birthday.days_until <= 7 ? 'soon' : 'default';
+  return { label: t('birthdays.inDays', { days: birthday.days_until }), mod };
 }
 
 function photoAvatar(birthday, extraClass = '') {
@@ -77,35 +90,28 @@ function photoAvatar(birthday, extraClass = '') {
   return `<span class="birthday-avatar birthday-avatar--fallback ${extraClass}">${esc(initials(birthday.name))}</span>`;
 }
 
+function sortByProximity(list) {
+  return [...list].sort((a, b) =>
+    (a.days_until ?? 9999) - (b.days_until ?? 9999) || a.name.localeCompare(b.name));
+}
+
 function filteredBirthdays() {
   const q = state.query.trim().toLowerCase();
   const list = !q ? state.birthdays : state.birthdays.filter((birthday) =>
     birthday.name.toLowerCase().includes(q) ||
     (birthday.notes || '').toLowerCase().includes(q)
   );
-  return [...list].sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function suggestions() {
-  const q = state.query.trim().toLowerCase();
-  if (!q) return [];
-  return state.birthdays
-    .filter((birthday) => birthday.name.toLowerCase().includes(q))
-    .slice(0, 6);
+  return sortByProximity(list);
 }
 
 async function loadData() {
-  const [allRes, upcomingRes] = await Promise.all([
-    api.get('/birthdays'),
-    api.get('/birthdays/upcoming?limit=4'),
-  ]);
-  state.birthdays = allRes.data ?? [];
-  state.upcoming = upcomingRes.data ?? [];
+  const res = await api.get('/birthdays');
+  state.birthdays = res.data ?? [];
   updateBirthdayBadge();
 }
 
 function updateBirthdayBadge() {
-  const soon = state.upcoming.filter((b) => b.days_until <= 3).length;
+  const soon = state.birthdays.filter((b) => (b.days_until ?? 9999) <= 3).length;
   document.querySelectorAll('[data-route="/birthdays"] .nav-badge').forEach((el) => el.remove());
   if (!soon) return;
   document.querySelectorAll('[data-route="/birthdays"]').forEach((navItem) => {
@@ -125,96 +131,72 @@ function updateBirthdayBadge() {
   });
 }
 
-function renderSuggestions() {
-  const dropdown = _container.querySelector('#birthdays-autocomplete');
-  if (!dropdown) return;
-  const items = suggestions();
-  if (!items.length) {
-    dropdown.hidden = true;
-    dropdown.replaceChildren();
-    return;
-  }
-  dropdown.hidden = false;
-  dropdown.replaceChildren();
-  dropdown.insertAdjacentHTML('beforeend', items.map((birthday, idx) => `
-    <button class="birthday-suggestion" type="button" data-index="${idx}" data-name="${esc(birthday.name)}">
-      ${photoAvatar(birthday, 'birthday-avatar--xs')}
-      <span>
-        <strong>${esc(birthday.name)}</strong>
-        <small>${esc(ageNote(birthday))}</small>
-      </span>
-    </button>
-  `).join(''));
+function birthdayItemHtml(birthday) {
+  const chip = countdownChip(birthday);
+  const isToday = chip.mod === 'today';
+  return `
+    <article class="birthday-item ${isToday ? 'birthday-item--today' : ''}" data-id="${birthday.id}">
+      <div class="birthday-item__media">${photoAvatar(birthday)}</div>
+      <div class="birthday-item__body">
+        <div class="birthday-item__row">
+          <strong class="birthday-item__name">
+            ${esc(birthday.name)}${isToday ? CAKE_SVG : ''}
+          </strong>
+          <span class="birthday-chip birthday-chip--${chip.mod}">${esc(chip.label)}</span>
+        </div>
+        <div class="birthday-item__meta">${esc(ageMeta(birthday))}</div>
+        ${birthday.notes ? `<div class="birthday-item__notes">${esc(birthday.notes)}</div>` : ''}
+      </div>
+      <div class="row-actions birthday-item__actions">
+        <button class="row-action" type="button" data-action="edit" data-id="${birthday.id}" aria-label="${t('common.edit')}">
+          <i data-lucide="pencil" aria-hidden="true"></i>
+        </button>
+        <button class="row-action row-action--danger" type="button" data-action="delete" data-id="${birthday.id}" aria-label="${t('common.delete')}">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+        </button>
+      </div>
+    </article>`;
 }
 
-function renderUpcoming() {
-  const host = _container.querySelector('#birthdays-upcoming');
-  if (!host) return;
-  if (!state.upcoming.length) {
-    host.replaceChildren();
-    host.insertAdjacentHTML('beforeend', `<div class="empty-state empty-state--compact">
-      <div class="empty-state__title">${t('birthdays.emptyTitle')}</div>
-      <div class="empty-state__description">${t('birthdays.emptyDescription')}</div>
-    </div>`);
-    return;
+function emptyStateHtml() {
+  if (state.query.trim()) {
+    return `<div class="empty-state empty-state--compact">
+      ${CAKE_SVG.replace('birthday-cake', 'empty-state__icon')}
+      <div class="empty-state__title">${t('search.noResults')}</div>
+    </div>`;
   }
-  host.replaceChildren();
-  host.insertAdjacentHTML('beforeend', state.upcoming.map((birthday) => `
-    <article class="birthday-card">
-      <div class="birthday-card__media">${photoAvatar(birthday)}</div>
-      <div class="birthday-card__body">
-        <div class="birthday-card__top">
-          <div>
-            <div class="birthday-card__name">${esc(birthday.name)}</div>
-            <div class="birthday-card__date">${esc(formatDate(birthday.next_birthday))}</div>
-          </div>
-          <div class="birthday-card__pill">
-            ${birthday.days_until === 0 ? esc(t('common.today')) : birthday.days_until === 1 ? esc(t('common.tomorrow')) : esc(`${birthday.days_until}d`)}
-          </div>
-        </div>
-        <div class="birthday-card__note">${esc(ageNote(birthday))}</div>
-      </div>
-    </article>
-  `).join(''));
+  return `<div class="empty-state">
+    ${CAKE_SVG.replace('birthday-cake', 'empty-state__icon')}
+    <div class="empty-state__title">${t('birthdays.emptyTitle')}</div>
+    <div class="empty-state__description">${t('birthdays.emptyDescription')}</div>
+    <p class="empty-state__hint">${t('emptyHint.birthdays')}</p>
+    <button class="btn btn--primary empty-state__cta" type="button" id="birthdays-empty-cta">
+      ${t('birthdays.addButton')}
+    </button>
+  </div>`;
 }
 
 function renderList() {
   const host = _container.querySelector('#birthdays-list');
   if (!host) return;
+  if (state.loading) {
+    host.setAttribute('aria-busy', 'true');
+    host.replaceChildren();
+    host.insertAdjacentHTML('beforeend', renderSkeletonList({ rows: 6, lines: 2 }));
+    return;
+  }
+  host.removeAttribute('aria-busy');
   const list = filteredBirthdays();
   if (!list.length) {
     host.replaceChildren();
-    host.insertAdjacentHTML('beforeend', `<div class="empty-state">
-      <div class="empty-state__title">${t('birthdays.emptyTitle')}</div>
-      <div class="empty-state__description">${t('birthdays.emptyDescription')}</div>
-      <p class="empty-state__hint">${t('emptyHint.birthdays')}</p>
-    </div>`);
+    host.insertAdjacentHTML('beforeend', emptyStateHtml());
+    host.querySelector('#birthdays-empty-cta')?.addEventListener('click', () => openBirthdayModal({ mode: 'create' }));
+    if (window.lucide) window.lucide.createIcons({ el: host });
     return;
   }
 
   host.replaceChildren();
-  host.insertAdjacentHTML('beforeend', list.map((birthday) => `
-    <article class="birthday-item" data-id="${birthday.id}">
-      <div class="birthday-item__media">${photoAvatar(birthday)}</div>
-      <div class="birthday-item__body">
-        <div class="birthday-item__row">
-          <strong class="birthday-item__name">${esc(birthday.name)}</strong>
-          <span class="birthday-item__next">${esc(formatDate(birthday.next_birthday))}</span>
-        </div>
-        <div class="birthday-item__meta">${esc(formatDate(birthday.birth_date))}</div>
-        <div class="birthday-item__note">${esc(ageNote(birthday))}</div>
-        ${birthday.notes ? `<div class="birthday-item__notes">${esc(birthday.notes)}</div>` : ''}
-      </div>
-      <div class="birthday-item__actions">
-        <button class="contact-action-btn" type="button" data-action="edit" data-id="${birthday.id}" aria-label="${t('common.edit')}">
-          <i data-lucide="pencil" style="width:16px;height:16px;" aria-hidden="true"></i>
-        </button>
-        <button class="contact-action-btn" type="button" data-action="delete" data-id="${birthday.id}" aria-label="${t('common.delete')}">
-          <i data-lucide="trash-2" style="width:16px;height:16px;" aria-hidden="true"></i>
-        </button>
-      </div>
-    </article>
-  `).join(''));
+  host.insertAdjacentHTML('beforeend', list.map(birthdayItemHtml).join(''));
 
   if (window.lucide) window.lucide.createIcons({ el: host });
   stagger(host.querySelectorAll('.birthday-item'));
@@ -224,44 +206,14 @@ function renderPage() {
   _container.replaceChildren();
   _container.insertAdjacentHTML('beforeend', `
     <div class="birthdays-page">
-      <h1 class="sr-only">${t('birthdays.title')}</h1>
-      <div class="birthdays-toolbar">
-        <div class="birthdays-toolbar__title">
-          <i data-lucide="cake" class="birthdays-toolbar__title-icon" aria-hidden="true"></i>
-          <span>${t('birthdays.title')}</span>
-        </div>
-        <button class="btn btn--primary birthdays-header__action" id="birthdays-add-btn">
-          <i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
-          ${t('birthdays.addButton')}
-        </button>
+      <div class="page-toolbar page-toolbar--wrap birthdays-toolbar">
+        <h1 class="page-toolbar__title">${t('birthdays.title')}</h1>
+        ${renderPageSearch({ id: 'birthdays-search', label: t('birthdays.searchPlaceholder'), placeholder: t('birthdays.searchPlaceholder'), value: state.query, clearLabel: t('common.searchClear'), className: 'birthdays-toolbar__search page-toolbar__center' })}
       </div>
-      <p class="birthdays-toolbar__subtitle">${t('birthdays.calendarHint')}</p>
 
-      <div class="birthdays-grid">
-        <aside class="birthdays-panel birthdays-panel--upcoming">
-          <div class="birthdays-section__header">
-            <h3>${t('birthdays.upcomingTitle')}</h3>
-            <p>${t('birthdays.upcomingHint')}</p>
-          </div>
-          <div class="birthday-cards" id="birthdays-upcoming"></div>
-        </aside>
+      <p class="birthdays-hint">${t('birthdays.calendarHint')}</p>
 
-        <section class="birthdays-panel birthdays-panel--list">
-          <div class="birthdays-toolbar birthdays-toolbar--embedded">
-            <div class="birthdays-toolbar__search">
-              <i data-lucide="search" class="birthdays-toolbar__search-icon" aria-hidden="true"></i>
-              <input type="search" class="birthdays-toolbar__search-input" id="birthdays-search"
-                     placeholder="${t('birthdays.searchPlaceholder')}" autocomplete="off" value="${esc(state.query)}">
-              <div class="autocomplete-dropdown birthdays-autocomplete" id="birthdays-autocomplete" hidden></div>
-            </div>
-          </div>
-          <div class="birthdays-section__header birthdays-section__header--spaced">
-            <h3>${t('birthdays.peopleTitle')}</h3>
-            <p>${t('birthdays.peopleHint')}</p>
-          </div>
-          <div class="birthdays-list" id="birthdays-list"></div>
-        </section>
-      </div>
+      <div class="birthdays-list" id="birthdays-list"></div>
 
       <button class="page-fab" id="fab-new-birthday" aria-label="${t('birthdays.addButton')}">
         <i data-lucide="plus" style="width:24px;height:24px" aria-hidden="true"></i>
@@ -269,38 +221,20 @@ function renderPage() {
     </div>
   `);
 
-  renderUpcoming();
   renderList();
-  renderSuggestions();
   if (window.lucide) window.lucide.createIcons({ el: _container });
 }
 
 function bindEvents() {
-  const openCreate = () => openBirthdayModal({ mode: 'create' });
-  _container.querySelector('#birthdays-add-btn').addEventListener('click', openCreate);
-  _container.querySelector('#fab-new-birthday').addEventListener('click', openCreate);
+  _container.querySelector('#fab-new-birthday').addEventListener('click', () => openBirthdayModal({ mode: 'create' }));
 
-  const search = _container.querySelector('#birthdays-search');
-  search.addEventListener('input', (e) => {
-    state.query = e.target.value;
-    renderSuggestions();
-    renderList();
-  });
-  search.addEventListener('focus', renderSuggestions);
-  search.addEventListener('blur', () => {
-    setTimeout(() => {
-      const dropdown = _container.querySelector('#birthdays-autocomplete');
-      if (dropdown) dropdown.hidden = true;
-    }, 100);
-  });
-
-  _container.querySelector('#birthdays-autocomplete').addEventListener('click', (e) => {
-    const btn = e.target.closest('.birthday-suggestion');
-    if (!btn) return;
-    state.query = btn.dataset.name;
-    search.value = state.query;
-    renderList();
-    renderSuggestions();
+  wirePageSearch(_container, {
+    id: 'birthdays-search',
+    delay: 0,
+    onQuery: (value) => {
+      state.query = value;
+      renderList();
+    },
   });
 
   _container.querySelector('#birthdays-list').addEventListener('click', async (e) => {
@@ -336,6 +270,7 @@ function birthdayPreviewHtml(name, photoData) {
 function openBirthdayModal({ mode, birthday = null }) {
   const isEdit = mode === 'edit';
   let photoData = birthday?.photo_data || null;
+  const today = toLocalDateKey(new Date());
 
   openSharedModal({
     title: isEdit ? t('birthdays.editTitle') : t('birthdays.newTitle'),
@@ -363,19 +298,21 @@ function openBirthdayModal({ mode, birthday = null }) {
             </div>
             <div class="form-group">
               <label class="form-label" for="bd-birth-date">${t('birthdays.birthDateLabel')}</label>
-              <input class="form-input" id="bd-birth-date" type="date" value="${esc(birthday?.birth_date || '')}">
+              <yuvomi-datepicker id="bd-birth-date" type="date" max="${today}" value="${esc(birthday?.birth_date || '')}"></yuvomi-datepicker>
             </div>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="bd-notes">${t('birthdays.notesLabel')}</label>
-          <textarea class="form-input" id="bd-notes" rows="3" placeholder="${t('birthdays.notesPlaceholder')}">${esc(birthday?.notes || '')}</textarea>
-        </div>
-        ${renderBirthdayReminderSection(birthday)}
+        ${advancedSection(`
+          <div class="form-group">
+            <label class="form-label" for="bd-notes">${t('birthdays.notesLabel')}</label>
+            <textarea class="form-input" id="bd-notes" rows="3" placeholder="${t('birthdays.notesPlaceholder')}">${esc(birthday?.notes || '')}</textarea>
+          </div>
+          ${renderBirthdayReminderSection(birthday)}`,
+          { open: isEdit && (!!birthday?.notes || (!!birthday?.reminder_offset && birthday.reminder_offset !== '1440')) })}
         <div class="birthday-modal__hint">${t('birthdays.calendarHint')}</div>
-        <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
+        <div class="birthday-modal__footer">
           ${isEdit ? `<button class="btn btn--danger" id="bd-delete">${t('common.delete')}</button>` : '<div></div>'}
-          <div style="display:flex;gap:var(--space-3);">
+          <div class="birthday-modal__footer-actions">
             <button class="btn btn--secondary" type="button" id="bd-cancel">${t('common.cancel')}</button>
             <button class="btn btn--primary" type="button" id="bd-save">${isEdit ? t('common.save') : t('common.create')}</button>
           </div>
@@ -402,7 +339,7 @@ function openBirthdayModal({ mode, birthday = null }) {
           photoData = await readFileAsDataUrl(file);
           renderPreview();
         } catch (err) {
-          window.oikos?.showToast(err.message, 'danger');
+          window.yuvomi?.showToast(err.message, 'danger');
         }
       });
       panel.querySelector('#bd-remove-photo').addEventListener('click', () => {
@@ -437,31 +374,24 @@ function openBirthdayModal({ mode, birthday = null }) {
         };
 
         if (!body.name || !body.birth_date || !isDateInputValid(birthDateRaw)) {
-          window.oikos?.showToast(t('birthdays.requiredFields'), 'warning');
+          window.yuvomi?.showToast(t('birthdays.requiredFields'), 'warning');
           return;
         }
 
         saveBtn.disabled = true;
         try {
           if (isEdit) {
-            const res = await api.put(`/birthdays/${birthday.id}`, body);
-            const idx = state.birthdays.findIndex((item) => item.id === birthday.id);
-            if (idx !== -1) state.birthdays[idx] = res.data;
-            window.oikos?.showToast(t('birthdays.updatedToast'), 'success');
+            await api.put(`/birthdays/${birthday.id}`, body);
+            window.yuvomi?.showToast(t('birthdays.updatedToast'), 'success');
           } else {
-            const res = await api.post('/birthdays', body);
-            state.birthdays.push(res.data);
-            window.oikos?.showToast(t('birthdays.createdToast'), 'success');
+            await api.post('/birthdays', body);
+            window.yuvomi?.showToast(t('birthdays.createdToast'), 'success');
           }
-          state.birthdays.sort((a, b) => a.name.localeCompare(b.name));
-          const upcomingRes = await api.get('/birthdays/upcoming?limit=4');
-          state.upcoming = upcomingRes.data ?? [];
-          renderUpcoming();
-          renderSuggestions();
+          await loadData();
           renderList();
           closeModal({ force: true });
         } catch (err) {
-          window.oikos?.showToast(err.message, 'danger');
+          window.yuvomi?.showToast(err.message, 'danger');
           saveBtn.disabled = false;
         }
       });
@@ -472,19 +402,15 @@ function openBirthdayModal({ mode, birthday = null }) {
 async function deleteBirthday(id, name) {
   if (!await confirmModal(t('birthdays.deleteConfirm', { name }), { danger: true, confirmLabel: t('common.delete') })) return;
   const birthday = state.birthdays.find((b) => b.id === id);
-  state.birthdays = state.birthdays.filter((b) => b.id !== id).sort((a, b) => a.name.localeCompare(b.name));
-  state.upcoming = state.upcoming.filter((b) => b.id !== id);
-  renderUpcoming();
-  renderSuggestions();
+  state.birthdays = state.birthdays.filter((b) => b.id !== id);
+  updateBirthdayBadge();
   renderList();
   await deleteWithUndo({
     onDelete: async () => { await api.delete(`/birthdays/${id}`); },
     onUndo: async () => {
       if (birthday) {
-        state.birthdays = [...state.birthdays, birthday].sort((a, b) => a.name.localeCompare(b.name));
-        state.upcoming = [...state.upcoming, birthday];
-        renderUpcoming();
-        renderSuggestions();
+        state.birthdays = [...state.birthdays, birthday];
+        updateBirthdayBadge();
         renderList();
       }
     },
@@ -495,7 +421,13 @@ async function deleteBirthday(id, name) {
 
 export async function render(container) {
   _container = container;
-  await loadData();
+  // Shell zuerst (synchron) bauen, damit das Lade-Skeleton sofort sichtbar ist
+  // (der Router blendet den Wrapper bereits vor dem Daten-await ein). Danach
+  // Daten laden und mit echtem Inhalt füllen.
+  state.loading = true;
   renderPage();
   bindEvents();
+  await loadData();
+  state.loading = false;
+  renderList();
 }

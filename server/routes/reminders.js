@@ -13,7 +13,10 @@ import { syncAllBirthdayReminders } from '../services/birthdays.js';
 const log    = createLogger('Reminders');
 const router = express.Router();
 
-const VALID_ENTITY_TYPES = ['task', 'event'];
+const VALID_ENTITY_TYPES = ['task', 'event', 'subscription'];
+
+// Obergrenze für mehrere Erinnerungen je Entität (z. B. Kalender-Termin, #436).
+const MAX_REMINDERS_PER_ENTITY = 5;
 
 // --------------------------------------------------------
 // GET /api/v1/reminders/pending
@@ -33,6 +36,7 @@ router.get('/pending', (req, res) => {
         CASE r.entity_type
           WHEN 'task'  THEN (SELECT title FROM tasks           WHERE id = r.entity_id)
           WHEN 'event' THEN (SELECT title FROM calendar_events WHERE id = r.entity_id)
+          WHEN 'subscription' THEN (SELECT name FROM budget_subscriptions WHERE id = r.entity_id)
         END AS entity_title
       FROM reminders r
       WHERE r.created_by  = ?
@@ -44,6 +48,36 @@ router.get('/pending', (req, res) => {
     res.json({ data: rows });
   } catch (err) {
     log.error('Error loading due reminders:', err.message);
+    res.status(500).json({ error: 'Internal error.', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// GET /api/v1/reminders/all?entity_type=event&entity_id=5
+// Gibt ALLE nicht-verworfenen Erinnerungen einer Entität zurück (#436).
+// Kalender-Termine unterstützen mehrere Erinnerungen; Tasks/Subscriptions
+// nutzen weiterhin den Single-Endpoint (GET /).
+// Response: { data: Reminder[] }
+// --------------------------------------------------------
+router.get('/all', (req, res) => {
+  try {
+    const userId     = req.authUserId || req.session.userId;
+    const entityType = req.query.entity_type;
+    const entityId   = parseInt(req.query.entity_id, 10);
+
+    if (!VALID_ENTITY_TYPES.includes(entityType) || !entityId) {
+      return res.status(400).json({ error: 'entity_type und entity_id sind erforderlich.', code: 400 });
+    }
+
+    const rows = db.get().prepare(`
+      SELECT * FROM reminders
+      WHERE entity_type = ? AND entity_id = ? AND created_by = ? AND dismissed = 0
+      ORDER BY remind_at ASC
+    `).all(entityType, entityId, userId);
+
+    res.json({ data: rows });
+  } catch (err) {
+    log.error('Error loading reminders:', err.message);
     res.status(500).json({ error: 'Internal error.', code: 500 });
   }
 });
@@ -94,7 +128,7 @@ router.post('/', (req, res) => {
     ]);
 
     if (!entity_type || !VALID_ENTITY_TYPES.includes(entity_type)) {
-      errors.push('entity_type muss "task" oder "event" sein.');
+      errors.push('entity_type must be task, event, or subscription.');
     }
 
     if (errors.length) {
@@ -118,6 +152,65 @@ router.post('/', (req, res) => {
     res.status(201).json({ data: row });
   } catch (err) {
     log.error('Error creating reminder:', err.message);
+    res.status(500).json({ error: 'Internal error.', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// PUT /api/v1/reminders?entity_type=event&entity_id=5
+// Ersetzt die komplette Erinnerungs-Menge einer Entität (#436).
+// Body: { remind_ats: string[] } (dedupliziert, max. MAX_REMINDERS_PER_ENTITY)
+// Response: { data: Reminder[] }
+// --------------------------------------------------------
+router.put('/', (req, res) => {
+  try {
+    const userId     = req.authUserId || req.session.userId;
+    const entityType = req.query.entity_type;
+    const entityId   = parseInt(req.query.entity_id, 10);
+    const remindAts  = req.body?.remind_ats;
+
+    if (!VALID_ENTITY_TYPES.includes(entityType) || !entityId) {
+      return res.status(400).json({ error: 'entity_type und entity_id sind erforderlich.', code: 400 });
+    }
+    if (!Array.isArray(remindAts)) {
+      return res.status(400).json({ error: 'remind_ats muss ein Array sein.', code: 400 });
+    }
+
+    // Duplikate entfernen, jeden Eintrag als Datetime validieren, Cap anwenden.
+    const unique = [...new Set(remindAts)];
+    const errors = v.collectErrors(unique.map((value, i) => v.datetime(value, `remind_ats[${i}]`, true)));
+    if (errors.length) {
+      return res.status(400).json({ error: errors.join(' '), code: 400 });
+    }
+    if (unique.length > MAX_REMINDERS_PER_ENTITY) {
+      return res.status(400).json({ error: `Maximal ${MAX_REMINDERS_PER_ENTITY} Erinnerungen je Eintrag.`, code: 400 });
+    }
+
+    const replace = db.get().transaction((values) => {
+      db.get().prepare(`
+        DELETE FROM reminders
+        WHERE entity_type = ? AND entity_id = ? AND created_by = ?
+      `).run(entityType, entityId, userId);
+
+      const insert = db.get().prepare(`
+        INSERT INTO reminders (entity_type, entity_id, remind_at, created_by)
+        VALUES (?, ?, ?, ?)
+      `);
+      for (const remindAt of values) {
+        insert.run(entityType, entityId, remindAt, userId);
+      }
+    });
+    replace(unique);
+
+    const rows = db.get().prepare(`
+      SELECT * FROM reminders
+      WHERE entity_type = ? AND entity_id = ? AND created_by = ? AND dismissed = 0
+      ORDER BY remind_at ASC
+    `).all(entityType, entityId, userId);
+
+    res.json({ data: rows });
+  } catch (err) {
+    log.error('Error setting reminders:', err.message);
     res.status(500).json({ error: 'Internal error.', code: 500 });
   }
 });

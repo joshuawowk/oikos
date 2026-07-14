@@ -22,7 +22,7 @@ const GROUP_TYPES = ['household', 'couple', 'travel', 'event', 'shopping', 'gene
 const GROUP_ROLES = ['owner', 'admin', 'guest'];
 const SPLIT_METHODS = ['equal', 'exact', 'percentage', 'shares'];
 const CATEGORIES = ['groceries', 'rent', 'utilities', 'baby', 'pets', 'school', 'travel', 'shopping', 'subscriptions', 'health', 'home', 'general'];
-const CURRENCIES = ['AED', 'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP', 'HUF', 'INR', 'JPY', 'KZT', 'NOK', 'PLN', 'RUB', 'SAR', 'SEK', 'TRY', 'UAH', 'USD'];
+const CURRENCIES = ['AED', 'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP', 'HUF', 'INR', 'JPY', 'KZT', 'NOK', 'PLN', 'RUB', 'SAR', 'SEK', 'TRY', 'UAH', 'USD', 'ZAR'];
 const FREQUENCIES = ['weekly', 'monthly', 'yearly'];
 const FAMILY_ROLES = ['dad', 'mom', 'parent', 'child', 'grandparent', 'relative', 'other'];
 
@@ -328,6 +328,7 @@ router.get('/dashboard', (req, res) => {
       SELECT l.currency, l.user_id, u.display_name, SUM(l.amount_minor) AS net_minor
       FROM expense_ledger_entries l
       JOIN expense_group_members gm ON gm.group_id = l.group_id AND gm.user_id = @uid
+      JOIN expense_groups g ON g.id = l.group_id AND g.status = 'active'
       LEFT JOIN users u ON u.id = l.user_id
       GROUP BY l.currency, l.user_id
     `).all({ uid });
@@ -527,15 +528,6 @@ router.post('/groups/:id/members', async (req, res) => {
       VALUES (?, ?, ?, ?)
       ON CONFLICT(group_id, user_id) DO UPDATE SET role = excluded.role
     `).run(groupId, memberUserId, role, userId(req));
-    if (role === 'guest') {
-      const existingGuestRow = db.get().prepare('SELECT group_id FROM split_expense_guest_users WHERE user_id = ?').get(memberUserId);
-      if (existingGuestRow && existingGuestRow.group_id !== groupId) {
-        return res.status(409).json({ error: 'This guest account is already assigned to another group.', code: 409 });
-      }
-      if (!existingGuestRow) {
-        db.get().prepare('INSERT INTO split_expense_guest_users (user_id, group_id, created_by) VALUES (?, ?, ?)').run(memberUserId, groupId, userId(req));
-      }
-    }
     activity(groupId, userId(req), 'member_added', 'member', memberUserId, { role });
     res.status(201).json({ data: { group_id: groupId, user_id: memberUserId, role } });
   } catch (err) {

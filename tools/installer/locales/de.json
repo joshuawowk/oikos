@@ -7,7 +7,10 @@
     "generating": "…",
     "optional": "Optional",
     "stepCounter": "Schritt {{n}} von {{total}}",
-    "toggleVisibility": "Wert anzeigen oder verbergen"
+    "toggleVisibility": "Wert anzeigen oder verbergen",
+    "copy": "Kopieren",
+    "copied": "Kopiert ✓",
+    "language": "Sprache"
   },
   "config": {
     "title": "Grundkonfiguration",
@@ -23,12 +26,13 @@
   },
   "secrets": {
     "title": "Sicherheitsschlüssel",
-    "subtitle": "Diese schützen deine Sitzung und verschlüsseln die Datenbank. Bewahre deine .env-Datei sicher auf — der Verlust dieser Schlüssel bedeutet den Verlust des Zugriffs auf deine Daten.",
+    "subtitle": "Diese schützen deine Sitzung und verschlüsseln die Datenbank.",
     "sessionLabel": "Session-Secret",
     "sessionHint": "Signiert die Sitzungs-Cookies des Browsers.",
     "dbLabel": "Datenbank-Verschlüsselungsschlüssel",
     "dbHint": "Verschlüsselt die SQLite-Datenbank im Ruhezustand.",
-    "errBoth": "Beide Schlüssel sind erforderlich."
+    "errBoth": "Beide Schlüssel sind erforderlich.",
+    "dangerWarn": "Speichere diese Schlüssel jetzt. Gehen sie verloren, sind deine verschlüsselten Daten unwiederbringlich — es gibt kein Zurücksetzen."
   },
   "weather": {
     "title": "Wetter-Widget",
@@ -70,7 +74,7 @@
     "proxyLabel": "Wie wird Yuvomi bereitgestellt?",
     "proxyBehindHttps": "Hinter einem Reverse-Proxy mit HTTPS (Caddy, nginx, Traefik)",
     "proxyDirect": "Direkter Zugriff über localhost / HTTP",
-    "proxyHint": "Direkter Zugriff deaktiviert reine Secure-Cookies, damit der Login ohne HTTPS funktioniert.",
+    "proxyHint": "Im Zweifel „Reverse-Proxy“: erzwingt sichere Cookies. „Direkt“ nur für lokalen HTTP-Zugriff ohne HTTPS.",
     "oidc": "Single Sign-On (OIDC)",
     "oidcHint": "Fülle alle vier Felder aus, um SSO zu aktivieren, oder lass sie leer.",
     "oidcIssuerLabel": "Issuer-URL",
@@ -90,7 +94,27 @@
     "documentWebdavUsernameLabel": "Benutzername",
     "documentWebdavPasswordLabel": "Passwort",
     "documentWebdavPathLabel": "Basispfad",
-    "documentWebdavPathHint": "Remote-Ordner für Dokumentdateien. Leer lassen für yuvomi-documents."
+    "documentWebdavPathHint": "Remote-Ordner für Dokumentdateien. Leer lassen für yuvomi-documents.",
+    "documentLocal": "Lokaler Dokumentspeicher",
+    "documentLocalEnable": "Neue Dokumente in einem lokalen Ordner speichern",
+    "documentLocalPathLabel": "Ordnerpfad",
+    "documentLocalPathHint": "Pfad im Container. Leer lassen für /documents.",
+    "sectionNetwork": "Netzwerk",
+    "sectionIntegrations": "Integrationen & Backups",
+    "errSchedule": "Ungültiger Cron-Zeitplan (fünf durch Leerzeichen getrennte Felder erwartet, z. B. 0 2 * * *).",
+    "errKeep": "Aufzubewahrende Backups muss eine positive Zahl sein.",
+    "webdavBackup": "Externe Backups (WebDAV)",
+    "webdavBackupHint": "Kopiert jedes Backup auf einen WebDAV-Server (z. B. Nextcloud), damit es einen Festplattenausfall übersteht.",
+    "webdavBackupEnable": "Backups zusätzlich an WebDAV senden",
+    "webdavBackupUrlLabel": "WebDAV-URL",
+    "webdavBackupUsernameLabel": "Benutzername",
+    "webdavBackupPasswordLabel": "Passwort",
+    "webdavBackupPathLabel": "Remote-Pfad",
+    "sectionMore": "Weitere Optionen",
+    "fixerLabel": "Fixer-API-Schlüssel (Live-Währungskurse)",
+    "fixerHint": "Optional. Rechnet Abo-Währungen mit Live-Kursen um. Abonnements funktionieren auch ohne.",
+    "pushSubjectLabel": "Push-Kontaktadresse",
+    "pushSubjectHint": "Wird an Push-Dienste als Kontakt für deinen Server gesendet. Leer lassen für den Standard."
   },
   "review": {
     "title": "Überprüfung",
@@ -102,11 +126,23 @@
     "google": "Google Kalender",
     "apple": "Apple CalDAV",
     "documentWebdav": "WebDAV-Dokumente",
+    "documentLocal": "Lokale Dokumente",
     "save": "Speichern & Docker starten",
     "saving": "Wird gespeichert …",
     "errSave": "Speichern der .env fehlgeschlagen.",
     "weatherEnabled": "aktiviert ({{city}})",
-    "configured": "konfiguriert"
+    "configured": "konfiguriert",
+    "finalNote": "Dies schreibt deine .env (eine bestehende wird gesichert) und startet den Container.",
+    "confirm": "Zum Bestätigen erneut klicken",
+    "access": "Zugriff",
+    "accessProxy": "Reverse-Proxy (HTTPS)",
+    "accessDirect": "Direkt / HTTP",
+    "email": "E-Mail",
+    "oidc": "Single Sign-On",
+    "backups": "Backups",
+    "webdavBackup": "Externe Backups",
+    "on": "aktiviert",
+    "off": "deaktiviert"
   },
   "docker": {
     "title": "Yuvomi wird gestartet",
@@ -139,6 +175,51 @@
   "done": {
     "title": "Yuvomi ist bereit!",
     "subtitle": "Dein Familienplaner läuft und dein Admin-Konto ist eingerichtet.",
-    "open": "Yuvomi öffnen →"
+    "open": "Yuvomi öffnen →",
+    "backupReminder": "Denk daran, deine .env-Datei jetzt zu sichern — sie enthält deine Schlüssel.",
+    "download": ".env-Datei herunterladen",
+    "savedTo": "Gespeichert unter {{path}}"
+  },
+  "welcome": {
+    "title": "Willkommen bei Yuvomi",
+    "subtitle": "Bring deinen privaten Familienplaner zum Laufen. Wähle, wie du ihn einrichten möchtest.",
+    "simpleTitle": "Einfache Einrichtung",
+    "simpleBadge": "Empfohlen",
+    "simpleDesc": "Wir übernehmen die technischen Details für dich. Ideal, um Yuvomi zu Hause zu betreiben.",
+    "simpleTime": "Etwa 2 Minuten",
+    "advancedTitle": "Erweiterte Einrichtung",
+    "advancedDesc": "Volle Kontrolle: Reverse-Proxy, Kalender-Sync, E-Mail, Single Sign-On und Backups.",
+    "advancedTime": "Jede Option, Schritt für Schritt"
+  },
+  "simple": {
+    "title": "Bereit",
+    "subtitle": "Wir haben alles mit sicheren Standardwerten vorbereitet. Erstelle als Nächstes nur noch dein Konto.",
+    "itemKeysTitle": "Sicherheitsschlüssel erzeugt",
+    "itemKeysDesc": "Sitzung und Datenbank werden automatisch verschlüsselt.",
+    "itemAccessTitle": "Lokaler Zugriff",
+    "itemAccessDesc": "Erreichbar unter {{url}} auf diesem Gerät.",
+    "itemBackupsTitle": "Tägliche Backups aktiv",
+    "itemBackupsDesc": "Jede Nacht wird ein lokales Backup aufbewahrt.",
+    "backupReminder": "Sichere nach der Einrichtung die erzeugte .env-Datei — sie enthält deine einzigen Verschlüsselungsschlüssel.",
+    "switchAdvanced": "Mehr Optionen nötig? Zur erweiterten Einrichtung wechseln",
+    "start": "Yuvomi einrichten & starten"
+  },
+  "email": {
+    "title": "E-Mail & Passwort-Reset",
+    "subtitle": "Ermögliche Familienmitgliedern, ein vergessenes Passwort per E-Mail zurückzusetzen. Optional — überspringen, falls nicht benötigt.",
+    "enable": "E-Mail-Versand aktivieren",
+    "hint": "Nutzt deinen eigenen SMTP-Server (Mailanbieter, selbst gehostet oder ein Transaktions-Dienst).",
+    "hostLabel": "SMTP-Server",
+    "portLabel": "Port",
+    "secureLabel": "Verschlüsselung",
+    "secureStarttls": "STARTTLS (Port 587)",
+    "secureSsl": "SSL/TLS (Port 465)",
+    "secureNone": "Keine (nicht empfohlen)",
+    "userLabel": "Benutzername",
+    "passLabel": "Passwort",
+    "fromLabel": "Absenderadresse",
+    "fromHint": "Die „Von\"-Adresse, die Empfänger sehen. Viele Anbieter verlangen, dass sie mit dem Benutzernamen übereinstimmt.",
+    "fromNameLabel": "Absendername",
+    "errIncomplete": "SMTP-Server und Absenderadresse sind erforderlich."
   }
 }

@@ -61,6 +61,15 @@ function cityParam(city) {
 export function buildRouter({ cfgGet: cfgGetFn = cfgGet, fetchFn = null } = {}) {
   const router = express.Router();
 
+  // Per-User-Wert vor Haushalt: liest '{key}:user:{id}' über denselben cfgGet.
+  function effective(key, userId) {
+    if (userId) {
+      const u = cfgGetFn(`${key}:user:${userId}`);
+      if (u !== null && u !== undefined) return u;
+    }
+    return cfgGetFn(key);
+  }
+
   async function doFetch(url, opts) {
     // Node 22+ ships a global fetch — no node-fetch import needed for JSON.
     // (node-fetch is kept only in the /icon proxy below, which streams via body.pipe.)
@@ -75,11 +84,12 @@ export function buildRouter({ cfgGet: cfgGetFn = cfgGet, fetchFn = null } = {}) 
   router.get('/', async (req, res) => {
     try {
       // ── 1. Resolve provider ──────────────────────────────────
+      const userId = req.authUserId;
       const dbProvider = cfgGetFn('weather_provider');
-      const dbLat      = cfgGetFn('weather_lat');
-      const dbLon      = cfgGetFn('weather_lon');
-      const dbCity     = cfgGetFn('weather_city') ?? '';
-      const dbUnits    = cfgGetFn('weather_units') ?? 'metric';
+      const dbLat      = effective('weather_lat', userId);
+      const dbLon      = effective('weather_lon', userId);
+      const dbCity     = effective('weather_city', userId) ?? '';
+      const dbUnits    = effective('weather_units', userId) ?? 'metric';
 
       const envLat   = process.env.WEATHER_LAT;
       const envLon   = process.env.WEATHER_LON;
@@ -97,6 +107,9 @@ export function buildRouter({ cfgGet: cfgGetFn = cfgGet, fetchFn = null } = {}) 
       } else if (dbProvider === 'openweathermap' && owmKey) {
         provider = 'openweathermap';
         units = dbUnits !== 'metric' ? dbUnits : (process.env.OPENWEATHER_UNITS ?? 'metric');
+      } else if (!dbProvider && dbLat && dbLon) {
+        provider = 'open-meteo';
+        lat = dbLat; lon = dbLon; city = dbCity; units = dbUnits;
       } else if (!dbProvider && envLat && envLon) {
         provider = 'open-meteo';
         lat = envLat; lon = envLon; city = envCity; units = envUnits;

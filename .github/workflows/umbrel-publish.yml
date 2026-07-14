@@ -123,13 +123,23 @@ jobs:
           # source, so their port / gallery / category / review tweaks are preserved.
           sed -i -E "s|^version: .*|version: \"$VERSION\"|" yuvomi/umbrel-app.yml
           sed -i -E "s|image: ghcr.io/$OWNER/yuvomi:[^@[:space:]]+@sha256:[0-9a-f]+|image: ghcr.io/$OWNER/yuvomi:$VERSION@$DIGEST|" yuvomi/docker-compose.yml
+          if [ -z "${RELEASE_BODY:-}" ]; then
+            RELEASE_BODY="$(gh release view "v$VERSION" --repo "$OWNER/yuvomi" --json body -q .body)"
+            export RELEASE_BODY
+          fi
           # releaseNotes from the GitHub release body (JSON-encoded string is valid YAML)
           python3 - <<'PY'
           import json, os, re
           body = os.environ.get("RELEASE_BODY", "").strip()
           p = "yuvomi/umbrel-app.yml"
           t = open(p).read()
-          t = re.sub(r"^releaseNotes:.*$", "releaseNotes: " + json.dumps(body), t, count=1, flags=re.M)
+          t = re.sub(
+            r"^releaseNotes:.*$",
+            lambda _: "releaseNotes: " + json.dumps(body),
+            t,
+            count=1,
+            flags=re.M,
+          )
           open(p, "w").write(t)
           PY
 

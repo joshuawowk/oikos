@@ -196,8 +196,8 @@ function _resumeSuspendedModal({ overlay, id, snapshot }) {
   _initialFormSnapshot = snapshot;
   document.body.style.overflow = 'hidden';
   modalState = 'open';
-  if (window.oikos?.setThemeColor) {
-    window.oikos.setThemeColor(OVERLAY_THEME_COLOR, OVERLAY_THEME_COLOR);
+  if (window.yuvomi?.setThemeColor) {
+    window.yuvomi.setThemeColor(OVERLAY_THEME_COLOR, OVERLAY_THEME_COLOR);
   }
 }
 
@@ -232,8 +232,8 @@ function _doClose(overlayEl) {
     }
 
     // Standalone: Statusbar-Farbe zur aktuellen Route wiederherstellen
-    if (window.oikos?.restoreThemeColor) {
-      window.oikos.restoreThemeColor();
+    if (window.yuvomi?.restoreThemeColor) {
+      window.yuvomi.restoreThemeColor();
     }
   }
 }
@@ -251,7 +251,7 @@ function _doClose(overlayEl) {
  * @param {Function} [opts.onSave]   - Callback, wird nach Einfügen in DOM aufgerufen
  * @param {Function} [opts.onClose]  - Callback, wird aufgerufen wenn das Modal geschlossen wird
  * @param {Function} [opts.onDelete] - Falls vorhanden, wird ein Löschen-Button eingebaut
- * @param {string}   [opts.size='md'] - 'sm' | 'md' | 'lg'
+ * @param {string}   [opts.size='md'] - 'sm' (400px) | 'md' (520px) | 'lg' (680px) | 'xl' (min(960px, 95vw)); Breiten siehe layout.css .modal-panel--*
  */
 export function openModal({ title, content, onSave, onDelete, onClose, size = 'md' } = {}) {
   // Vorheriges Modal schließen (kein Stacking).
@@ -346,8 +346,8 @@ export function openModal({ title, content, onSave, onDelete, onClose, size = 'm
   }, { capture: true });
 
   // Standalone: Statusbar abdunkeln
-  if (window.oikos?.setThemeColor) {
-    window.oikos.setThemeColor(OVERLAY_THEME_COLOR, OVERLAY_THEME_COLOR);
+  if (window.yuvomi?.setThemeColor) {
+    window.yuvomi.setThemeColor(OVERLAY_THEME_COLOR, OVERLAY_THEME_COLOR);
   }
 
   modalState = 'open';
@@ -450,6 +450,7 @@ export function promptModal(label, defaultValue = '') {
       content: `
         <form id="prompt-modal-form" class="form-stack">
           <div class="form-field">
+            <label class="sr-only" for="prompt-modal-input">${esc(label)}</label>
             <input class="form-input" id="prompt-modal-input" type="text"
                    value="${esc(defaultValue)}" autocomplete="off">
           </div>
@@ -505,6 +506,7 @@ export function selectModal(label, options) {
       content: `
         <form id="select-modal-form" class="form-stack">
           <div class="form-field">
+            <label class="sr-only" for="select-modal-input">${esc(label)}</label>
             <select class="form-input" id="select-modal-input">${optionsHtml}</select>
           </div>
           <div class="modal-actions">
@@ -654,4 +656,38 @@ export function btnError(btn) {
   void btn.offsetWidth;
   btn.classList.add('btn--shaking');
   btn.addEventListener('animationend', () => btn.classList.remove('btn--shaking'), { once: true });
+}
+
+// --------------------------------------------------------
+// Progressive Disclosure: „Weitere Einstellungen"
+// --------------------------------------------------------
+
+/**
+ * Kapselt Sekundärfelder eines Formulars in einem einklappbaren <details>.
+ * Häufigste Felder bleiben oben sichtbar, seltene wandern hinter einen
+ * „Weitere Einstellungen"-Aufklapper. Gibt einen HTML-String zurück, der in
+ * den `content` von openModal() eingesetzt wird (Injektion via
+ * insertAdjacentHTML in openModal — kein innerHTML).
+ *
+ * Die enthaltenen Felder bleiben unabhängig vom Auf-/Zuklappen im DOM, sodass
+ * bestehende querySelector-Verdrahtung, Dirty-Check und Validierung
+ * unverändert funktionieren.
+ *
+ * @param {string} innerHtml        - Markup der Sekundärfelder (bereits esc-sicher)
+ * @param {Object} [opts]
+ * @param {string} [opts.label]     - Aufklapper-Beschriftung (Default: t('modal.moreSettings'))
+ * @param {boolean} [opts.open=false] - Initial geöffnet (z. B. wenn Sekundärfelder bereits befüllt sind)
+ * @returns {string} HTML-String
+ */
+export function advancedSection(innerHtml, { label, open = false } = {}) {
+  return `
+    <details class="form-advanced"${open ? ' open' : ''}>
+      <summary class="form-advanced__summary">
+        <span>${esc(label ?? t('modal.moreSettings'))}</span>
+        <i data-lucide="chevron-down" class="form-advanced__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="form-advanced__body">
+        ${innerHtml}
+      </div>
+    </details>`;
 }

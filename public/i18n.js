@@ -5,11 +5,12 @@
  * Dependencies: none (vanilla JS, Fetch API, Intl API)
  */
 
-const SUPPORTED_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'sv', 'el', 'ru', 'tr', 'zh', 'ja', 'ar', 'hi', 'pt', 'uk', 'pl', 'nl', 'cs', 'vi'];
+const SUPPORTED_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'sv', 'el', 'ru', 'tr', 'zh', 'ja', 'ar', 'hi', 'pt', 'uk', 'pl', 'nl', 'cs', 'vi', 'hu', 'ko', 'id', 'fa'];
+const RTL_LOCALES = new Set(['ar', 'fa']);
 const DEFAULT_LOCALE = 'de';
-const STORAGE_KEY = 'oikos-locale';
-const DATE_FORMAT_KEY = 'oikos-date-format';
-const TIME_FORMAT_KEY = 'oikos-time-format';
+const STORAGE_KEY = 'yuvomi-locale';
+const DATE_FORMAT_KEY = 'yuvomi-date-format';
+const TIME_FORMAT_KEY = 'yuvomi-time-format';
 const DEFAULT_DATE_FORMAT = 'dmy';
 const DEFAULT_TIME_FORMAT = '24h';
 const VALID_TIME_FORMATS = ['24h', '12h'];
@@ -22,6 +23,11 @@ let resolveI18nReady;
 const i18nReadyPromise = new Promise((resolve) => {
   resolveI18nReady = resolve;
 });
+
+function applyDocumentLocale(locale) {
+  document.documentElement.lang = locale;
+  document.documentElement.dir = RTL_LOCALES.has(locale) ? 'rtl' : 'ltr';
+}
 
 /** Resolve locale: manual override > navigator.language > English > default */
 function resolveLocale() {
@@ -57,7 +63,7 @@ export async function initI18n() {
   } else {
     translations = fallbackTranslations;
   }
-  document.documentElement.lang = currentLocale;
+  applyDocumentLocale(currentLocale);
   i18nReady = true;
   resolveI18nReady();
   window.dispatchEvent(new CustomEvent('i18n-ready', { detail: { locale: currentLocale } }));
@@ -78,7 +84,7 @@ export async function setLocale(locale) {
     : await loadLocale(locale);
   if (currentLocale !== locale) return;
   translations = loaded;
-  document.documentElement.lang = locale;
+  applyDocumentLocale(locale);
   window.dispatchEvent(new CustomEvent('locale-changed', { detail: { locale } }));
 }
 
@@ -263,8 +269,26 @@ function toTimeParts(value) {
     return (hour >= 0 && hour <= 23) ? { hour, minute: 0 } : null;
   }
 
-  if (/^\d{1,2}:\d{2}$/.test(raw)) {
-    const [hour, minute] = raw.split(':').map(Number);
+  // Getrennte Schreibweisen: ':', '.', ',' oder 'h' als Trennzeichen zwischen
+  // Stunde und Minute. Erleichtert die Eingabe auf Tastaturen, auf denen der
+  // Doppelpunkt umständlich ist (z. B. 09.30 oder 9h30 → 09:30).
+  const sepMatch = raw.match(/^(\d{1,2})[:.,hH](\d{2})$/);
+  if (sepMatch) {
+    const hour = Number(sepMatch[1]);
+    const minute = Number(sepMatch[2]);
+    if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
+      return { hour, minute };
+    }
+    return null;
+  }
+
+  // Kompakte Schreibweise ohne Trennzeichen: HMM oder HHMM (3–4 Ziffern).
+  // Die letzten zwei Ziffern sind die Minuten, der Rest die Stunde
+  // (930 → 09:30, 0930 → 09:30, 1345 → 13:45). Vierstellige Werte kollidieren
+  // nicht mit dem 1–2-stelligen Stunden-Fall darüber.
+  if (/^\d{3,4}$/.test(raw)) {
+    const hour = Number(raw.slice(0, -2));
+    const minute = Number(raw.slice(-2));
     if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
       return { hour, minute };
     }

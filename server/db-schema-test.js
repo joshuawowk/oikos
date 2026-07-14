@@ -39,6 +39,7 @@ const MIGRATIONS_SQL = {
       is_recurring    INTEGER NOT NULL DEFAULT 0,
       recurrence_rule TEXT,
       parent_task_id  INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+      visibility      TEXT    NOT NULL DEFAULT 'all',
       created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
       updated_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     );
@@ -68,6 +69,8 @@ const MIGRATIONS_SQL = {
       category        TEXT    NOT NULL DEFAULT 'Sonstiges',
       is_checked      INTEGER NOT NULL DEFAULT 0,
       added_from_meal INTEGER REFERENCES meals(id) ON DELETE SET NULL,
+      notes           TEXT,
+      url             TEXT,
       created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
       updated_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     );
@@ -96,6 +99,7 @@ const MIGRATIONS_SQL = {
       external_source      TEXT    NOT NULL DEFAULT 'local'
                                    CHECK(external_source IN ('local', 'google', 'apple')),
       recurrence_rule      TEXT,
+      visibility           TEXT    NOT NULL DEFAULT 'all',
       created_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
       updated_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     );
@@ -579,7 +583,7 @@ const MIGRATIONS_SQL = {
 
     CREATE TRIGGER trg_search_items_ai AFTER INSERT ON shopping_items BEGIN
       INSERT INTO search_index (entity, entity_id, title, body)
-      VALUES ('item', NEW.id, COALESCE(NEW.name, ''), '');
+      VALUES ('item', NEW.id, COALESCE(NEW.name, ''), COALESCE(NEW.notes, ''));
     END;
     CREATE TRIGGER trg_search_items_ad AFTER DELETE ON shopping_items BEGIN
       DELETE FROM search_index WHERE entity = 'item' AND entity_id = OLD.id;
@@ -587,7 +591,7 @@ const MIGRATIONS_SQL = {
     CREATE TRIGGER trg_search_items_au AFTER UPDATE ON shopping_items BEGIN
       DELETE FROM search_index WHERE entity = 'item' AND entity_id = OLD.id;
       INSERT INTO search_index (entity, entity_id, title, body)
-      VALUES ('item', NEW.id, COALESCE(NEW.name, ''), '');
+      VALUES ('item', NEW.id, COALESCE(NEW.name, ''), COALESCE(NEW.notes, ''));
     END;
 
     INSERT INTO search_index (entity, entity_id, title, body)
@@ -600,7 +604,291 @@ const MIGRATIONS_SQL = {
       SELECT 'contact', id, COALESCE(name, ''),
              COALESCE(phone, '') || ' ' || COALESCE(email, '') FROM contacts;
     INSERT INTO search_index (entity, entity_id, title, body)
-      SELECT 'item', id, COALESCE(name, ''), '' FROM shopping_items;
+      SELECT 'item', id, COALESCE(name, ''), COALESCE(notes, '') FROM shopping_items;
+  `,
+  61: `
+    ALTER TABLE users ADD COLUMN calendar_feed_token TEXT;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_calendar_feed_token
+      ON users(calendar_feed_token)
+      WHERE calendar_feed_token IS NOT NULL;
+  `,
+  62: `
+    ALTER TABLE reminders ADD COLUMN pushed_at TEXT;
+  `,
+  64: `
+    CREATE TABLE IF NOT EXISTS meal_recurrence_templates (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      start_date TEXT    NOT NULL,
+      weekday    INTEGER NOT NULL CHECK(weekday BETWEEN 0 AND 6),
+      meal_type  TEXT    NOT NULL
+                         CHECK(meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
+      title      TEXT    NOT NULL,
+      notes      TEXT,
+      recipe_url TEXT,
+      recipe_id  INTEGER REFERENCES recipes(id) ON DELETE SET NULL,
+      created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      updated_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS meal_recurrence_ingredients (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_id INTEGER NOT NULL REFERENCES meal_recurrence_templates(id) ON DELETE CASCADE,
+      name        TEXT    NOT NULL,
+      quantity    TEXT,
+      category    TEXT    NOT NULL DEFAULT 'Sonstiges',
+      created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      updated_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS meal_recurrence_exceptions (
+      template_id INTEGER NOT NULL REFERENCES meal_recurrence_templates(id) ON DELETE CASCADE,
+      date        TEXT    NOT NULL,
+      created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      PRIMARY KEY (template_id, date)
+    );
+
+    ALTER TABLE meals ADD COLUMN recurrence_template_id INTEGER REFERENCES meal_recurrence_templates(id) ON DELETE SET NULL;
+
+    CREATE TRIGGER IF NOT EXISTS trg_meal_recurrence_templates_updated_at
+      AFTER UPDATE ON meal_recurrence_templates FOR EACH ROW
+      BEGIN UPDATE meal_recurrence_templates SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+
+    CREATE TRIGGER IF NOT EXISTS trg_meal_recurrence_ingredients_updated_at
+      AFTER UPDATE ON meal_recurrence_ingredients FOR EACH ROW
+      BEGIN UPDATE meal_recurrence_ingredients SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+
+    CREATE INDEX IF NOT EXISTS idx_meal_recurrence_templates_weekday
+      ON meal_recurrence_templates(weekday, start_date);
+    CREATE INDEX IF NOT EXISTS idx_meal_recurrence_ingredients_template
+      ON meal_recurrence_ingredients(template_id);
+    CREATE INDEX IF NOT EXISTS idx_meals_recurrence_template
+      ON meals(recurrence_template_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_meals_recurrence_occurrence
+      ON meals(recurrence_template_id, date)
+      WHERE recurrence_template_id IS NOT NULL;
+  `,
+  // Health module — only the tables the search index reads from are mirrored here.
+  65: `
+    CREATE TABLE IF NOT EXISTS medications (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name             TEXT    NOT NULL,
+      dosage_text      TEXT,
+      form             TEXT,
+      active           INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
+      prn              INTEGER NOT NULL DEFAULT 0 CHECK(prn IN (0, 1)),
+      stock_qty        REAL,
+      stock_unit       TEXT,
+      refill_threshold REAL,
+      note             TEXT,
+      visibility       TEXT    NOT NULL DEFAULT 'private'
+                               CHECK(visibility IN ('private', 'family')),
+      created_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      updated_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS health_activities (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type         TEXT    NOT NULL,
+      duration_min REAL,
+      distance_km  REAL,
+      intensity    TEXT,
+      calories     REAL,
+      performed_at TEXT    NOT NULL,
+      note         TEXT,
+      visibility   TEXT    NOT NULL DEFAULT 'private'
+                           CHECK(visibility IN ('private', 'family')),
+      created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      updated_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+
+    CREATE TRIGGER IF NOT EXISTS trg_medications_updated_at
+      AFTER UPDATE ON medications FOR EACH ROW
+      BEGIN UPDATE medications SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+    CREATE TRIGGER IF NOT EXISTS trg_health_activities_updated_at
+      AFTER UPDATE ON health_activities FOR EACH ROW
+      BEGIN UPDATE health_activities SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = OLD.id; END;
+  `,
+  66: `
+    -- ---- medications ----
+    CREATE TRIGGER trg_search_meds_ai AFTER INSERT ON medications BEGIN
+      INSERT INTO search_index (entity, entity_id, title, body)
+      VALUES ('medication', NEW.id, COALESCE(NEW.name, ''), COALESCE(NEW.dosage_text, ''));
+    END;
+    CREATE TRIGGER trg_search_meds_ad AFTER DELETE ON medications BEGIN
+      DELETE FROM search_index WHERE entity = 'medication' AND entity_id = OLD.id;
+    END;
+    CREATE TRIGGER trg_search_meds_au AFTER UPDATE ON medications BEGIN
+      DELETE FROM search_index WHERE entity = 'medication' AND entity_id = OLD.id;
+      INSERT INTO search_index (entity, entity_id, title, body)
+      VALUES ('medication', NEW.id, COALESCE(NEW.name, ''), COALESCE(NEW.dosage_text, ''));
+    END;
+
+    -- ---- health_activities ----
+    CREATE TRIGGER trg_search_activities_ai AFTER INSERT ON health_activities BEGIN
+      INSERT INTO search_index (entity, entity_id, title, body)
+      VALUES ('activity', NEW.id, COALESCE(NEW.type, ''), COALESCE(NEW.note, ''));
+    END;
+    CREATE TRIGGER trg_search_activities_ad AFTER DELETE ON health_activities BEGIN
+      DELETE FROM search_index WHERE entity = 'activity' AND entity_id = OLD.id;
+    END;
+    CREATE TRIGGER trg_search_activities_au AFTER UPDATE ON health_activities BEGIN
+      DELETE FROM search_index WHERE entity = 'activity' AND entity_id = OLD.id;
+      INSERT INTO search_index (entity, entity_id, title, body)
+      VALUES ('activity', NEW.id, COALESCE(NEW.type, ''), COALESCE(NEW.note, ''));
+    END;
+
+    -- Backfill from existing rows.
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'medication', id, COALESCE(name, ''), COALESCE(dosage_text, '') FROM medications;
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'activity', id, COALESCE(type, ''), COALESCE(note, '') FROM health_activities;
+  `,
+  73: `
+    ALTER TABLE recipes ADD COLUMN meal_types TEXT NOT NULL DEFAULT 'breakfast,lunch,dinner,snack';
+  `,
+  74: `
+    CREATE TABLE IF NOT EXISTS access_permissions (
+      subject_type  TEXT NOT NULL CHECK(subject_type IN ('role', 'user')),
+      subject_id    TEXT NOT NULL,
+      resource_type TEXT NOT NULL CHECK(resource_type IN ('module', 'widget')),
+      resource_key  TEXT NOT NULL,
+      access        TEXT NOT NULL CHECK(access IN ('none', 'read', 'write', 'allow')),
+      updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      PRIMARY KEY (subject_type, subject_id, resource_type, resource_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_access_permissions_subject
+      ON access_permissions(subject_type, subject_id);
+  `,
+  76: `
+    DROP TRIGGER IF EXISTS trg_search_events_ai;
+    DROP TRIGGER IF EXISTS trg_search_events_au;
+
+    CREATE TRIGGER trg_search_events_ai AFTER INSERT ON calendar_events BEGIN
+      INSERT INTO search_index (entity, entity_id, title, body)
+      VALUES ('event', NEW.id,
+              COALESCE(NEW.title, ''),
+              TRIM(COALESCE(NEW.description, '') || ' ' || COALESCE(NEW.location, '')));
+    END;
+    CREATE TRIGGER trg_search_events_au AFTER UPDATE ON calendar_events BEGIN
+      DELETE FROM search_index WHERE entity = 'event' AND entity_id = OLD.id;
+      INSERT INTO search_index (entity, entity_id, title, body)
+      VALUES ('event', NEW.id,
+              COALESCE(NEW.title, ''),
+              TRIM(COALESCE(NEW.description, '') || ' ' || COALESCE(NEW.location, '')));
+    END;
+
+    DELETE FROM search_index WHERE entity = 'event';
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'event', id,
+             COALESCE(title, ''),
+             TRIM(COALESCE(description, '') || ' ' || COALESCE(location, ''))
+      FROM calendar_events;
+  `,
+  77: `
+    DROP TABLE IF EXISTS search_index;
+    CREATE VIRTUAL TABLE search_index USING fts5(
+      entity UNINDEXED,
+      entity_id UNINDEXED,
+      title,
+      body,
+      tokenize = 'unicode61 remove_diacritics 2'
+    );
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'task', id, COALESCE(title, ''), COALESCE(description, '') FROM tasks;
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'event', id, COALESCE(title, ''),
+             TRIM(COALESCE(description, '') || ' ' || COALESCE(location, '')) FROM calendar_events;
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'note', id, COALESCE(title, ''), COALESCE(content, '') FROM notes;
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'contact', id, COALESCE(name, ''),
+             COALESCE(phone, '') || ' ' || COALESCE(email, '') FROM contacts;
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'item', id, COALESCE(name, ''), COALESCE(notes, '') FROM shopping_items;
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'medication', id, COALESCE(name, ''), COALESCE(dosage_text, '') FROM medications;
+    INSERT INTO search_index (entity, entity_id, title, body)
+      SELECT 'activity', id, COALESCE(type, ''), COALESCE(note, '') FROM health_activities;
+  `,
+  80: `
+    ALTER TABLE users ADD COLUMN calendar_feed_show_assignees INTEGER NOT NULL DEFAULT 0;
+  `,
+  // Gespiegelt aus db.js MIGRATIONS (v83). Änderungen dort hier synchron halten.
+  83: `
+    CREATE TABLE IF NOT EXISTS task_categories (
+      key        TEXT    PRIMARY KEY,
+      name       TEXT,
+      label_key  TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+    INSERT OR IGNORE INTO task_categories (key, name, label_key, sort_order) VALUES
+      ('household', NULL, 'tasks.categoryHousehold', 0),
+      ('school',    NULL, 'tasks.categorySchool',    1),
+      ('shopping',  NULL, 'tasks.categoryShopping',  2),
+      ('repair',    NULL, 'tasks.categoryRepair',    3),
+      ('health',    NULL, 'tasks.categoryHealth',    4),
+      ('finance',   NULL, 'tasks.categoryFinance',   5),
+      ('leisure',   NULL, 'tasks.categoryLeisure',   6),
+      ('misc',      NULL, 'tasks.categoryMisc',      7);
+    UPDATE tasks SET category = 'misc' WHERE category = 'Sonstiges' OR category IS NULL OR category = '';
+    INSERT OR IGNORE INTO task_categories (key, name, label_key, sort_order)
+    SELECT category, category, NULL, 1000
+    FROM tasks
+    WHERE category IS NOT NULL AND category != ''
+      AND category NOT IN (SELECT key FROM task_categories)
+    GROUP BY category;
+  `,
+  // Gespiegelt aus db.js MIGRATIONS (v84). Änderungen dort hier synchron halten.
+  84: `
+    CREATE TABLE IF NOT EXISTS contact_categories (
+      key        TEXT    PRIMARY KEY,
+      name       TEXT,
+      label_key  TEXT,
+      icon       TEXT    NOT NULL DEFAULT 'tag',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    );
+    INSERT OR IGNORE INTO contact_categories (key, name, label_key, icon, sort_order) VALUES
+      ('doctor',    NULL, 'contacts.categoryDoctor',    'stethoscope',    0),
+      ('school',    NULL, 'contacts.categorySchool',    'graduation-cap', 1),
+      ('authority', NULL, 'contacts.categoryAuthority', 'landmark',       2),
+      ('insurance', NULL, 'contacts.categoryInsurance', 'shield',         3),
+      ('craftsman', NULL, 'contacts.categoryCraftsman', 'wrench',         4),
+      ('emergency', NULL, 'contacts.categoryEmergency', 'siren',          5),
+      ('misc',      NULL, 'contacts.categoryOther',     'tag',            6);
+    UPDATE contacts SET category = CASE category
+      WHEN 'Arzt'         THEN 'doctor'
+      WHEN 'Schule/Kita'  THEN 'school'
+      WHEN 'Behörde'      THEN 'authority'
+      WHEN 'Versicherung' THEN 'insurance'
+      WHEN 'Handwerker'   THEN 'craftsman'
+      WHEN 'Notfall'      THEN 'emergency'
+      WHEN 'Sonstiges'    THEN 'misc'
+      ELSE category
+    END;
+    UPDATE contacts SET category = 'misc' WHERE category IS NULL OR category = '';
+    INSERT OR IGNORE INTO contact_categories (key, name, label_key, icon, sort_order)
+    SELECT category, category, NULL, 'tag', 1000
+    FROM contacts
+    WHERE category IS NOT NULL AND category != ''
+      AND category NOT IN (SELECT key FROM contact_categories)
+    GROUP BY category;
+  `,
+
+  // SQL-String für Migration v85 (gespiegelt aus db.js MIGRATIONS)
+  85: `
+    CREATE TABLE IF NOT EXISTS calendar_event_exceptions (
+      event_id       INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+      exception_date TEXT    NOT NULL,
+      created_at     TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      PRIMARY KEY (event_id, exception_date)
+    );
   `,
 };
 

@@ -6,9 +6,14 @@
  */
 
 import dns from 'node:dns/promises';
+import { lookup as dnsLookup } from 'node:dns';
+import { isIP } from 'node:net';
+import http from 'node:http';
+import https from 'node:https';
 import fetch from 'node-fetch';
 import { createLogger } from '../logger.js';
 import * as db from '../db.js';
+import { assignDefaultToEvent } from './sync-assignment.js';
 import { parseICS, expandRRULE } from './ics-parser.js';
 
 const log = createLogger('ICS');
@@ -20,26 +25,106 @@ const FETCH_TIMEOUT_MS          = 15_000;
 
 const PRIVATE_RANGES = [
   /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./,
-  /^169\.254\./, /^::1$/, /^f[cd]/i, /^fe[89ab]/i,
+  /^169\.254\./, /^0\./, /^::1$/, /^::$/, /^f[cd]/i, /^fe[89ab]/i,
 ];
+
+/**
+ * Prüft eine rohe IP-Adresse gegen die privaten/lokalen Bereiche. Berücksichtigt
+ * IPv4-mapped-IPv6 (`::ffff:a.b.c.d`), damit ein Angreifer eine private IPv4 nicht
+ * über die IPv6-Schreibweise am Filter vorbeischmuggeln kann.
+ */
+function ipIsPrivate(addr) {
+  let a = addr;
+  // IPv4-mapped IPv6 in dezimaler Schreibweise: ::ffff:192.168.0.1
+  const dec = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(a);
+  if (dec) a = dec[1];
+  // ... und in Hex-Schreibweise (so normalisiert die URL/DNS sie): ::ffff:c0a8:1
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(a);
+  if (hex) {
+    const hi = parseInt(hex[1], 16), lo = parseInt(hex[2], 16);
+    a = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+  return PRIVATE_RANGES.some((re) => re.test(a));
+}
+
+const ENV_ALLOW_PRIVATE_NETWORK = 'ICS_SUBSCRIPTION_ALLOW_PRIVATE_NETWORK';
 
 const syncingNow = new Set();
 
+/**
+ * Opt-in: erlaubt http:// sowie private/lokale Netzwerkziele (z. B. ein Sonarr-,
+ * Radarr- oder Home-Assistant-Feed im selben LAN). Hebt den SSRF-Schutz bewusst
+ * auf — nur in kontrollierten Umgebungen setzen. Wird zur Laufzeit gelesen, damit
+ * Tests process.env vor dem Aufruf setzen können.
+ */
+function isPrivateNetworkAllowed() {
+  const raw = process.env[ENV_ALLOW_PRIVATE_NETWORK];
+  return raw !== undefined && (raw.trim() === 'true' || raw.trim() === '1');
+}
+
 function normalizeUrl(raw) {
+  const allowPrivate = isPrivateNetworkAllowed();
   const url = new URL(raw.replace(/^webcal:\/\//i, 'https://'));
-  if (url.protocol !== 'https:') throw new Error('Only https:// and webcal:// URLs are allowed.');
+  const allowed = allowPrivate ? ['https:', 'http:'] : ['https:'];
+  if (!allowed.includes(url.protocol)) {
+    throw new Error(allowPrivate
+      ? 'Only http://, https:// and webcal:// URLs are allowed.'
+      : 'Only https:// and webcal:// URLs are allowed.');
+  }
   return url.href;
 }
 
 async function checkSSRF(urlStr) {
+  if (isPrivateNetworkAllowed()) return;
   const hostname = new URL(urlStr).hostname;
+  // URL.hostname liefert IPv6 in Klammern ([::1]) – für isIP/Filter entfernen.
+  const host = hostname.replace(/^\[|\]$/g, '');
+  // Literale IPs werden von dns.resolve4/6 nicht aufgelöst (liefert []), müssen
+  // also direkt geprüft werden – sonst schlüpft https://192.168.0.1/ durch.
+  if (isIP(host)) {
+    if (ipIsPrivate(host)) throw new Error(`URL resolves to a private IP address: ${host}`);
+    return;
+  }
   const v4 = await dns.resolve4(hostname).catch(() => []);
   const v6 = await dns.resolve6(hostname).catch(() => []);
   for (const addr of [...v4, ...v6]) {
-    if (PRIVATE_RANGES.some((re) => re.test(addr))) {
+    if (ipIsPrivate(addr)) {
       throw new Error(`URL resolves to a private IP address: ${addr}`);
     }
   }
+}
+
+/**
+ * DNS-Lookup-Wrapper für den fetch-Agent: validiert JEDE aufgelöste Adresse zum
+ * Zeitpunkt des Verbindungsaufbaus. Damit ist DNS-Rebinding ausgeschlossen – ein
+ * Angreifer-DNS kann `checkSSRF` nicht mehr mit einer öffentlichen IP täuschen und
+ * beim eigentlichen fetch auf eine private IP (z. B. 169.254.169.254) umschwenken,
+ * weil hier die Adresse geprüft wird, mit der die Socket-Verbindung wirklich aufgebaut wird.
+ */
+function guardedLookup(hostname, options, callback) {
+  if (typeof options === 'function') { callback = options; options = {}; }
+  const opts = typeof options === 'number' ? { family: options } : (options || {});
+  dnsLookup(hostname, { ...opts, all: true }, (err, addresses) => {
+    if (err) return callback(err);
+    for (const entry of addresses) {
+      if (ipIsPrivate(entry.address)) {
+        return callback(new Error(`URL resolves to a private IP address: ${entry.address}`));
+      }
+    }
+    if (opts.all) return callback(null, addresses);
+    const [first] = addresses;
+    return callback(null, first.address, first.family);
+  });
+}
+
+/**
+ * Agent-Fabrik für node-fetch: erzwingt die Rebinding-sichere IP-Validierung über
+ * guardedLookup. Literale IPs umgehen den Socket-Lookup (Node verbindet direkt),
+ * werden aber bereits von checkSSRF abgefangen.
+ */
+function ssrfSafeAgent(parsedUrl) {
+  const Agent = parsedUrl.protocol === 'https:' ? https.Agent : http.Agent;
+  return new Agent({ lookup: guardedLookup });
 }
 
 async function fetchAndParse(urlRaw, etag, lastModified) {
@@ -52,9 +137,13 @@ async function fetchAndParse(urlRaw, etag, lastModified) {
 
   const controller = new AbortController();
   const timer      = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  // Der Agent validiert die Ziel-IP zum Verbindungszeitpunkt (Anti-Rebinding).
+  // Bei aktivem Opt-in für private Netze entfällt er bewusst (Default-Agent).
+  const fetchOpts = { headers, signal: controller.signal };
+  if (!isPrivateNetworkAllowed()) fetchOpts.agent = ssrfSafeAgent;
   let res;
   try {
-    res = await fetch(url, { headers, signal: controller.signal });
+    res = await fetch(url, fetchOpts);
   } finally { clearTimeout(timer); }
 
   if (res.status === 304) return { notModified: true };
@@ -122,6 +211,14 @@ async function syncOne(sub) {
 
     const seenUids = new Set(flatEvents.map((e) => e.uid));
 
+    // #459: Vor dem Upsert die bereits vorhandenen UIDs merken, damit die
+    // Standard-Zuweisung nur NEUE Termine trifft (nicht rückwirkend, kein
+    // Wiederkehren nach manuellem Entfernen).
+    const existingUids = new Set(
+      db.get().prepare('SELECT external_calendar_id FROM calendar_events WHERE subscription_id = ?')
+        .all(sub.id).map((r) => r.external_calendar_id)
+    );
+
     const upsert = db.get().prepare(`
       INSERT INTO calendar_events
         (title, description, start_datetime, end_datetime, all_day, location,
@@ -148,11 +245,24 @@ async function syncOne(sub) {
     db.get().transaction(() => {
       for (const ev of flatEvents) {
         try {
+          // Event-Eigenfarbe (RFC 7986) hat Vorrang, sonst die Abo-Farbe.
           upsert.run(ev.summary, ev.description, ev.dtstart, ev.dtend,
-            ev.allDay ? 1 : 0, ev.location, sub.color, ev.uid, sub.id, ev.rrule, createdBy);
+            ev.allDay ? 1 : 0, ev.location, ev.color || sub.color, ev.uid, sub.id, ev.rrule, createdBy);
         } catch (err) { log.error(`Upsert UID ${ev.uid}: ${err.message}`); }
       }
       deleteStale.run(sub.id, JSON.stringify([...seenUids]));
+
+      // #459: neu importierte Termine der Standard-Person zuweisen.
+      if (sub.default_assignee_user_id) {
+        for (const ev of flatEvents) {
+          if (existingUids.has(ev.uid)) continue;
+          const row = db.get().prepare(
+            'SELECT id FROM calendar_events WHERE subscription_id = ? AND external_calendar_id = ?'
+          ).get(sub.id, ev.uid);
+          if (row) assignDefaultToEvent(db.get(), row.id, sub.default_assignee_user_id);
+        }
+      }
+
       db.get().prepare(`UPDATE ics_subscriptions SET last_sync = ?, etag = ?, last_modified = ? WHERE id = ?`)
         .run(new Date().toISOString(), newEtag, newLastModified, sub.id);
     })();
@@ -177,6 +287,101 @@ function getAll(userId) {
   `).all(userId);
 }
 
+/**
+ * Reduziert eine ICS-RRULE auf das lokal unterstützte Subset
+ * (FREQ / INTERVAL / BYDAY / UNTIL) und gibt sie ohne "RRULE:"-Präfix zurück –
+ * passend zum rrule()-Validator und zur Recurrence-Engine. Nicht abbildbare
+ * Regeln (reines COUNT, BYMONTHDAY, Ordinal-BYDAY …) ergeben null → Einzeltermin.
+ */
+function toLocalRRule(raw) {
+  if (!raw) return null;
+  const body  = String(raw).replace(/^RRULE:/i, '');
+  const parts = {};
+  for (const seg of body.split(';')) {
+    const eq = seg.indexOf('=');
+    if (eq === -1) continue;
+    parts[seg.slice(0, eq).toUpperCase()] = seg.slice(eq + 1).toUpperCase();
+  }
+  const freq = parts.FREQ;
+  if (!['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(freq)) return null;
+  let rule = `FREQ=${freq}`;
+  const interval = parseInt(parts.INTERVAL ?? '1', 10);
+  if (Number.isInteger(interval) && interval > 1 && interval < 100) rule += `;INTERVAL=${interval}`;
+  if (parts.BYDAY) {
+    const days = parts.BYDAY.split(',')
+      .map((d) => d.trim())
+      .filter((d) => /^(MO|TU|WE|TH|FR|SA|SU)$/.test(d));
+    if (days.length) rule += `;BYDAY=${days.join(',')}`;
+  }
+  if (parts.UNTIL) {
+    const m = /^(\d{8})(T\d{6}Z)?/.exec(parts.UNTIL);
+    if (m) rule += `;UNTIL=${m[1]}${m[2] || ''}`;
+  }
+  return rule;
+}
+
+/**
+ * Einmaliger Import von Terminen aus einer ICS-Datei (roher Text) oder einem
+ * geteilten Kalender-Feed (URL) in echte, bearbeitbare lokale Termine
+ * (external_source='local', subscription_id=NULL). Anders als ein Abonnement
+ * werden die Termine nicht periodisch synchronisiert und gehören danach dem
+ * Nutzer. Wiederholungsserien bleiben als Serie erhalten (RRULE, nicht
+ * expandiert); die Herkunfts-UID wird als external_calendar_id gespeichert, um
+ * versehentliche Doppelimporte desselben Feeds zu überspringen.
+ *
+ * @returns {Promise<{ imported:number, skipped:number, total:number }>}
+ */
+async function importToLocal(userId, { ics, url, color } = {}) {
+  let rawEvents;
+  if (typeof ics === 'string' && ics.trim()) {
+    rawEvents = parseICS(ics);
+  } else if (typeof url === 'string' && url.trim()) {
+    const result = await fetchAndParse(url, null, null);
+    rawEvents = result.events || [];
+  } else {
+    throw new Error('Either an ICS file or a URL is required.');
+  }
+
+  const fallbackColor = color || '#007AFF';
+  const insert = db.get().prepare(`
+    INSERT INTO calendar_events
+      (title, description, start_datetime, end_datetime, all_day, location,
+       color, external_calendar_id, external_source, subscription_id,
+       recurrence_rule, user_modified, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'local', NULL, ?, 0, ?)
+  `);
+  const existsStmt = db.get().prepare(`
+    SELECT 1 FROM calendar_events
+    WHERE created_by = ? AND subscription_id IS NULL AND external_calendar_id = ?
+    LIMIT 1
+  `);
+
+  let imported = 0;
+  let skipped  = 0;
+  const total  = rawEvents.length;
+
+  db.get().transaction(() => {
+    for (const ev of rawEvents) {
+      if (!ev.dtstart) { skipped++; continue; }
+      if (ev.uid && existsStmt.get(userId, ev.uid)) { skipped++; continue; }
+      try {
+        insert.run(
+          ev.summary, ev.description, ev.dtstart, ev.dtend,
+          ev.allDay ? 1 : 0, ev.location, ev.color || fallbackColor,
+          ev.uid || null, toLocalRRule(ev.rrule), userId,
+        );
+        imported++;
+      } catch (err) {
+        log.error(`Import UID ${ev.uid}: ${err.message}`);
+        skipped++;
+      }
+    }
+  })();
+
+  log.info(`Imported ${imported}/${total} events for user ${userId} (${skipped} skipped).`);
+  return { imported, skipped, total };
+}
+
 async function create(userId, { name, url, color, shared }) {
   const normalizedUrl = normalizeUrl(url);
   await checkSSRF(normalizedUrl);
@@ -196,8 +401,11 @@ function update(userId, subId, fields, isAdmin) {
   const name   = fields.name   !== undefined ? fields.name   : sub.name;
   const color  = fields.color  !== undefined ? fields.color  : sub.color;
   const shared = fields.shared !== undefined ? (fields.shared ? 1 : 0) : sub.shared;
-  db.get().prepare(`UPDATE ics_subscriptions SET name = ?, color = ?, shared = ? WHERE id = ?`)
-    .run(name, color, shared, subId);
+  const assignee = fields.default_assignee_user_id !== undefined
+    ? fields.default_assignee_user_id
+    : sub.default_assignee_user_id;
+  db.get().prepare(`UPDATE ics_subscriptions SET name = ?, color = ?, shared = ?, default_assignee_user_id = ? WHERE id = ?`)
+    .run(name, color, shared, assignee, subId);
   return db.get().prepare('SELECT * FROM ics_subscriptions WHERE id = ?').get(subId);
 }
 
@@ -209,4 +417,4 @@ function remove(userId, subId, isAdmin) {
   return true;
 }
 
-export { sync, getAll, create, update, remove, fetchAndParse };
+export { sync, getAll, create, update, remove, importToLocal, toLocalRRule, fetchAndParse, normalizeUrl, checkSSRF, isPrivateNetworkAllowed };

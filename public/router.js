@@ -5,11 +5,25 @@
  */
 
 import { api, auth } from '/api.js';
+import { canAccessNavModule, navModuleAccess } from '/permissions.js';
+import { clearApiCache } from '/sw-register.js';
 import { initI18n, getLocale, t } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { init as initReminders, stop as stopReminders } from '/reminders.js';
+import { initPush, stopPush } from '/push.js';
 import { isKitchenRoute, getLastKitchenRoute } from '/utils/kitchen-tabs.js';
+import { getLastHealthRoute, HEALTH_ROUTES } from '/utils/health-tabs.js';
+import { activityType } from '/utils/health-activity.js';
+import { buildHelpRows } from '/utils/help.js';
+import { openModal, confirmModal } from '/components/modal.js';
+import '/components/datepicker.js';
 import { NAV_ICONS } from '/nav-icons.js';
+import { SETTINGS_LEAVES } from '/settings/registry.js';
+import {
+  NAV_SECTION,
+  resolveMobileNavOrder,
+  sortNavigationItems,
+} from '/settings/module-order.js';
 
 // --------------------------------------------------------
 // Routen-Definitionen
@@ -18,6 +32,8 @@ import { NAV_ICONS } from '/nav-icons.js';
 const ROUTES = [
   { path: '/login',    page: '/pages/login.js',    requiresAuth: false, module: null        },
   { path: '/setup',    page: '/pages/setup.js',    requiresAuth: false, module: null        },
+  { path: '/forgot-password', page: '/pages/forgot-password.js', requiresAuth: false, module: null },
+  { path: '/reset-password',  page: '/pages/reset-password.js',  requiresAuth: false, module: null },
   { path: '/',         page: '/pages/dashboard.js', requiresAuth: true, module: 'dashboard' },
   { path: '/tasks',    page: '/pages/tasks.js',     requiresAuth: true, module: 'tasks'     },
   { path: '/shopping', page: '/pages/shopping.js',  requiresAuth: true, module: 'shopping'  },
@@ -30,8 +46,27 @@ const ROUTES = [
   { path: '/budget',   page: '/pages/budget.js',    requiresAuth: true, module: 'budget'    },
   { path: '/documents', page: '/pages/documents.js', requiresAuth: true, module: 'documents' },
   { path: '/housekeeping', page: '/pages/housekeeping.js', requiresAuth: true, module: 'housekeeping' },
-  { path: '/settings', page: '/pages/settings.js',  requiresAuth: true, module: 'settings'  },
+  { path: '/rewards',  page: '/pages/rewards.js',    requiresAuth: true, module: 'rewards'   },
 ];
+
+// Settings ist eine Sektion mit einer Wurzel und je einer exakten Route pro
+// Blatt (Leaf). Die Routen werden aus der Registry abgeleitet, damit es keine
+// doppelten Pfad-Definitionen gibt.
+const SETTINGS_ROUTES = [
+  { path: '/settings', page: '/pages/settings.js', requiresAuth: true, module: 'settings' },
+  ...SETTINGS_LEAVES.map(({ path }) => ({ path, page: '/pages/settings.js', requiresAuth: true, module: 'settings' })),
+];
+
+ROUTES.push(...SETTINGS_ROUTES);
+
+// Gesundheit ist — wie Settings — eine Sektion mit einer Wurzel (/health) und je
+// einer exakten Route pro Sub-Tab. Alle Routen laden dasselbe Seitenmodul; die
+// Soft-Navigation zwischen den Tabs läuft über dessen update()-Funktion.
+const HEALTH_PAGE_ROUTES = HEALTH_ROUTES.map((path) => ({
+  path, page: '/pages/health.js', requiresAuth: true, module: 'health',
+}));
+
+ROUTES.push(...HEALTH_PAGE_ROUTES);
 
 // --------------------------------------------------------
 // Standalone-Modus: Dynamische theme-color Anpassung
@@ -122,15 +157,82 @@ async function importPage(pagePath) {
 }
 
 // --------------------------------------------------------
+// Prefetch: Seitenmodul + CSS auf Absicht (Hover/Touch) und im Leerlauf
+// vorwärmen. Ohne Bundler löst jeder navigate() erst beim Klick den ES-Modul-
+// Import-Wasserfall (Seite + transitive Imports) und einen frischen CSS-Fetch
+// aus — der spürbare Verzug vor dem Skeleton. `modulepreload` lädt und parst
+// den kompletten Modulgraphen vorab (ein späteres import() löst dann sofort aus
+// dem Cache auf), `prefetch` wärmt das Stylesheet ohne es anzuwenden.
+// Reine Resource-Hints: kein Modul wird vorzeitig ausgeführt.
+// --------------------------------------------------------
+const _prefetchedPages = new Set();
+const _prefetchedStyles = new Set();
+
+function prefetchRoute(path) {
+  if (!path) return;
+  const route = allRoutes().find((r) => r.path === path);
+  if (!route) return;
+
+  if (route.page && !moduleCache.has(route.page) && !_prefetchedPages.has(route.page)) {
+    _prefetchedPages.add(route.page);
+    const link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = route.page;
+    document.head.appendChild(link);
+  }
+
+  const cssHref = route.style || (route.module && !route.thirdPartyModule ? `/styles/${route.module}.css` : null);
+  if (cssHref && !_prefetchedStyles.has(cssHref)) {
+    _prefetchedStyles.add(cssHref);
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.as = 'style';
+    link.href = cssHref;
+    document.head.appendChild(link);
+  }
+}
+
+// Nach dem Mount die sichtbaren Hauptnavigations-Ziele im Leerlauf vorwärmen,
+// damit schon die erste Navigation ohne Kaltstart-Wasserfall auskommt.
+// saveData respektiert Datensparmodus; das Dashboard (currentPath) wird
+// übersprungen, da bereits geladen.
+function warmPrimaryRoutes() {
+  if (navigator.connection?.saveData) return;
+  const run = () => {
+    try {
+      navItems().forEach((item) => {
+        if (item.path && item.path !== currentPath) prefetchRoute(item.path);
+      });
+    } catch { /* Prefetch ist rein spekulativ — Fehler nie eskalieren. */ }
+  };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(run, { timeout: 2500 });
+  } else {
+    setTimeout(run, 1200);
+  }
+}
+
+// --------------------------------------------------------
 // Globaler App-State
 // --------------------------------------------------------
 let currentUser = null;
+// Für welchen Nutzer wurde die Nav zuletzt gebaut? Bei Nutzerwechsel (Logout →
+// Login als anderes Konto im selben Tab) bleibt die alte Shell im DOM; die Nav
+// muss dann mit den Rechten des neuen Nutzers neu gefiltert werden (#467).
+let _navBuiltForUserId = null;
 let currentPath = null;
 let isNavigating = false;
+// Zuletzt erfolgreich gerendertes Seiten-Modul. Erlaubt Soft-Navigation
+// innerhalb desselben Moduls (z. B. Settings-Blatt → Blatt): Statt das Modul
+// komplett neu zu rendern (Teardown + Slide-Transition), tauscht das Modul über
+// seine optionale update()-Funktion nur den betroffenen Detailbereich aus.
+let _renderedModule = null;
+let _renderedModuleName = null;
 let _preferencesLoaded = false;
 let _disabledModules = new Set();
 let _thirdPartyModules = [];
 let _moduleOrder = [];
+let _mobileNavOrder = [];
 let _moduleRefreshTimer = null;
 // Gesetzt wenn auth:expired waehrend einer laufenden Navigation feuert.
 // Die Weiterleitung zu /login wird nach Abschluss der Navigation nachgeholt.
@@ -143,18 +245,43 @@ let _setupRequired = false;
 // --------------------------------------------------------
 
 const ROUTE_ORDER = ['/', '/calendar', '/tasks', '/meals', '/recipes', '/shopping',
-                     '/birthdays', '/notes', '/contacts', '/budget', '/documents', '/housekeeping', '/settings'];
+                     '/birthdays', '/notes', '/contacts', '/budget', '/documents', '/housekeeping', '/health', '/settings'];
 
-const PRIMARY_NAV = 4;
+const MOBILE_FAVORITE_COUNT = 3;
+
+// Domänen-Gruppierung der Haupt-Navigation. Die Reihenfolge bestimmt die
+// Sortierung der Sektionen (Overview → Plan → Home); die Label-Keys werden in
+// der Sidebar via t() aufgelöst.
+const NAV_SECTION_LABEL_KEYS = Object.freeze({
+  [NAV_SECTION.overview]: 'nav.sectionOverview',
+  [NAV_SECTION.plan]: 'nav.sectionPlan',
+  [NAV_SECTION.household]: 'nav.sectionHousehold',
+  [NAV_SECTION.people]: 'nav.sectionPeople',
+  [NAV_SECTION.finance]: 'nav.sectionFinance',
+  [NAV_SECTION.customModules]: 'nav.sectionCustomModules',
+});
 
 const DEFAULT_APP_NAME = 'Yuvomi';
-const APP_NAME_STORAGE_KEY = 'oikos-app-name';
-const APP_VERSION_STORAGE_KEY = 'oikos-app-version';
+const APP_NAME_STORAGE_KEY = 'yuvomi-app-name';
+const APP_VERSION_STORAGE_KEY = 'yuvomi-app-version';
+
+// Reduziert einen (Sub-)Pfad auf seine Top-Level-Sektion. /settings/* Blätter
+// teilen sich dadurch eine Sektion: ein Wechsel zwischen zwei Settings-Blättern
+// gilt als gleiche Sektion (keine seitliche Seitentransition).
+function topLevelSection(path) {
+  if (typeof path === 'string' && path.startsWith('/settings')) return '/settings';
+  // /health/* Sub-Tabs teilen sich eine Sektion (Soft-Nav zwischen Tabs, keine
+  // seitliche Seitentransition) — analog zu den Settings-Blättern.
+  if (typeof path === 'string' && path.startsWith('/health')) return '/health';
+  return path ?? '/';
+}
 
 function getDirection(fromPath, toPath) {
-  const fromIdx = ROUTE_ORDER.indexOf(fromPath ?? '/');
-  const toIdx   = ROUTE_ORDER.indexOf(toPath);
-  if (fromIdx === -1 || toIdx === -1 || fromPath === toPath) return 'right';
+  const fromSection = topLevelSection(fromPath ?? '/');
+  const toSection   = topLevelSection(toPath);
+  const fromIdx = ROUTE_ORDER.indexOf(fromSection);
+  const toIdx   = ROUTE_ORDER.indexOf(toSection);
+  if (fromIdx === -1 || toIdx === -1 || fromSection === toSection) return 'right';
   return toIdx > fromIdx ? 'right' : 'left';
 }
 
@@ -185,6 +312,8 @@ function setAppVersion(version) {
 }
 
 function routeTitle(path) {
+  if (typeof path === 'string' && path.startsWith('/settings')) return t('nav.settings');
+  if (typeof path === 'string' && path.startsWith('/health')) return t('nav.health');
   const map = {
     '/': t('dashboard.title'),
     '/tasks': t('nav.tasks'),
@@ -198,7 +327,7 @@ function routeTitle(path) {
     '/budget': t('nav.budget'),
     '/documents': t('nav.documents'),
     '/housekeeping': t('nav.housekeeping'),
-    '/settings': t('nav.settings'),
+    '/rewards': t('nav.rewards'),
   };
   return map[path] || _thirdPartyModules.find((module) => module.route?.path === path)?.menu?.label || getAppName();
 }
@@ -293,6 +422,11 @@ async function navigate(path, userOrPushState = true, pushState = true) {
   if (isNavigating) return;
   isNavigating = true;
 
+  // Offenes „Mehr“-Sheet beim Navigieren immer schließen — robust und
+  // unabhängig vom Klick-Bubbling (das reißt, wenn die Navigation
+  // zwischendurch rebuildNavigation() auslöst, z. B. beim Settings-Ziel).
+  if (window._closeMoreSheet) window._closeMoreSheet({ restoreFocus: false });
+
   try {
     // Überlastung: navigate(path, user) nach Login vs navigate(path, false) beim Init
     if (typeof userOrPushState === 'object' && userOrPushState !== null) {
@@ -305,6 +439,7 @@ async function navigate(path, userOrPushState = true, pushState = true) {
       if (currentUser && currentUser.access_scope !== 'split_guest') {
         loadReminderStyles();
         initReminders();
+        initPush();
       }
     } else {
       pushState = userOrPushState;
@@ -333,15 +468,27 @@ async function navigate(path, userOrPushState = true, pushState = true) {
 
     let route = allRoutes().find((r) => r.path === basePath) ?? ROUTES.find((r) => r.path === '/');
 
-    if (currentUser?.access_scope === 'split_guest' && route.path !== '/budget') {
+    // Split-Guest-Weiche: Gäste einer Ausgabenteilung sehen nur das Budget-Modul.
+    // ABER: hat der Nutzer zusätzlich eine Familienrolle OHNE Budget-Recht, würde
+    // ein bedingungsloses navigate('/budget') vom Modul-Guard (canAccessNavModule)
+    // sofort wieder auf '/' geworfen — und '/' schickt zurück auf '/budget':
+    // Endlosschleife bis Stack-Overflow (#480). Daher nur umleiten, wenn Budget
+    // tatsächlich zugänglich ist; sonst greift der reguläre Rechte-Guard und der
+    // Nutzer landet auf einer für ihn erlaubten Seite.
+    if (currentUser?.access_scope === 'split_guest'
+        && route.path !== '/budget'
+        && canAccessNavModule('budget')) {
       currentPath = null;
       isNavigating = false;
       navigate('/budget');
       return;
     }
 
-    // Modul-Guard: deaktivierte Module leiten auf Dashboard um.
-    if (route.module && _disabledModules.has(route.module) && route.path !== '/') {
+    // Modul-Guard: deaktivierte ODER per Rechte gesperrte Module leiten auf das
+    // Dashboard um (Rechte-Guard #467; die verbindliche 403-Sperre liegt am Server).
+    if (route.module
+        && route.path !== '/'
+        && (_disabledModules.has(route.module) || !canAccessNavModule(route.module))) {
       currentPath = null;
       isNavigating = false;
       navigate('/');
@@ -360,6 +507,7 @@ async function navigate(path, userOrPushState = true, pushState = true) {
         if (currentUser && currentUser.access_scope !== 'split_guest') {
           loadReminderStyles();
           initReminders();
+          initPush();
         }
       } catch {
         currentPath = null; // Reset damit navigate('/login') nicht geblockt wird
@@ -375,10 +523,28 @@ async function navigate(path, userOrPushState = true, pushState = true) {
 
     route = allRoutes().find((r) => r.path === basePath) ?? route;
 
-    if (currentUser?.access_scope === 'split_guest' && route.path !== '/budget') {
+    // Split-Guest-Weiche: Gäste einer Ausgabenteilung sehen nur das Budget-Modul.
+    // ABER: hat der Nutzer zusätzlich eine Familienrolle OHNE Budget-Recht, würde
+    // ein bedingungsloses navigate('/budget') vom Modul-Guard (canAccessNavModule)
+    // sofort wieder auf '/' geworfen — und '/' schickt zurück auf '/budget':
+    // Endlosschleife bis Stack-Overflow (#480). Daher nur umleiten, wenn Budget
+    // tatsächlich zugänglich ist; sonst greift der reguläre Rechte-Guard und der
+    // Nutzer landet auf einer für ihn erlaubten Seite.
+    if (currentUser?.access_scope === 'split_guest'
+        && route.path !== '/budget'
+        && canAccessNavModule('budget')) {
       currentPath = null;
       isNavigating = false;
       navigate('/budget');
+      return;
+    }
+
+    // Rechte-Guard nach frisch geladenen Rechten (Deep-Link auf ein für diese
+    // Rolle/dieses Mitglied gesperrtes Modul → Dashboard). #467
+    if (route.module && route.path !== '/' && !canAccessNavModule(route.module)) {
+      currentPath = null;
+      isNavigating = false;
+      navigate('/');
       return;
     }
 
@@ -393,11 +559,53 @@ async function navigate(path, userOrPushState = true, pushState = true) {
       history.pushState({ path }, '', path);
     }
 
+    // Soft-Navigation innerhalb desselben Moduls (z. B. Settings-Blatt → Blatt
+    // oder Browser-Zurück innerhalb der Einstellungen): Das bereits gerenderte
+    // Modul tauscht nur seinen Detailbereich aus — keine App-Shell-Teardown,
+    // keine Slide-Transition, kein erneuter Auth-Refresh. Gibt update() false
+    // zurück (z. B. Redirect nötig), fällt die Navigation auf das volle Rendern
+    // zurück.
+    if (
+      route.module
+      && route.module === _renderedModuleName
+      && typeof _renderedModule?.update === 'function'
+    ) {
+      let handled = false;
+      try {
+        handled = await _renderedModule.update({
+          user: currentUser,
+          path: basePath,
+          query: new URLSearchParams(path.split('?')[1] ?? ''),
+        });
+      } catch (error) {
+        console.error('[Router] Soft-Update fehlgeschlagen, vollständiges Rendern folgt:', error);
+        handled = false;
+      }
+      if (handled) {
+        updateNav(topLevelSection(basePath));
+        return;
+      }
+    }
+
     const accent = route?.thirdPartyModule?.accent || (route?.module ? getCSSToken(`--module-${route.module}`) : '');
     document.documentElement.style.setProperty('--active-module-accent', accent);
 
+    // Optimistisches Chrome-Feedback: aktive Nav-Markierung + Indikator-Pille und
+    // Statusbar-Farbe schon VOR dem Modul-Render setzen, sobald die Shell existiert.
+    // So quittiert der Tap sofort (Pille gleitet, Akzent wechselt), während Modul-
+    // CSS und -Daten noch laden — statt erst nach Abschluss des Renders. Beim aller-
+    // ersten Laden wird die Shell erst in renderPage gebaut; dann greift allein die
+    // autoritative Aktualisierung danach.
+    if (document.querySelector('.nav-bottom')) {
+      updateNav(topLevelSection(basePath));
+      updateThemeColorForRoute(route);
+    }
+
     await renderPage(route, previousPath);
-    updateNav(basePath);
+    // Autoritative Aktualisierung nach dem Render: deckt den Erstlade-Fall ab und
+    // markiert ggf. seiten-interne [data-route]-Links (idempotent).
+    // Settings-Blätter teilen sich den /settings Nav-Eintrag (aria-current).
+    updateNav(topLevelSection(basePath));
     updateThemeColorForRoute(route);
     updateBranding(basePath);
     focusMainContentAfterNavigation(basePath);
@@ -420,11 +628,11 @@ async function syncPreferencesOnce() {
     const res = await api.get('/preferences');
     const dateFormat = res?.data?.date_format;
     if (dateFormat) {
-      localStorage.setItem('oikos-date-format', dateFormat);
+      localStorage.setItem('yuvomi-date-format', dateFormat);
     }
     const timeFormat = res?.data?.time_format;
     if (timeFormat) {
-      localStorage.setItem('oikos-time-format', timeFormat);
+      localStorage.setItem('yuvomi-time-format', timeFormat);
     }
     if (res?.data?.app_name) {
       setAppName(res.data.app_name);
@@ -435,6 +643,9 @@ async function syncPreferencesOnce() {
     }
     if (Array.isArray(res?.data?.module_order)) {
       _moduleOrder = res.data.module_order;
+    }
+    if (Array.isArray(res?.data?.mobile_nav_order)) {
+      _mobileNavOrder = res.data.mobile_nav_order;
     }
   } catch {
     // Non-critical. The settings page can refresh this later.
@@ -498,6 +709,165 @@ function allRoutes() {
   return [...ROUTES, ...moduleRoutes];
 }
 
+// Bestätigter Logout, überall aus der Navigation erreichbar (Sidebar-Footer +
+// Mehr-Sheet). Teilt den Server-Logout mit den Einstellungen; das finally räumt
+// die lokale Session auch bei Netzfehler, damit man nie „eingeloggt festhängt"
+// (siehe clearSession/#478). Danger-Confirm schützt vor versehentlichem Klick.
+async function confirmAndLogout() {
+  // Kein danger/Rot: Abmelden ist reversibel (wieder einloggen), nicht
+  // destruktiv — Rot bleibt echten Löschaktionen vorbehalten. Der Confirm-
+  // Schritt selbst ist die Absicherung gegen den Fehlklick.
+  const confirmed = await confirmModal(t('settings.logoutConfirm'), {
+    confirmLabel: t('settings.logout'),
+  });
+  if (!confirmed) return false;
+  try {
+    await auth.logout();
+  } finally {
+    window.yuvomi?.clearSession?.();
+    navigate('/login');
+  }
+  return true;
+}
+
+function sidebarActionEl({ labelKey, icon, className, onClick }) {
+  const label = t(labelKey);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `nav-item ${className}`;
+  button.setAttribute('aria-label', label);
+  button.setAttribute('title', label);
+  button.addEventListener('click', onClick);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'nav-item__icon-wrap';
+  const well = document.createElement('div');
+  well.className = 'nav-item__icon-well';
+  const iconEl = document.createElement('i');
+  iconEl.dataset.lucide = icon;
+  iconEl.className = 'nav-item__icon';
+  iconEl.setAttribute('aria-hidden', 'true');
+  well.appendChild(iconEl);
+  wrap.appendChild(well);
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'nav-item__label';
+  labelEl.textContent = label;
+  button.append(wrap, labelEl);
+  return button;
+}
+
+// System-/Utility-Zeilen unter dem App-Launcher-Grid: Einstellungen (Route),
+// Hilfe und Änderungen (Overlays). Vollbreite Listenzeilen — der ruhige,
+// monochrome System-Cluster, klar abgesetzt vom farbigen Modul-Grid.
+// `route` → navigierender <a> (aria-current-fähig); sonst Overlay-<button>.
+function moreActionEl({ labelKey, icon, className = '', onClick, route, navHref }) {
+  const label = t(labelKey);
+  const el = document.createElement(route ? 'a' : 'button');
+  if (route) {
+    el.href = navHref || route;
+    el.dataset.route = route;
+    if (navHref) el.dataset.navHref = navHref;
+  } else {
+    el.type = 'button';
+  }
+  el.className = `more-action ${className}`.trim();
+  el.setAttribute('aria-label', label);
+  if (onClick) el.addEventListener('click', onClick);
+
+  const iconEl = document.createElement('i');
+  iconEl.dataset.lucide = icon;
+  iconEl.className = 'more-action__icon';
+  iconEl.setAttribute('aria-hidden', 'true');
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'more-action__label';
+  labelEl.textContent = label;
+  el.append(iconEl, labelEl);
+  return el;
+}
+
+/**
+ * Baut den dynamischen Body des „Mehr“-Sheets: Katalog-Hinweis, farbiges
+ * App-Launcher-Grid (Module) und den monochromen System-Cluster
+ * (Einstellungen · Hilfe · Änderungen) als 1×3-Reihe.
+ *
+ * EINE Quelle der Wahrheit für renderAppShell() UND rebuildNavigation() —
+ * beide Pfade müssen dieselbe Struktur erzeugen, sonst zerstört ein
+ * Sprachwechsel / Modul-Toggle / Settings-Besuch das Layout.
+ * Handle + Suchleiste bleiben davon unberührt (sie tragen Event-Wiring).
+ */
+function buildMoreSheetBody() {
+  const nodes = [];
+
+  // Der Katalog-Hinweis („Alle Module … in den Einstellungen") lebt jetzt in
+  // der Hilfe (buildHelpRows), nicht mehr als Dauer-Zeile über dem Grid — das
+  // hält das Sheet ruhig und kompakt.
+
+  // Einstellungen ist ein System-Ziel, kein Inhalts-Modul — es wandert aus dem
+  // farbigen Grid in den System-Cluster, damit das Grid sauber aufgeht (2×4).
+  const secondary = secondaryMobileItems();
+  const settingsItem = secondary.find((item) => item.module === 'settings');
+
+  const grid = document.createElement('div');
+  grid.className = 'more-sheet__grid';
+  secondary
+    .filter((item) => item.module !== 'settings')
+    .forEach((item) => grid.appendChild(moreItemEl(item)));
+  nodes.push(grid);
+
+  const divider = document.createElement('div');
+  divider.className = 'more-sheet__divider';
+  divider.setAttribute('aria-hidden', 'true');
+  nodes.push(divider);
+
+  // System-Cluster als kompakte 1×3-Reihe (Icon-über-Label, monochrom).
+  const system = document.createElement('div');
+  system.className = 'more-sheet__system';
+  if (settingsItem) {
+    system.appendChild(moreActionEl({
+      labelKey: 'nav.settings',
+      icon: settingsItem.icon || 'settings',
+      route: settingsItem.path,
+      navHref: settingsItem.navHref,
+    }));
+  }
+  system.appendChild(moreActionEl({
+    labelKey: 'nav.help',
+    icon: 'circle-help',
+    className: 'more-item--help',
+    onClick: () => {
+      if (window._closeMoreSheet) window._closeMoreSheet({ restoreFocus: false });
+      showHelpModal();
+    },
+  }));
+  system.appendChild(moreActionEl({
+    labelKey: 'nav.changelog',
+    icon: 'history',
+    className: 'more-item--changelog',
+    onClick: () => {
+      if (window._closeMoreSheet) window._closeMoreSheet({ restoreFocus: false });
+      showChangelogModal();
+    },
+  }));
+  system.appendChild(moreActionEl({
+    labelKey: 'settings.logout',
+    icon: 'log-out',
+    className: 'more-item--logout',
+    onClick: () => {
+      if (window._closeMoreSheet) window._closeMoreSheet({ restoreFocus: false });
+      // #more-btn synchron fokussieren, BEVOR das Modal öffnet: openModal
+      // erfasst document.activeElement als previouslyFocused. Sonst landet der
+      // Fokus nach „Abbrechen" auf <body> (das Sheet-Item ist dann inert).
+      document.getElementById('more-btn')?.focus();
+      confirmAndLogout();
+    },
+  }));
+  nodes.push(system);
+
+  return nodes;
+}
+
 /**
  * Lädt und rendert eine Seite dynamisch.
  * @param {{ path: string, page: string }} route
@@ -521,11 +891,27 @@ async function renderPage(route, previousPath = null) {
       throw new Error(`Seite ${route.page} exportiert keine render()-Funktion.`);
     }
 
+    // Vollflächige Auth-Seiten (Login, Setup, Passwort-vergessen/-zurücksetzen)
+    // rendern ohne App-Shell. Nach einem Logout kann noch eine Shell aus der
+    // vorigen Sitzung im DOM stehen — sie muss entfernt werden, sonst bleibt die
+    // Navigationsleiste neben dem Login-Formular sichtbar (#478).
+    if (!route.requiresAuth) {
+      if (document.querySelector('.nav-bottom')) {
+        app.replaceChildren();
+        _navBuiltForUserId = null;
+      }
+    }
     // App-Shell einmalig aufbauen BEVOR render() aufgerufen wird -
     // main-content muss im DOM existieren damit document.getElementById()
     // in Seiten-Modulen funktioniert.
-    if (!document.querySelector('.nav-bottom') && currentUser) {
+    else if (!document.querySelector('.nav-bottom') && currentUser) {
       renderAppShell(app);
+      _navBuiltForUserId = currentUser.id;
+    } else if (currentUser && _navBuiltForUserId !== currentUser.id) {
+      // Shell besteht bereits, aber der Nutzer hat gewechselt → Nav mit den
+      // Modul-Rechten des aktuellen Nutzers neu aufbauen (#467).
+      rebuildNavigation();
+      _navBuiltForUserId = currentUser.id;
     }
 
     const content = document.getElementById('main-content') || app;
@@ -533,10 +919,11 @@ async function renderPage(route, previousPath = null) {
     // Richtung bestimmen (previousPath ist der alte Pfad vor der Navigation)
     const direction = getDirection(previousPath, route.path);
     const inClass   = direction === 'right' ? 'page-transition--in-right' : 'page-transition--in-left';
+    const shouldAnimate = Boolean(previousPath);
 
     // Performance: backdrop-filter während Übergang deaktivieren (Android-Optimierung).
     // glass.css setzt alle backdrop-filter im app-content auf none solange diese Klasse aktiv ist.
-    document.documentElement.classList.add('navigating');
+    if (shouldAnimate) document.documentElement.classList.add('navigating');
 
     // Alter Inhalt ist jetzt weg - altes Stylesheet kann entfernt werden
     const pageWrapper = document.createElement('div');
@@ -545,7 +932,42 @@ async function renderPage(route, previousPath = null) {
     content.replaceChildren(pageWrapper);
     style.cleanup();
 
-    await module.render(pageWrapper, { user: currentUser });
+    // Teardown abgeschlossen: ein evtl. gemerktes Soft-Update-Ziel ist jetzt
+    // ungültig, bis das neue Modul erfolgreich gerendert hat.
+    _renderedModule = null;
+    _renderedModuleName = null;
+
+    // render() synchron starten: Der synchrone Teil (Grundgerüst + Lade-Skeleton)
+    // ist danach bereits im DOM. Den Wrapper SOFORT einblenden — so wird das
+    // Skeleton während des Daten-await des Moduls sichtbar (statt leerer Fläche;
+    // der Wrapper war zuvor bis zur vollständigen Auflösung von render() opak-0,
+    // wodurch jedes vor dem Daten-await geseedete Skeleton beim Erstladen nie
+    // erschien). Der Rest von render() (Daten + Verdrahtung) wird danach abgewartet.
+    const renderPromise = module.render(pageWrapper, { user: currentUser });
+
+    // Sichtbar machen und Einblend-Animation starten (Skeleton/Grundgerüst).
+    pageWrapper.style.opacity = shouldAnimate ? '' : '1';
+    if (shouldAnimate) {
+      pageWrapper.classList.add(inClass);
+
+      // navigating-Klasse nach Ende der Einblend-Animation entfernen.
+      // Fallback-Timeout falls animationend nicht feuert (z.B. prefers-reduced-motion).
+      const navEndTimeout = setTimeout(() => {
+        document.documentElement.classList.remove('navigating');
+      }, 300);
+      pageWrapper.addEventListener('animationend', () => {
+        clearTimeout(navEndTimeout);
+        document.documentElement.classList.remove('navigating');
+      }, { once: true });
+    } else {
+      document.documentElement.classList.remove('navigating');
+    }
+
+    await renderPromise;
+
+    // Ab hier kann das Modul Soft-Navigationen bedienen (sofern es update() bietet).
+    _renderedModule = module;
+    _renderedModuleName = route.module;
 
     // FAB Long Loop: Einstiegsanimation nach FAB_SEEN_MAX Views pro Modul deaktivieren
     if (pageWrapper.querySelector('.page-fab')) {
@@ -558,6 +980,12 @@ async function renderPage(route, previousPath = null) {
       document.documentElement.classList.toggle('fab-anim-done', fabCount >= FAB_SEEN_MAX);
     }
 
+    // Read-only-Modus (#467): Bei „Nur lesen"-Modulen die Anlege-Affordance (FAB)
+    // ausblenden und einen erklärenden Hinweis einblenden — sonst führt jeder
+    // Anlege-/Speicherversuch nur in einen 403. Die verbindliche Sperre bleibt
+    // serverseitig; dies ist die ehrliche UI-Entsprechung.
+    applyModuleReadonly(route.module, pageWrapper);
+
     // Route-Announcer: Screenreader über Seitenwechsel informieren (gezielt, nicht gesamter Inhalt)
     const announcer = document.getElementById('route-announcer');
     if (announcer) {
@@ -565,20 +993,6 @@ async function renderPage(route, previousPath = null) {
       announcer.textContent = '';
       setTimeout(() => { announcer.textContent = pageLabel; }, 50);
     }
-
-    // Erst nach render() + CSS sichtbar machen und Animation starten
-    pageWrapper.style.opacity = '';
-    pageWrapper.classList.add(inClass);
-
-    // navigating-Klasse nach Ende der Einblend-Animation entfernen.
-    // Fallback-Timeout falls animationend nicht feuert (z.B. prefers-reduced-motion).
-    const navEndTimeout = setTimeout(() => {
-      document.documentElement.classList.remove('navigating');
-    }, 300);
-    pageWrapper.addEventListener('animationend', () => {
-      clearTimeout(navEndTimeout);
-      document.documentElement.classList.remove('navigating');
-    }, { once: true });
 
   } catch (err) {
     document.documentElement.classList.remove('navigating');
@@ -616,7 +1030,7 @@ function renderAppShell(container) {
   logoSvg.setAttribute('fill', 'none');
   const defs = document.createElementNS(SVG_NS, 'defs');
   const grad = document.createElementNS(SVG_NS, 'linearGradient');
-  const gradId = `oikos-logo-bg-${Math.random().toString(36).slice(2, 7)}`;
+  const gradId = `yuvomi-logo-bg-${Math.random().toString(36).slice(2, 7)}`;
   grad.setAttribute('id', gradId);
   grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
   grad.setAttribute('x2', '160'); grad.setAttribute('y2', '160');
@@ -634,15 +1048,16 @@ function renderAppShell(container) {
   bgRect.setAttribute('width', '160'); bgRect.setAttribute('height', '160');
   bgRect.setAttribute('rx', '36'); bgRect.setAttribute('fill', `url(#${gradId})`);
   logoSvg.appendChild(bgRect);
-  const housePath = document.createElementNS(SVG_NS, 'path');
-  housePath.setAttribute('d', 'M80 36L36 72V120C36 122.2 37.8 124 40 124H68V96H92V124H120C122.2 124 124 122.2 124 120V72L80 36Z');
-  housePath.setAttribute('fill', 'white');
-  logoSvg.appendChild(housePath);
-  const chimney = document.createElementNS(SVG_NS, 'rect');
-  chimney.setAttribute('x', '100'); chimney.setAttribute('y', '46');
-  chimney.setAttribute('width', '12'); chimney.setAttribute('height', '22');
-  chimney.setAttribute('rx', '2'); chimney.setAttribute('fill', 'white');
-  logoSvg.appendChild(chimney);
+  // Drei transluzente, ineinander übergehende Kreise (Familie); kein Sheen in der Sidebar
+  const marks = document.createElementNS(SVG_NS, 'g');
+  marks.setAttribute('fill', 'white');
+  marks.setAttribute('fill-opacity', '0.82');
+  for (const [cx, cy, r] of [[64, 72, 27], [100, 78, 25], [80, 106, 24]]) {
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('cx', String(cx)); c.setAttribute('cy', String(cy)); c.setAttribute('r', String(r));
+    marks.appendChild(c);
+  }
+  logoSvg.appendChild(marks);
   logomark.appendChild(logoSvg);
   sidebarLogo.appendChild(logomark);
 
@@ -669,10 +1084,19 @@ function renderAppShell(container) {
   _toggleIcon.dataset.lucide = _sidebarInitCollapsed ? 'panel-left-open' : 'panel-left-close';
   _toggleIcon.setAttribute('aria-hidden', 'true');
   sidebarToggle.appendChild(_toggleIcon);
-  sidebarToggle.addEventListener('click', () => {
+  sidebarToggle.addEventListener('click', (event) => {
     const nowCollapsed = !document.documentElement.classList.contains('sidebar-collapsed');
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, nowCollapsed ? '1' : '0');
     applySidebarCollapsed(nowCollapsed);
+    if (event.detail > 0) {
+      document.documentElement.classList.toggle('sidebar-collapse-pointer-lock', nowCollapsed);
+    }
+    // Pointer clicks leave the toggle focused, which immediately re-expands the
+    // collapsed rail via .nav-sidebar:focus-within. Blur only for pointer-driven
+    // activation so keyboard users keep the expected focus behavior.
+    if (nowCollapsed && event.detail > 0) {
+      requestAnimationFrame(() => sidebarToggle.blur());
+    }
     const lbl = nowCollapsed ? t('nav.sidebarExpand') : t('nav.sidebarCollapse');
     sidebarToggle.setAttribute('aria-label', lbl);
     sidebarToggle.setAttribute('title', lbl);
@@ -681,27 +1105,91 @@ function renderAppShell(container) {
 
   const sidebarItems = document.createElement('div');
   sidebarItems.className = 'nav-sidebar__items nav-sidebar__items--liquid';
-  sidebarItems.setAttribute('role', 'list');
+  // Kein role="list": die Kinder sind Sektions-Gruppen (role="group") + das
+  // gepinnte Settings-Item, keine listitems. Die <nav>-Hülle trägt die
+  // Navigations-Semantik, die Gruppen die Sektions-Struktur.
   sidebarNavItems().forEach((item) => sidebarItems.appendChild(item));
 
-  // Hover-Delegation: Indikator-Pille zeigt Vorschau wohin sie gleiten würde
-  sidebarItems.addEventListener('mouseover', (ev) => {
-    const item = ev.target.closest('.nav-item');
-    if (!item) return;
-    const ind = sidebarItems.querySelector('.nav-sidebar__indicator');
-    if (!ind) return;
+  // Zarte Hover-Vorschau — bewegt das separate `__hover`-Element (NICHT die
+  // Aktiv-Pille) für Maus (hover) UND Tastatur (focus). Auf dem aktiven Item
+  // wird nichts gezeigt: die Aktiv-Pille steht dort bereits.
+  const previewHover = (item) => {
+    const hov = sidebarItems.querySelector('.nav-sidebar__hover');
+    if (!hov) return;
+    if (item.getAttribute('aria-current') === 'page') { hov.style.opacity = '0'; return; }
     const cr = sidebarItems.getBoundingClientRect();
     const ir = item.getBoundingClientRect();
-    // Pille (44px) vertikal im Item (48px) zentrieren — aus realen Höhen, token-unabhängig
-    const centerOffset = (ir.height - ind.getBoundingClientRect().height) / 2;
-    ind.style.transform = `translateY(${ir.top - cr.top + sidebarItems.scrollTop + centerOffset}px)`;
-    ind.style.opacity = '0.5';
+    // Vorschau (44px) vertikal im Item zentrieren — aus realen Höhen, token-unabhängig
+    const centerOffset = (ir.height - hov.getBoundingClientRect().height) / 2;
+    hov.style.transform = `translateY(${ir.top - cr.top + sidebarItems.scrollTop + centerOffset}px)`;
+    hov.style.opacity = '1';
+  };
+  const hideHover = () => {
+    const hov = sidebarItems.querySelector('.nav-sidebar__hover');
+    if (hov) hov.style.opacity = '0';
+  };
+  sidebarItems.addEventListener('mouseover', (ev) => {
+    const item = ev.target.closest('.nav-item');
+    if (item) previewHover(item);
   });
-  sidebarItems.addEventListener('mouseleave', () => positionSidebarIndicator());
+  sidebarItems.addEventListener('mouseleave', hideHover);
+  // Tastatur-Fokus treibt dieselbe Vorschau; verlässt der Fokus die Liste, wird
+  // sie ausgeblendet. Die Aktiv-Pille bleibt die ganze Zeit am aktiven Item.
+  sidebarItems.addEventListener('focusin', (ev) => {
+    const item = ev.target.closest('.nav-item');
+    if (item) previewHover(item);
+  });
+  sidebarItems.addEventListener('focusout', (ev) => {
+    if (!sidebarItems.contains(ev.relatedTarget)) hideHover();
+  });
+
+  const syncSidebarIndicator = () => {
+    requestAnimationFrame(() => positionSidebarIndicator());
+  };
+  // In collapsed mode the section headers are hidden. Expanding the rail on
+  // hover/focus puts them back into layout, which shifts the nav items down.
+  // Re-sync the active pill after those layout changes.
+  sidebar.addEventListener('mouseenter', syncSidebarIndicator);
+  sidebar.addEventListener('mouseleave', syncSidebarIndicator);
+  sidebar.addEventListener('focusin', syncSidebarIndicator);
+  sidebar.addEventListener('focusout', syncSidebarIndicator);
+  sidebar.addEventListener('mouseleave', () => {
+    document.documentElement.classList.remove('sidebar-collapse-pointer-lock');
+  });
 
   sidebar.appendChild(sidebarLogo);
   sidebar.appendChild(sidebarToggle);
   sidebar.appendChild(sidebarItems);
+
+  // Footer-Aktionen (keine Routen → kein data-route, damit Delegation/Indikator
+  // sie ignorieren): Hilfe und Live-Changelog.
+  const sidebarFooter = document.createElement('div');
+  sidebarFooter.className = 'nav-sidebar__footer-actions';
+  sidebarFooter.append(
+    sidebarActionEl({
+      labelKey: 'nav.help',
+      icon: 'circle-help',
+      className: 'nav-item--help',
+      onClick: () => showHelpModal(),
+    }),
+    sidebarActionEl({
+      labelKey: 'nav.changelog',
+      icon: 'history',
+      className: 'nav-item--changelog',
+      onClick: () => showChangelogModal(),
+    }),
+    // Abmelden als terminale Aktion: bricht in eine eigene, volle Zeile unter
+    // Hilfe/Änderungen (CSS: flex-wrap + border-top). Monochrom wie die
+    // Geschwister — Danger-Rot erscheint erst im Confirm.
+    sidebarActionEl({
+      labelKey: 'settings.logout',
+      icon: 'log-out',
+      className: 'nav-item--logout',
+      onClick: () => confirmAndLogout(),
+    }),
+  );
+  sidebar.appendChild(sidebarFooter);
+
   if (window.lucide) window.lucide.createIcons({ el: sidebar });
 
   const main = document.createElement('main');
@@ -714,79 +1202,14 @@ function renderAppShell(container) {
   bottomNav.setAttribute('aria-label', t('nav.navigation'));
   const bottomItems = document.createElement('div');
   bottomItems.className = 'nav-bottom__items';
-  navItems().filter((item) => !item.kitchenGroup).slice(0, PRIMARY_NAV).forEach((item) => bottomItems.appendChild(navItemEl(item)));
+  if (isGuest) {
+    navItems().forEach((item) => bottomItems.appendChild(navItemEl(item)));
+  }
 
   let backdrop, moreSheet;
 
   if (!isGuest) {
-    const kitchenBtn = document.createElement('button');
-    kitchenBtn.className = 'nav-item nav-item--kitchen';
-    kitchenBtn.id = 'kitchen-btn';
-    kitchenBtn.type = 'button';
-    kitchenBtn.style.setProperty('--item-module-accent', 'var(--module-meals)');
-    kitchenBtn.setAttribute('aria-label', t('nav.kitchen'));
-    kitchenBtn.setAttribute('title', t('nav.kitchen'));
-    const kitchenBtnWrap = document.createElement('div');
-    kitchenBtnWrap.className = 'nav-item__icon-wrap';
-    const kitchenBtnWell = document.createElement('div');
-    kitchenBtnWell.className = 'nav-item__icon-well';
-    {
-      const iconFactory = NAV_ICONS['utensils'];
-      if (iconFactory) {
-        const svg = iconFactory();
-        svg.classList.add('nav-item__icon');
-        kitchenBtnWell.appendChild(svg);
-      } else {
-        const kitchenBtnIcon = document.createElement('i');
-        kitchenBtnIcon.dataset.lucide = 'utensils';
-        kitchenBtnIcon.className = 'nav-item__icon';
-        kitchenBtnIcon.setAttribute('aria-hidden', 'true');
-        kitchenBtnWell.appendChild(kitchenBtnIcon);
-      }
-    }
-    kitchenBtnWrap.appendChild(kitchenBtnWell);
-    const kitchenBtnLabel = document.createElement('span');
-    kitchenBtnLabel.className = 'nav-item__label';
-    kitchenBtnLabel.textContent = t('nav.kitchen');
-    kitchenBtn.appendChild(kitchenBtnWrap);
-    kitchenBtn.appendChild(kitchenBtnLabel);
-    kitchenBtn.addEventListener('click', () => navigate(getLastKitchenRoute()));
-    bottomItems.appendChild(kitchenBtn);
-
-    const moreBtn = document.createElement('button');
-    moreBtn.className = 'nav-item nav-item--more';
-    moreBtn.id = 'more-btn';
-    moreBtn.type = 'button';
-    moreBtn.style.setProperty('--item-module-accent', 'var(--color-accent)');
-    moreBtn.setAttribute('aria-label', t('nav.more'));
-    moreBtn.setAttribute('title', t('nav.more'));
-    moreBtn.setAttribute('aria-expanded', 'false');
-    moreBtn.setAttribute('aria-controls', 'more-sheet');
-    const moreBtnWrap = document.createElement('div');
-    moreBtnWrap.className = 'nav-item__icon-wrap';
-    const moreBtnWell = document.createElement('div');
-    moreBtnWell.className = 'nav-item__icon-well';
-    {
-      const iconFactory = NAV_ICONS['grid-2x2'];
-      if (iconFactory) {
-        const svg = iconFactory();
-        svg.classList.add('nav-item__icon');
-        moreBtnWell.appendChild(svg);
-      } else {
-        const moreBtnIcon = document.createElement('i');
-        moreBtnIcon.dataset.lucide = 'grid-2x2';
-        moreBtnIcon.className = 'nav-item__icon';
-        moreBtnIcon.setAttribute('aria-hidden', 'true');
-        moreBtnWell.appendChild(moreBtnIcon);
-      }
-    }
-    moreBtnWrap.appendChild(moreBtnWell);
-    const moreBtnLabel = document.createElement('span');
-    moreBtnLabel.className = 'nav-item__label';
-    moreBtnLabel.textContent = t('nav.more');
-    moreBtn.appendChild(moreBtnWrap);
-    moreBtn.appendChild(moreBtnLabel);
-    bottomItems.appendChild(moreBtn);
+    bottomItems.replaceChildren(...buildBottomNavItems());
 
     backdrop = document.createElement('div');
     backdrop.className = 'more-backdrop';
@@ -817,16 +1240,14 @@ function renderAppShell(container) {
     const moreSearchPlaceholder = document.createElement('span');
     moreSearchPlaceholder.className = 'more-sheet__search-placeholder';
     moreSearchPlaceholder.textContent = t('search.placeholder');
-    const moreSearchKbd = document.createElement('kbd');
-    moreSearchKbd.className = 'more-sheet__search-kbd';
-    moreSearchKbd.textContent = '/';
-    moreSearchKbd.setAttribute('aria-hidden', 'true');
     moreSearchBar.appendChild(moreSearchIcon);
     moreSearchBar.appendChild(moreSearchPlaceholder);
-    moreSearchBar.appendChild(moreSearchKbd);
     moreSheet.appendChild(moreSearchBar);
 
-    navItems().filter((i) => !i.kitchenGroup).slice(PRIMARY_NAV).forEach((item) => moreSheet.appendChild(moreItemEl(item)));
+    // Hinweis + App-Launcher-Grid + System-Cluster. Geteilte Logik mit
+    // rebuildNavigation() (Sprachwechsel / Modul-Toggle) — sonst driften die
+    // zwei Render-Pfade auseinander.
+    moreSheet.append(...buildMoreSheetBody());
   }
 
   bottomNav.appendChild(bottomItems);
@@ -913,40 +1334,49 @@ function renderAppShell(container) {
   container.querySelectorAll('[data-route]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
-      navigate(el.dataset.route);
+      navigate(el.dataset.navHref ?? el.dataset.route);
     });
   });
 
+  // Prefetch auf Absicht: Hover (Desktop) und Pointer-Press (feuert vor dem
+  // Klick, deckt Touch ab) wärmen Modul + CSS des Ziels vor. Delegation über
+  // bubblende Events (mouseover/pointerdown) — pointerenter würde nicht bubbeln.
+  const prefetchFromEvent = (e) => {
+    const el = e.target.closest?.('[data-route]');
+    if (el) prefetchRoute(el.dataset.navHref?.split('?')[0] ?? el.dataset.route);
+  };
+  container.addEventListener('mouseover', prefetchFromEvent);
+  container.addEventListener('pointerdown', prefetchFromEvent);
+
   const openSearch = initSearch(container);
   initMoreSheet(container, openSearch);
-  initNavHideOnScroll(container);
   initOfflineBanner();
   initKeyboardShortcuts();
-  if (localStorage.getItem(SEARCH_KBD_KEY)) {
-    document.documentElement.classList.add('search-kbd-done');
-  }
+
+  // Hauptnavigation im Leerlauf vorwärmen — die erste Modulnavigation soll
+  // ohne Kaltstart-Wasserfall auskommen.
+  warmPrimaryRoutes();
 }
 
-const FAB_SEEN_KEY = (module) => `oikos:fabSeen:${module}`;
+const FAB_SEEN_KEY = (module) => `yuvomi:fabSeen:${module}`;
 const FAB_SEEN_MAX = 5;
-const SEARCH_KBD_KEY = 'oikos:searchKbdUsed';
-const SIDEBAR_COLLAPSED_KEY = 'oikos.sidebar.collapsed';
+const SIDEBAR_COLLAPSED_KEY = 'yuvomi.sidebar.collapsed';
 
 const SHORTCUTS = [
   { key: '/',   description: () => t('shortcuts.search'),  action: () => {
-    if (!localStorage.getItem(SEARCH_KBD_KEY)) {
-      localStorage.setItem(SEARCH_KBD_KEY, '1');
-      document.documentElement.classList.add('search-kbd-done');
-    }
     document.getElementById('more-sheet-search')?.click();
   } },
   { key: 'n',   description: () => t('shortcuts.new'),     action: () => document.querySelector('.page-fab')?.click() },
-  { key: '?',   description: () => t('shortcuts.help'),    action: () => showShortcutsModal() },
+  { key: 'f',   description: () => t('shortcuts.searchCalendar'), action: () => {
+    if (location.pathname === '/calendar') document.querySelector('#cal-search')?.click();
+  } },
+  { key: '?',   description: () => t('shortcuts.help'),    action: () => showHelpModal() },
   { key: 'g d', description: () => t('shortcuts.goDash'),  action: () => navigate('/') },
   { key: 'g t', description: () => t('shortcuts.goTasks'), action: () => navigate('/tasks') },
   { key: 'g c', description: () => t('shortcuts.goCal'),   action: () => navigate('/calendar') },
   { key: 'g s', description: () => t('shortcuts.goShop'),  action: () => navigate('/shopping') },
   { key: 'g n', description: () => t('shortcuts.goNotes'),   action: () => navigate('/notes')              },
+  { key: 'g h', description: () => t('shortcuts.goHealth'),  action: () => navigate(getLastHealthRoute())  },
   { key: 'g k',   description: () => t('shortcuts.goKitchen'), action: () => navigate(getLastKitchenRoute()) },
   { key: 'g k m', description: () => t('shortcuts.goKitchen'), action: () => navigate('/meals')             },
   { key: 'g k r', description: () => t('shortcuts.goKitchen'), action: () => navigate('/recipes')           },
@@ -962,6 +1392,9 @@ function initKeyboardShortcuts() {
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (document.activeElement?.isContentEditable) return;
     if (document.querySelector('.modal-overlay') && e.key !== 'Escape') return;
+    // Modifikatoren durchlassen: Cmd/Ctrl/Alt-Kombis (z. B. Cmd+F „Im Browser
+    // suchen", Cmd+N) gehören dem Browser/OS, nicht den Bare-Key-Shortcuts.
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     const key = e.key.toLowerCase();
 
@@ -1009,7 +1442,12 @@ function initKeyboardShortcuts() {
   });
 }
 
-function showShortcutsModal() {
+function showHelpModal() {
+  // Mirrors the CSS sidebar↔bottom-nav breakpoint (sidebar is min-width:1024px):
+  // without a keyboard, shortcut rows are useless — show a plain-language guide.
+  const coarsePointer = window.matchMedia('(max-width: 1023px)').matches;
+  const helpRows = buildHelpRows({ coarsePointer, shortcuts: SHORTCUTS, t });
+
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.setAttribute('aria-modal', 'true');
@@ -1018,18 +1456,22 @@ function showShortcutsModal() {
   const panel = document.createElement('div');
   panel.className = 'modal-panel modal-panel--sm';
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', t('shortcuts.help'));
+  panel.setAttribute('aria-label', t('help.title'));
 
-  const rows = SHORTCUTS.map((s) => `
-    <div class="shortcuts-row">
-      <kbd class="shortcut-kbd">${esc(s.key)}</kbd>
-      <span class="shortcut-desc">${esc(s.description())}</span>
-    </div>
-  `).join('');
+  const rows = helpRows.map((r) => r.key
+    ? `<div class="help-row">
+         <kbd class="shortcut-kbd">${esc(r.key)}</kbd>
+         <span class="shortcut-desc">${esc(r.desc)}</span>
+       </div>`
+    : `<div class="help-row">
+         <i data-lucide="${esc(r.icon)}" class="help-row__icon icon-md" aria-hidden="true"></i>
+         <span class="shortcut-desc">${esc(r.desc)}</span>
+       </div>`
+  ).join('');
 
   panel.insertAdjacentHTML('beforeend', `
     <div class="modal-panel__header">
-      <span class="modal-panel__title">${esc(t('shortcuts.help'))}</span>
+      <span class="modal-panel__title">${esc(t('help.title'))}</span>
       <button class="modal-panel__close btn--ghost" aria-label="${esc(t('common.close'))}">
         <i data-lucide="x" class="icon-md" aria-hidden="true"></i>
       </button>
@@ -1047,6 +1489,139 @@ function showShortcutsModal() {
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
   if (window.lucide) window.lucide.createIcons({ el: panel });
+}
+
+function versionText(value) {
+  return String(value || '').trim() || t('changelog.unknownVersion');
+}
+
+function versionKey(value) {
+  return String(value || '').trim().replace(/^v/i, '').toLowerCase();
+}
+
+function renderChangelogStatus(panel, message, tone = 'muted') {
+  const status = panel.querySelector('#changelog-status');
+  if (!status) return;
+  status.hidden = false;
+  status.className = `changelog-status changelog-status--${tone}`;
+  status.textContent = message;
+}
+
+function appendReleaseSection(parent, section) {
+  const block = document.createElement('section');
+  block.className = 'changelog-section';
+
+  const title = document.createElement('h4');
+  title.className = 'changelog-section__title';
+  title.textContent = section.title || t('changelog.changes');
+  block.appendChild(title);
+
+  const list = document.createElement('ul');
+  list.className = 'changelog-section__list';
+  for (const item of Array.isArray(section.items) ? section.items : []) {
+    const li = document.createElement('li');
+    li.textContent = String(item || '');
+    list.appendChild(li);
+  }
+  block.appendChild(list);
+  parent.appendChild(block);
+}
+
+function appendReleaseCard(parent, release, currentVersion) {
+  const isCurrent = Boolean(versionKey(release.version))
+    && versionKey(release.version) === versionKey(currentVersion);
+  const card = document.createElement('article');
+  card.className = `changelog-release${isCurrent ? ' changelog-release--current' : ''}`;
+
+  const header = document.createElement('div');
+  header.className = 'changelog-release__header';
+  const title = document.createElement('h3');
+  title.className = 'changelog-release__version';
+  title.textContent = versionText(release.version);
+  header.appendChild(title);
+
+  if (isCurrent) {
+    const badge = document.createElement('span');
+    badge.className = 'changelog-release__badge';
+    badge.textContent = t('changelog.currentBadge');
+    header.appendChild(badge);
+  }
+  card.appendChild(header);
+
+  const sections = Array.isArray(release.sections) ? release.sections : [];
+  if (sections.length) {
+    for (const section of sections) appendReleaseSection(card, section);
+  } else {
+    const empty = document.createElement('p');
+    empty.className = 'changelog-release__empty';
+    empty.textContent = t('changelog.noReleaseNotes');
+    card.appendChild(empty);
+  }
+  parent.appendChild(card);
+}
+
+function renderChangelog(panel, payload) {
+  const data = payload?.data ?? {};
+  const currentVersion = data.current_version;
+  const latestVersion = data.latest_version;
+  const releases = Array.isArray(data.releases) ? data.releases : [];
+
+  panel.querySelector('#changelog-current-version').textContent = versionText(currentVersion);
+  panel.querySelector('#changelog-latest-version').textContent = versionText(latestVersion);
+
+  const note = panel.querySelector('#changelog-version-note');
+  note.textContent = data.current_in_releases
+    ? t('changelog.currentFound')
+    : t('changelog.currentMissing');
+  note.classList.toggle('changelog-version-note--warning', !data.current_in_releases);
+
+  const status = panel.querySelector('#changelog-status');
+  if (status) status.hidden = true;
+
+  const list = panel.querySelector('#changelog-list');
+  list.replaceChildren();
+  if (!releases.length) {
+    renderChangelogStatus(panel, t('changelog.empty'), 'muted');
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const release of releases) appendReleaseCard(fragment, release, currentVersion);
+  list.appendChild(fragment);
+}
+
+function showChangelogModal() {
+  openModal({
+    title: t('changelog.title'),
+    size: 'xl',
+    content: `
+      <div class="changelog-modal">
+        <div class="changelog-summary" aria-live="polite">
+          <div class="changelog-summary__item">
+            <span>${esc(t('changelog.currentVersion'))}</span>
+            <strong id="changelog-current-version">${esc(t('changelog.loadingShort'))}</strong>
+          </div>
+          <div class="changelog-summary__item">
+            <span>${esc(t('changelog.latestVersion'))}</span>
+            <strong id="changelog-latest-version">${esc(t('changelog.loadingShort'))}</strong>
+          </div>
+        </div>
+        <p class="changelog-version-note" id="changelog-version-note"></p>
+        <div class="changelog-status changelog-status--muted" id="changelog-status" role="status">
+          ${esc(t('changelog.loading'))}
+        </div>
+        <div class="changelog-list" id="changelog-list"></div>
+      </div>
+    `,
+    onSave(panel) {
+      api.get('/changelog')
+        .then((payload) => renderChangelog(panel, payload))
+        .catch(() => {
+          panel.querySelector('#changelog-list')?.replaceChildren();
+          renderChangelogStatus(panel, t('changelog.loadError'), 'error');
+        });
+    },
+  });
 }
 
 function loadReminderStyles() {
@@ -1071,58 +1646,6 @@ function initOfflineBanner() {
   window.addEventListener('online', update);
   window.addEventListener('offline', update);
   update();
-}
-
-/**
- * Versteckt die Bottom-Nav beim Runterscrollen, zeigt sie beim Hochscrollen.
- * Nur auf Mobile aktiv (< 1024px), da auf Desktop die Sidebar fest sichtbar ist.
- */
-function initNavHideOnScroll(container) {
-  const nav = container.querySelector('.nav-bottom');
-  if (!nav) return;
-
-  let lastY = 0;
-  let lastTarget = null;
-
-  const setNavHidden = (hidden) => {
-    nav.classList.toggle('nav-bottom--hidden', hidden);
-  };
-
-  // capture:true catches scroll on any descendant without bubbling.
-  // Accept only the two possible main scroll containers:
-  //   #main-content  — .app-content, used by all pages except Dashboard
-  //   #dashboard-shell — internal scroll container on the Dashboard page
-  document.addEventListener('scroll', (e) => {
-    if (window.innerWidth >= 1024) {
-      setNavHidden(false);
-      return;
-    }
-
-    // Dashboard is the only mobile page that still hit the scroll-blank compositor path.
-    // Keep the bottom nav stable there; other pages retain auto-hide behavior.
-    if (currentPath === '/') {
-      setNavHidden(false);
-      return;
-    }
-
-    const target = e.target;
-    if (target.id !== 'main-content' && target.id !== 'dashboard-shell') return;
-
-    if (target !== lastTarget) {
-      lastY = target.scrollTop;
-      lastTarget = target;
-    }
-
-    const y = target.scrollTop;
-    if (y < 10) {
-      setNavHidden(false);
-    } else if (y > lastY + 4) {
-      setNavHidden(true);
-    } else if (y < lastY - 4) {
-      setNavHidden(false);
-    }
-    lastY = y;
-  }, { passive: true, capture: true });
 }
 
 /**
@@ -1260,7 +1783,13 @@ function initSearch(container) {
         const data = await api.get(`/search?q=${encodeURIComponent(q)}`);
         renderSearchResults(results, data, closeSearch);
       } catch {
-        // Fehler still ignorieren - kein Overlay-Crash
+        // Fehler nicht verschlucken: sichtbare Meldung statt „wirkt wie 0 Treffer".
+        results.replaceChildren();
+        const err = document.createElement('p');
+        err.className = 'search-overlay__empty';
+        err.setAttribute('role', 'status');
+        err.textContent = t('search.error');
+        results.appendChild(err);
       }
     }, 300);
   });
@@ -1273,8 +1802,9 @@ function initSearch(container) {
  */
 function renderSearchResults(container, data, onClose) {
   container.replaceChildren();
-  const { tasks = [], events = [], notes = [], contacts = [], items = [] } = data;
-  const total = tasks.length + events.length + notes.length + contacts.length + items.length;
+  const { tasks = [], events = [], notes = [], contacts = [], items = [], meds = [], activities = [] } = data;
+  const total = tasks.length + events.length + notes.length + contacts.length + items.length
+    + meds.length + activities.length;
 
   if (total === 0) {
     const empty = document.createElement('p');
@@ -1284,7 +1814,13 @@ function renderSearchResults(container, data, onClose) {
     return;
   }
 
-  function makeSection(labelKey, items, routeFn) {
+  // Aktivitätstyp lokalisieren (Preset via labelKey, Freitext unverändert).
+  const activityLabel = (item) => {
+    const preset = activityType(item.title);
+    return preset ? t(preset.labelKey) : item.title;
+  };
+
+  function makeSection(labelKey, items, routeFn, labelFn) {
     if (!items.length) return;
     const section = document.createElement('div');
     section.className = 'search-section';
@@ -1297,7 +1833,7 @@ function renderSearchResults(container, data, onClose) {
       btn.className = 'search-result';
       const title = document.createElement('span');
       title.className = 'search-result__title';
-      title.textContent = item.title;
+      title.textContent = labelFn ? labelFn(item) : item.title;
       btn.appendChild(title);
       btn.addEventListener('click', () => {
         onClose();
@@ -1313,6 +1849,27 @@ function renderSearchResults(container, data, onClose) {
   makeSection('nav.notes',    notes,    (i) => `/notes?open=${i.id}`);
   makeSection('nav.contacts', contacts, (i) => `/contacts?open=${i.id}`);
   makeSection('nav.shopping', items,    (i) => `/shopping?list=${i.list_id}&highlight=${i.id}`);
+  makeSection('health.tabs.meds',     meds,       () => '/health/meds');
+  makeSection('health.tabs.activity', activities, () => '/health/activity', activityLabel);
+}
+
+// Read-only-Modus für ein Modul anwenden (#467): FAB via <html data-module-readonly>
+// ausblenden (CSS) und einen erklärenden Banner oben in die Seite einfügen.
+// navModuleAccess liefert 'write' für nicht-gateable Module (Dashboard, Settings,
+// Third-Party), sodass diese nie fälschlich als read-only markiert werden.
+function applyModuleReadonly(moduleName, pageWrapper) {
+  const readOnly = navModuleAccess(moduleName) === 'read';
+  document.documentElement.toggleAttribute('data-module-readonly', readOnly);
+  if (!readOnly || !pageWrapper || pageWrapper.querySelector('.module-readonly-banner')) return;
+  const banner = document.createElement('div');
+  banner.className = 'module-readonly-banner';
+  banner.setAttribute('role', 'status');
+  banner.insertAdjacentHTML(
+    'afterbegin',
+    `<i data-lucide="eye" aria-hidden="true"></i><span>${esc(t('settings.permReadOnlyBanner'))}</span>`,
+  );
+  pageWrapper.insertBefore(banner, pageWrapper.firstChild);
+  window.lucide?.createIcons({ el: banner });
 }
 
 function navItems() {
@@ -1322,21 +1879,27 @@ function navItems() {
     ];
   }
   const baseItems = [
-    { path: '/',          label: t('nav.dashboard'), icon: 'layout-dashboard', module: 'dashboard' },
-    { path: '/calendar',  label: t('nav.calendar'),  icon: 'calendar',         module: 'calendar'  },
-    { path: '/tasks',     label: t('nav.tasks'),     icon: 'check-square',     module: 'tasks'     },
-    { path: '/notes',     label: t('nav.notes'),     icon: 'sticky-note',      module: 'notes'     },
-    // More-Sheet Items:
-    { path: '/birthdays', label: t('nav.birthdays'), icon: 'cake',             module: 'birthdays' },
-    { path: '/contacts',  label: t('nav.contacts'),  icon: 'book-user',        module: 'contacts'  },
-    { path: '/budget',    label: t('nav.budget'),    icon: 'wallet',           module: 'budget'    },
-    { path: '/documents', label: t('nav.documents'), icon: 'folder-lock',      module: 'documents' },
-    { path: '/housekeeping', label: t('nav.housekeeping'), icon: 'paintbrush', module: 'housekeeping' },
-    { path: '/settings',  label: t('nav.settings'),  icon: 'settings',         module: 'settings'  },
-    // Kitchen-Gruppe: via Küche-Nav-Button (Bottom-Nav + Sidebar) + kitchen-tabs-bar erreichbar
-    { path: '/meals',     label: t('nav.meals'),     icon: 'utensils',      module: 'meals',    kitchenGroup: true },
-    { path: '/recipes',   label: t('nav.recipes'),   icon: 'book-text',     module: 'recipes',  kitchenGroup: true },
-    { path: '/shopping',  label: t('nav.shopping'),  icon: 'shopping-cart', module: 'shopping', kitchenGroup: true },
+    // Overview
+    { path: '/',          label: t('nav.dashboard'), icon: 'layout-dashboard', module: 'dashboard', section: NAV_SECTION.overview },
+    // Plan
+    { path: '/calendar',  label: t('nav.calendar'),  icon: 'calendar',         module: 'calendar',  section: NAV_SECTION.plan },
+    { path: '/tasks',     label: t('nav.tasks'),     icon: 'check-square',     module: 'tasks',     section: NAV_SECTION.plan },
+    { path: '/notes',     label: t('nav.notes'),     icon: 'sticky-note',      module: 'notes',     section: NAV_SECTION.plan },
+    // Haushalt — Kitchen-Gruppe zuerst, dann die übrigen Haushalts-Module
+    { path: '/meals',     label: t('nav.meals'),     icon: 'utensils',      module: 'meals',    section: NAV_SECTION.household, kitchenGroup: true },
+    { path: '/recipes',   label: t('nav.recipes'),   icon: 'book-text',     module: 'recipes',  section: NAV_SECTION.household, kitchenGroup: true },
+    { path: '/shopping',  label: t('nav.shopping'),  icon: 'shopping-cart', module: 'shopping', section: NAV_SECTION.household, kitchenGroup: true },
+    { path: '/housekeeping', label: t('nav.housekeeping'), icon: 'paintbrush', module: 'housekeeping', section: NAV_SECTION.household },
+    { path: '/documents', label: t('nav.documents'), icon: 'folder-lock',      module: 'documents',   section: NAV_SECTION.household },
+    { path: '/rewards',   label: t('nav.rewards'),   icon: 'award',            module: 'rewards',     section: NAV_SECTION.household },
+    // Menschen
+    { path: '/contacts',  label: t('nav.contacts'),  icon: 'book-user',        module: 'contacts',    section: NAV_SECTION.people },
+    { path: '/birthdays', label: t('nav.birthdays'), icon: 'cake',             module: 'birthdays',   section: NAV_SECTION.people },
+    { path: '/health',    label: t('nav.health'),    icon: 'heart-pulse',      module: 'health',      section: NAV_SECTION.people },
+    // Finanzen
+    { path: '/budget',    label: t('nav.budget'),    icon: 'wallet',           module: 'budget',      section: NAV_SECTION.finance },
+    // Settings ist am Ende gepinnt (siehe unten).
+    { path: '/settings',  navHref: '/settings?view=domains', label: t('nav.settings'),  icon: 'settings',         module: 'settings',    section: NAV_SECTION.household },
   ];
   const thirdPartyItems = _thirdPartyModules
     .filter((module) => module.enabled && module.status === 'enabled' && module.menu?.show && module.route?.path)
@@ -1347,54 +1910,145 @@ function navItems() {
       module: `third-party-${module.id}`,
       accent: module.accent,
       order: module.menu.order ?? 1000,
+      orderId: `third-party-${module.id}`,
+      section: NAV_SECTION.customModules,
     }))
     .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
   const settings = baseItems.find((item) => item.module === 'settings');
   const sortable = [
-    ...baseItems.filter((item) => item.module !== 'settings' && !_disabledModules.has(item.module)),
+    ...baseItems.filter((item) =>
+      item.module !== 'settings'
+      && !_disabledModules.has(item.module)
+      && canAccessNavModule(item.module)),
     ...thirdPartyItems,
   ];
-  const orderIndex = new Map(_moduleOrder.map((id, index) => [id, index]));
-  sortable.sort((a, b) => {
-    const ai = orderIndex.has(a.module) ? orderIndex.get(a.module) : Number.MAX_SAFE_INTEGER;
-    const bi = orderIndex.has(b.module) ? orderIndex.get(b.module) : Number.MAX_SAFE_INTEGER;
-    if (ai !== bi) return ai - bi;
-    return 0;
-  });
-  return settings ? [...sortable, settings] : sortable;
+  const ordered = sortNavigationItems(sortable, _moduleOrder);
+  return settings ? [...ordered, settings] : ordered;
+}
+
+function currentKitchenDestination() {
+  const kitchenItems = navItems().filter((item) => item.kitchenGroup);
+  return kitchenItems.find((item) => item.path === getLastKitchenRoute()) ?? kitchenItems[0] ?? null;
+}
+
+function mobileNavigationCandidates() {
+  const candidates = [];
+  let kitchenAdded = false;
+
+  for (const item of navItems()) {
+    if (item.module === 'dashboard' || item.module === 'settings') continue;
+    if (item.kitchenGroup) {
+      if (!kitchenAdded) {
+        const kitchen = currentKitchenDestination();
+        if (kitchen) {
+          candidates.push({
+            ...kitchen,
+            label: t('nav.kitchen'),
+            icon: 'utensils',
+            navId: 'kitchen',
+          });
+        }
+        kitchenAdded = true;
+      }
+      continue;
+    }
+    candidates.push({ ...item, navId: item.module });
+  }
+
+  return candidates;
+}
+
+function mobileFavoriteItems() {
+  const candidates = mobileNavigationCandidates();
+  const byId = new Map(candidates.map((item) => [item.navId, item]));
+  const selectedIds = resolveMobileNavOrder(_mobileNavOrder, [...byId.keys()])
+    .slice(0, MOBILE_FAVORITE_COUNT);
+  return selectedIds.map((id) => byId.get(id)).filter(Boolean);
+}
+
+function secondaryMobileItems() {
+  const favoriteIds = new Set(mobileFavoriteItems().map((item) => item.navId));
+  const settings = navItems().find((item) => item.module === 'settings');
+  return [
+    ...mobileNavigationCandidates().filter((item) => !favoriteIds.has(item.navId)),
+    ...(settings ? [{ ...settings, navId: settings.module }] : []),
+  ];
 }
 
 function sidebarNavItems() {
   const elements = [];
-  // Morphende Indikator-Pille — wird als erstes Kind eingefügt damit
-  // z-index: 0 es hinter den nav-items (z-index: 1) hält.
+  // Zwei entkoppelte Elemente hinter den Nav-Items (z-index: 0):
+  // 1. Die persistente Aktiv-Pille bleibt am aktiven Item verankert — sie wandert
+  //    NICHT beim Hover, damit „Du bist hier" beim Erkunden erhalten bleibt.
+  // 2. Die zarte Hover-Vorschau folgt Hover/Fokus (leiser, ohne Glas-Blur) und
+  //    ist die einzige, die sich beim Zeigen bewegt.
   const indicator = document.createElement('div');
   indicator.className = 'nav-sidebar__indicator';
   indicator.setAttribute('aria-hidden', 'true');
   elements.push(indicator);
 
+  const hover = document.createElement('div');
+  hover.className = 'nav-sidebar__hover';
+  hover.setAttribute('aria-hidden', 'true');
+  elements.push(hover);
+
   let kitchenAdded = false;
-  let nonKitchenCount = 0;
-  let sectionAdded = false;
+  let currentSection = null;
+  let currentGroup = null;
+
+  // Die Übersicht (Dashboard) ist die App-Wurzel und sitzt als einzelnes Item
+  // ganz oben — ohne „Übersicht"-Sektionsheader über einem „Übersicht"-Item
+  // (Stutter). Sie rendert als direktes Kind, ohne Gruppe/Label.
+  const HEADERLESS_SECTIONS = new Set([NAV_SECTION.overview]);
+
+  // Jede sichtbare Sektion wird ein role="group" mit aria-labelledby auf ihr Label
+  // — so ist die visuelle Gruppierung für Screenreader hörbar (statt verwaister
+  // Label-Divs zwischen Links). Items landen im aktuellen Gruppen-Container.
+  const startSection = (section) => {
+    if (section === currentSection) return;
+    currentSection = section;
+    if (HEADERLESS_SECTIONS.has(section)) { currentGroup = null; return; }
+    const labelKey = NAV_SECTION_LABEL_KEYS[section];
+    if (!labelKey) { currentGroup = null; return; }
+    const labelId = `nav-section-${section}`;
+    const label = document.createElement('div');
+    label.className = 'nav-section-label';
+    label.id = labelId;
+    label.textContent = t(labelKey);
+    const group = document.createElement('div');
+    group.className = 'nav-sidebar__group';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-labelledby', labelId);
+    group.appendChild(label);
+    elements.push(group);
+    currentGroup = group;
+  };
+
+  const appendNavEl = (el) => {
+    (currentGroup ?? { appendChild: (n) => elements.push(n) }).appendChild(el);
+  };
 
   navItems().forEach((item) => {
+    // Settings ist gepinnt und gehört zu keiner sichtbaren Sektionsgruppe —
+    // es bleibt direktes Kind von .nav-sidebar__items (margin-top:auto-Pin).
+    if (item.module !== 'settings') startSection(item.section);
+
     if (item.kitchenGroup) {
       if (!kitchenAdded) {
-        elements.push(sidebarKitchenEl());
+        appendNavEl(sidebarKitchenEl());
         kitchenAdded = true;
       }
       return;
     }
-    // Abschnittsbezeichnung vor dem (PRIMARY_NAV+1)ten Nicht-Küche-Eintrag
-    if (!sectionAdded && nonKitchenCount === PRIMARY_NAV) {
-      sectionAdded = true;
-      const label = document.createElement('div');
-      label.className = 'nav-section-label';
-      label.textContent = t('nav.section.household');
-      elements.push(label);
+    const el = navItemEl(item);
+    if (item.module === 'settings') {
+      // Ans Sidebar-Ende pinnen — als direktes Kind (nicht in einer Gruppe),
+      // über eine explizite Klasse statt ":last-child a".
+      el.classList.add('nav-item--pinned-end');
+      elements.push(el);
+      return;
     }
-    nonKitchenCount++;
-    elements.push(navItemEl(item));
+    appendNavEl(el);
   });
   return elements;
 }
@@ -1405,6 +2059,9 @@ function isModuleDisabled(moduleName) {
 
 function applySidebarCollapsed(collapsed) {
   document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
+  if (!collapsed) {
+    document.documentElement.classList.remove('sidebar-collapse-pointer-lock');
+  }
 }
 
 function setDisabledModules(modules) {
@@ -1414,6 +2071,11 @@ function setDisabledModules(modules) {
 
 function setModuleOrder(order) {
   _moduleOrder = Array.isArray(order) ? order : [];
+  rebuildNavigation();
+}
+
+function setMobileNavOrder(order) {
+  _mobileNavOrder = Array.isArray(order) ? order : [];
   rebuildNavigation();
 }
 
@@ -1439,10 +2101,12 @@ async function disableFailedThirdPartyModule(moduleId) {
   }
 }
 
-function navItemEl({ path, label, icon, module: mod, accent }) {
+function navItemEl({ path, navHref, label, icon, module: mod, accent, navId }) {
   const a = document.createElement('a');
-  a.href = path;
+  a.href = navHref ?? path;
   a.dataset.route = path;
+  a.dataset.navId = navId ?? mod;
+  if (navHref) a.dataset.navHref = navHref;
   a.className = 'nav-item';
   a.setAttribute('aria-label', label);
   a.setAttribute('title', label);
@@ -1471,6 +2135,94 @@ function navItemEl({ path, label, icon, module: mod, accent }) {
   a.appendChild(iconWrap);
   a.appendChild(span);
   return a;
+}
+
+function kitchenNavButtonEl(item) {
+  const kitchenBtn = document.createElement('button');
+  kitchenBtn.className = 'nav-item nav-item--kitchen';
+  kitchenBtn.id = 'kitchen-btn';
+  kitchenBtn.type = 'button';
+  kitchenBtn.dataset.navId = 'kitchen';
+  kitchenBtn.style.setProperty('--item-module-accent', `var(--module-${item.module || 'meals'})`);
+  kitchenBtn.setAttribute('aria-label', t('nav.kitchen'));
+  kitchenBtn.setAttribute('title', t('nav.kitchen'));
+
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'nav-item__icon-wrap';
+  const well = document.createElement('div');
+  well.className = 'nav-item__icon-well';
+  const iconFactory = NAV_ICONS.utensils;
+  if (iconFactory) {
+    const svg = iconFactory();
+    svg.classList.add('nav-item__icon');
+    well.appendChild(svg);
+  } else {
+    const icon = document.createElement('i');
+    icon.dataset.lucide = 'utensils';
+    icon.className = 'nav-item__icon';
+    icon.setAttribute('aria-hidden', 'true');
+    well.appendChild(icon);
+  }
+  iconWrap.appendChild(well);
+
+  const label = document.createElement('span');
+  label.className = 'nav-item__label';
+  label.textContent = t('nav.kitchen');
+  kitchenBtn.append(iconWrap, label);
+  kitchenBtn.addEventListener('click', () => {
+    const destination = currentKitchenDestination();
+    if (destination) navigate(destination.path);
+  });
+  return kitchenBtn;
+}
+
+function moreNavButtonEl() {
+  const moreBtn = document.createElement('button');
+  moreBtn.className = 'nav-item nav-item--more';
+  moreBtn.id = 'more-btn';
+  moreBtn.type = 'button';
+  moreBtn.style.setProperty('--item-module-accent', 'var(--color-accent)');
+  moreBtn.setAttribute('aria-label', t('nav.more'));
+  moreBtn.setAttribute('title', t('nav.more'));
+  moreBtn.setAttribute('aria-expanded', 'false');
+  moreBtn.setAttribute('aria-controls', 'more-sheet');
+
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'nav-item__icon-wrap';
+  const well = document.createElement('div');
+  well.className = 'nav-item__icon-well';
+  const iconFactory = NAV_ICONS['more-horizontal'];
+  if (iconFactory) {
+    const svg = iconFactory();
+    svg.classList.add('nav-item__icon');
+    well.appendChild(svg);
+  } else {
+    const icon = document.createElement('i');
+    icon.dataset.lucide = 'more-horizontal';
+    icon.className = 'nav-item__icon';
+    icon.setAttribute('aria-hidden', 'true');
+    well.appendChild(icon);
+  }
+  iconWrap.appendChild(well);
+
+  const label = document.createElement('span');
+  label.className = 'nav-item__label';
+  label.textContent = t('nav.more');
+  moreBtn.append(iconWrap, label);
+  return moreBtn;
+}
+
+function mobileDestinationEl(item) {
+  return item.navId === 'kitchen' ? kitchenNavButtonEl(item) : navItemEl(item);
+}
+
+function buildBottomNavItems(moreBtn = moreNavButtonEl()) {
+  const dashboard = navItems().find((item) => item.module === 'dashboard');
+  return [
+    ...(dashboard ? [navItemEl({ ...dashboard, navId: 'dashboard' })] : []),
+    ...mobileFavoriteItems().map(mobileDestinationEl),
+    moreBtn,
+  ];
 }
 
 function replaceLucideIcon(container, selector, iconName) {
@@ -1554,6 +2306,7 @@ function sidebarKitchenEl() {
     label: t('nav.kitchen'),
     icon: 'utensils',
     module: navItems().find((n) => n.path === getLastKitchenRoute())?.module || 'meals',
+    navId: 'kitchen',
   };
   const a = navItemEl(item);
   a.id = 'sidebar-kitchen-nav';
@@ -1562,10 +2315,12 @@ function sidebarKitchenEl() {
   return a;
 }
 
-function moreItemEl({ path, label, icon, module: mod, accent }) {
+function moreItemEl({ path, navHref, label, icon, module: mod, accent, navId }) {
   const a = document.createElement('a');
-  a.href = path;
+  a.href = navHref ?? path;
   a.dataset.route = path;
+  a.dataset.navId = navId ?? mod;
+  if (navHref) a.dataset.navHref = navHref;
   a.className = 'more-item';
   if (accent) a.style.setProperty('--item-module-accent', accent);
   else if (mod) a.style.setProperty('--item-module-accent', `var(--module-${mod})`);
@@ -1598,8 +2353,13 @@ function kitchenSectionLabel(path) {
 }
 
 function kitchenNavAriaLabel(path) {
-  if (!isKitchenRoute(path)) return t('nav.kitchen');
-  return t('nav.kitchenActiveLabel', { section: kitchenSectionLabel(path) });
+  if (isKitchenRoute(path)) {
+    return t('nav.kitchenActiveLabel', { section: kitchenSectionLabel(path) });
+  }
+  // Inaktiv das Ziel offenlegen: der Küche-Tab führt zur zuletzt besuchten
+  // Sektion (Meals/Recipes/Shopping). Ohne diese Ansage ist für Screenreader-
+  // und Tastatur-Nutzer nicht vorhersagbar, wohin der Tab navigiert.
+  return t('nav.kitchenGoLabel', { section: kitchenSectionLabel(path) });
 }
 
 /**
@@ -1615,7 +2375,9 @@ function setMoreButtonState(moreBtn, activeSecondary) {
   moreBtn.classList.toggle('nav-item--active', inMoreSheet);
   if (inMoreSheet) {
     moreBtn.setAttribute('aria-current', 'page');
-    if (activeSecondary.module) {
+    if (activeSecondary.accent) {
+      moreBtn.style.setProperty('--item-module-accent', activeSecondary.accent);
+    } else if (activeSecondary.module) {
       moreBtn.style.setProperty('--item-module-accent', `var(--module-${activeSecondary.module})`);
     }
   } else {
@@ -1628,13 +2390,19 @@ function setMoreButtonState(moreBtn, activeSecondary) {
 
   const moreBtnLabel = moreBtn.querySelector('.nav-item__label');
   if (moreBtnLabel) moreBtnLabel.textContent = t('nav.more');
-  replaceNavIcon(moreBtn, '.nav-item__icon', 'grid-2x2');
+  replaceNavIcon(moreBtn, '.nav-item__icon', 'more-horizontal');
 }
 
 function updateNav(path) {
+  const kitchenDestination = currentKitchenDestination();
   document.querySelectorAll('[data-route]').forEach((el) => {
+    if (el.dataset.navId === 'kitchen' && kitchenDestination) {
+      el.dataset.route = kitchenDestination.path;
+      if (el.tagName === 'A') el.href = kitchenDestination.path;
+    }
     el.removeAttribute('aria-current');
-    if (el.dataset.route === path) {
+    const isActiveKitchenDestination = el.dataset.navId === 'kitchen' && isKitchenRoute(path);
+    if (el.dataset.route === path || isActiveKitchenDestination) {
       el.setAttribute('aria-current', 'page');
     }
   });
@@ -1675,8 +2443,9 @@ function updateNav(path) {
 
   const moreBtn = document.querySelector('#more-btn');
   if (moreBtn) {
-    const secondaryItems = navItems().filter((i) => !i.kitchenGroup).slice(PRIMARY_NAV);
-    const activeSecondary = secondaryItems.find((n) => n.path === path);
+    const activeSecondary = secondaryMobileItems().find((item) => (
+      item.navId === 'kitchen' ? isKitchenRoute(path) : item.path === path
+    ));
     setMoreButtonState(moreBtn, activeSecondary);
   }
 
@@ -1694,12 +2463,14 @@ function updateNav(path) {
 function renderError(container, err) {
   const state = document.createElement('div');
   state.className = 'empty-state';
+  state.tabIndex = -1;
+  state.setAttribute('role', 'alert');
   const title = document.createElement('div');
   title.className = 'empty-state__title';
   title.textContent = t('common.errorOccurred');
   const desc = document.createElement('div');
   desc.className = 'empty-state__description';
-  desc.textContent = err.message;
+  desc.textContent = friendlyError(err);
   const btn = document.createElement('button');
   btn.className = 'btn btn--primary';
   btn.id = 'error-reload-btn';
@@ -1707,6 +2478,7 @@ function renderError(container, err) {
   btn.addEventListener('click', () => location.reload());
   state.append(title, desc, btn);
   container.replaceChildren(state);
+  state.focus({ preventScroll: true });
 }
 
 // --------------------------------------------------------
@@ -1719,7 +2491,7 @@ function renderError(container, err) {
  * @param {'default'|'success'|'danger'|'warning'} type
  * @param {number} duration - ms
  */
-const TOAST_SUCCESS_KEY = 'oikos:toastSuccessCount';
+const TOAST_SUCCESS_KEY = 'yuvomi:toastSuccessCount';
 const TOAST_SUCCESS_MAX = 50;
 
 function _toastSvg(children) {
@@ -1830,12 +2602,17 @@ function showToast(message, type = 'default', duration = 3000, onUndo = null) {
 // --------------------------------------------------------
 
 function friendlyError(err) {
+  // Offline-Mutation (ApiError status 0): spezifische Meldung — auch wenn
+  // navigator.onLine fälschlich true meldet (Netz weg, aber kein offline-Event).
+  if (err?.status === 0) return t('common.errorOfflineMutation');
   if (!navigator.onLine) return t('common.errorOffline');
   const status = err?.status ?? err?.response?.status;
   if (status === 403) return t('common.errorForbidden');
   if (status === 404) return t('common.errorNotFound');
   if (status >= 500) return t('common.errorServer');
   if (err?.name === 'AbortError' || err?.name === 'TimeoutError') return t('common.errorTimeout');
+  if (/Failed to fetch|NetworkError|Load failed/i.test(err?.message || '')) return t('common.errorServer');
+  if (err?.name === 'TypeError') return t('common.unexpectedError');
   return err?.data?.error || err?.message || t('common.errorGeneric');
 }
 
@@ -1878,8 +2655,12 @@ window.addEventListener('popstate', (e) => {
 // Session abgelaufen
 window.addEventListener('auth:expired', () => {
   currentUser = null;
+  // Offline-API-Cache leeren: Session-Ende → keine gecachten Daten zurücklassen,
+  // die der nächste Nutzer am selben Gerät offline sehen könnte.
+  clearApiCache();
   stopThirdPartyModulePolling();
   stopReminders();
+  stopPush();
   if (isNavigating) {
     // navigate('/login') kann nicht sofort aufgerufen werden - wird im finally-Block
     // der laufenden Navigation nachgeholt.
@@ -1914,16 +2695,8 @@ function rebuildNavigation({ updateLabels = true } = {}) {
     requestAnimationFrame(() => positionSidebarIndicator());
   }
   if (bottomItems) {
-    const kitchenBtnEl = bottomItems.querySelector('#kitchen-btn');
-    const moreBtn      = bottomItems.querySelector('#more-btn');
-    const kitchenVisible = ['meals', 'recipes', 'shopping'].some((m) => !_disabledModules.has(m));
-    if (kitchenBtnEl) {
-      kitchenBtnEl.querySelector('.nav-item__label').textContent = t('nav.kitchen');
-      kitchenBtnEl.hidden = !kitchenVisible;
-    }
-    const newItems = navItems().filter((item) => !item.kitchenGroup).slice(0, PRIMARY_NAV).map(navItemEl);
-    const tail = [kitchenBtnEl, moreBtn].filter(Boolean);
-    bottomItems.replaceChildren(...newItems, ...tail);
+    const moreBtn = bottomItems.querySelector('#more-btn') ?? moreNavButtonEl();
+    bottomItems.replaceChildren(...buildBottomNavItems(moreBtn));
     requestAnimationFrame(() => positionTabIndicator());
   }
   if (moreSheet) {
@@ -1934,14 +2707,16 @@ function rebuildNavigation({ updateLabels = true } = {}) {
       if (placeholder) placeholder.textContent = t('search.placeholder');
       searchBar.setAttribute('aria-label', t('search.placeholder'));
     }
-    const newMoreItems = navItems().filter((i) => !i.kitchenGroup).slice(PRIMARY_NAV).map(moreItemEl);
-    moreSheet.replaceChildren(handle, ...(searchBar ? [searchBar] : []), ...newMoreItems);
+    // Handle + Suchleiste bewahren (Event-Wiring); Body über die geteilte
+    // Funktion neu bauen — identisch zu renderAppShell().
+    moreSheet.replaceChildren(handle, ...(searchBar ? [searchBar] : []), ...buildMoreSheetBody());
+    if (window.lucide) window.lucide.createIcons({ el: moreSheet });
   }
 
   document.querySelectorAll('[data-route]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
-      navigate(el.dataset.route);
+      navigate(el.dataset.navHref ?? el.dataset.route);
     });
   });
 
@@ -1949,8 +2724,11 @@ function rebuildNavigation({ updateLabels = true } = {}) {
   updateBranding(currentPath || '/');
 }
 
-// Sprache geändert: Navigation neu rendern damit Labels aktualisiert werden
-window.addEventListener('locale-changed', () => rebuildNavigation());
+// Sprache geändert: Navigation und aktuelle Seite gemeinsam neu rendern.
+window.addEventListener('locale-changed', () => {
+  rebuildNavigation();
+  refreshCurrentRoute();
+});
 
 window.addEventListener('app-name-changed', () => {
   updateBranding(currentPath || '/');
@@ -2021,8 +2799,8 @@ if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
 // --------------------------------------------------------
 (async () => {
   try {
-    // Vorab-Theme-Anwendung ohne Abhängigkeit von window.oikos
-    const stored = localStorage.getItem('oikos-theme');
+    // Vorab-Theme-Anwendung ohne Abhängigkeit von window.yuvomi
+    const stored = localStorage.getItem('yuvomi-theme');
     if (stored === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else if (stored === 'light') {
@@ -2050,17 +2828,18 @@ if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
 })();
 
 // Globale Exporte
-window.oikos = {
+window.yuvomi = {
   navigate,
   showToast,
   friendlyError,
   setThemeColor,
   setDisabledModules,
   setModuleOrder,
+  setMobileNavOrder,
   refreshThirdPartyModules,
   isModuleDisabled,
   applyTheme: (value) => {
-    localStorage.setItem('oikos-theme', value);
+    localStorage.setItem('yuvomi-theme', value);
     if (value === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else if (value === 'light') {
@@ -2073,4 +2852,21 @@ window.oikos = {
     const route = allRoutes().find((r) => r.path === currentPath);
     updateThemeColorForRoute(route);
   },
+  // Client-seitigen Sitzungszustand nach einem bewussten Logout zurücksetzen,
+  // damit die anschließende navigate('/login') nicht am currentUser-Guard
+  // hängenbleibt und kurz das Dashboard zeigt (#478). Der Server-Logout läuft
+  // separat über auth.logout().
+  clearSession: () => {
+    currentUser = null;
+    _navBuiltForUserId = null;
+    stopThirdPartyModulePolling();
+    stopReminders();
+    stopPush();
+  },
 };
+
+// Legacy-Alias: Drittanbieter-Module unter modules/ wurden ggf. gegen die alte
+// globale API `window.oikos` geschrieben. Ohne diesen Alias würfen ihre Aufrufe
+// (window.oikos.navigate/showToast …) nach dem Rename, und der Router würde das
+// Modul als fehlerhaft deaktivieren. Der Alias hält den Upgrade-Pfad nahtlos.
+window.oikos = window.yuvomi;

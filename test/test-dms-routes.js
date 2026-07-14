@@ -147,11 +147,17 @@ test('GET /search: mappt Adapter-Treffer durch', async () => {
   assert.equal(res.body.data[0].title, 'T:brief');
 });
 
-test('GET /search: 400 ohne Query', async () => {
+test('GET /search: leerer Query listet alle Dokumente (Issue #449)', async () => {
   session = { userId: adminId, role: 'admin' };
+  let receivedQuery;
+  _setAdapterFactory(() => ({
+    async search(q) { receivedQuery = q; return [{ id: '9', title: 'All', created: null, filename: 'a.pdf', url: 'https://t/d/9' }]; },
+  }));
   const list = await call('GET', '/accounts');
   const res = await call('GET', `/search?account_id=${list.body.data[0].id}&q=`);
-  assert.equal(res.status, 400);
+  assert.equal(res.status, 200);
+  assert.equal(receivedQuery, '');
+  assert.equal(res.body.data[0].title, 'All');
 });
 
 test('GET /search: Member bekommt 403', async () => {
@@ -185,6 +191,39 @@ test('POST /link: legt external-Referenz in family_documents an', async () => {
   assert.equal(row.storage_backend, 'dms');
   assert.equal(row.dms_account_id, accId);
   assert.equal(row.external_url, 'https://t/d/42');
+});
+
+test('POST /link: übernimmt echten MIME-Typ und Dateigröße vom Adapter (Papra, #451)', async () => {
+  session = { userId: adminId, role: 'admin' };
+  _setAdapterFactory(() => ({
+    async getDocument(id) {
+      return { id, title: 'PapraDoc', filename: 'papra.pdf', mime: 'application/pdf', size: 12345, url: `https://t/d/${id}`, correspondent: null, tags: [] };
+    },
+  }));
+  const accId = (await call('GET', '/accounts')).body.data[0].id;
+  const res = await call('POST', '/link', { account_id: accId, dms_document_id: '451', category: 'finance' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.data.mime_type, 'application/pdf');
+  assert.equal(res.body.data.file_size, 12345);
+});
+
+test('GET /:id/preview: DMS liefert octet-stream → gespeicherter MIME greift (Papra, #451)', async () => {
+  session = { userId: adminId, role: 'admin' };
+  _setAdapterFactory(() => ({
+    async getDocument(id) {
+      return { id, title: 'PapraPreview', filename: 'p.pdf', mime: 'application/pdf', size: 999, url: `https://t/d/${id}`, correspondent: null, tags: [] };
+    },
+  }));
+  const accId = (await call('GET', '/accounts')).body.data[0].id;
+  const linked = (await call('POST', '/link', { account_id: accId, dms_document_id: '4510' })).body.data;
+  // Papras /file-Endpoint liefert aus XSS-Schutz immer application/octet-stream.
+  _setDmsAdapterFactory(() => ({
+    async fetchContent() { return { buffer: Buffer.from('%PDF-1.4 papra'), mime: 'application/octet-stream' }; },
+  }));
+  const res = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/documents/${linked.id}/preview`);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('content-type'), 'application/pdf');
+  assert.equal(await res.text(), '%PDF-1.4 papra');
 });
 
 test('POST /link: 409 wenn dasselbe DMS-Dokument schon verlinkt ist', async () => {

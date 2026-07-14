@@ -1,12 +1,23 @@
 import { DatabaseSync } from 'node:sqlite';
 import { MIGRATIONS_SQL } from '../server/db-schema-test.js';
+import { normalizeUrl, checkSSRF, isPrivateNetworkAllowed } from '../server/services/ics-subscription.js';
 
 let passed = 0, failed = 0;
 function test(name, fn) {
   try { fn(); console.log(`  ✓ ${name}`); passed++; }
   catch (err) { console.error(`  ✗ ${name}: ${err.message}`); failed++; }
 }
+async function atest(name, fn) {
+  try { await fn(); console.log(`  ✓ ${name}`); passed++; }
+  catch (err) { console.error(`  ✗ ${name}: ${err.message}`); failed++; }
+}
 function assert(cond, msg) { if (!cond) throw new Error(msg || 'Assertion failed'); }
+async function assertThrows(fn, msg) {
+  let threw = false;
+  try { await fn(); } catch { threw = true; }
+  assert(threw, msg || 'expected throw');
+}
+const ENV_FLAG = 'ICS_SUBSCRIPTION_ALLOW_PRIVATE_NETWORK';
 
 const db = new DatabaseSync(':memory:');
 db.exec('PRAGMA foreign_keys = ON;');
@@ -91,6 +102,82 @@ test('external_source CHECK blockiert ungültige Werte', () => {
   catch { threw = true; }
   assert(threw, 'CHECK should reject invalid external_source');
 });
+
+console.log('\n[ICS-Subscription-Test] URL-Validierung & Private-Network-Opt-in\n');
+
+await (async () => {
+  // --- Flag-Parsing (isPrivateNetworkAllowed) ---
+  for (const [val, expected] of [['true', true], ['1', true], ['  true  ', true],
+    ['false', false], ['0', false], ['yes', false], ['', false]]) {
+    test(`isPrivateNetworkAllowed('${val}') === ${expected}`, () => {
+      process.env[ENV_FLAG] = val;
+      assert(isPrivateNetworkAllowed() === expected);
+    });
+  }
+  test('isPrivateNetworkAllowed() ohne env === false', () => {
+    delete process.env[ENV_FLAG];
+    assert(isPrivateNetworkAllowed() === false);
+  });
+
+  // --- normalizeUrl: Default (Flag aus) ---
+  delete process.env[ENV_FLAG];
+  test('https bleibt erhalten', () => {
+    assert(normalizeUrl('https://x.com/cal.ics') === 'https://x.com/cal.ics');
+  });
+  test('webcal wird zu https gemappt', () => {
+    assert(normalizeUrl('webcal://x.com/cal.ics') === 'https://x.com/cal.ics');
+  });
+  test('http wirft ohne Flag', () => {
+    let threw = false;
+    try { normalizeUrl('http://x.com/cal.ics'); } catch { threw = true; }
+    assert(threw, 'http sollte ohne Flag abgelehnt werden');
+  });
+  test('ftp wirft immer', () => {
+    let threw = false;
+    try { normalizeUrl('ftp://x.com/cal.ics'); } catch { threw = true; }
+    assert(threw);
+  });
+
+  // --- normalizeUrl: Flag an ---
+  process.env[ENV_FLAG] = 'true';
+  test('http erlaubt mit Flag', () => {
+    assert(normalizeUrl('http://192.168.1.50:8989/feed/calendar.ics')
+      === 'http://192.168.1.50:8989/feed/calendar.ics');
+  });
+  test('https weiterhin erlaubt mit Flag', () => {
+    assert(normalizeUrl('https://x.com/cal.ics') === 'https://x.com/cal.ics');
+  });
+  test('ftp wirft auch mit Flag', () => {
+    let threw = false;
+    try { normalizeUrl('ftp://x.com/cal.ics'); } catch { threw = true; }
+    assert(threw);
+  });
+  delete process.env[ENV_FLAG];
+
+  // --- checkSSRF: Flag an überspringt Private-IP-Prüfung (early return, kein DNS) ---
+  process.env[ENV_FLAG] = 'true';
+  await atest('checkSSRF überspringt private IP mit Flag', async () => {
+    await checkSSRF('http://192.168.1.50:8989/feed/calendar.ics');
+    await checkSSRF('http://127.0.0.1/cal.ics');
+  });
+  delete process.env[ENV_FLAG];
+
+  // --- checkSSRF: literale private IPs werden ohne Flag geblockt (kein DNS nötig) ---
+  delete process.env[ENV_FLAG];
+  await atest('checkSSRF blockt literale IPv4-Loopback', () =>
+    assertThrows(() => checkSSRF('https://127.0.0.1/cal.ics')));
+  await atest('checkSSRF blockt literales privates IPv4-Netz', () =>
+    assertThrows(() => checkSSRF('https://192.168.0.1/cal.ics')));
+  await atest('checkSSRF blockt Link-Local/Cloud-Metadata 169.254.169.254', () =>
+    assertThrows(() => checkSSRF('https://169.254.169.254/latest/meta-data/')));
+  await atest('checkSSRF blockt literales IPv6-Loopback [::1]', () =>
+    assertThrows(() => checkSSRF('https://[::1]/cal.ics')));
+  await atest('checkSSRF blockt IPv4-mapped-IPv6 auf private IPv4', () =>
+    assertThrows(() => checkSSRF('https://[::ffff:192.168.0.1]/cal.ics')));
+  await atest('checkSSRF lässt literale öffentliche IP durch', async () => {
+    await checkSSRF('https://8.8.8.8/cal.ics');
+  });
+})();
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

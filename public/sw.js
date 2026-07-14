@@ -7,28 +7,40 @@
  *   APP_SHELL (HTML + kritische JS/CSS): Cache-First (frisch vorgeladen via install)
  *   PAGE_MODULES (Seiten-JS): Cache-First (frisch vorgeladen via install)
  *   ASSETS (Bilder, Icons): Cache-First, lazily gecacht, bei SW-Update geleert
- *   API: Immer Netzwerk (kein Caching von Nutzerdaten)
+ *   API: Network-First für eine Read-only-GET-Whitelist (Kalender, Tasks, …)
+ *        → offline letzter Stand sichtbar; Mutationen/Auth immer direkt ans Netz.
+ *        Cache wird bei Logout/Session-Ende geleert (CLEAR_API_CACHE-Message).
  *
  * Nach SW-Update: alle Requests gehen einmalig cache-bypassed ans Netz
  *   → bypassCacheUntil (in-memory + Cache API für SW-Restart-Robustheit)
  */
 
-const SHELL_CACHE   = 'oikos-shell-v72';
-const PAGES_CACHE   = 'oikos-pages-v67';
-const LOCALES_CACHE = 'oikos-locales-v19';
-const ASSETS_CACHE  = 'oikos-assets-v67';
-const BYPASS_CACHE  = 'oikos-bypass-flag';
+const APP_RELEASE   = '1.20.2';
+const SHELL_CACHE   = `yuvomi-shell-${APP_RELEASE}`;
+const PAGES_CACHE   = `yuvomi-pages-${APP_RELEASE}`;
+const LOCALES_CACHE = `yuvomi-locales-${APP_RELEASE}`;
+const ASSETS_CACHE  = `yuvomi-assets-${APP_RELEASE}`;
+// API-Cache bewusst NICHT in ALL_CACHES: er wird bei jedem SW-Update neu benannt
+// (Version im Namen) und bei Logout/Session-Ende gezielt geleert.
+const API_CACHE     = `yuvomi-api-${APP_RELEASE}`;
+const BYPASS_CACHE  = 'yuvomi-bypass-flag';
 const ALL_CACHES    = [SHELL_CACHE, PAGES_CACHE, LOCALES_CACHE, ASSETS_CACHE];
+
+// GET-API-Pfade (nach /api/v1), die für Read-only-Offline gecacht werden dürfen.
+// NUR Lese-Endpunkte — niemals /auth/* oder Mutationen. Prefix-Match.
+const API_CACHE_WHITELIST = ['/calendar', '/tasks', '/shopping', '/contacts', '/dashboard'];
 
 // App-Shell: sofort benötigt für ersten Render
 const APP_SHELL = [
   '/',
   '/index.html',
   '/api.js',
+  '/lang-init.js',
   '/router.js',
   '/i18n.js',
   '/rrule-ui.js',
   '/reminders.js',
+  '/push.js',
   '/sw-register.js',
   '/lucide.min.js',
   '/styles/tokens.css',
@@ -50,7 +62,7 @@ const APP_SHELL = [
   '/styles/documents.css',
   '/styles/settings.css',
   '/styles/recipes.css',
-  '/components/oikos-install-prompt.js',
+  '/components/yuvomi-install-prompt.js',
   '/offline.html',
   '/manifest.json',
   '/favicon.ico',
@@ -69,10 +81,14 @@ const APP_LOCALES = [
   '/locales/el.json',
   '/locales/en.json',
   '/locales/es.json',
+  '/locales/fa.json',
   '/locales/fr.json',
   '/locales/hi.json',
+  '/locales/hu.json',
+  '/locales/id.json',
   '/locales/it.json',
   '/locales/ja.json',
+  '/locales/ko.json',
   '/locales/nl.json',
   '/locales/pl.json',
   '/locales/pt.json',
@@ -96,9 +112,38 @@ const PAGE_MODULES = [
   '/pages/birthdays.js',
   '/pages/budget.js',
   '/pages/documents.js',
+  '/pages/rewards.js',
+  '/pages/health.js',
   '/pages/settings.js',
   '/pages/login.js',
   '/pages/recipes.js',
+  '/components/shopping-category-manager.js',
+  '/components/category-manager.js',
+  '/settings/registry.js',
+  '/settings/shell.js',
+  '/settings/components.js',
+  '/settings/module-order.js',
+  '/settings/pages/personal-account.js',
+  '/settings/pages/personal-appearance.js',
+  '/settings/pages/personal-device.js',
+  '/settings/pages/modules-navigation.js',
+  '/settings/pages/modules-kitchen.js',
+  '/settings/pages/modules-calendar.js',
+  '/settings/pages/modules-budget.js',
+  '/settings/pages/modules-housekeeping.js',
+  '/settings/pages/modules-rewards.js',
+  '/settings/pages/modules-health.js',
+  '/settings/pages/modules-dashboard.js',
+  '/settings/pages/sync-calendar.js',
+  '/settings/pages/sync-contacts.js',
+  '/settings/pages/sync-reminders.js',
+  '/settings/pages/notifications.js',
+  '/settings/pages/documents-storage.js',
+  '/settings/pages/documents-dms.js',
+  '/settings/pages/admin-family.js',
+  '/settings/pages/admin-api.js',
+  '/settings/pages/admin-backup.js',
+  '/settings/pages/admin-system.js',
 ];
 
 // --------------------------------------------------------
@@ -151,7 +196,10 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => !ALL_CACHES.includes(key))
+          // Versions-Caches der laufenden Release behalten; alles andere entfernen —
+          // inklusive alter Vorversions-Caches UND der Legacy-`oikos-*`-Caches aus der
+          // Zeit vor dem Yuvomi-Rename (Cache-Invalidierung, kein User-Eingriff nötig).
+          .filter((key) => !ALL_CACHES.includes(key) && key !== API_CACHE)
           .map((key) => caches.delete(key))
       )
     )
@@ -189,7 +237,23 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (!url.protocol.startsWith('http')) return;
-  if (url.pathname.startsWith('/api/')) return;
+
+  // API-Requests: nur GET-Whitelist read-only offline-cachen. Alles andere
+  // (Mutationen, /auth/*, Nicht-Whitelist) unangetastet ans Netz durchreichen.
+  if (url.pathname.startsWith('/api/')) {
+    if (request.method === 'GET' && isCacheableApiGet(url.pathname)) {
+      event.respondWith(
+        (_bypassInitDone ? Promise.resolve() : _bypassInit).then(() => {
+          // Im Bypass-Fenster (nach SW-Update) API-Requests nicht anfassen:
+          // frisch ans Netz, weder aus Cache bedienen noch hineinschreiben.
+          if (Date.now() < bypassCacheUntil) return fetch(request);
+          return networkFirstApi(request);
+        })
+      );
+    }
+    return;
+  }
+
   if (request.method !== 'GET') return;
 
   // Erste Fetch-Events nach SW-Start: auf Cache-API-Initialisierung warten,
@@ -233,7 +297,16 @@ function dispatchFetch(request, url) {
     return networkFirst(request, LOCALES_CACHE);
   }
 
-  if (url.pathname.startsWith('/pages/')) {
+  // Lazy geladene Seiten-Module liegen in PAGES_CACHE. Neben /pages/ gehören dazu
+  // die Settings-Leaves unter /settings/ und die Kategorie-Manager-Komponenten —
+  // ohne diesen Zweig würden sie via SHELL_CACHE bedient und offline (vor dem
+  // ersten Online-Besuch) als index.html statt als JS-Modul ausgeliefert.
+  if (
+    url.pathname.startsWith('/pages/') ||
+    url.pathname.startsWith('/settings/') ||
+    url.pathname === '/components/shopping-category-manager.js' ||
+    url.pathname === '/components/category-manager.js'
+  ) {
     return networkFirst(request, PAGES_CACHE);
   }
 
@@ -278,6 +351,39 @@ async function networkFirst(request, cacheName) {
 }
 
 // --------------------------------------------------------
+// Strategie: Network-First für GET-API (Read-only-Offline)
+// Erfolg → Antwort klonen, x-cached-at-Header ergänzen, in API_CACHE legen.
+// Netzfehler → Cache-Fallback, sonst 503-JSON {error:'offline'}.
+// --------------------------------------------------------
+async function networkFirstApi(request) {
+  try {
+    const response = await fetch(request);
+    // Nur erfolgreiche, gleichoriginäre (basic) Antworten cachen.
+    if (response.ok && response.type === 'basic') {
+      const cache   = await caches.open(API_CACHE);
+      const cloned  = response.clone();
+      const headers = new Headers(cloned.headers);
+      headers.set('x-cached-at', String(Date.now()));
+      const body = await cloned.blob();
+      await cache.put(request, new Response(body, {
+        status: cloned.status,
+        statusText: cloned.statusText,
+        headers,
+      }));
+    }
+    return response;
+  } catch {
+    const cache  = await caches.open(API_CACHE);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return new Response(JSON.stringify({ error: 'offline' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
+  }
+}
+
+// --------------------------------------------------------
 // Strategie: Cache-First (für Shell, Pages, Assets)
 // --------------------------------------------------------
 async function cacheFirst(request, cacheName) {
@@ -307,3 +413,59 @@ function isMutableAppResource(pathname) {
     || pathname === '/manifest.json'
     || /\.(css|js|json|html)$/i.test(pathname);
 }
+
+// Prüft, ob ein API-Pfad (inkl. /api/v1-Prefix) zur Read-only-Offline-Whitelist
+// gehört. Query-Strings sind nicht Teil von pathname → reiner Pfad-Prefix-Match.
+function isCacheableApiGet(pathname) {
+  if (!pathname.startsWith('/api/v1')) return false;
+  const rest = pathname.slice('/api/v1'.length);
+  return API_CACHE_WHITELIST.some((p) => rest === p || rest.startsWith(`${p}/`));
+}
+
+// --------------------------------------------------------
+// Nachrichten vom Client: API-Cache leeren (Logout/Session-Ende)
+// --------------------------------------------------------
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_API_CACHE') {
+    event.waitUntil(caches.delete(API_CACHE));
+  }
+});
+
+// --------------------------------------------------------
+// Web Push
+// --------------------------------------------------------
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { title: 'Yuvomi', body: event.data ? event.data.text() : '' };
+  }
+  const title = payload.title || 'Yuvomi';
+  const options = {
+    body: payload.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: payload.tag || 'yuvomi-push',
+    data: { url: payload.url || '/reminders' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/reminders';
+  event.waitUntil((async () => {
+    const all = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of all) {
+      if ('focus' in client) {
+        client.focus();
+        if ('navigate' in client) {
+          try { await client.navigate(targetUrl); } catch { /* cross-origin/navigation guard */ }
+        }
+        return;
+      }
+    }
+    if (clients.openWindow) await clients.openWindow(targetUrl);
+  })());
+});

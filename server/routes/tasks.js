@@ -7,7 +7,10 @@
 import { createLogger } from '../logger.js';
 import express from 'express';
 import * as db from '../db.js';
-import { nextOccurrence } from '../services/recurrence.js';
+import { nextOccurrenceAfter } from '../services/recurrence.js';
+import { syncTaskRewards } from '../services/rewards.js';
+import { normalizeVisibility, visibilityWhere } from '../services/visibility.js';
+import { uniqueKey } from '../utils/category-slug.js';
 import * as v from '../middleware/validate.js';
 
 const log = createLogger('Tasks');
@@ -20,8 +23,32 @@ const router = express.Router();
 
 const VALID_PRIORITIES = ['none', 'low', 'medium', 'high', 'urgent'];
 const VALID_STATUSES   = ['open', 'in_progress', 'done', 'archived'];
-const VALID_CATEGORIES = ['household', 'school', 'shopping', 'repair',
-                          'health', 'finance', 'leisure', 'misc'];
+const MAX_POINTS = 10000;
+const FALLBACK_CATEGORY = 'misc';
+
+/** Verwaltbare Kategorien aus der DB (nach sort_order). */
+function loadTaskCategories() {
+  return db.get().prepare(
+    'SELECT key, name, label_key, sort_order FROM task_categories ORDER BY sort_order ASC, key ASC'
+  ).all();
+}
+
+/** Nur die Keys — für die dynamische category-Validierung. */
+function validTaskCategoryKeys() {
+  return loadTaskCategories().map((c) => c.key);
+}
+
+/** Anzahl Aufgaben, die eine Kategorie referenzieren (Guard vor dem Löschen). */
+function taskCategoryInUseCount(key) {
+  return db.get().prepare('SELECT COUNT(*) AS n FROM tasks WHERE category = ?').get(key).n;
+}
+
+/** Punktewert einer Aufgabe auf eine nichtnegative Ganzzahl normalisieren. */
+function clampPoints(val) {
+  const n = Math.trunc(Number(val));
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(n, MAX_POINTS);
+}
 
 // --------------------------------------------------------
 // Hilfsfunktionen
@@ -98,13 +125,113 @@ function validateTaskInput(body, isCreate = true) {
     v.str(body.description, 'description', { required: false, max: v.MAX_TEXT }),
     v.oneOf(body.priority,  VALID_PRIORITIES, 'priority'),
     v.oneOf(body.status,    VALID_STATUSES,   'status'),
-    v.oneOf(body.category,  VALID_CATEGORIES, 'category'),
+    v.oneOf(body.category,  validTaskCategoryKeys(), 'category'),
     v.date(body.start_date, 'start_date'),
     v.date(body.due_date,   'due_date'),
     v.time(body.due_time,   'due_time'),
     v.rrule(body.recurrence_rule, 'recurrence_rule'),
+    v.num(body.points,      'points'),
   ]);
 }
+
+// --------------------------------------------------------
+// Kategorie-Verwaltung (#494, #357)
+// Statische /categories-Pfade MÜSSEN vor den dynamischen /:id-Routen stehen,
+// sonst matcht Express „categories" als :id.
+// --------------------------------------------------------
+
+// GET /api/v1/tasks/categories → { data: TaskCategory[] }
+router.get('/categories', (_req, res) => {
+  try {
+    res.json({ data: loadTaskCategories() });
+  } catch (err) {
+    log.error('GET /categories error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// POST /api/v1/tasks/categories  Body: { name } → { data: TaskCategory }
+router.post('/categories', (req, res) => {
+  try {
+    const vName = v.str(req.body.name, 'Name', { max: v.MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM task_categories WHERE COALESCE(name, key) = ? COLLATE NOCASE
+    `).get(vName.value);
+    if (conflict) return res.status(409).json({ error: 'Category already exists.', code: 409, reason: 'category_exists' });
+
+    const maxOrder = db.get().prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM task_categories').get().m;
+    const key = uniqueKey(db.get(), 'task_categories', vName.value);
+    db.get().prepare(
+      'INSERT INTO task_categories (key, name, label_key, sort_order) VALUES (?, ?, NULL, ?)'
+    ).run(key, vName.value, maxOrder + 1);
+
+    const cat = db.get().prepare('SELECT key, name, label_key, sort_order FROM task_categories WHERE key = ?').get(key);
+    res.status(201).json({ data: cat });
+  } catch (err) {
+    log.error('POST /categories error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// PATCH /api/v1/tasks/categories/reorder  Body: { order: string[] }
+router.patch('/categories/reorder', (req, res) => {
+  try {
+    const order = Array.isArray(req.body.order) ? req.body.order : [];
+    const update = db.get().prepare('UPDATE task_categories SET sort_order = ? WHERE key = ?');
+    db.get().transaction(() => order.forEach((key, i) => update.run(i, key)))();
+    res.json({ data: loadTaskCategories() });
+  } catch (err) {
+    log.error('PATCH /categories/reorder error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// PUT /api/v1/tasks/categories/:key  Body: { name } → benennt um (Key bleibt stabil,
+// label_key wird gelöscht → der Custom-Name gilt fortan).
+router.put('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM task_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const vName = v.str(req.body.name, 'Name', { max: v.MAX_SHORT });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+
+    const conflict = db.get().prepare(`
+      SELECT key FROM task_categories WHERE COALESCE(name, key) = ? COLLATE NOCASE AND key != ?
+    `).get(vName.value, cat.key);
+    if (conflict) return res.status(409).json({ error: 'Category already exists.', code: 409, reason: 'category_exists' });
+
+    db.get().prepare('UPDATE task_categories SET name = ?, label_key = NULL WHERE key = ?').run(vName.value, cat.key);
+    const updated = db.get().prepare('SELECT key, name, label_key, sort_order FROM task_categories WHERE key = ?').get(cat.key);
+    res.json({ data: updated });
+  } catch (err) {
+    log.error('PUT /categories/:key error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// DELETE /api/v1/tasks/categories/:key → 409 wenn in Benutzung oder letzte Kategorie.
+router.delete('/categories/:key', (req, res) => {
+  try {
+    const cat = db.get().prepare('SELECT * FROM task_categories WHERE key = ?').get(req.params.key);
+    if (!cat) return res.status(404).json({ error: 'Category not found.', code: 404 });
+
+    const inUse = taskCategoryInUseCount(cat.key);
+    if (inUse > 0) {
+      return res.status(409).json({ error: `Category is in use by ${inUse} task${inUse === 1 ? '' : 's'}.`, code: 409, count: inUse, reason: 'category_in_use' });
+    }
+    const total = db.get().prepare('SELECT COUNT(*) AS n FROM task_categories').get().n;
+    if (total <= 1) return res.status(409).json({ error: 'Cannot delete the last category.', code: 409, reason: 'category_last' });
+
+    db.get().prepare('DELETE FROM task_categories WHERE key = ?').run(cat.key);
+    res.status(204).end();
+  } catch (err) {
+    log.error('DELETE /categories/:key error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
 
 // --------------------------------------------------------
 // GET /api/v1/tasks
@@ -143,6 +270,11 @@ router.get('/', (req, res) => {
     }
     if (category)    { sql += ' AND t.category = ?';    params.push(category); }
 
+    // Sichtbarkeit (#474): eigene + für alle sichtbare + zugewiesene-sichtbare.
+    const me = req.authUserId || req.session.userId;
+    sql += ` AND ${visibilityWhere('t', 'task_assignments', 'task_id')}`;
+    params.push(me, me);
+
     sql += `
       ORDER BY
         CASE t.status WHEN 'done' THEN 1 ELSE 0 END,
@@ -166,13 +298,15 @@ router.get('/', (req, res) => {
 // --------------------------------------------------------
 router.get('/:id', (req, res) => {
   try {
+    const me = req.authUserId || req.session.userId;
     const task = db.get().prepare(`
       SELECT t.*, u.display_name AS assigned_name, u.avatar_color AS assigned_color,
         u.avatar_data AS assigned_avatar, ${ASSIGNED_USERS_SQL}
       FROM tasks t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = ? AND t.parent_task_id IS NULL
-    `).get(req.params.id);
+        AND ${visibilityWhere('t', 'task_assignments', 'task_id')}
+    `).get(req.params.id, me, me);
 
     if (!task) return res.status(404).json({ error: 'Task not found.', code: 404 });
 
@@ -200,7 +334,7 @@ router.post('/', (req, res) => {
     const {
       title,
       description     = null,
-      category        = 'Sonstiges',
+      category        = FALLBACK_CATEGORY,
       priority        = 'none',
       start_date      = null,
       due_date        = null,
@@ -209,6 +343,8 @@ router.post('/', (req, res) => {
       is_recurring    = 0,
       recurrence_rule = null,
     } = req.body;
+    const points = clampPoints(req.body.points);
+    const visibility = normalizeVisibility(req.body.visibility);
 
     const userIds  = parseAssignedTo(req.body.assigned_to);
     const firstUid = userIds[0] ?? null;
@@ -226,12 +362,12 @@ router.post('/', (req, res) => {
       const result = db.get().prepare(`
         INSERT INTO tasks
           (title, description, category, priority, start_date, due_date, due_time,
-           assigned_to, created_by, parent_task_id, is_recurring, recurrence_rule)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           assigned_to, created_by, parent_task_id, is_recurring, recurrence_rule, points, visibility)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         title.trim(), description, category, priority,
         start_date, due_date, due_time, firstUid, req.authUserId || req.session.userId, parent_task_id,
-        is_recurring ? 1 : 0, recurrence_rule
+        is_recurring ? 1 : 0, recurrence_rule, points, visibility
       );
       setAssignments(db.get(), result.lastInsertRowid, userIds);
       return result.lastInsertRowid;
@@ -278,6 +414,10 @@ router.put('/:id', (req, res) => {
       is_recurring    = task.is_recurring,
       recurrence_rule = task.recurrence_rule,
     } = req.body;
+    const points = req.body.points !== undefined ? clampPoints(req.body.points) : task.points;
+    const visibility = req.body.visibility !== undefined
+      ? normalizeVisibility(req.body.visibility, task.visibility)
+      : task.visibility;
 
     const userIds  = req.body.assigned_to !== undefined
       ? parseAssignedTo(req.body.assigned_to)
@@ -290,13 +430,15 @@ router.put('/:id', (req, res) => {
         UPDATE tasks SET
           title = ?, description = ?, category = ?, priority = ?,
           status = ?, start_date = ?, due_date = ?, due_time = ?, assigned_to = ?,
-          is_recurring = ?, recurrence_rule = ?
+          is_recurring = ?, recurrence_rule = ?, points = ?, visibility = ?
         WHERE id = ?
       `).run(title.trim(), description, category, priority,
              status, start_date, due_date, due_time, firstUid,
-             is_recurring ? 1 : 0, recurrence_rule, req.params.id);
+             is_recurring ? 1 : 0, recurrence_rule, points, visibility, req.params.id);
       setAssignments(db.get(), task.id, userIds);
       syncHousekeepingPaymentStatus(db.get(), req.params.id, status);
+      // Punkte erst nach setAssignments: die Zuständigen werden daraus abgeleitet.
+      syncTaskRewards(db.get(), task.id, task.status, status, req.authUserId || req.session.userId);
     })();
 
     const updated = db.get().prepare(`
@@ -327,19 +469,25 @@ router.patch('/:id/status', (req, res) => {
     if (!VALID_STATUSES.includes(status))
       return res.status(400).json({ error: `Invalid status. Allowed: ${VALID_STATUSES.join(', ')}`, code: 400 });
 
-    const result = db.get().prepare('UPDATE tasks SET status = ? WHERE id = ?')
-      .run(status, req.params.id);
-
-    if (result.changes === 0)
+    const prev = db.get().prepare('SELECT status FROM tasks WHERE id = ?').get(req.params.id);
+    if (!prev)
       return res.status(404).json({ error: 'Task not found.', code: 404 });
 
+    db.get().prepare('UPDATE tasks SET status = ? WHERE id = ?').run(status, req.params.id);
+
     syncHousekeepingPaymentStatus(db.get(), req.params.id, status);
+    // Punkte-Gutschrift/Storno an den Aufgaben-Statuswechsel koppeln.
+    syncTaskRewards(db.get(), Number(req.params.id), prev.status, status, req.authUserId || req.session.userId);
 
     // Wiederkehrende Aufgabe: nächste Instanz erstellen wenn erledigt
     if (status === 'done') {
       const task = db.get().prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
       if (task?.is_recurring && task.recurrence_rule && !task.parent_task_id) {
-        const nextDate = nextOccurrence(task.due_date, task.recurrence_rule);
+        // Überfällige Serien aufholen: nächste Instanz liegt immer in der Zukunft,
+        // statt blind altes Fälligkeitsdatum + Intervall (das selbst überfällig sein kann).
+        // Schwelle "heute" in UTC, konsistent zur Listen-Filterung mit SQL date('now').
+        const today = new Date().toISOString().slice(0, 10);
+        const nextDate = nextOccurrenceAfter(task.due_date, task.recurrence_rule, today);
         if (nextDate) {
           const existingAssignments = db.get()
             .prepare('SELECT user_id FROM task_assignments WHERE task_id = ?')
@@ -347,12 +495,12 @@ router.patch('/:id/status', (req, res) => {
           db.get().transaction(() => {
             const newTask = db.get().prepare(`
               INSERT INTO tasks (title, description, category, priority, status,
-                due_date, due_time, assigned_to, created_by, is_recurring, recurrence_rule)
-              VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, 1, ?)
+                due_date, due_time, assigned_to, created_by, is_recurring, recurrence_rule, points, visibility)
+              VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, 1, ?, ?, ?)
             `).run(
               task.title, task.description, task.category, task.priority,
               nextDate, task.due_time, task.assigned_to, task.created_by,
-              task.recurrence_rule
+              task.recurrence_rule, task.points, task.visibility
             );
             setAssignments(db.get(), newTask.lastInsertRowid, existingAssignments);
           })();
@@ -396,7 +544,7 @@ router.get('/meta/options', (req, res) => {
        WHERE NOT EXISTS (SELECT 1 FROM housekeeping_workers hw WHERE hw.user_id = u.id)
        ORDER BY display_name`
     ).all();
-    res.json({ users, priorities: VALID_PRIORITIES, statuses: VALID_STATUSES, categories: VALID_CATEGORIES });
+    res.json({ users, priorities: VALID_PRIORITIES, statuses: VALID_STATUSES, categories: loadTaskCategories() });
   } catch (err) {
     log.error('GET /meta/options error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });

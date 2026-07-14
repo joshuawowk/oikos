@@ -7,7 +7,10 @@
 import { api } from '/api.js';
 import { t, formatDate, formatTime, getLocale } from '/i18n.js';
 import { esc } from '/utils/html.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
+import { createPageFab, setPageFabAction } from '/utils/fab.js';
+import { wireTablist } from '/utils/tablist.js';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -121,13 +124,32 @@ async function loadData() {
 }
 
 function renderTabButton(tab, icon, label) {
-  const current = state.tab === tab ? ' aria-current="page"' : '';
+  const on = state.tab === tab;
   return `
-    <button class="housekeeping-tab sub-tab" type="button" data-housekeeping-tab="${esc(tab)}"${current}>
+    <button class="housekeeping-tab sub-tab${on ? ' sub-tab--active' : ''}" type="button" role="tab"
+            data-tab-id="${esc(tab)}" aria-controls="housekeeping-content"
+            aria-selected="${on ? 'true' : 'false'}"${on ? ' aria-current="page"' : ''} tabindex="${on ? '0' : '-1'}">
       <i class="sub-tab__icon" data-lucide="${esc(icon)}" aria-hidden="true"></i>
       <span class="sub-tab__label">${esc(label)}</span>
     </button>
   `;
+}
+
+// Kontext-FAB: folgt dem aktiven Tab. Nur „Personal" hat eine Modal-Erstellung;
+// „Aufgaben" nutzt ein dauerhaftes Inline-Formular, „Übersicht"/„Berichte" haben
+// keine Erstellen-Aktion → FAB dort ausgeblendet.
+let fab = null;
+
+function updateHousekeepingFab() {
+  if (!fab) return;
+  if (state.tab === 'staff') {
+    setPageFabAction(fab, {
+      label: t('housekeeping.addWorker'),
+      onClick: () => openStaffModal(null, document.querySelector('#housekeeping-content')),
+    });
+  } else {
+    setPageFabAction(fab, { hidden: true });
+  }
 }
 
 function renderShell(container) {
@@ -135,8 +157,8 @@ function renderShell(container) {
   container.insertAdjacentHTML('beforeend', `
     <section class="housekeeping-page" aria-labelledby="housekeeping-title">
       <header class="page-toolbar housekeeping-toolbar">
-        <div class="page-toolbar__title" id="housekeeping-title">${esc(t('housekeeping.title'))}</div>
-        <nav class="housekeeping-tabs" aria-label="${esc(t('housekeeping.bottomNav'))}">
+        <h1 class="page-toolbar__title" id="housekeeping-title">${esc(t('housekeeping.title'))}</h1>
+        <nav class="housekeeping-tabs" role="tablist" aria-label="${esc(t('housekeeping.bottomNav'))}">
           ${renderTabButton('dashboard', 'layout-dashboard', t('housekeeping.dashboard'))}
           ${renderTabButton('tasks', 'list-checks', t('housekeeping.tasks'))}
           ${renderTabButton('reports', 'file-text', t('housekeeping.reports'))}
@@ -147,11 +169,12 @@ function renderShell(container) {
     </section>
   `);
 
-  container.querySelectorAll('[data-housekeeping-tab]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      state.tab = btn.dataset.housekeepingTab;
-      renderCurrentTab(container);
-    });
+  fab = createPageFab({ id: 'housekeeping-fab' });
+  container.querySelector('.housekeeping-page').appendChild(fab);
+
+  wireTablist(container.querySelector('.housekeeping-tabs'), {
+    activeId: state.tab,
+    onChange: (id) => { state.tab = id; renderCurrentTab(container); },
   });
   renderCurrentTab(container);
 }
@@ -160,16 +183,11 @@ function renderCurrentTab(container) {
   const content = container.querySelector('#housekeeping-content');
   if (!content) return;
   content.replaceChildren();
-  container.querySelectorAll('[data-housekeeping-tab]').forEach((btn) => {
-    const active = btn.dataset.housekeepingTab === state.tab;
-    btn.classList.toggle('sub-tab--active', active);
-    if (active) btn.setAttribute('aria-current', 'page');
-    else btn.removeAttribute('aria-current');
-  });
   if (state.tab === 'tasks') renderTasks(content);
   else if (state.tab === 'reports') renderReports(content);
   else if (state.tab === 'staff') renderStaff(content);
   else renderDashboard(content);
+  updateHousekeepingFab();
   if (window.lucide) window.lucide.createIcons({ el: container });
 }
 
@@ -177,14 +195,14 @@ async function toggleSession(container, workerId) {
   const worker = state.workers.find((item) => String(item.id) === String(workerId));
   const current = worker?.today_session;
   if (!state.workers.length) {
-    window.oikos?.showToast(t('housekeeping.checkInDisabled'), 'warning');
+    window.yuvomi?.showToast(t('housekeeping.checkInDisabled'), 'warning');
     return;
   }
   if (!worker) return;
   try {
     if (current) {
       await api.post('/housekeeping/work-sessions/check-out', { worker_id: worker.id });
-      window.oikos?.showToast(t('housekeeping.checkedOutToast'), 'success');
+      window.yuvomi?.showToast(t('housekeeping.checkedOutToast'), 'success');
     } else {
       await api.post('/housekeeping/work-sessions/check-in', {
         worker_id: worker.id,
@@ -194,12 +212,12 @@ async function toggleSession(container, workerId) {
         timezone_offset_minutes: new Date().getTimezoneOffset(),
         ...visitTextPayload(worker, localDate(), worker.rate_type === 'hourly' ? 0 : (worker.daily_rate || 0), 0),
       });
-      window.oikos?.showToast(t('housekeeping.checkedInToast'), 'success');
+      window.yuvomi?.showToast(t('housekeeping.checkedInToast'), 'success');
     }
     await loadData();
     renderShell(container);
   } catch (err) {
-    window.oikos?.showToast(err.message, 'danger');
+    window.yuvomi?.showToast(err.message, 'danger');
   }
 }
 
@@ -227,7 +245,7 @@ function renderWorkerSummary() {
       <div class="housekeeping-avatar" style="background:${esc(worker.avatar_color) || 'var(--module-housekeeping)'}">
         ${worker.avatar_data ? `<img src="${esc(worker.avatar_data)}" alt="${esc(worker.display_name)}">` : esc(initials(worker.display_name))}
       </div>
-      <div>
+      <div class="housekeeping-worker-strip__identity">
         <strong>${esc(worker.display_name)}</strong>
         <span>${esc(checkedIn ? `${t('housekeeping.visitRecordedAt')} ${formatTime(session.check_in)}` : (worker.rate_type === 'hourly' ? `${money(worker.hourly_rate)}/${t('housekeeping.rateHourly')}` : `${money(worker.daily_rate)} · ${scheduleLabel(worker.payment_schedule)}`))}</span>
       </div>
@@ -338,11 +356,11 @@ function renderDashboard(content) {
 async function createTask(payload, content) {
   try {
     await api.post('/housekeeping/decay-tasks', payload);
-    window.oikos?.showToast(t('housekeeping.taskCreatedToast'), 'success');
+    window.yuvomi?.showToast(t('housekeeping.taskCreatedToast'), 'success');
     await loadData();
     renderTasks(content);
   } catch (err) {
-    window.oikos?.showToast(err.message, 'danger');
+    window.yuvomi?.showToast(err.message, 'danger');
   }
 }
 
@@ -449,11 +467,11 @@ function renderTasks(content) {
     btn.addEventListener('click', async () => {
       try {
         await api.post(`/housekeeping/decay-tasks/${btn.dataset.completeTask}/complete`, {});
-        window.oikos?.showToast(t('housekeeping.taskDoneToast'), 'success');
+        window.yuvomi?.showToast(t('housekeeping.taskDoneToast'), 'success');
         await loadData();
         renderTasks(content);
       } catch (err) {
-        window.oikos?.showToast(err.message, 'danger');
+        window.yuvomi?.showToast(err.message, 'danger');
       }
     });
   });
@@ -462,11 +480,11 @@ function renderTasks(content) {
     btn.addEventListener('click', async () => {
       try {
         await api.patch(`/housekeeping/decay-tasks/${btn.dataset.undoTask}`, { last_completed: null });
-        window.oikos?.showToast(t('housekeeping.taskUndoneToast'), 'success');
+        window.yuvomi?.showToast(t('housekeeping.taskUndoneToast'), 'success');
         await loadData();
         renderTasks(content);
       } catch (err) {
-        window.oikos?.showToast(err.message, 'danger');
+        window.yuvomi?.showToast(err.message, 'danger');
       }
     });
   });
@@ -478,11 +496,11 @@ function renderTasks(content) {
       if (!window.confirm(t('housekeeping.deleteTaskConfirm', { name: task.name }))) return;
       try {
         await api.delete(`/housekeeping/decay-tasks/${task.id}`);
-        window.oikos?.showToast(t('housekeeping.taskDeletedToast'), 'success');
+        window.yuvomi?.showToast(t('housekeeping.taskDeletedToast'), 'success');
         await loadData();
         renderTasks(content);
       } catch (err) {
-        window.oikos?.showToast(err.message, 'danger');
+        window.yuvomi?.showToast(err.message, 'danger');
       }
     });
   });
@@ -602,10 +620,6 @@ function renderStaff(content) {
     <section class="housekeeping-card">
       <div class="housekeeping-section-heading">
         <h2>${esc(t('housekeeping.staffTitle'))}</h2>
-        <button class="btn btn--secondary" type="button" id="housekeeping-new-worker">
-          <i data-lucide="plus" aria-hidden="true"></i>
-          <span>${esc(t('housekeeping.addWorker'))}</span>
-        </button>
       </div>
       <div class="housekeeping-staff-list">
         ${workerRows || `<p class="housekeeping-muted">${esc(t('housekeeping.noWorkers'))}</p>`}
@@ -614,9 +628,6 @@ function renderStaff(content) {
     ${state.selectedStaffId ? renderStaffVisitLog() : ''}
   `);
 
-  content.querySelector('#housekeeping-new-worker')?.addEventListener('click', () => {
-    openStaffModal(null, content);
-  });
   content.querySelectorAll('[data-select-worker]').forEach((row) => {
     const select = async () => {
       state.selectedStaffId = row.dataset.selectWorker;
@@ -624,7 +635,7 @@ function renderStaff(content) {
         await loadStaffVisits();
         renderStaff(content);
       } catch (err) {
-        window.oikos?.showToast(err.message, 'danger');
+        window.yuvomi?.showToast(err.message, 'danger');
       }
     };
     row.addEventListener('click', (event) => {
@@ -650,7 +661,7 @@ function renderStaff(content) {
       await loadStaffVisits();
       renderStaff(content);
     } catch (err) {
-      window.oikos?.showToast(err.message, 'danger');
+      window.yuvomi?.showToast(err.message, 'danger');
     }
   });
   content.querySelectorAll('[data-edit-visit]').forEach((btn) => {
@@ -665,12 +676,12 @@ function renderStaff(content) {
       if (!visit) return;
       try {
         await api.post(`/housekeeping/visits/${visit.id}/pay`, {});
-        window.oikos?.showToast(t('housekeeping.visitPaidToast'), 'success');
+        window.yuvomi?.showToast(t('housekeeping.visitPaidToast'), 'success');
         await loadData();
         await loadStaffVisits();
         renderStaff(content);
       } catch (err) {
-        window.oikos?.showToast(err.message, 'danger');
+        window.yuvomi?.showToast(err.message, 'danger');
       }
     });
   });
@@ -681,12 +692,12 @@ function renderStaff(content) {
       if (!await confirmModal(t('housekeeping.deleteVisitConfirm'), { danger: true, confirmLabel: t('common.delete') })) return;
       try {
         await api.delete(`/housekeeping/visits/${visit.id}`);
-        window.oikos?.showToast(t('housekeeping.visitDeletedToast'), 'success');
+        window.yuvomi?.showToast(t('housekeeping.visitDeletedToast'), 'success');
         await loadData();
         await loadStaffVisits();
         renderStaff(content);
       } catch (err) {
-        window.oikos?.showToast(err.message, 'danger');
+        window.yuvomi?.showToast(err.message, 'danger');
       }
     });
   });
@@ -777,12 +788,12 @@ function openTaskEditModal(task, content) {
             area: fields.area.value.trim(),
             frequency_days: frequencyDays,
           });
-          window.oikos?.showToast(t('housekeeping.taskUpdatedToast'), 'success');
+          window.yuvomi?.showToast(t('housekeeping.taskUpdatedToast'), 'success');
           await loadData();
           closeModal({ force: true });
           renderTasks(content);
         } catch (err) {
-          window.oikos?.showToast(err.message, 'danger');
+          window.yuvomi?.showToast(err.message, 'danger');
         }
       });
     },
@@ -798,7 +809,7 @@ function openVisitEditModal(visit, content, { onDone } = {}) {
       <form id="housekeeping-visit-form" class="housekeeping-worker-form">
         <label class="housekeeping-field">
           <span>${esc(t('housekeeping.visitDate'))}</span>
-          <input name="date" type="date" required value="${esc(visit.check_in.slice(0, 10))}">
+          <yuvomi-datepicker name="date" type="date" value="${esc(visit.check_in.slice(0, 10))}"></yuvomi-datepicker>
         </label>
         <div class="housekeeping-form-grid">
           ${visit.rate_type === 'hourly' ? `
@@ -884,14 +895,14 @@ function openVisitEditModal(visit, content, { onDone } = {}) {
             receipt_document_id: receiptDocumentId,
             ...visitTextPayload(worker, dateValue, dailyRate ?? visit.daily_rate, extras),
           });
-          window.oikos?.showToast(t('housekeeping.visitSavedToast'), 'success');
+          window.yuvomi?.showToast(t('housekeeping.visitSavedToast'), 'success');
           await loadData();
           state.staffLogMonth = dateValue.slice(0, 7);
           await loadStaffVisits();
           closeModal({ force: true });
           (onDone || renderStaff)(content);
         } catch (err) {
-          window.oikos?.showToast(err.message, 'danger');
+          window.yuvomi?.showToast(err.message, 'danger');
         }
       });
     },
@@ -961,7 +972,7 @@ function openStaffModal(worker, content, options = {}) {
           </label>
           <label class="housekeeping-field">
             <span>${esc(t('housekeeping.workerBirthDate'))}</span>
-            <input name="birth_date" type="date" value="${esc(item.birth_date || '')}">
+            <yuvomi-datepicker name="birth_date" type="date" value="${esc(item.birth_date || '')}"></yuvomi-datepicker>
           </label>
           <label class="housekeeping-field">
             <span>${esc(t('housekeeping.rateType'))}</span>
@@ -1027,13 +1038,13 @@ function openStaffModal(worker, content, options = {}) {
             avatar_data: state.workerAvatar,
             notes: fields.notes.value.trim() || null,
           });
-          window.oikos?.showToast(t('housekeeping.workerSavedToast'), 'success');
+          window.yuvomi?.showToast(t('housekeeping.workerSavedToast'), 'success');
           await loadData();
           closeModal({ force: true });
           if (typeof options.afterSave === 'function') options.afterSave();
           else renderStaff(content);
         } catch (err) {
-          window.oikos?.showToast(err.message, 'danger');
+          window.yuvomi?.showToast(err.message, 'danger');
         }
       });
     },
@@ -1081,8 +1092,8 @@ function openStaffModal(worker, content, options = {}) {
 export async function render(container) {
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
-    <section class="housekeeping-page housekeeping-page--loading">
-      <div class="housekeeping-loading">${esc(t('common.loading'))}</div>
+    <section class="housekeeping-page housekeeping-page--loading" aria-busy="true">
+      ${renderSkeletonList({ rows: 6, lines: 2 })}
     </section>
   `);
   try {

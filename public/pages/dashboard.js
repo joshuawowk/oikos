@@ -5,18 +5,52 @@
  */
 
 import { api } from '/api.js';
+import { canSeeWidget } from '/permissions.js';
 import { t, formatDate, formatTime, getLocale } from '/i18n.js';
+import { getReadableTextColor, AVATAR_FALLBACK_COLOR } from '/utils/color.js';
 import { esc, fmtLocation, renderMarkdownLight } from '/utils/html.js';
-import { openModal, closeModal } from '/components/modal.js';
+import { toLocalDateKey, parseLocalDateKey } from '/utils/date.js';
+import { predictCycle, PHASE } from '/utils/health-cycle.js';
+import { openModal, closeModal, confirmModal } from '/components/modal.js';
 import { renderAvatarStack } from '/components/user-multi-select.js';
 
 // Hält den AbortController des aktuellen FAB-Listeners - wird bei jedem render() erneuert.
 let _fabController = null;
 
+
 // ── Onboarding ──────────────────────────────────────────────────────────────
 
-const ONBOARDING_KEY = 'oikos-onboarded';
-const APP_NAME_STORAGE_KEY = 'oikos-app-name';
+const ONBOARDING_KEY = 'yuvomi-onboarded';
+const APP_NAME_STORAGE_KEY = 'yuvomi-app-name';
+const CUSTOMIZE_HINT_KEY = 'yuvomi-dash-customize-hint';
+
+function eventOccurrenceDateKey(event) {
+  const value = String(event?.start_datetime || '');
+  if (!value) return '';
+  if (value.length <= 10) return value.slice(0, 10);
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value.slice(0, 10) : toLocalDateKey(date);
+}
+
+// All-day events store start_datetime as a date-only key ("2026-07-10"). Parsing
+// that with `new Date()` yields UTC midnight, which shifts the calendar day back
+// one day west of UTC. Parse date-only values as local calendar dates so all-day
+// events land on the correct day in the dashboard widget (issue #466).
+function eventStartDate(event) {
+  const value = String(event?.start_datetime || '');
+  if (!value) return null;
+  if (value.length <= 10) return parseLocalDateKey(value);
+  return new Date(value);
+}
+
+function calendarEventRoute(event) {
+  if (!event?.id) return '/calendar';
+  const params = new URLSearchParams({ open: String(event.id) });
+  const occurrenceDate = eventOccurrenceDateKey(event);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)) params.set('date', occurrenceDate);
+  return `/calendar?${params.toString()}`;
+}
 
 function getAppName() {
   return localStorage.getItem(APP_NAME_STORAGE_KEY) || 'Yuvomi';
@@ -31,19 +65,39 @@ function getOnboardingSteps() {
   ];
 }
 
-function showOnboarding(appContainer) {
+function showOnboarding(appContainer, onDone) {
   const steps = getOnboardingSteps();
   let current = 0;
+
+  // Fokus vor dem Dialog merken, um ihn beim Schließen zurückzugeben.
+  const previouslyFocused = document.activeElement;
 
   const overlay = document.createElement('div');
   overlay.className = 'onboarding-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
 
-  const closeOnEscape = (event) => {
-    if (event.key === 'Escape') finish();
+  const onKeydown = (event) => {
+    if (event.key === 'Escape') { finish(); return; }
+    if (event.key !== 'Tab') return;
+    // Fokus-Trap (WCAG 2.4.3/2.1.2): der Erststart-Dialog darf den Fokus nicht
+    // auf die verdeckte Seite dahinter entlassen. Fokussierbare Elemente je
+    // Tab-Druck neu ermitteln, da renderStep() den Karteninhalt austauscht.
+    const focusables = overlay.querySelectorAll(
+      'button, [href], input, [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   };
-  document.addEventListener('keydown', closeOnEscape);
+  document.addEventListener('keydown', onKeydown);
 
   function renderStep() {
     const step = steps[current];
@@ -106,32 +160,64 @@ function showOnboarding(appContainer) {
     setTimeout(() => nextBtn.focus(), 50);
   }
 
+  let finished = false;
   function finish() {
-    document.removeEventListener('keydown', closeOnEscape);
+    if (finished) return;
+    finished = true;
+    document.removeEventListener('keydown', onKeydown);
     localStorage.setItem(ONBOARDING_KEY, '1');
+    // Fokus dorthin zurückgeben, wo er vor dem Dialog lag (sonst neutral auf
+    // den Body), damit Tastatur-/SR-Nutzer nicht im entfernten Overlay hängen.
+    const restoreTarget = (previouslyFocused && document.contains(previouslyFocused))
+      ? previouslyFocused
+      : document.body;
     overlay.classList.add('onboarding-overlay--out');
     overlay.addEventListener('animationend', () => overlay.remove(), { once: true });
     // Fallback falls animationend nicht feuert (prefers-reduced-motion):
     setTimeout(() => overlay.remove(), 300);
+    restoreTarget?.focus?.();
+    onDone?.();
   }
 
   renderStep();
   appContainer.appendChild(overlay);
 }
 
+// Einmaliger, zurückhaltender Hinweis auf den „Anpassen"-Einstieg: Da vier Widgets
+// standardmäßig hinter dem Cockpit ausgeblendet sind, macht ein sanfter Puls beim
+// Erststart sichtbar, wo sie sich wieder einblenden lassen. Danach nie wieder.
+function maybeHintCustomize(container) {
+  if (localStorage.getItem(CUSTOMIZE_HINT_KEY)) return;
+  const btn = container.querySelector('#dashboard-customize-btn');
+  if (!btn) return;
+  const clear = () => {
+    btn.classList.remove('dashboard-icon-btn--hint');
+    localStorage.setItem(CUSTOMIZE_HINT_KEY, '1');
+  };
+  btn.classList.add('dashboard-icon-btn--hint');
+  btn.addEventListener('click', clear, { once: true });
+  setTimeout(clear, 6000);
+}
+
 // --------------------------------------------------------
 // Widget-Definitionen (Reihenfolge = Standard-Layout)
 // --------------------------------------------------------
 
-// NEU — primäre Inhalte (tasks, calendar) ganz oben
-const WIDGET_IDS = ['tasks', 'calendar', 'weather', 'meals', 'shopping', 'birthdays', 'budget', 'family', 'notes'];
+// Reihenfolge = Standard-Layout. Die primären Inhalte (tasks, calendar) führen,
+// damit sie beim Wieder-Einblenden oben stehen; das einzige passive Widget
+// (weather) steht bewusst am Ende, statt die sichtbare Grid-Spitze zu belegen.
+const WIDGET_IDS = ['tasks', 'calendar', 'meals', 'shopping', 'birthdays', 'budget', 'rewards', 'health', 'cycle', 'housekeeping', 'family', 'notes', 'weather'];
 
+// Vier kuratierte Formen statt sechs: über vier Auswahlmöglichkeiten pro Widget
+// (× bis zu 12 Widgets) kippt der Anpassen-Modus in Mikro-Entscheidungs-Overhead
+// für ein Familienpublikum (Critique P2, ≤4-Choices-Regel). Die früheren 3x2/4x2
+// bleiben als Legacy-Werte gültig (WIDGET_SIZE_OPTIONS) — bestehende Layouts werden
+// nicht zurückgesetzt, nur die Neu-Auswahl steuert auf diese vier zu.
 const WIDGET_SIZE_PRESETS = [
   { value: '1x1', labelKey: 'dashboard.widgetSizeTiny'     },
   { value: '2x1', labelKey: 'dashboard.widgetSizeNarrow'   },
+  { value: '1x2', labelKey: 'dashboard.widgetSizeTall'     },
   { value: '2x2', labelKey: 'dashboard.widgetSizeStandard' },
-  { value: '3x2', labelKey: 'dashboard.widgetSizeLarge'    },
-  { value: '4x2', labelKey: 'dashboard.widgetSizeFull'     },
 ];
 
 // Alle bekannten Größen inkl. Legacy-Werte — für normalizeDashboardConfig-Validierung
@@ -140,19 +226,64 @@ const WIDGET_SIZE_OPTIONS = [...new Set([
   '1x2', '1x3', '1x4', '2x3', '2x4', '3x1', '3x3', '3x4', '4x1', '4x3', '4x4',
 ])];
 
-function widgetSizeLabel(size) {
-  const preset = WIDGET_SIZE_PRESETS.find((p) => p.value === size);
-  return preset ? t(preset.labelKey) : size;
+// Bildet einen beliebigen (auch Legacy-)Größenwert auf das nächstliegende der vier
+// kuratierten Presets ab: Breite/Höhe ≥2 → 2, sonst 1. So kann normalizeDashboardConfig
+// migrierte Layouts (z.B. 4x2 aus einer früheren Version) auf ein Preset zusammenziehen,
+// statt dem betroffenen Nutzer als einziger eine 5. Dropdown-Option zu zeigen (Critique P2).
+function nearestPreset(size) {
+  const values = WIDGET_SIZE_PRESETS.map((p) => p.value);
+  if (values.includes(size)) return size;
+  const [cols, rows] = String(size).split('x').map(Number);
+  if (!Number.isFinite(cols) || !Number.isFinite(rows)) return '1x1';
+  return `${cols >= 2 ? 2 : 1}x${rows >= 2 ? 2 : 1}`;
 }
 
 function defaultWidgetSize(id) {
-  if (['tasks', 'calendar'].includes(id)) return '2x2';
-  if (['weather', 'shopping'].includes(id)) return '2x1';
+  // Listen-Widgets defaulten auf schmal-hoch (1×2) statt breit-hoch (2×2): eine
+  // „Heute"-Liste braucht Höhe, nicht Breite — 1×2 halbiert die Grundfläche und
+  // packt sich sauber neben andere Widgets, statt als 2-spaltige Kachel eine
+  // ganze Rasterzeile zu belegen (löst die Masonry-Imbalance an der Wurzel).
+  // Inhaltsschwere Karten (gestapelte Blöcke) starten hoch statt 1×1, damit die
+  // Zeile nicht per grid-auto ragged nachwächst (Critique P4). Budget stapelt
+  // Saldo + Sparen + Einnahme/Ausgabe + Top-Ausgabe → 1×2.
+  if (['tasks', 'calendar', 'rewards', 'budget'].includes(id)) return '1x2';
+  if (['weather', 'shopping', 'health', 'cycle', 'meals'].includes(id)) return '2x1';
   if (id === 'notes') return '2x1';
   return '1x1';
 }
 
-const DEFAULT_WIDGET_CONFIG = WIDGET_IDS.map((id, i) => ({ id, visible: true, order: i, size: defaultWidgetSize(id) }));
+// Das „Heute"-Cockpit fasst diese vier Domänen bereits als Kurzüberblick zusammen.
+// Ihre Widgets starten deshalb ausgeblendet: kein Echo, keine Erststart-Überladung.
+// Über „Anpassen" jederzeit wieder einblendbar; Bestandskonfigurationen bleiben unberührt.
+const COCKPIT_COVERED_WIDGETS = new Set(['tasks', 'calendar', 'shopping', 'meals']);
+
+// Standardmäßig ausgeblendet: die vier vom Cockpit abgedeckten Domänen (kein Echo)
+// plus die drei neueren Module (rewards, health, housekeeping). Letztere sind
+// spezialisiert und nicht in jedem Haushalt aktiv — sie erscheinen als Opt-in im
+// „Anpassen"-Panel, statt frische Dashboards mit leeren Kacheln zu überladen
+// (PRODUCT.md: „Power wird auf Abruf enthüllt, nicht in einem Raster ausgebreitet").
+const DEFAULT_HIDDEN_WIDGETS = new Set([...COCKPIT_COVERED_WIDGETS, 'rewards', 'health', 'cycle', 'housekeeping']);
+
+function defaultWidgetVisible(id) {
+  return !DEFAULT_HIDDEN_WIDGETS.has(id);
+}
+
+const DEFAULT_WIDGET_CONFIG = WIDGET_IDS.map((id, i) => ({ id, visible: defaultWidgetVisible(id), order: i, size: defaultWidgetSize(id) }));
+
+// Widget → Modul-Slug für die „Modul deaktiviert?"-Prüfung. Widgets ohne Eintrag
+// (family, weather) sind immer verfügbar. Modulweit, damit Grid-Filter und
+// Wieder-Einblenden-Leiste dieselbe Sichtbarkeitsregel teilen.
+const MODULE_FOR_WIDGET = { tasks: 'tasks', calendar: 'calendar', shopping: 'shopping', meals: 'meals', notes: 'notes', birthdays: 'birthdays', budget: 'budget', rewards: 'rewards', health: 'health', cycle: 'health', housekeeping: 'housekeeping' };
+
+function isWidgetModuleEnabled(id) {
+  const mod = MODULE_FOR_WIDGET[id];
+  if (mod && window.yuvomi?.isModuleDisabled(mod)) return false;
+  // Rollen-/Mitglied-Rechte (#467): serverseitig gesperrtes Widget (bzw. Widget
+  // eines Moduls ohne Zugriff — die Modulsperre wird bereits serverseitig auf die
+  // Widget-Map durchgereicht) hier nicht anbieten.
+  if (!canSeeWidget(id)) return false;
+  return true;
+}
 
 function normalizeDashboardConfig(input) {
   const valid = Array.isArray(input)
@@ -162,18 +293,41 @@ function normalizeDashboardConfig(input) {
         id: w.id,
         visible: w.visible !== false,
         order: Number.isFinite(Number(w.order)) ? Number(w.order) : i,
-        size: WIDGET_SIZE_OPTIONS.includes(w.size) ? w.size : defaultWidgetSize(w.id),
+        // Gültige (inkl. Legacy-)Größen auf das nächste Preset ziehen; Unbekanntes
+        // fällt auf den Domänen-Default. So sieht niemand eine 5. Größen-Option.
+        size: WIDGET_SIZE_OPTIONS.includes(w.size) ? nearestPreset(w.size) : defaultWidgetSize(w.id),
       }))
     : [];
   const presentIds = new Set(valid.map((w) => w.id));
   for (const id of WIDGET_IDS) {
     if (!presentIds.has(id)) {
-      valid.push({ id, visible: true, order: valid.length, size: defaultWidgetSize(id) });
+      // Neu hinzugekommene Widget-IDs (bei bestehenden, gespeicherten Layouts) erben den
+      // Standard-Sichtbarkeitswert ihrer Domäne — Opt-in-Module (rewards/health/housekeeping)
+      // erscheinen also nicht ungefragt, sondern bleiben im „Anpassen"-Panel angeboten.
+      valid.push({ id, visible: defaultWidgetVisible(id), order: valid.length, size: defaultWidgetSize(id) });
     }
   }
   return valid
     .sort((a, b) => a.order - b.order)
     .map((w, i) => ({ ...w, order: i }));
+}
+
+// Hat der Nutzer die Widget-Reihenfolge bewusst geändert (vs. dem Autor-Default)?
+// Nur dann darf das Grid auf `grid-auto-flow: row` umschalten, um die gesetzte
+// Ordnung zu bewahren. Beim unveränderten Default packt `dense` die Kacheln dicht
+// (kein toter Weißraum auf breitem Desktop) — die Löcher entstünden sonst nicht aus
+// „Nutzerabsicht", sondern nur, weil der Default-Satz nicht sauber tesselliert (Critique P2).
+function isUserOrderedConfig(cfg) {
+  if (!Array.isArray(cfg)) return false;
+  const defaultOrder = DEFAULT_WIDGET_CONFIG.map((w) => w.id).join(',');
+  const currentOrder = [...cfg].sort((a, b) => a.order - b.order).map((w) => w.id).join(',');
+  return currentOrder !== defaultOrder;
+}
+
+function sameWidgetConfig(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((w, i) => w.id === b[i].id && w.visible === b[i].visible
+    && w.size === b[i].size && w.order === b[i].order);
 }
 
 function setHtml(element, html) {
@@ -191,13 +345,17 @@ function widgetLabel(id) {
     weather:  () => t('dashboard.weather'),
     birthdays: () => t('nav.birthdays'),
     budget:   () => t('nav.budget'),
+    rewards:  () => t('nav.rewards'),
+    health:   () => t('nav.health'),
+    cycle:    () => t('health.cycle.title'),
+    housekeeping: () => t('nav.housekeeping'),
     family:   () => t('dashboard.familyMembers'),
   };
   return (map[id] ?? (() => id))();
 }
 
 function widgetIcon(id) {
-  const map = { tasks: 'check-square', calendar: 'calendar', birthdays: 'cake', budget: 'wallet', family: 'users', shopping: 'shopping-cart', meals: 'utensils', notes: 'pin', weather: 'cloud-sun' };
+  const map = { tasks: 'check-square', calendar: 'calendar', birthdays: 'cake', budget: 'wallet', rewards: 'award', health: 'heart-pulse', cycle: 'calendar-heart', housekeeping: 'paintbrush', family: 'users', shopping: 'shopping-cart', meals: 'utensils', notes: 'pin', weather: 'cloud-sun' };
   return map[id] ?? 'layout-dashboard';
 }
 
@@ -210,6 +368,7 @@ const BUDGET_CATEGORY_LABEL_KEYS = {
   shopping_clothing: 'catShoppingClothing',
   education: 'catEducation',
   financial_other: 'catFinancialOther',
+  subscriptions: 'catSubscriptions',
   'Erwerbseinkommen': 'catEarnedIncome',
   'Kapitalerträge': 'catInvestmentIncome',
   'Geschenke & Transfers': 'catTransferGiftIncome',
@@ -223,24 +382,37 @@ const BUDGET_CATEGORY_LABEL_KEYS = {
 
 function greeting(displayName) {
   const h = new Date().getHours();
-  if (h < 12) return t('dashboard.greetingMorning', { name: esc(displayName) });
-  if (h < 18) return t('dashboard.greetingDay',     { name: esc(displayName) });
+  if (h >= 5 && h < 12) return t('dashboard.greetingMorning', { name: esc(displayName) });
+  if (h >= 12 && h < 18) return t('dashboard.greetingDay',    { name: esc(displayName) });
   return t('dashboard.greetingEvening', { name: esc(displayName) });
+}
+
+// Tageszeit-Fenster für den Begrüßungs-Gradienten (deckt sich mit greeting()).
+// Nacht (0–4 Uhr) zählt zum Abend, damit 00:37 nicht als „Morgen" begrüßt wird.
+function greetingPeriod() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return 'morning';
+  if (h >= 12 && h < 18) return 'day';
+  return 'evening';
+}
+
+// Relatives Datumslabel: „Heute"/„Morgen", sonst das locale-formatierte Datum.
+// Eigene Funktion, damit Aufrufer nur den Datumsteil brauchen, ohne ein
+// zusammengesetztes „Datum, Zeit" per Komma zu zerschneiden (locale-fragil:
+// manche Locales setzen selbst ein Komma ins Datum).
+function relativeDateLabel(d) {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  if (d.toDateString() === today.toDateString()) return t('common.today');
+  if (d.toDateString() === tomorrow.toDateString()) return t('common.tomorrow');
+  return formatDate(d);
 }
 
 function formatDateTime(isoString) {
   if (!isoString) return '';
   const d = new Date(isoString);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  const dateStr = d.toDateString() === today.toDateString()
-    ? t('common.today')
-    : d.toDateString() === tomorrow.toDateString()
-    ? t('common.tomorrow')
-    : formatDate(d);
-
+  const dateStr = relativeDateLabel(d);
   const timeStr = formatTime(d);
   const suffix = t('calendar.timeSuffix');
   return `${dateStr}, ${timeStr}${suffix ? ' ' + suffix : ''}`.trim();
@@ -293,6 +465,14 @@ const PRIORITY_LABELS = () => ({
   low:    t('tasks.priorityLow'),
 });
 
+const MEAL_ORDER = Object.freeze(['breakfast', 'lunch', 'dinner', 'snack']);
+
+function normalizeVisibleMealTypes(visibleMealTypes) {
+  if (!Array.isArray(visibleMealTypes)) return MEAL_ORDER;
+  const filtered = MEAL_ORDER.filter((type) => visibleMealTypes.includes(type));
+  return filtered.length ? filtered : MEAL_ORDER;
+}
+
 const MEAL_LABELS = () => ({
   breakfast: t('meals.typeBreakfast'),
   lunch:     t('meals.typeLunch'),
@@ -324,6 +504,10 @@ function formatCurrency(amount, currency = 'EUR') {
   }).format(amount || 0);
 }
 
+function formatPoints(value) {
+  return new Intl.NumberFormat(getLocale()).format(Number(value) || 0);
+}
+
 function widgetHeader(icon, title, count, linkHref, linkLabel) {
   linkLabel = linkLabel ?? t('dashboard.allLink');
   const badge = count != null
@@ -343,6 +527,16 @@ function widgetHeader(icon, title, count, linkHref, linkLabel) {
   `;
 }
 
+// Dezente Aktivierungs-Affordance für Empty-States: verlinkt in den Modul-Flow,
+// damit ein Erststart-Nutzer nicht in einer beschreibenden Sackgasse landet.
+// Nutzt dasselbe [data-route]-System wie widget__link (wireLinks verkabelt es).
+function emptyStateCta(route, label) {
+  return `<button type="button" class="widget__empty-cta" data-route="${route}">
+    <i data-lucide="plus" aria-hidden="true"></i>
+    <span>${label}</span>
+  </button>`;
+}
+
 function buildTodayHighlights(data) {
   const tasks = Array.isArray(data?.tasks)
     ? data.tasks
@@ -359,7 +553,15 @@ function buildTodayHighlights(data) {
   const meals = data?.meals ?? data?.todayMeals ?? null;
 
   const urgentTask = tasks.find((task) => task.priority === 'urgent') ?? tasks[0] ?? null;
-  const nextEvent = events[0] ?? null;
+
+  const today = new Date().toDateString();
+  const todayEvents = events.filter((e) => {
+    if (!e.start_datetime) return true;
+    const d = eventStartDate(e);
+    return d ? d.toDateString() === today : true;
+  });
+  const nextEvent = todayEvents[0] ?? null;
+
   const openShoppingCount = shoppingItems.length
     ? shoppingItems.filter((item) => !item.is_checked).length
     : shoppingLists.reduce((sum, list) => {
@@ -368,16 +570,38 @@ function buildTodayHighlights(data) {
         const items = Array.isArray(list.items) ? list.items : [];
         return sum + items.filter((item) => !item.is_checked).length;
       }, 0);
-  const dinner = Array.isArray(meals)
-    ? meals.find((meal) => meal.meal_type === 'dinner') ?? null
-    : meals?.dinner ?? null;
+  const { meal, mealType } = selectTodayMeal(meals);
 
   return {
     urgentTask,
     nextEvent,
     openShoppingCount,
-    dinner,
+    meal,
+    mealType,
+    taskCount: tasks.length,
+    eventCount: todayEvents.length,
   };
+}
+
+// Pick the meal relevant to the current time of day (matches greeting thresholds:
+// morning → breakfast, afternoon → lunch, evening → dinner). If the target meal
+// is not planned, fall back to the next planned meal later today.
+function selectTodayMeal(meals) {
+  const order = ['breakfast', 'lunch', 'dinner'];
+  const list = Array.isArray(meals)
+    ? meals
+    : meals && typeof meals === 'object'
+      ? order.map((type) => (meals[type] ? { ...meals[type], meal_type: type } : null)).filter(Boolean)
+      : [];
+
+  const h = new Date().getHours();
+  const targetType = h < 12 ? 'breakfast' : h < 18 ? 'lunch' : 'dinner';
+
+  for (let i = order.indexOf(targetType); i < order.length; i++) {
+    const found = list.find((m) => m.meal_type === order[i]);
+    if (found) return { meal: found, mealType: order[i] };
+  }
+  return { meal: null, mealType: targetType };
 }
 
 // --------------------------------------------------------
@@ -445,17 +669,17 @@ function renderUpcomingEvents(events) {
 
   const today = new Date().toDateString();
   const items = events.map((e) => {
-    const d = new Date(e.start_datetime);
+    const d = eventStartDate(e) ?? new Date(e.start_datetime);
     const isToday = d.toDateString() === today;
     const _suffix = t('calendar.timeSuffix');
     const timeStr = e.all_day ? t('dashboard.allDay') : `${formatTime(d)}${_suffix ? ' ' + _suffix : ''}`.trim();
     return `
-      <div class="event-item" data-route="/calendar" role="button" tabindex="0">
+      <div class="event-item" data-route="${esc(calendarEventRoute(e))}" role="button" tabindex="0">
         <div class="event-item__bar" style="background-color:${esc(e.color || e.cal_color) || 'var(--color-accent)'}"></div>
         <div class="event-item__content">
           <div class="event-item__title">${esc(e.title)}</div>
           <div class="event-item__time">
-            <span class="event-time-badge ${isToday ? 'event-time-badge--today' : ''}">${isToday ? t('common.today') : formatDateTime(e.start_datetime).split(',')[0]}</span>
+            <span class="event-time-badge ${isToday ? 'event-time-badge--today' : ''}">${isToday ? t('common.today') : relativeDateLabel(d)}</span>
             ${timeStr}
             ${e.location ? ` · ${esc(fmtLocation(e.location))}` : ''}
             ${e.cal_name ? `<span class="event-item__cal">${esc(e.cal_name)}</span>` : ''}
@@ -509,24 +733,27 @@ function renderUpcomingBirthdays(birthdays) {
   </div>`;
 }
 
-function renderTodayMeals(meals) {
-  const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
-
+function renderTodayMeals(meals, visibleMealTypes = MEAL_ORDER) {
   const mealLabels = MEAL_LABELS();
-  const slots = MEAL_ORDER.map((type) => {
-    const meal = meals.find((m) => m.meal_type === type);
+  const safeMeals = Array.isArray(meals) ? meals : [];
+  const slots = normalizeVisibleMealTypes(visibleMealTypes).map((type) => {
+    const meal = safeMeals.find((m) => m.meal_type === type);
     return `
       <div class="meal-slot ${meal ? 'meal-slot--filled' : ''}" data-type="${type}" data-route="/meals" role="button" tabindex="0">
-        <i data-lucide="${MEAL_ICONS[type]}" class="meal-slot__icon" aria-hidden="true"></i>
-        <div class="meal-slot__type">${mealLabels[type]}</div>
-        <div class="meal-slot__title">${meal ? esc(meal.title) : '-'}</div>
+        <div class="meal-slot__header">
+          <span class="meal-slot__type">${mealLabels[type]}</span>
+          <i data-lucide="${MEAL_ICONS[type]}" class="meal-slot__icon" aria-hidden="true"></i>
+        </div>
+        <div class="meal-slot__title${meal ? '' : ' meal-slot__title--empty'}">${meal ? esc(meal.title) : '—'}</div>
       </div>
     `;
   }).join('');
 
   return `<div class="widget widget--meals">
     ${widgetHeader('utensils', t('dashboard.todayMeals'), null, '/meals', t('dashboard.weekLink'))}
-    <div class="meal-slots">${slots}</div>
+    <div class="meals-widget">
+      <div class="meal-slots">${slots}</div>
+    </div>
   </div>`;
 }
 
@@ -549,7 +776,10 @@ function renderPinnedNotes(notes) {
     </div>
   `).join('');
 
-  return `<div class="widget widget--notes widget--wide">
+  // Breite kommt aus dem Größenklassen-System am .widget-wrapper (widget-size--2x1);
+  // die frühere .widget--wide war in keinem CSS definiert und damit tot — entfernt,
+  // damit Notizen wie jedes andere Widget genau ein Größen-Vokabular trägt (Critique P2).
+  return `<div class="widget widget--notes">
     ${widgetHeader('pin', t('nav.notes'), notes.length, '/notes')}
     <div class="notes-grid-widget">${items}</div>
   </div>`;
@@ -558,7 +788,7 @@ function renderPinnedNotes(notes) {
 function renderFamilyWidget(users) {
   const visible = users.slice(0, 6);
   const avatars = visible.map((u) => `
-    <span class="family-widget-avatar" style="background:${esc(u.avatar_color || '#64748b')}" title="${esc(u.display_name)}">
+    <span class="family-widget-avatar" style="background:${esc(u.avatar_color || AVATAR_FALLBACK_COLOR)};color:${getReadableTextColor(u.avatar_color || AVATAR_FALLBACK_COLOR)}" title="${esc(u.display_name)}">
       ${u.avatar_data ? `<img src="${esc(u.avatar_data)}" alt="${esc(u.display_name)}" loading="lazy">` : esc(initials(u.display_name))}
     </span>
   `).join('');
@@ -573,6 +803,32 @@ function renderFamilyWidget(users) {
   </div>`;
 }
 
+// Sparziel-Fortschritt statt bloßer Sparquote, sobald ein Budgetplan-Sparziel
+// gesetzt ist (#468). Ohne Ziel bleibt die bekannte Sparquoten-Zeile.
+function renderBudgetSavings(budget, balance, income, savingsRate) {
+  const goal = budget?.savingsGoal;
+  if (goal && goal > 0) {
+    const pct = Math.max(0, Math.min(100, Math.round((balance / goal) * 100)));
+    const met = balance >= goal;
+    const tone = met ? 'positive' : (balance < 0 ? 'negative' : 'neutral');
+    return `
+      <div class="budget-widget__goal">
+        <div class="budget-widget__goal-head">
+          <span>${t('dashboard.savingsGoal')}</span>
+          <strong class="budget-widget__goal-pct budget-widget__goal-pct--${tone}">${Math.round((balance / goal) * 100)}%</strong>
+        </div>
+        <div class="budget-widget__goal-track">
+          <div class="budget-widget__goal-fill budget-widget__goal-fill--${tone}" style="--goal-scale:${pct / 100}"></div>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="budget-widget__savings">
+      <span>${t('dashboard.savingsRate')}</span>
+      <strong>${income > 0 ? `${savingsRate}%` : '–'}</strong>
+    </div>`;
+}
+
 function renderBudgetWidget(budget, currency) {
   const income = budget?.income || 0;
   const expenses = budget?.expenses || 0;
@@ -581,6 +837,17 @@ function renderBudgetWidget(budget, currency) {
   const balanceTone = balance >= 0 ? 'positive' : 'negative';
   const hasData = (budget?.entryCount || 0) > 0;
 
+  if (!hasData) {
+    return `<div class="widget widget--budget">
+      ${widgetHeader('wallet', t('dashboard.budgetOverview'), null, '/budget')}
+      <div class="widget__empty">
+        <i data-lucide="wallet" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.noBudgetData')}</div>
+        ${emptyStateCta('/budget', t('budget.addEntryLabel'))}
+      </div>
+    </div>`;
+  }
+
   return `<div class="widget widget--budget">
     ${widgetHeader('wallet', t('dashboard.budgetOverview'), null, '/budget')}
     <div class="budget-widget">
@@ -588,69 +855,325 @@ function renderBudgetWidget(budget, currency) {
         <span>${t('dashboard.monthlyBalance')}</span>
         <strong class="budget-widget__balance budget-widget__balance--${balanceTone}">${formatCurrency(balance, currency)}</strong>
       </div>
-      <div class="budget-widget__grid">
-        <div class="budget-widget-metric budget-widget-metric--income">
+      ${renderBudgetSavings(budget, balance, income, savingsRate)}
+      <div class="budget-widget__flow">
+        <span class="budget-widget__flow-item budget-widget__flow-item--income">
           <span>${t('dashboard.monthlyIncome')}</span>
           <strong>${formatCurrency(income, currency)}</strong>
-        </div>
-        <div class="budget-widget-metric budget-widget-metric--expense">
+        </span>
+        <span class="budget-widget__flow-item budget-widget__flow-item--expense">
           <span>${t('dashboard.monthlyExpenses')}</span>
           <strong>${formatCurrency(expenses, currency)}</strong>
-        </div>
-        <div class="budget-widget-metric">
-          <span>${t('dashboard.savingsRate')}</span>
-          <strong>${income > 0 ? `${savingsRate}%` : '-'}</strong>
-        </div>
-        <div class="budget-widget-metric">
-          <span>${t('dashboard.budgetEntries')}</span>
-          <strong>${budget?.entryCount || 0}</strong>
-        </div>
+        </span>
       </div>
-      <div class="budget-widget__footer">
-        ${hasData && budget?.topExpenseCategory
-          ? `${t('dashboard.topExpense')}: <strong>${esc(budgetCategoryLabel(budget.topExpenseCategory))}</strong> · ${formatCurrency(budget.topExpenseAmount, currency)}`
-          : t('dashboard.noBudgetData')}
+      ${budget?.topExpenseCategory
+        ? `<div class="budget-widget__footer">${t('dashboard.topExpense')}: <strong>${esc(budgetCategoryLabel(budget.topExpenseCategory))}</strong> · ${formatCurrency(budget.topExpenseAmount, currency)}</div>`
+        : ''}
+    </div>
+  </div>`;
+}
+
+// --------------------------------------------------------
+// Belohnungen-Widget (Familien-Punktestand)
+// --------------------------------------------------------
+
+function renderRewardsWidget(rewards) {
+  const standings = Array.isArray(rewards?.standings) ? rewards.standings : [];
+  if (!standings.length) {
+    return `<div class="widget widget--rewards">
+      ${widgetHeader('award', t('nav.rewards'), 0, '/rewards')}
+      <div class="widget__empty">
+        <i data-lucide="award" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.noRewards')}</div>
+        ${emptyStateCta('/rewards', t('rewards.addReward'))}
+      </div>
+    </div>`;
+  }
+
+  const rows = standings.map((m, i) => {
+    const color = m.avatar_color || AVATAR_FALLBACK_COLOR;
+    const avatarInner = m.avatar_data
+      ? `<img src="${esc(m.avatar_data)}" alt="" loading="lazy">`
+      : esc(initials(m.display_name));
+    return `
+      <div class="rewards-widget-row${i === 0 ? ' rewards-widget-row--leader' : ''}" data-route="/rewards" role="button" tabindex="0">
+        <span class="rewards-widget-row__rank" aria-hidden="true">${i + 1}</span>
+        <span class="rewards-widget-row__avatar" style="background:${esc(color)};color:${getReadableTextColor(color)}">${avatarInner}</span>
+        <span class="rewards-widget-row__name">${esc(m.display_name)}</span>
+        <span class="rewards-widget-row__points"><strong>${esc(formatPoints(m.balance))}</strong> ${esc(t('rewards.pointsUnit'))}</span>
+      </div>
+    `;
+  }).join('');
+
+  const pending = Number(rewards?.pending) || 0;
+  const footer = pending > 0
+    ? `<div class="rewards-widget__footer" data-route="/rewards" role="button" tabindex="0">
+        <i data-lucide="clock" aria-hidden="true"></i>
+        <span>${t('dashboard.rewardsPending', { count: pending })}</span>
+      </div>`
+    : '';
+
+  const badge = Number(rewards?.participantCount) || standings.length;
+  return `<div class="widget widget--rewards">
+    ${widgetHeader('award', t('nav.rewards'), badge, '/rewards')}
+    <div class="widget__body">
+      <div class="rewards-widget">${rows}</div>
+      ${footer}
+    </div>
+  </div>`;
+}
+
+// --------------------------------------------------------
+// Gesundheit-Widget (heutige Medikamenten-Dosen)
+// --------------------------------------------------------
+
+function renderHealthWidget(health) {
+  if (!health?.hasMeds) {
+    return `<div class="widget widget--health">
+      ${widgetHeader('heart-pulse', t('nav.health'), null, '/health')}
+      <div class="widget__empty">
+        <i data-lucide="heart-pulse" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.healthNoMeds')}</div>
+        ${emptyStateCta('/health', t('health.meds.add'))}
+      </div>
+    </div>`;
+  }
+
+  const total = Number(health?.dosesTotal) || 0;
+  const taken = Number(health?.dosesTaken) || 0;
+  const lowStock = Number(health?.lowStockCount) || 0;
+  const pct = total > 0 ? Math.max(0, Math.min(1, taken / total)) : 0;
+  const allTaken = total > 0 && taken >= total;
+
+  const lowChip = lowStock > 0
+    ? `<div class="health-widget__refill"><i data-lucide="package" aria-hidden="true"></i><span>${t('dashboard.healthRefill', { count: lowStock })}</span></div>`
+    : '';
+
+  let main;
+  if (total === 0) {
+    main = `<div class="health-widget__none">
+      <i data-lucide="coffee" class="health-widget__none-icon" aria-hidden="true"></i>
+      <span>${t('dashboard.healthNoDosesToday')}</span>
+    </div>`;
+  } else {
+    const status = allTaken
+      ? `<div class="health-widget__status health-widget__status--done"><i data-lucide="check" aria-hidden="true"></i>${t('dashboard.healthAllTaken')}</div>`
+      : health?.nextDose
+        ? `<div class="health-widget__next">
+            <span class="health-widget__next-time">${esc(health.nextDose.time)}</span>
+            <span class="health-widget__next-name">${esc(health.nextDose.name)}</span>
+          </div>`
+        : '';
+    main = `
+      <div class="health-widget__progress">
+        <div class="health-widget__bar" role="img" aria-label="${t('dashboard.healthDosesProgress', { taken, total })}">
+          <div class="health-widget__bar-fill${allTaken ? ' health-widget__bar-fill--done' : ''}" style="--dose-scale:${pct}"></div>
+        </div>
+        <div class="health-widget__count"><strong>${taken}</strong>/${total}</div>
+      </div>
+      ${status}
+    `;
+  }
+
+  return `<div class="widget widget--health">
+    ${widgetHeader('heart-pulse', t('nav.health'), null, '/health')}
+    <div class="widget__body">
+      <div class="health-widget">${main}${lowChip}</div>
+    </div>
+  </div>`;
+}
+
+// --------------------------------------------------------
+// Zyklus-Widget (owner-only, opt-in)
+// --------------------------------------------------------
+// Strikt privat: Die Vorhersage wird client-seitig aus den nutzer-eigenen
+// /health/cycle/*-Endpunkten berechnet (siehe render()) und fließt NIE in den
+// familienweiten /dashboard-Payload. Zeigt Phase + Zyklustag (Mini-Ring) und die
+// nächste Periode als Countdown — die eine glanceable Zahl für den Alltag.
+
+const CYCLE_WIDGET_PHASE_KEYS = {
+  [PHASE.MENSTRUATION]: 'health.cycle.phase.menstruation',
+  [PHASE.FOLLICULAR]:   'health.cycle.phase.follicular',
+  [PHASE.FERTILE]:      'health.cycle.phase.fertile',
+  [PHASE.OVULATION]:    'health.cycle.phase.ovulation',
+  [PHASE.LUTEAL]:       'health.cycle.phase.luteal',
+};
+
+// Phasenfarbe für den Ring-Bogen; Follikel-/Lutealphase tragen den Modul-Akzent.
+const CYCLE_WIDGET_PHASE_COLOR = {
+  [PHASE.MENSTRUATION]: 'var(--cycle-period)',
+  [PHASE.FERTILE]:      'var(--cycle-fertile)',
+  [PHASE.OVULATION]:    'var(--cycle-ovulation)',
+};
+
+function cycleWidgetCountdown(prediction) {
+  const d = prediction.daysUntilNext;
+  if (d === 0) return t('health.cycle.status.today');
+  if (d < 0) return t('health.cycle.status.overdue', { count: Math.abs(d) });
+  return t('health.cycle.status.inDays', { count: d });
+}
+
+function renderCycleWidget(cycle) {
+  // cycle: { periods, settings } (owner-only) | null (Ladefehler) | undefined (Kachel versteckt)
+  const prediction = cycle
+    ? predictCycle(cycle.periods || [], cycle.settings || {})
+    : { hasData: false };
+
+  // Ohne Historie: Onboarding-Empty statt Fehlerkachel — führt in den Zyklus-Flow.
+  if (!prediction.hasData) {
+    return `<div class="widget widget--cycle">
+      ${widgetHeader('calendar-heart', t('health.cycle.title'), null, '/health/cycle')}
+      <div class="widget__empty">
+        <i data-lucide="calendar-heart" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('health.cycle.emptyTitle')}</div>
+        ${emptyStateCta('/health/cycle', t('health.cycle.add'))}
+      </div>
+    </div>`;
+  }
+
+  const phaseLabel = t(CYCLE_WIDGET_PHASE_KEYS[prediction.phase] || CYCLE_WIDGET_PHASE_KEYS[PHASE.FOLLICULAR]);
+  const dayText = t('health.cycle.ring.cycleDay', { day: prediction.cycleDay });
+  const countdown = cycleWidgetCountdown(prediction);
+  const phaseColor = CYCLE_WIDGET_PHASE_COLOR[prediction.phase] || 'var(--module-health)';
+
+  // Mini-Fortschrittsring: Zyklustag / Ø-Zyklus als einzelner Bogen in Phasenfarbe.
+  const R = 26;
+  const C = 2 * Math.PI * R;
+  const frac = Math.min(1, Math.max(0, prediction.cycleDay / Math.max(1, prediction.avgCycle)));
+  const lit = (frac * C).toFixed(2);
+  const gap = (C - frac * C).toFixed(2);
+
+  const ring = `
+    <svg class="cycle-widget__ring" viewBox="0 0 64 64" role="img" aria-label="${esc(`${phaseLabel} · ${dayText}`)}">
+      <circle class="cycle-widget__ring-track" cx="32" cy="32" r="${R}" fill="none" stroke-width="6" />
+      <circle class="cycle-widget__ring-arc" cx="32" cy="32" r="${R}" fill="none" stroke="${phaseColor}"
+        stroke-width="6" stroke-linecap="round" stroke-dasharray="${lit} ${gap}" transform="rotate(-90 32 32)" />
+      <text class="cycle-widget__ring-num" x="32" y="32" text-anchor="middle" dominant-baseline="central">${esc(prediction.cycleDay)}</text>
+    </svg>`;
+
+  return `<div class="widget widget--cycle">
+    ${widgetHeader('calendar-heart', t('health.cycle.title'), null, '/health/cycle')}
+    <div class="widget__body">
+      <div class="cycle-widget" data-phase="${esc(prediction.phase)}">
+        ${ring}
+        <div class="cycle-widget__info">
+          <span class="cycle-widget__phase">${esc(phaseLabel)}</span>
+          <span class="cycle-widget__next">
+            <span class="cycle-widget__next-label">${esc(t('health.cycle.status.nextPeriod'))}</span>
+            <span class="cycle-widget__countdown">${esc(countdown)}</span>
+          </span>
+          <span class="cycle-widget__date">${esc(formatDate(prediction.nextStart))}</span>
+        </div>
       </div>
     </div>
   </div>`;
 }
 
-function renderQuickAction({ route, label, icon, tone = '' }) {
-  return `
-    <button type="button" class="dashboard-action ${tone ? `dashboard-action--${tone}` : ''}" data-route="${route}" aria-label="${esc(label)}">
-      <span class="dashboard-action__icon"><i data-lucide="${icon}" aria-hidden="true"></i></span>
-      <span class="dashboard-action__label">${label}</span>
-    </button>
-  `;
+// --------------------------------------------------------
+// Haushaltshilfe-Widget (Anwesenheit + offene Zahlung)
+// --------------------------------------------------------
+
+function renderHousekeepingWidget(hk, currency) {
+  if (!hk?.configured) {
+    return `<div class="widget widget--housekeeping">
+      ${widgetHeader('paintbrush', t('nav.housekeeping'), null, '/housekeeping')}
+      <div class="widget__empty">
+        <i data-lucide="paintbrush" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.housekeepingNone')}</div>
+        ${emptyStateCta('/housekeeping', t('housekeeping.addTask'))}
+      </div>
+    </div>`;
+  }
+
+  const unpaid = Number(hk.unpaidAmount) || 0;
+  const visits = Number(hk.visitsThisMonth) || 0;
+  const present = Boolean(hk.present);
+
+  const statusBlock = present
+    ? `<div class="housekeeping-widget__status housekeeping-widget__status--present">
+        <span class="housekeeping-widget__dot" aria-hidden="true"></span>
+        <div class="housekeeping-widget__lines">
+          <div class="housekeeping-widget__state">${t('dashboard.housekeepingPresent')}</div>
+          <div class="housekeeping-widget__sub">${hk.workerName ? `${esc(hk.workerName)} · ` : ''}${hk.presentSince ? t('dashboard.housekeepingSince', { time: formatTime(new Date(hk.presentSince)) }) : ''}</div>
+        </div>
+      </div>`
+    : `<div class="housekeeping-widget__status">
+        <span class="housekeeping-widget__dot housekeeping-widget__dot--idle" aria-hidden="true"></span>
+        <div class="housekeeping-widget__lines">
+          <div class="housekeeping-widget__state">${hk.lastVisit ? t('dashboard.housekeepingLastVisit', { date: formatDate(new Date(hk.lastVisit)) }) : t('dashboard.housekeepingNoVisits')}</div>
+          <div class="housekeeping-widget__sub">${t('dashboard.housekeepingVisitsMonth', { count: visits })}</div>
+        </div>
+      </div>`;
+
+  const unpaidChip = unpaid > 0
+    ? `<div class="housekeeping-widget__unpaid"><i data-lucide="banknote" aria-hidden="true"></i><span>${t('dashboard.housekeepingUnpaid', { amount: formatCurrency(unpaid, currency) })}</span></div>`
+    : '';
+
+  return `<div class="widget widget--housekeeping">
+    ${widgetHeader('paintbrush', t('nav.housekeeping'), null, '/housekeeping')}
+    <div class="widget__body">
+      <div class="housekeeping-widget">${statusBlock}${unpaidChip}</div>
+    </div>
+  </div>`;
 }
 
-function renderTodayCard(icon, label, value, route, tone) {
+function renderTodayCard(icon, label, value, route, tone, count = null) {
+  const badge = Number.isFinite(count) && count > 0
+    ? `<span class="today-cockpit-card__count">${count}</span>`
+    : '';
   return `
     <button type="button" class="today-cockpit-card today-cockpit-card--${tone}" data-route="${route}">
       <span class="today-cockpit-card__icon"><i data-lucide="${icon}" aria-hidden="true"></i></span>
-      <span class="today-cockpit-card__label">${esc(label)}</span>
+      <span class="today-cockpit-card__label">${esc(label)}${badge}</span>
       <strong class="today-cockpit-card__value">${esc(value)}</strong>
     </button>
   `;
 }
 
-function renderTodayCockpit(data) {
+function renderTodayCockpit(data, cfg = []) {
   const highlights = buildTodayHighlights(data);
   const taskTitle = highlights.urgentTask?.title ?? t('dashboard.todayNoTasks');
   const eventTitle = highlights.nextEvent?.title ?? t('dashboard.todayNoEvents');
-  const dinnerTitle = highlights.dinner?.title ?? t('dashboard.todayNoDinner');
+  const mealLabel = MEAL_LABELS()[highlights.mealType] ?? t('dashboard.todayDinner');
+  const mealIcon = MEAL_ICONS[highlights.mealType] ?? 'utensils';
+  const mealTitle = highlights.meal?.title ?? t('dashboard.todayNoDinner');
+
+  // Kein Echo: ist das Modul-Widget einer Domäne sichtbar, entfällt seine
+  // Cockpit-Karte — jede Domäne hat genau eine Repräsentation (Cockpit ODER
+  // Widget), statt dieselbe Aufgabe/Termin doppelt zu zeigen.
+  const widgetShown = (id) => Array.isArray(cfg) && cfg.some((w) => w.id === id && w.visible);
+
+  // Leere Karten ausblenden: eine Domäne ohne Inhalt (kein Termin, keine offene
+  // Aufgabe, kein geplantes Essen …) bekommt keine Cockpit-Karte, statt einen
+  // „Nichts geplant"-Platzhalter zu zeigen. Betraf zuvor „Heute Essen", weil
+  // dessen Widget standardmäßig ausgeblendet ist und die Karte so ohne Mahlzeit
+  // sichtbar blieb.
+  const hasContent = {
+    tasks:    Boolean(highlights.urgentTask),
+    calendar: Boolean(highlights.nextEvent),
+    shopping: highlights.openShoppingCount > 0,
+    meals:    Boolean(highlights.meal),
+  };
+  const showCard = (module) => !window.yuvomi?.isModuleDisabled(module) && !widgetShown(module) && hasContent[module];
+
+  const cards = [
+    showCard('tasks')    ? renderTodayCard('check-square', t('dashboard.todayTask'),     taskTitle, '/tasks', 'task', highlights.taskCount) : '',
+    showCard('calendar') ? renderTodayCard('calendar',     t('dashboard.todayEvent'),    eventTitle, calendarEventRoute(highlights.nextEvent), 'event', highlights.eventCount) : '',
+    showCard('shopping') ? renderTodayCard('shopping-cart', t('dashboard.todayShopping'), t('dashboard.todayShoppingCount', { count: highlights.openShoppingCount }), '/shopping', 'shopping') : '',
+    showCard('meals')    ? renderTodayCard(mealIcon,        mealLabel,   mealTitle, '/meals', 'dinner') : '',
+  ].filter(Boolean);
+
+  // Deckt der Nutzer alle vier Domänen über Widgets ab, wäre das Cockpit leer —
+  // dann entfällt der ganze Abschnitt statt einer leeren Kopfzeile.
+  if (!cards.length) return '';
 
   return `
     <section class="today-cockpit" aria-labelledby="today-cockpit-title">
       <div class="today-cockpit__header">
         <h2 id="today-cockpit-title">${esc(t('dashboard.todayTitle'))}</h2>
-        <span class="today-cockpit__date">${esc(formatDate(new Date()))}</span>
       </div>
       <div class="today-cockpit__grid">
-        ${!window.oikos?.isModuleDisabled('tasks')    ? renderTodayCard('check-square',   t('dashboard.todayTask'),     taskTitle, '/tasks', 'task') : ''}
-        ${!window.oikos?.isModuleDisabled('calendar') ? renderTodayCard('calendar',        t('dashboard.todayEvent'),    eventTitle, '/calendar', 'event') : ''}
-        ${!window.oikos?.isModuleDisabled('shopping') ? renderTodayCard('shopping-cart',   t('dashboard.todayShopping'), t('dashboard.todayShoppingCount', { count: highlights.openShoppingCount }), '/shopping', 'shopping') : ''}
-        ${!window.oikos?.isModuleDisabled('meals')    ? renderTodayCard('utensils',        t('dashboard.todayDinner'),   dinnerTitle, '/meals', 'dinner') : ''}
+        ${cards.join('')}
       </div>
     </section>
   `;
@@ -660,31 +1183,20 @@ function renderTodayCockpit(data) {
 function renderDashboardOverview(user, editing = false) {
   const dateLabel = formatDate(new Date());
 
-  const actions = [
-    { route: '/tasks', label: t('nav.tasks'), icon: 'check-square', tone: 'blue' },
-    { route: '/calendar', label: t('nav.calendar'), icon: 'calendar', tone: 'violet' },
-    { route: '/shopping', label: t('nav.shopping'), icon: 'shopping-cart', tone: 'green' },
-    { route: '/notes', label: t('nav.notes'), icon: 'sticky-note', tone: 'amber' },
-  ].map(renderQuickAction).join('');
-
   return `
     <section class="dashboard-overview">
-      <div class="dashboard-overview__header">
+      <div class="dashboard-overview__header${editing ? ' dashboard-overview__header--editing' : ''}">
         <div class="dashboard-overview__heading">
           <span class="dashboard-overview__date">${dateLabel}</span>
-          <h1 class="dashboard-overview__title">${greeting(user.display_name)}</h1>
+          <h2 class="dashboard-overview__title dashboard-overview__title--${greetingPeriod()}">${greeting(user.display_name)}</h2>
         </div>
         <div class="dashboard-overview__tools">
           ${editing ? `
           <div class="dashboard-customize-toolbar" role="toolbar" aria-label="${t('dashboard.customizeTitle')}">
-            <button class="btn btn--secondary" id="dashboard-manage-widgets">
-              <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
-              ${t('dashboard.customizeManage')}
-            </button>
             <button class="btn btn--ghost" id="dashboard-customize-reset">${t('dashboard.customizeReset')}</button>
             <button class="btn btn--secondary" id="dashboard-customize-cancel">${t('common.cancel')}</button>
             <button class="btn btn--primary" id="dashboard-customize-save">${t('common.save')}</button>
-          </div>` : `<div class="dashboard-overview__actions">${actions}</div>`}
+          </div>` : ''}
           <button class="dashboard-icon-btn" id="dashboard-customize-btn"
                   aria-label="${editing ? t('dashboard.customizeExit') : t('dashboard.customize')}"
                   title="${editing ? t('dashboard.customizeExit') : t('dashboard.customize')}"
@@ -714,23 +1226,43 @@ function renderSizeMiniGridCells(size) {
   }).join('');
 }
 
-function renderWidgetCustomizeControls(w) {
-  const sizeOptions = WIDGET_SIZE_PRESETS.map(({ value: size }) => `
-    <option value="${size}" ${w.size === size ? 'selected' : ''}>${widgetSizeLabel(size)}</option>
-  `).join('');
+function renderWidgetCustomizeControls(w, index = 0, total = 1) {
+  const isFirst = index === 0;
+  const isLast = index === total - 1;
+  const activeSize = nearestPreset(w.size);
+
+  // Segmentiertes Größen-Steuerelement: vier klickbare Mini-Grid-Presets ersetzen
+  // die frühere Kombination aus dekorativem Mini-Grid + „Größe"-Label + 132px-
+  // <select> (Critique P1: doppelte Kontrolle + Overflow auf 1×1-Kacheln). Jeder
+  // Button zeigt seine Form direkt und markiert die aktive Größe.
+  const sizeButtons = WIDGET_SIZE_PRESETS.map((p) => {
+    const active = p.value === activeSize;
+    return `<button type="button" class="widget-size-btn${active ? ' widget-size-btn--active' : ''}"
+              data-widget-size-preset="${p.value}" data-widget-id="${esc(w.id)}"
+              aria-pressed="${active ? 'true' : 'false'}" aria-label="${esc(t(p.labelKey))}" title="${esc(t(p.labelKey))}">
+        ${renderSizeMiniGrid(p.value)}
+      </button>`;
+  }).join('');
 
   return `
     <div class="widget-edit-controls" data-widget-controls>
-      <button type="button" class="widget-edit-controls__handle" data-widget-drag-handle aria-label="${t('dashboard.customizeDrag')}">
+      <button type="button" class="widget-edit-controls__handle" data-widget-drag-handle
+              aria-label="${t('dashboard.customizeReorderHandle')}" aria-keyshortcuts="ArrowUp ArrowDown">
         <i data-lucide="grip-vertical" aria-hidden="true"></i>
       </button>
-      <label class="widget-edit-controls__size">
-        <span>${t('dashboard.customizeSize')}</span>
-        ${renderSizeMiniGrid(w.size)}
-        <select class="widget-edit-controls__select" data-widget-size="${esc(w.id)}" aria-label="${t('dashboard.customizeSizeFor', { widget: widgetLabel(w.id) })}">
-          ${sizeOptions}
-        </select>
-      </label>
+      <div class="widget-edit-controls__move">
+        <button type="button" class="widget-edit-controls__move-btn" data-widget-move="up" data-widget-id="${esc(w.id)}"
+                ${isFirst ? 'disabled' : ''} aria-label="${t('dashboard.customizeMoveUp')}">
+          <i data-lucide="chevron-up" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="widget-edit-controls__move-btn" data-widget-move="down" data-widget-id="${esc(w.id)}"
+                ${isLast ? 'disabled' : ''} aria-label="${t('dashboard.customizeMoveDown')}">
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="widget-edit-controls__size" role="group" aria-label="${t('dashboard.customizeSizeFor', { widget: widgetLabel(w.id) })}">
+        ${sizeButtons}
+      </div>
       <button type="button" class="widget-edit-controls__hide" data-widget-hide="${esc(w.id)}" aria-label="${t('dashboard.customizeHide', { widget: widgetLabel(w.id) })}">
         <i data-lucide="eye-off" aria-hidden="true"></i>
       </button>
@@ -738,38 +1270,83 @@ function renderWidgetCustomizeControls(w) {
   `;
 }
 
-function renderDashboardLayout(cfg, data, weather, currency, { editing = false } = {}) {
+// Wieder-Einblenden-Leiste: schließt die Einbahnstraße des Inline-Modus. Ein im
+// Edit-Modus ausgeblendetes Widget landet als Chip hier und lässt sich mit einem
+// Klick zurückholen — so ist der Inline-Editor allein vollständig (Zeigen +
+// Verstecken + Größe + Reihenfolge) und das frühere zweite Editor-Modal entfällt.
+function renderHiddenWidgetsTray(cfg) {
+  const hidden = cfg.filter((w) => !w.visible && WIDGET_IDS.includes(w.id) && isWidgetModuleEnabled(w.id));
+  if (!hidden.length) return '';
+  const chips = hidden.map((w) => `
+    <button type="button" class="widget-restore-chip" data-widget-show="${esc(w.id)}"
+            aria-label="${t('dashboard.customizeShow', { widget: widgetLabel(w.id) })}">
+      <i data-lucide="${widgetIcon(w.id)}" class="widget-restore-chip__icon" aria-hidden="true"></i>
+      <span class="widget-restore-chip__label">${widgetLabel(w.id)}</span>
+      <i data-lucide="plus" class="widget-restore-chip__add" aria-hidden="true"></i>
+    </button>`).join('');
+  return `
+    <section class="widget-restore" aria-label="${t('dashboard.customizeHiddenTitle')}">
+      <h3 class="widget-restore__title">${t('dashboard.customizeHiddenTitle')}</h3>
+      <div class="widget-restore__chips">${chips}</div>
+    </section>
+  `;
+}
+
+function renderDashboardLayout(cfg, data, weather, currency, { editing = false, visibleMealTypes = MEAL_ORDER } = {}) {
   const widgetById = {
     tasks: () => renderUrgentTasks(data.urgentTasks ?? []),
     calendar: () => renderUpcomingEvents(data.upcomingEvents ?? []),
     birthdays: () => renderUpcomingBirthdays(data.birthdays ?? []),
     budget: () => renderBudgetWidget(data.budget ?? {}, currency),
+    rewards: () => renderRewardsWidget(data.rewards ?? {}),
+    health: () => renderHealthWidget(data.health ?? {}),
+    cycle: () => renderCycleWidget(data.cycle),
+    housekeeping: () => renderHousekeepingWidget(data.housekeeping ?? {}, currency),
     family: () => renderFamilyWidget(data.users ?? []),
-    meals: () => renderTodayMeals(data.todayMeals ?? []),
+    meals: () => renderTodayMeals(data.todayMeals ?? [], visibleMealTypes),
     notes: () => renderPinnedNotes(data.pinnedNotes ?? []),
     shopping: () => renderShoppingLists(data.shoppingLists ?? []),
     weather: () => (weather ? renderWeatherWidget(weather) : ''),
   };
 
-  const MODULE_FOR_WIDGET = { tasks: 'tasks', calendar: 'calendar', shopping: 'shopping', meals: 'meals', notes: 'notes', birthdays: 'birthdays', budget: 'budget' };
   const tiles = cfg
-    .filter((w) => {
-      if (!w.visible || !widgetById[w.id]) return false;
-      const mod = MODULE_FOR_WIDGET[w.id];
-      return !mod || !window.oikos?.isModuleDisabled(mod);
-    })
-    .map((w) => {
-      const html = widgetById[w.id]();
+    .filter((w) => w.visible && widgetById[w.id] && isWidgetModuleEnabled(w.id))
+    .map((w, index, arr) => {
+      // Widget-weise Fehler-Isolation: wirft ein einzelner Renderer (kaputtes oder
+      // fehlendes Daten-Slice), fällt nur dieses Widget auf eine ruhige Inline-
+      // Fehlerkachel zurück — die übrigen Widgets und das Cockpit bleiben nutzbar,
+      // statt dass ein Payload-Defekt das ganze Grid killt (Critique P2).
+      let html;
+      try {
+        html = widgetById[w.id]();
+      } catch (err) {
+        console.error(`[dashboard] Widget "${w.id}" konnte nicht gerendert werden`, err);
+        html = renderWidgetError(w.id);
+      }
       if (!html) return '';
       return `<div class="widget-wrapper ${widgetSizeClass(w.size)} ${editing ? 'widget-wrapper--editing' : ''}"
                    data-widget-id="${esc(w.id)}" ${editing ? 'draggable="true"' : ''}>
-        ${editing ? renderWidgetCustomizeControls(w) : ''}
+        ${editing ? renderWidgetCustomizeControls(w, index, arr.length) : ''}
         ${html}
       </div>`;
     })
     .join('');
 
-  return `<div class="dashboard__grid ${editing ? 'dashboard__grid--editing' : ''}" id="dashboard-widget-grid">${tiles}</div>`;
+  // Alle Widgets ausgeblendet: kein toter Screen, sondern ein Hinweis zurück
+  // in die Anpassung (das Cockpit oben bleibt als Orientierung erhalten).
+  const gridInner = tiles || `
+    <div class="dashboard-empty-grid">
+      <i data-lucide="layout-dashboard" class="empty-state__icon" aria-hidden="true"></i>
+      <p>${t('dashboard.allWidgetsHidden')}</p>
+    </div>
+  `;
+  // Beim Bearbeiten und bei bewusst umsortierten Layouts die Quellordnung bewahren
+  // (kein dense-Umpacken); der Autor-Default darf dicht packen.
+  const preserveOrder = (editing || isUserOrderedConfig(cfg)) ? ' dashboard__grid--preserve-order' : '';
+  const grid = `<div class="dashboard__grid ${editing ? 'dashboard__grid--editing' : ''}${preserveOrder}" id="dashboard-widget-grid">${gridInner}</div>`;
+  // Im Bearbeiten-Modus folgt die Wieder-Einblenden-Leiste dem Grid, damit
+  // ausgeblendete Widgets nicht in einer Sackgasse verschwinden.
+  return editing ? `${grid}${renderHiddenWidgetsTray(cfg)}` : grid;
 }
 
 function renderDashboardSkeleton() {
@@ -790,12 +1367,65 @@ function renderDashboardSkeleton() {
   `;
 }
 
+// Distinkter Fehlerzustand: verhindert, dass ein Ladefehler wie ein ruhiger,
+// leerer Tag aussieht (falsch beruhigend). Bietet einen Retry, der neu lädt.
+// Die Meldung unterscheidet Sitzungsablauf (401/403) und Serverfehler (5xx)
+// von einem generischen Verbindungsproblem — Retry hilft nicht überall gleich.
+function renderDashboardError(status = null) {
+  const messageKey = status === 401 || status === 403
+    ? 'dashboard.loadErrorSession'
+    : (typeof status === 'number' && status >= 500)
+      ? 'dashboard.loadErrorServer'
+      : 'dashboard.loadError';
+  return `
+    <div class="dashboard-error" role="alert">
+      <i data-lucide="cloud-off" class="dashboard-error__icon" aria-hidden="true"></i>
+      <p class="dashboard-error__text">${t(messageKey)}</p>
+      <button type="button" class="btn btn--secondary" id="dashboard-retry">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i>
+        ${t('common.retry')}
+      </button>
+    </div>
+  `;
+}
+
+// Inline-Fehlerkachel für ein einzelnes Widget (siehe Fehler-Isolation in
+// renderDashboardLayout). Nutzt die vorhandene .widget/.widget__empty-Grammatik,
+// damit sie sich ruhig einreiht statt wie ein Systemfehler zu schreien.
+function renderWidgetError(id) {
+  return `<div class="widget widget--error" role="alert">
+    <div class="widget__header">
+      <span class="widget__title">
+        <i data-lucide="${widgetIcon(id)}" class="widget__title-icon" aria-hidden="true"></i>
+        ${widgetLabel(id)}
+      </span>
+    </div>
+    <div class="widget__empty">
+      <i data-lucide="cloud-off" class="empty-state__icon" aria-hidden="true"></i>
+      <div>${t('dashboard.widgetError')}</div>
+      <button type="button" class="btn btn--secondary widget__retry" data-widget-retry="${esc(id)}">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i>
+        ${t('common.retry')}
+      </button>
+    </div>
+  </div>`;
+}
+
 // --------------------------------------------------------
 // Shopping-Widget
 // --------------------------------------------------------
 
 function renderShoppingLists(lists) {
-  if (!lists.length) return '';
+  if (!lists.length) {
+    return `<div class="widget widget--shopping">
+      ${widgetHeader('shopping-cart', t('nav.shopping'), 0, '/shopping')}
+      <div class="widget__empty">
+        <i data-lucide="shopping-cart" class="empty-state__icon" aria-hidden="true"></i>
+        <div>${t('dashboard.noShoppingLists')}</div>
+        ${emptyStateCta('/shopping', t('shopping.newListButton'))}
+      </div>
+    </div>`;
+  }
 
   const totalOpen = lists.reduce((sum, l) => sum + l.open_count, 0);
 
@@ -821,7 +1451,7 @@ function renderShoppingLists(lists) {
           <span class="shopping-widget-list__count">${list.total_count - list.open_count}/${list.total_count}</span>
         </div>
         <div class="shopping-widget-list__progress">
-          <div class="shopping-widget-list__bar" style="width:${progress}%"></div>
+          <div class="shopping-widget-list__bar" style="--progress-scale:${progress / 100}"></div>
         </div>
         <div class="shopping-widget-list__items">
           ${itemsHtml}
@@ -914,13 +1544,13 @@ const FAB_ACTIONS = () => [
 
 function renderFab() {
   const actionsHtml = FAB_ACTIONS().map((a) => `
-    <div class="fab-action" data-route="${a.route}" role="button" tabindex="-1"
-         aria-label="${a.label}">
+    <button type="button" class="fab-action" data-route="${a.route}" tabindex="-1"
+            aria-label="${a.label}">
       <span class="fab-action__label">${a.label}</span>
-      <button class="fab-action__btn" tabindex="-1" aria-hidden="true">
+      <span class="fab-action__btn" aria-hidden="true">
         <i data-lucide="${a.icon}" aria-hidden="true"></i>
-      </button>
-    </div>
+      </span>
+    </button>
   `).join('');
 
   return `
@@ -959,7 +1589,7 @@ function initFab(container, signal) {
     fabActions.classList.toggle('fab-actions--visible', open);
     fabActions.setAttribute('aria-hidden', String(!open));
     fabBackdrop?.classList.toggle('fab-backdrop--visible', open);
-    fabActions.querySelectorAll('[role="button"]').forEach((el) => {
+    fabActions.querySelectorAll('.fab-action').forEach((el) => {
       el.tabIndex = open ? 0 : -1;
     });
     if (window.lucide) window.lucide.createIcons({ el: container });
@@ -970,7 +1600,7 @@ function initFab(container, signal) {
   fabActions.querySelectorAll('[data-route]').forEach((el) => {
     const go = async () => {
       toggleFab(false);
-      await window.oikos.navigate(el.dataset.route);
+      await window.yuvomi.navigate(el.dataset.route);
       const btnSelector = FAB_NEW_BTN[el.dataset.route];
       if (btnSelector) document.querySelector(btnSelector)?.click();
     };
@@ -981,172 +1611,6 @@ function initFab(container, signal) {
   });
 
   document.addEventListener('click', () => { if (open) toggleFab(false); }, { signal });
-}
-
-// --------------------------------------------------------
-// Customize-Modal
-// --------------------------------------------------------
-
-function openCustomizeModal(currentConfig, onSave) {
-  let draft = currentConfig.map((w) => ({ ...w }));
-
-  function buildRows() {
-    return draft.map((w, i) => {
-      const isFirst = i === 0;
-      const isLast  = i === draft.length - 1;
-      const sizeOptions = WIDGET_SIZE_OPTIONS.map((size) => `
-        <option value="${size}" ${w.size === size ? 'selected' : ''}>${widgetSizeLabel(size)}</option>
-      `).join('');
-      return `
-        <div class="customize-row" data-id="${esc(w.id)}" style="view-transition-name: widget-row-${esc(w.id)}">
-          <label class="customize-row__toggle">
-            <input type="checkbox" class="customize-row__check" data-id="${w.id}"
-                   ${w.visible ? 'checked' : ''} aria-label="${widgetLabel(w.id)}">
-            <span class="customize-row__slider" aria-hidden="true"></span>
-          </label>
-          <i data-lucide="${widgetIcon(w.id)}" class="customize-row__icon" aria-hidden="true"></i>
-          <span class="customize-row__name">${widgetLabel(w.id)}</span>
-          <label class="customize-row__size">
-            <span>${t('dashboard.customizeSize')}</span>
-            ${renderSizeMiniGrid(w.size)}
-            <select class="form-input customize-row__select" data-size-id="${esc(w.id)}" aria-label="${t('dashboard.customizeSizeFor', { widget: widgetLabel(w.id) })}">
-              ${sizeOptions}
-            </select>
-          </label>
-          <div class="customize-row__actions">
-            <button class="customize-row__btn" data-move="up" data-id="${w.id}"
-                    ${isFirst ? 'disabled' : ''} aria-label="${t('dashboard.customizeMoveUp')}">
-              <i data-lucide="chevron-up" class="icon-md" aria-hidden="true"></i>
-            </button>
-            <button class="customize-row__btn" data-move="down" data-id="${w.id}"
-                    ${isLast ? 'disabled' : ''} aria-label="${t('dashboard.customizeMoveDown')}">
-              <i data-lucide="chevron-down" class="icon-md" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  openModal({
-    title:  t('dashboard.customizeTitle'),
-    size:   'sm',
-    content: `
-      <div class="customize-list" id="customize-list">${buildRows()}</div>
-      <div class="modal-actions" style="margin-top:var(--space-4)">
-        <button type="button" class="btn btn--ghost" id="customize-reset">${t('dashboard.customizeReset')}</button>
-        <button type="button" class="btn btn--primary" id="customize-save">${t('common.save')}</button>
-      </div>`,
-    onSave(panel) {
-      if (window.lucide) window.lucide.createIcons({ el: panel });
-
-      function rebuildList() {
-        const list = panel.querySelector('#customize-list');
-        if (!list) return;
-        const doRebuild = () => {
-          list.replaceChildren();
-          list.insertAdjacentHTML('beforeend', buildRows());
-          if (window.lucide) window.lucide.createIcons({ el: list });
-          wireRows();
-        };
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (document.startViewTransition && !reducedMotion) {
-          document.startViewTransition(doRebuild);
-        } else {
-          doRebuild();
-        }
-      }
-
-      function wireRows() {
-        const list = panel.querySelector('#customize-list');
-        if (!list) return;
-
-        list.querySelectorAll('.customize-row__check').forEach((cb) => {
-          cb.addEventListener('change', () => {
-            const id = cb.dataset.id;
-            const entry = draft.find((w) => w.id === id);
-            if (entry) entry.visible = cb.checked;
-          });
-        });
-
-        list.querySelectorAll('[data-move]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const id  = btn.dataset.id;
-            const dir = btn.dataset.move;
-            const idx = draft.findIndex((w) => w.id === id);
-            if (dir === 'up' && idx > 0) {
-              [draft[idx - 1], draft[idx]] = [draft[idx], draft[idx - 1]];
-            } else if (dir === 'down' && idx < draft.length - 1) {
-              [draft[idx], draft[idx + 1]] = [draft[idx + 1], draft[idx]];
-            }
-            draft.forEach((w, i) => { w.order = i; });
-            rebuildList();
-          });
-        });
-
-        list.querySelectorAll('[data-size-id]').forEach((select) => {
-          select.addEventListener('change', () => {
-            const entry = draft.find((w) => w.id === select.dataset.sizeId);
-            if (!entry || !WIDGET_SIZE_OPTIONS.includes(select.value)) return;
-            entry.size = select.value;
-            const mini = select.closest('.customize-row__size')?.querySelector('.widget-size-mini');
-            if (mini) {
-              mini.replaceChildren();
-              mini.insertAdjacentHTML('afterbegin', renderSizeMiniGridCells(select.value));
-            }
-          });
-        });
-
-        list.querySelectorAll('.customize-row').forEach((row, idx) => {
-          row.setAttribute('draggable', 'true');
-          row.addEventListener('dragstart', (e) => {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', String(idx));
-            row.classList.add('customize-row--dragging');
-          });
-          row.addEventListener('dragend', () => row.classList.remove('customize-row--dragging'));
-          row.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            row.classList.add('customize-row--over');
-          });
-          row.addEventListener('dragleave', () => row.classList.remove('customize-row--over'));
-          row.addEventListener('drop', (e) => {
-            e.preventDefault();
-            row.classList.remove('customize-row--over');
-            const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
-            if (fromIdx === idx) return;
-            const [moved] = draft.splice(fromIdx, 1);
-            draft.splice(idx, 0, moved);
-            draft.forEach((w, i) => { w.order = i; });
-            rebuildList();
-          });
-        });
-      }
-
-      wireRows();
-
-      panel.querySelector('#customize-reset')?.addEventListener('click', () => {
-        draft = DEFAULT_WIDGET_CONFIG.map((w) => ({ ...w }));
-        rebuildList();
-      });
-
-      panel.querySelector('#customize-save')?.addEventListener('click', async () => {
-        const saveBtn = panel.querySelector('#customize-save');
-        saveBtn.disabled = true;
-        try {
-          await api.put('/preferences', { dashboard_widgets: draft });
-          closeModal({ force: true });
-          onSave(draft);
-          window.oikos?.showToast(t('dashboard.customizeSaved'), 'success', 1500);
-        } catch {
-          window.oikos?.showToast(t('common.errorGeneric'), 'error');
-        } finally {
-          saveBtn.disabled = false;
-        }
-      });
-    },
-  });
 }
 
 // --------------------------------------------------------
@@ -1174,15 +1638,15 @@ function openTaskQuickAction(taskId, taskTitle, rerender) {
         try {
           await api.patch(`/tasks/${taskId}/status`, { status: 'done' });
           closeModal({ force: true });
-          window.oikos?.showToast(t('tasks.swipedDoneToast'), 'success');
+          window.yuvomi?.showToast(t('tasks.swipedDoneToast'), 'success');
           rerender();
         } catch (err) {
-          window.oikos?.showToast(err.message, 'danger');
+          window.yuvomi?.showToast(err.message, 'danger');
         }
       });
       panel.querySelector('[data-action="edit"]').addEventListener('click', () => {
         closeModal({ force: true });
-        window.oikos.navigate(`/tasks?open=${taskId}`);
+        window.yuvomi.navigate(`/tasks?open=${taskId}`);
       });
     },
   });
@@ -1196,7 +1660,7 @@ function wireLinks(container, rerender, { editing = false } = {}) {
   container.querySelectorAll('[data-route]').forEach((el) => {
     if (el.id === 'fab-main' || el.closest('#fab-actions')) return;
     if (editing && el.closest('.widget-wrapper--editing')) return;
-    const go = () => window.oikos.navigate(el.dataset.route);
+    const go = () => window.yuvomi.navigate(el.dataset.route);
     if (el.tagName === 'A') {
       el.addEventListener('click', (e) => { e.preventDefault(); go(); });
     } else {
@@ -1268,6 +1732,28 @@ function updateWidgetConfig(config, id, patch) {
 // Haupt-Render
 // --------------------------------------------------------
 
+// Dependencies injiziert, damit die Funktion ohne DOM/`navigator`-Globals testbar ist.
+export async function maybeUpdateAutoLocation({ autoLocateEnabled, geolocation, putPreferences }) {
+  if (!autoLocateEnabled || !geolocation) return false;
+  try {
+    const position = await new Promise((resolve, reject) => {
+      geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 });
+    });
+    await putPreferences({
+      weather_user: {
+        lat: position.coords.latitude.toFixed(4),
+        lon: position.coords.longitude.toFixed(4),
+        // Stadt-Label gehört zu den alten Koordinaten — Override löschen, damit das Widget
+        // auf die "lat, lon"-Anzeige zurückfällt statt einen veralteten Namen zu zeigen.
+        city: null,
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function render(container, { user }) {
   _fabController?.abort();
   _fabController = new AbortController();
@@ -1282,12 +1768,16 @@ export async function render(container, { user }) {
     ${renderFab()}
   `);
 
-  let data         = { upcomingEvents: [], urgentTasks: [], todayMeals: [], pinnedNotes: [], shoppingLists: [], birthdays: [], users: [], budget: {} };
+  let data         = { upcomingEvents: [], urgentTasks: [], todayMeals: [], pinnedNotes: [], shoppingLists: [], birthdays: [], users: [], budget: {}, rewards: {}, health: {}, housekeeping: {} };
   let weather      = null;
+  let weatherAutoLocate = false;
   let widgetConfig = DEFAULT_WIDGET_CONFIG;
   let savedWidgetConfig = DEFAULT_WIDGET_CONFIG;
   let isCustomizing = false;
   let currency     = 'EUR';
+  let visibleMealTypes = MEAL_ORDER;
+  let loadFailed   = false;
+  let loadErrorStatus = null;
   try {
     const [dashRes, weatherRes, prefsRes] = await Promise.all([
       api.get('/dashboard'),
@@ -1296,25 +1786,80 @@ export async function render(container, { user }) {
     ]);
     data         = dashRes;
     weather      = weatherRes.data ?? null;
+    weatherAutoLocate = Boolean(prefsRes.data?.weather_user?.auto_locate ?? prefsRes.data?.weather_auto_locate);
     widgetConfig = normalizeDashboardConfig(prefsRes.data?.dashboard_widgets ?? DEFAULT_WIDGET_CONFIG);
     savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
     currency     = prefsRes.data?.currency ?? 'EUR';
+    visibleMealTypes = normalizeVisibleMealTypes(prefsRes.data?.visible_meal_types);
   } catch (err) {
     console.error('[Dashboard] Ladefehler:', err.message, 'Status:', err.status ?? 'network');
-    window.oikos?.showToast(t('dashboard.loadError'), 'warning');
+    loadFailed = true;
+    loadErrorStatus = Number.isFinite(err?.status) ? err.status : null;
+  }
+
+  // Zyklus-Slice strikt owner-only nachladen: Zyklusdaten sind privat und dürfen
+  // nicht in den familienweiten /dashboard-Payload. Genau einmal (data.cycle bleibt
+  // sonst undefined = „noch nie geladen"). Ein Fehler lässt die Kachel auf ihren
+  // Onboarding-Empty fallen, statt das Dashboard zu kippen.
+  async function ensureCycleSlice() {
+    if (data.cycle !== undefined) return;
+    if (window.yuvomi?.isModuleDisabled('health')) return;
+    try {
+      const [periodsRes, settingsRes] = await Promise.all([
+        api.get('/health/cycle/periods'),
+        api.get('/health/cycle/settings').catch(() => ({ data: {} })),
+      ]);
+      data.cycle = { periods: periodsRes.data || [], settings: settingsRes.data || {} };
+    } catch (err) {
+      console.error('[Dashboard] Zyklus-Slice Ladefehler:', err?.message);
+      data.cycle = null;
+    }
+  }
+
+  // Nur wenn die opt-in-Kachel sichtbar ist — die Mehrheit ohne aktivierte Kachel
+  // löst keinen Request aus.
+  if (!loadFailed && widgetConfig.some((w) => w.id === 'cycle' && w.visible)) {
+    await ensureCycleSlice();
   }
 
   const rerender = () => render(container, { user });
 
+  // Einziger Persist-Pfad für Inline- UND Modal-Speichern. Legt vor dem Schreiben
+  // einen Schnappschuss an und bietet — wenn sich etwas geändert hat — im Toast ein
+  // „Rückgängig" an, das den vorherigen Stand wiederherstellt (inkl. Server).
+  async function persistWidgetConfig(nextConfig) {
+    const previousConfig = savedWidgetConfig.map((w) => ({ ...w }));
+    widgetConfig = nextConfig.map((w) => ({ ...w }));
+    await api.put('/preferences', { dashboard_widgets: widgetConfig });
+    savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
+    isCustomizing = false;
+    // Wird die Zyklus-Kachel gerade erst eingeblendet, ihren owner-only Slice
+    // nachladen — sonst zeigte sie fälschlich den Empty-State bis zum Reload.
+    if (widgetConfig.some((w) => w.id === 'cycle' && w.visible)) await ensureCycleSlice();
+    rebuildDashboard(widgetConfig);
+
+    const changed = !sameWidgetConfig(previousConfig, widgetConfig);
+    const onUndo = changed
+      ? async () => {
+          try {
+            widgetConfig = previousConfig.map((w) => ({ ...w }));
+            await api.put('/preferences', { dashboard_widgets: widgetConfig });
+            savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
+          } catch {
+            window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
+          }
+          isCustomizing = false;
+          rebuildDashboard(widgetConfig);
+        }
+      : null;
+    window.yuvomi?.showToast(t('dashboard.customizeSaved'), 'success', onUndo ? 6000 : 1500, onUndo);
+  }
+
   async function saveDashboardConfig() {
     try {
-      await api.put('/preferences', { dashboard_widgets: widgetConfig });
-      savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
-      isCustomizing = false;
-      rebuildDashboard(widgetConfig);
-      window.oikos?.showToast(t('dashboard.customizeSaved'), 'success', 1500);
+      await persistWidgetConfig(widgetConfig);
     } catch {
-      window.oikos?.showToast(t('common.errorGeneric'), 'error');
+      window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
     }
   }
 
@@ -1324,7 +1869,11 @@ export async function render(container, { user }) {
     rebuildDashboard(widgetConfig);
   }
 
-  function resetDashboardConfig() {
+  async function resetDashboardConfig() {
+    const confirmed = await confirmModal(t('dashboard.customizeResetConfirm'), {
+      confirmLabel: t('dashboard.customizeReset'),
+    });
+    if (!confirmed) return;
     widgetConfig = DEFAULT_WIDGET_CONFIG.map((w) => ({ ...w }));
     rebuildDashboard(widgetConfig);
   }
@@ -1390,10 +1939,11 @@ export async function render(container, { user }) {
       }
     });
 
-    grid.querySelectorAll('[data-widget-size]').forEach((select) => {
-      select.addEventListener('change', () => {
-        if (!WIDGET_SIZE_OPTIONS.includes(select.value)) return;
-        widgetConfig = updateWidgetConfig(widgetConfig, select.dataset.widgetSize, { size: select.value });
+    grid.querySelectorAll('[data-widget-size-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const size = btn.dataset.widgetSizePreset;
+        if (!WIDGET_SIZE_OPTIONS.includes(size)) return;
+        widgetConfig = updateWidgetConfig(widgetConfig, btn.dataset.widgetId, { size });
         rebuildDashboard(widgetConfig);
       });
     });
@@ -1404,17 +1954,92 @@ export async function render(container, { user }) {
         rebuildDashboard(widgetConfig);
       });
     });
+
+    // Wieder-Einblenden aus der Tray-Leiste (außerhalb des Grids, daher container-
+    // weit gesucht): der Gegenpart zum Ausblenden, macht den Inline-Editor komplett.
+    container.querySelectorAll('[data-widget-show]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        widgetConfig = updateWidgetConfig(widgetConfig, btn.dataset.widgetShow, { visible: true });
+        rebuildDashboard(widgetConfig);
+      });
+    });
+
+    // Reorder ohne HTML5-DnD (das feuert nicht per Finger und ist nicht per
+    // Tastatur bedienbar). Ein Pfad für drei Auslöser: Touch-Up/Down-Buttons,
+    // Desktop-Grip-Pfeiltasten und (indirekt) das Modal — alle über den Nachbarn
+    // aus der gerenderten Grid-Reihenfolge und dasselbe reorderWidgetConfig.
+    const moveWidget = (id, dir) => {
+      const wrapper = grid.querySelector(`.widget-wrapper[data-widget-id="${CSS.escape(id)}"]`);
+      const sibling = dir === 'up' ? wrapper?.previousElementSibling : wrapper?.nextElementSibling;
+      const siblingId = sibling?.dataset?.widgetId;
+      if (!id || !siblingId) return false;
+      widgetConfig = reorderWidgetConfig(widgetConfig, id, siblingId, dir === 'up' ? 'before' : 'after');
+      rebuildDashboard(widgetConfig);
+      return true;
+    };
+
+    grid.querySelectorAll('[data-widget-move]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.widgetId;
+        const dir = btn.dataset.widgetMove;
+        if (!moveWidget(id, dir)) return;
+        // Fokus dem bewegten Widget nachführen (Tastatur-Kontinuität): gleiche
+        // Richtung, sonst die noch aktive Gegenrichtung.
+        const movedWrapper = container.querySelector(`.widget-wrapper[data-widget-id="${CSS.escape(id)}"]`);
+        const sameDir = movedWrapper?.querySelector(`[data-widget-move="${dir}"]:not([disabled])`);
+        const anyMove = movedWrapper?.querySelector('[data-widget-move]:not([disabled])');
+        (sameDir ?? anyMove)?.focus();
+      });
+    });
+
+    // Desktop-Tastatur: der Grip ist ein fokussierbarer Button — Pfeil hoch/runter
+    // ordnet um. Schließt die Inline-Reorder-Lücke für Tastatur-Nutzer, ohne die
+    // schmale Edit-Leiste mit zusätzlichen Buttons zu überladen (Drag bleibt Maus).
+    grid.querySelectorAll('[data-widget-drag-handle]').forEach((handle) => {
+      handle.addEventListener('keydown', (event) => {
+        const dir = event.key === 'ArrowUp' ? 'up' : event.key === 'ArrowDown' ? 'down' : null;
+        if (!dir) return;
+        event.preventDefault();
+        const id = handle.closest('.widget-wrapper[data-widget-id]')?.dataset.widgetId;
+        if (moveWidget(id, dir)) {
+          container.querySelector(`.widget-wrapper[data-widget-id="${CSS.escape(id)}"] [data-widget-drag-handle]`)?.focus();
+        }
+      });
+    });
   }
 
   function rebuildDashboard(cfg) {
     const shell = container.querySelector('#dashboard-shell');
     if (!shell) return;
+    if (loadFailed) {
+      setHtml(shell, `
+        ${renderDashboardOverview(user, false)}
+        ${renderDashboardError(loadErrorStatus)}
+      `);
+      if (window.lucide) window.lucide.createIcons({ el: shell });
+      container.querySelector('#dashboard-retry')?.addEventListener('click', rerender, { signal: _fabController.signal });
+      return;
+    }
+    // Signature-„Heute"-Masthead: Begrüßung und Glance-Cockpit teilen sich EIN
+    // erhöhtes Material-Band (statt zweier gestapelter gerahmter Kästen). Die
+    // inneren Sections sind entrahmt; das Band trägt Rahmen/Schatten/Tönung.
+    // Fehlt das Cockpit (alle Domänen als Widgets sichtbar → kein Glance-Inhalt),
+    // kollabiert das Band per --slim auf eine schlanke Gruß-Leiste statt ein
+    // großes leeres Rechteck zu zeigen (Critique R3 P1).
+    const cockpitHtml = renderTodayCockpit(data, cfg);
+    const mastheadSlim = cockpitHtml ? '' : ' dashboard-masthead--slim';
     setHtml(shell, `
-      ${renderDashboardOverview(user, isCustomizing)}
-      ${renderTodayCockpit(data)}
-      ${renderDashboardLayout(cfg, data, weather, currency, { editing: isCustomizing })}
+      <section class="dashboard-masthead dashboard-masthead--${greetingPeriod()}${mastheadSlim}">
+        ${renderDashboardOverview(user, isCustomizing)}
+        ${cockpitHtml}
+      </section>
+      ${renderDashboardLayout(cfg, data, weather, currency, { editing: isCustomizing, visibleMealTypes })}
     `);
     wireLinks(container, rerender, { editing: isCustomizing });
+    // Retry einer isolierten Widget-Fehlerkachel: da /dashboard aggregiert lädt,
+    // ist „erneut versuchen" ein voller Neuaufbau (wie der Page-Level-Retry).
+    container.querySelectorAll('[data-widget-retry]').forEach((btn) =>
+      btn.addEventListener('click', rerender, { signal: _fabController.signal }));
     if (window.lucide) window.lucide.createIcons({ el: shell });
     wireWeatherRefresh(container, (updatedWeather) => {
       weather = updatedWeather;
@@ -1428,14 +2053,6 @@ export async function render(container, { user }) {
       }
       rebuildDashboard(widgetConfig);
     }, { signal: _fabController.signal });
-    container.querySelector('#dashboard-manage-widgets')?.addEventListener('click', () => {
-      openCustomizeModal(widgetConfig, (newConfig) => {
-        widgetConfig = normalizeDashboardConfig(newConfig);
-        savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
-        isCustomizing = false;
-        rebuildDashboard(widgetConfig);
-      });
-    }, { signal: _fabController.signal });
     container.querySelector('#dashboard-customize-save')?.addEventListener('click', saveDashboardConfig, { signal: _fabController.signal });
     container.querySelector('#dashboard-customize-cancel')?.addEventListener('click', cancelDashboardConfig, { signal: _fabController.signal });
     container.querySelector('#dashboard-customize-reset')?.addEventListener('click', resetDashboardConfig, { signal: _fabController.signal });
@@ -1444,7 +2061,16 @@ export async function render(container, { user }) {
 
   rebuildDashboard(widgetConfig);
 
-  initFab(container, _fabController.signal);
+  if (loadFailed) {
+    // Kein FAB im Fehler-Zustand: seine Schnellaktionen würden in Module
+    // navigieren, deren Daten gerade nicht geladen werden konnten — das würde
+    // dem Fehler-Banner widersprechen. Retry stellt bei Erfolg alles her.
+    container.querySelector('#fab-container')?.remove();
+    container.querySelector('#fab-backdrop')?.remove();
+  } else {
+    initFab(container, _fabController.signal);
+    wireFabAutoHide(container, _fabController.signal);
+  }
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
@@ -1452,31 +2078,48 @@ export async function render(container, { user }) {
     if (titleEl) {
       titleEl.replaceChildren();
       titleEl.insertAdjacentHTML('afterbegin', greeting(user.display_name));
+      // Gradient-Periode mit-resyncen: sonst aktualisieren sich über Mittag/18 Uhr
+      // die Worte, aber der Tageszeit-Gradient bliebe auf dem alten Fenster stehen.
+      titleEl.classList.remove(
+        'dashboard-overview__title--morning',
+        'dashboard-overview__title--day',
+        'dashboard-overview__title--evening',
+      );
+      titleEl.classList.add(`dashboard-overview__title--${greetingPeriod()}`);
     }
     const dateEl  = container.querySelector('.dashboard-overview__date');
     if (dateEl)  dateEl.textContent = formatDate(new Date());
   }, { signal: _fabController.signal });
 
-  // 30-Minuten Auto-Refresh für Wetter
+  // 30-Minuten Auto-Refresh für Wetter (inkl. optionaler Standort-Aktualisierung)
   const refreshBtn = container.querySelector('#weather-refresh-btn');
   if (refreshBtn) {
     const doAutoRefresh = async () => {
       try {
+        await maybeUpdateAutoLocation({
+          autoLocateEnabled: weatherAutoLocate,
+          geolocation: navigator.geolocation,
+          putPreferences: (body) => api.put('/preferences', body),
+        });
         const res = await api.get(`/weather?lang=${encodeURIComponent(getLocale())}`).catch(() => ({ data: null }));
         weather = res.data ?? null;
         rebuildDashboard(widgetConfig);
-      } catch { /* silently ignore */ }
+      } catch { /* Hintergrund-Timer: bewusst still — der Nutzer hat nichts
+                   angestoßen, ein Toast alle 30 Min wäre reiner Lärm. */ }
     };
     const timerId = setInterval(doAutoRefresh, 30 * 60 * 1000);
     _fabController.signal.addEventListener('abort', () => clearInterval(timerId));
+    if (weatherAutoLocate) doAutoRefresh();
   }
 
   if (!localStorage.getItem(ONBOARDING_KEY)) {
-    setTimeout(() => showOnboarding(container), 400);
+    setTimeout(() => showOnboarding(container, () => maybeHintCustomize(container)), 400);
+  } else {
+    maybeHintCustomize(container);
   }
 }
 
-export const __test = { buildTodayHighlights };
+export const __test = { buildTodayHighlights, normalizeVisibleMealTypes, renderTodayMeals, calendarEventRoute, eventOccurrenceDateKey, eventStartDate };
 
 function wireWeatherRefresh(container, onUpdated = null) {
   const refreshBtn = container.querySelector('#weather-refresh-btn');
@@ -1486,19 +2129,59 @@ function wireWeatherRefresh(container, onUpdated = null) {
     refreshBtn.classList.add('weather-widget__refresh--spinning');
     try {
       const res = await api.get(`/weather?lang=${encodeURIComponent(getLocale())}`).catch(() => ({ data: null }));
+      // Manuelle Aktion: ein Fehlschlag darf nicht still als Erfolg quittiert
+      // werden (sonst wirkt der Button tot). Kein Datensatz → Fehler-Toast.
+      if (!res.data) {
+        window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
+        return;
+      }
       const wWidget = container.querySelector('#weather-widget');
       if (wWidget) {
         const wrapper = wWidget.closest('.widget-wrapper');
         if (wrapper) {
           wrapper.querySelector('.widget')?.remove();
-          wrapper.insertAdjacentHTML('beforeend', renderWeatherWidget(res.data ?? null));
+          wrapper.insertAdjacentHTML('beforeend', renderWeatherWidget(res.data));
         }
         const newWidget = container.querySelector('#weather-widget');
         if (newWidget && window.lucide) window.lucide.createIcons({ el: newWidget });
-        onUpdated?.(res.data ?? null);
-        window.oikos?.showToast(t('dashboard.weatherUpdated'), 'success', 1500);
+        onUpdated?.(res.data);
+        window.yuvomi?.showToast(t('dashboard.weatherUpdated'), 'success', 1500);
       }
-    } catch { /* silently ignore */ }
+    } catch {
+      window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
+    } finally {
+      // Immer aufräumen, damit der Button nach jedem Ausgang wieder bedienbar
+      // ist (bei Erfolg wird das Widget ohnehin frisch gerendert).
+      refreshBtn.disabled = false;
+      refreshBtn.classList.remove('weather-widget__refresh--spinning');
+    }
   };
   refreshBtn.addEventListener('click', doWeatherRefresh, { signal: _fabController.signal });
+}
+
+// Scroll-bewusstes Ausblenden des FAB: beim Runterscrollen weicht der schwebende
+// FAB nach unten aus, damit er die „Alle"-Header-Links der Widgets nicht überdeckt
+// und ihre Klicks nicht abfängt (Critique P2, per Hit-Test belegt); beim Hochscrollen
+// (Handlungsabsicht) und nahe dem oberen Rand kommt er zurück. Offen (Speed-Dial
+// ausgeklappt) wird nie versteckt. `passive` + rAF halten das Scrollen flüssig.
+function wireFabAutoHide(container, signal) {
+  const scroller = container.closest('.app-content') || document.querySelector('.app-content');
+  const fab = container.querySelector('#fab-container');
+  if (!scroller || !fab) return;
+  let lastY = scroller.scrollTop;
+  let ticking = false;
+  scroller.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = scroller.scrollTop;
+      const isOpen = fab.querySelector('.fab-main')?.classList.contains('fab-main--open');
+      if (!isOpen) {
+        if (y < 24 || y < lastY - 4) fab.classList.remove('fab-container--hidden');
+        else if (y > lastY + 4) fab.classList.add('fab-container--hidden');
+      }
+      lastY = y;
+      ticking = false;
+    });
+  }, { passive: true, signal });
 }

@@ -25,6 +25,14 @@
   display: none;
 }
 
+/* Optionaler Modul-Titel links der Tabs (Canonical Page Head).
+ * Größe/Weight aus der u-toolbar-title-Rolle (typography.css). */
+.sub-tabs-bar__title {
+  flex-shrink: 0;
+  margin-right: var(--space-2);
+  color: var(--color-text-primary);
+}
+
 .sub-tab {
   display: inline-flex;
   align-items: center;
@@ -50,9 +58,12 @@
   transition-duration: 0.06s;
 }
 
+/* Aktiv: Akzent-Tint trägt die Modul-Identität, das Label bleibt Ink + semibold
+ * (Modul-Akzent-Text auf Hell erreicht nur ~3.5:1 — unter AA 4.5). */
 .sub-tab--active {
   background-color: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 14%, transparent);
-  color: var(--active-module-accent, var(--color-accent));
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .sub-tab__icon {

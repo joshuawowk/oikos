@@ -124,6 +124,17 @@ export const NAV_ICONS = {
     return s;
   },
 
+  // Overflow-Glyph für den „Mehr"-Tab: die nahezu universelle horizontale
+  // Ellipse liest eindeutig als „mehr/Überlauf" statt als „Apps/Dashboard"
+  // (das 3×3-Raster war mehrdeutig).
+  'more-horizontal': () => {
+    const s = makeSvg();
+    for (const cx of ['5.5', '12', '18.5']) {
+      s.appendChild(e('circle', { cx, cy: '12', r: '1.7' }));
+    }
+    return s;
+  },
+
   'shopping-cart': () => makeSvg(
     e('path', { d: 'M3 4.5h2.4L7.5 16h10.2l2-7H7' }),
     e('circle', { cx: '9',  cy: '19.2', r: '1.4' }),
@@ -144,5 +155,16 @@ export const NAV_ICONS = {
     e('path', { d: 'M21 8L12 13 3 8' }),
     e('path', { d: 'M3 8l9-5 9 5v8l-9 5-9-5z' }),
     e('path', { d: 'M12 13v9' }),
+  ),
+
+  'heart-pulse': () => makeSvg(
+    e('path', { d: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z' }),
+    e('path', { d: 'M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27' }),
+  ),
+
+  'award': () => makeSvg(
+    e('circle', { cx: '12', cy: '9', r: '5.5' }),
+    e('path', { d: 'M12 6.2l.9 1.8 2 .3-1.45 1.4.34 2L12 10.75 10.21 11.7l.34-2L9.1 8.3l2-.3z' }),
+    e('path', { d: 'M8.7 14.1 7 21l5-2.8L17 21l-1.7-6.9' }),
   ),
 };

@@ -201,6 +201,34 @@ test('API-Token anlegen und lesen', () => {
   assert(token.revoked_at === null, 'Token sollte nicht widerrufen sein');
 });
 
+test('Migration 64 legt wiederkehrende Mahlzeiten-Struktur an', () => {
+  const recurrentDb = new DatabaseSync(':memory:');
+  recurrentDb.exec('PRAGMA foreign_keys = ON;');
+  recurrentDb.exec(MIGRATIONS_SQL[1]);
+  recurrentDb.exec(MIGRATIONS_SQL[13]);
+  recurrentDb.exec(MIGRATIONS_SQL[64]);
+
+  for (const table of ['meal_recurrence_templates', 'meal_recurrence_ingredients', 'meal_recurrence_exceptions']) {
+    const row = recurrentDb.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
+    ).get(table);
+    assert(row, `Tabelle "${table}" nicht gefunden`);
+  }
+
+  const recurrenceColumn = recurrentDb.prepare(`
+    SELECT name FROM pragma_table_info('meals')
+    WHERE name = 'recurrence_template_id'
+  `).get();
+  assert(recurrenceColumn, 'Spalte recurrence_template_id fehlt');
+
+  const uniqueIndex = recurrentDb.prepare(`
+    SELECT name FROM sqlite_master
+    WHERE type='index' AND name='idx_meals_recurrence_occurrence'
+  `).get();
+  assert(uniqueIndex, 'Unique-Index für wiederkehrende Vorkommen fehlt');
+  recurrentDb.close();
+});
+
 test('Geburtstag mit Kalender-Referenz anlegen', () => {
   const event = db.prepare(`
     INSERT INTO calendar_events (title, start_datetime, all_day, created_by, recurrence_rule)

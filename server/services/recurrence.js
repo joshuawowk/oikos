@@ -111,4 +111,23 @@ function nextOccurrence(baseDateStr, rrule) {
   return next.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-export { parseRRule, nextOccurrence };
+/**
+ * Wie nextOccurrence, überspringt aber alle Vorkommen vor `notBeforeStr`, bis das
+ * erste Vorkommen >= notBeforeStr gefunden ist (Aufholen übersprungener Serien).
+ * Gibt null zurück, wenn die Serie (UNTIL) vorher endet oder kein Basisdatum existiert.
+ * @param {string} baseDateStr  - ISO-Datums-String (YYYY-MM-DD)
+ * @param {string} rrule        - RRULE-String
+ * @param {string} notBeforeStr - Untere Schranke (YYYY-MM-DD); Ergebnis ist >= dieser
+ * @returns {string|null}       - Nächstes zukünftiges Datum als YYYY-MM-DD oder null
+ */
+function nextOccurrenceAfter(baseDateStr, rrule, notBeforeStr) {
+  let current = nextOccurrence(baseDateStr, rrule);
+  // Vergleich per lexikografischem YYYY-MM-DD-String (Format ist fix, daher sicher).
+  let guard = 0;
+  while (current && notBeforeStr && current < notBeforeStr && guard++ < 1000) {
+    current = nextOccurrence(current, rrule);
+  }
+  return current;
+}
+
+export { parseRRule, nextOccurrence, nextOccurrenceAfter };

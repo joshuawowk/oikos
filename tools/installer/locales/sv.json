@@ -7,7 +7,10 @@
     "generating": "…",
     "optional": "Valfritt",
     "stepCounter": "Steg {{n}} av {{total}}",
-    "toggleVisibility": "Visa eller dölj värdet"
+    "toggleVisibility": "Visa eller dölj värdet",
+    "copy": "Kopiera",
+    "copied": "Kopierat ✓",
+    "language": "Språk"
   },
   "config": {
     "title": "Grundkonfiguration",
@@ -28,7 +31,8 @@
     "sessionHint": "Signerar webbläsarens sessionscookies.",
     "dbLabel": "Krypteringsnyckel för databasen",
     "dbHint": "Krypterar SQLite-databasen i vila.",
-    "errBoth": "Båda nycklarna krävs."
+    "errBoth": "Båda nycklarna krävs.",
+    "dangerWarn": "Spara dessa nycklar nu. Om du förlorar dem går dina krypterade data inte att återställa — det finns ingen återställning."
   },
   "weather": {
     "title": "Väder-widget",
@@ -73,11 +77,23 @@
     "google": "Google Kalender",
     "apple": "Apple CalDAV",
     "documentWebdav": "WebDAV-dokument",
+    "documentLocal": "Lokala dokument",
     "save": "Spara och starta Docker",
     "saving": "Sparar …",
     "errSave": "Det gick inte att spara .env.",
     "weatherEnabled": "aktiverat ({{city}})",
-    "configured": "konfigurerat"
+    "configured": "konfigurerat",
+    "finalNote": "Detta skriver din .env (en befintlig säkerhetskopieras) och startar containern.",
+    "confirm": "Klicka igen för att bekräfta",
+    "access": "Åtkomst",
+    "accessProxy": "Omvänd proxy (HTTPS)",
+    "accessDirect": "Direkt / HTTP",
+    "email": "E-post",
+    "oidc": "Enkel inloggning",
+    "backups": "Säkerhetskopior",
+    "webdavBackup": "Externa säkerhetskopior",
+    "on": "aktiverad",
+    "off": "inaktiverad"
   },
   "docker": {
     "title": "Startar Yuvomi",
@@ -110,7 +126,10 @@
   "done": {
     "title": "Yuvomi är klart!",
     "subtitle": "Din familjeplanerare körs och ditt administratörskonto är konfigurerat.",
-    "open": "Öppna Yuvomi →"
+    "open": "Öppna Yuvomi →",
+    "backupReminder": "Kom ihåg att säkerhetskopiera din .env-fil nu — den innehåller dina nycklar.",
+    "download": "Ladda ner .env-filen",
+    "savedTo": "Sparad i {{path}}"
   },
   "advanced": {
     "tag": "Avancerat · valfritt",
@@ -139,6 +158,68 @@
     "documentWebdavUsernameLabel": "Användarnamn",
     "documentWebdavPasswordLabel": "Lösenord",
     "documentWebdavPathLabel": "Bassökväg",
-    "documentWebdavPathHint": "Fjärrmapp för dokument. Lämna tomt för att använda yuvomi-documents."
+    "documentWebdavPathHint": "Fjärrmapp för dokument. Lämna tomt för att använda yuvomi-documents.",
+    "documentLocal": "Lokal dokumentlagring",
+    "documentLocalEnable": "Spara nya dokument i en lokal mapp",
+    "documentLocalPathLabel": "Mappsökväg",
+    "documentLocalPathHint": "Sökväg i containern. Lämna tomt för /documents.",
+    "sectionNetwork": "Nätverk",
+    "sectionIntegrations": "Integrationer och säkerhetskopior",
+    "errSchedule": "Ogiltigt cron-schema (fem mellanslagsseparerade fält förväntas, t.ex. 0 2 * * *).",
+    "errKeep": "Antal säkerhetskopior att behålla måste vara ett positivt tal.",
+    "webdavBackup": "Externa säkerhetskopior (WebDAV)",
+    "webdavBackupHint": "Kopierar varje säkerhetskopia till en WebDAV-server (t.ex. Nextcloud) så att den överlever ett diskfel.",
+    "webdavBackupEnable": "Skicka även säkerhetskopior till WebDAV",
+    "webdavBackupUrlLabel": "WebDAV-URL",
+    "webdavBackupUsernameLabel": "Användarnamn",
+    "webdavBackupPasswordLabel": "Lösenord",
+    "webdavBackupPathLabel": "Fjärrsökväg",
+    "sectionMore": "Fler alternativ",
+    "fixerLabel": "Fixer-API-nyckel (valutakurser i realtid)",
+    "fixerHint": "Valfritt. Konverterar prenumerationsvalutor med realtidskurser. Prenumerationer fungerar utan den.",
+    "pushSubjectLabel": "Push-kontaktadress",
+    "pushSubjectHint": "Skickas till push-tjänster som kontakt för din server. Lämna tomt för standardvärdet."
+  },
+  "welcome": {
+    "title": "Välkommen till Yuvomi",
+    "subtitle": "Nu sätter vi igång din privata familjeplanerare. Välj hur du vill konfigurera den.",
+    "simpleTitle": "Enkel installation",
+    "simpleBadge": "Rekommenderas",
+    "simpleDesc": "Vi sköter de tekniska detaljerna åt dig. Perfekt för att köra Yuvomi hemma.",
+    "simpleTime": "Ungefär 2 minuter",
+    "advancedTitle": "Avancerad installation",
+    "advancedDesc": "Full kontroll: omvänd proxy, kalendersynk, e-post, enkel inloggning och säkerhetskopior.",
+    "advancedTime": "Varje alternativ, steg för steg"
+  },
+  "simple": {
+    "title": "Klart att köra",
+    "subtitle": "Vi har förberett allt med säkra standardvärden. Skapa bara ditt konto härnäst.",
+    "itemKeysTitle": "Säkerhetsnycklar genererade",
+    "itemKeysDesc": "Din session och databas krypteras automatiskt.",
+    "itemAccessTitle": "Lokal åtkomst",
+    "itemAccessDesc": "Nås på {{url}} på den här datorn.",
+    "itemBackupsTitle": "Dagliga säkerhetskopior på",
+    "itemBackupsDesc": "En lokal säkerhetskopia sparas varje natt.",
+    "backupReminder": "Säkerhetskopiera den genererade .env-filen efter installationen — den innehåller dina enda krypteringsnycklar.",
+    "switchAdvanced": "Behöver du fler alternativ? Byt till avancerad installation",
+    "start": "Konfigurera & starta Yuvomi"
+  },
+  "email": {
+    "title": "E-post & lösenordsåterställning",
+    "subtitle": "Låt familjemedlemmar återställa ett glömt lösenord via e-post. Valfritt — hoppa över om du inte behöver det.",
+    "enable": "Aktivera e-postutskick",
+    "hint": "Använder din egen SMTP-server (e-postleverantör, självhostad eller en transaktionstjänst).",
+    "hostLabel": "SMTP-server",
+    "portLabel": "Port",
+    "secureLabel": "Kryptering",
+    "secureStarttls": "STARTTLS (port 587)",
+    "secureSsl": "SSL/TLS (port 465)",
+    "secureNone": "Ingen (rekommenderas inte)",
+    "userLabel": "Användarnamn",
+    "passLabel": "Lösenord",
+    "fromLabel": "Avsändaradress",
+    "fromHint": "Den \"från\"-adress som mottagarna ser. Många leverantörer kräver att den matchar användarnamnet.",
+    "fromNameLabel": "Avsändarnamn",
+    "errIncomplete": "SMTP-server och avsändaradress krävs."
   }
 }

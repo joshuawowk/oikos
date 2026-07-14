@@ -32,19 +32,42 @@ dedicated `podman-compose.yml` (SELinux `:Z` labels).
 
 1. Detects the container engine (Docker or Podman), checks its prerequisites, and
    reports any existing `.env` file or running `oikos` container before you start
-2. Guides you through all configuration options, grouped into steps:
-   - **Basics** — timezone (`TZ`) and HTTP host port (`OIKOS_HTTP_PORT`)
-   - **Security keys** — generates `SESSION_SECRET` and `DB_ENCRYPTION_KEY`
-   - **Optional integrations** — weather (Open-Meteo coordinates, no API key), Google Calendar, Apple CalDAV, and WebDAV document storage
-   - **Advanced** — reverse-proxy/HTTPS (`SESSION_SECURE`, `TRUST_PROXY`),
-     Single Sign-On (OIDC), and automatic backups
+2. Lets you pick a setup path on the welcome screen:
+   - **Simple setup** (recommended for non-technical users) — auto-generates the
+     security keys, applies safe localhost/HTTP defaults, and goes straight to
+     creating your admin account. Two or three clicks, no jargon.
+   - **Advanced setup** — walks every option, step by step. Security keys are
+     still pre-generated (regenerate any time), and each screen is optional:
+     - **Basics** — domain/IP, timezone (`TZ`), HTTP host port (`OIKOS_HTTP_PORT`)
+     - **Security keys** — `SESSION_SECRET` and `DB_ENCRYPTION_KEY` (pre-filled)
+     - **Weather** — Open-Meteo coordinates (no API key)
+     - **Calendar** — Google Calendar and Apple CalDAV
+     - **Email** — SMTP for the "forgot password" flow (`EMAIL_SMTP_*`,
+       `EMAIL_FROM_*`); enables password-reset emails
+     - **Advanced** — reverse-proxy/HTTPS (`SESSION_SECURE`, `TRUST_PROXY`),
+       Single Sign-On (OIDC), automatic backups, off-site WebDAV backups
+       (`WEBDAV_BACKUP_*`), local-folder or WebDAV document storage, live
+       currency rates (`FIXER_API_KEY`), and the Web-Push contact (`VAPID_SUBJECT`)
+   - Either path derives and writes `BASE_URL` from your host/port/scheme so
+     password-reset links work out of the box.
+   - A language switcher (top corner) overrides the auto-detected browser
+     language and remembers your choice.
 3. Backs up any existing `.env` to `.env.bak-<ISO>` before writing
 4. Writes `.env` to the project root (keys are allowlisted against the shared
-   env schema; values containing line breaks are rejected)
+   env schema; values containing line breaks are rejected, and values with
+   whitespace, `#`, quotes or `$` are quote-escaped so Docker Compose reads
+   them back verbatim)
 5. Starts the container (`docker compose up -d`, or `podman compose -f
    podman-compose.yml up -d` / `podman-compose -f podman-compose.yml up -d`)
 6. Polls the health endpoint until the container is ready
 7. Creates your first admin account via `POST /api/v1/auth/setup`
+8. Offers to download a copy of the written `.env` on the final screen — the
+   only backup of the encryption keys, which cannot be recovered if lost
+
+The local-folder document-storage fields are optional. Setting `DOCUMENT_STORAGE_LOCAL_ENABLED=true`
+writes new document files (including calendar attachments) to `DOCUMENT_STORAGE_LOCAL_PATH` (default
+`/documents`, a mounted host folder) instead of the database, and takes precedence over WebDAV. Mount
+that folder into the container (see `docker-compose.yml`); existing files are not migrated.
 
 The WebDAV document-storage fields are optional. Non-empty
 `DOCUMENT_STORAGE_WEBDAV_ENABLED`, `_URL`, `_USERNAME`, `_PASSWORD`, and `_PATH` values override
@@ -58,17 +81,17 @@ are restricted to public network addresses.
 
 ## Localization
 
-The wizard is fully localized into all 19 languages supported by the app and
+The wizard is fully localized into all 23 languages supported by the app and
 detects the browser language automatically (`de` is the reference locale, `en`
 the fallback). Translations live in `tools/installer/locales/*.json` and are
 loaded by `i18n-mini.js`, which mirrors the app's locale resolution.
 
 The **CLI installer** (`install.sh` at the repo root) is localized into the same
-19 languages. It detects the language from the shell environment
+23 languages. It detects the language from the shell environment
 (`OIKOS_INSTALLER_LANG` > `LC_ALL` > `LC_MESSAGES` > `LANG`) and accepts a
 `--lang <code>` override. Its strings live in `tools/installer/locales/cli/<lang>.sh`
 — one sourced shell file per language that sets `MSG_*` variables; `en.sh` is the
-fallback base, the active language overlays it. Key parity across all 18 files is
+fallback base, the active language overlays it. Key parity across all 20 files is
 enforced by `test-installer-cli-i18n.js`.
 
 ## Design
@@ -76,17 +99,23 @@ enforced by `test-installer-cli-i18n.js`.
 The wizard reuses the app's design language: shared design tokens
 (`public/styles/tokens.css`) and the Plus Jakarta Sans variable font are served
 read-only from the repo, so the installer matches the app's violet accent,
-radii, shadows, and automatic dark mode. The wizard meets WCAG 2.1 AA
+radii, shadows, and automatic dark mode. An inline fallback token block (with a
+dark-mode variant) precedes the `tokens.css` link, so the wizard stays legible
+even if that stylesheet cannot be served. The wizard meets WCAG 2.1 AA
 (keyboard-operable accordions, ARIA live regions for Docker status, focus
-management, and labelled controls).
+management, labelled controls, a `<main>` landmark, and field-level error
+identification — `aria-invalid` plus focus moved to the offending input).
 
 ## Architecture
 
-- `install-server.js` — the temporary HTTP server (port 8090). Endpoints:
+- `install-server.js` — the temporary HTTP server (port 8090), bound to
+  loopback. State-changing `POST`s are rejected (403) unless the request's Host
+  and any Origin/Referer are loopback, guarding against DNS-rebinding/CSRF while
+  the installer runs. Endpoints:
   `GET /api/defaults` (serves `ENV_SCHEMA`), `GET /api/prereqs`,
   `GET /api/preflight` (existing `.env` / running container),
-  `POST /api/generate-secret`, `POST /api/save-env`, `POST /api/start`,
-  `GET /api/status`, `POST /api/create-admin`.
+  `POST /api/generate-secret`, `POST /api/save-env` (returns the written path),
+  `POST /api/start`, `GET /api/status`, `POST /api/create-admin`.
 - `env-schema.js` — the single source of truth (`ENV_SCHEMA`) for every
   configurable variable, its group, default, and whether it is written to `.env`.
 - `i18n-mini.js` + `locales/*.json` — web-wizard localization.

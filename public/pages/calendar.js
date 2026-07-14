@@ -1,24 +1,29 @@
 /**
  * Modul: Kalender (Calendar)
  * Zweck: Monats-/Wochen-/Tages-/Agenda-Ansicht mit vollem Termin-CRUD
- * Abhängigkeiten: /api.js, /router.js (window.oikos)
+ * Abhängigkeiten: /api.js, /router.js (window.yuvomi)
  */
 
 import { api } from '/api.js';
 import { renderRRuleFields, bindRRuleEvents, getRRuleValues } from '/rrule-ui.js';
-import { openModal as openSharedModal, closeModal } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, advancedSection } from '/components/modal.js';
 import { stagger } from '/utils/ux.js';
-import { t, formatDate as formatPreferredDate, formatTime, dateInputPlaceholder, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput, timeInputPlaceholder } from '/i18n.js';
+import { t, formatDate as formatPreferredDate, formatTime, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput } from '/i18n.js';
 import { esc, fmtLocation } from '/utils/html.js';
-import { shiftEndDateKey, isEndBeforeStart } from '/utils/date.js';
+import { shiftEndDateKey, isEndBeforeStart, weekStartIndex, weekdayOrder } from '/utils/date.js';
+import { getReadableTextColor } from '/utils/color.js';
 import { refresh as refreshReminders } from '/reminders.js';
+import { parseRemindAtAsUtc } from '/utils/reminder-offset.js';
 import { renderUserMultiSelect, getSelectedUserIds, bindUserMultiSelect, renderAvatarStack } from '/components/user-multi-select.js';
+import { wireTablist } from '/utils/tablist.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
 
 // --------------------------------------------------------
 // Konstanten
 // --------------------------------------------------------
 
 const VIEWS      = ['month', 'week', 'day', 'agenda'];
+let viewTabs = null; // wireTablist-Controller der View-Umschaltung (Sync aus switchToDayView)
 const VIEW_LABELS = () => ({
   month: t('calendar.viewMonth'),
   week:  t('calendar.viewWeek'),
@@ -42,23 +47,28 @@ const MONTH_NAMES     = () => [
   t('calendar.monthOctober'), t('calendar.monthNovember'), t('calendar.monthDecember'),
 ];
 
+// Kuratierte OKLCH-Palette (gedämpfte Jewel-Töne, verankert auf dem Violett der
+// App-Identität statt der geliehenen iOS-System-Farben). Gleichmäßiger Chroma-/
+// Hue-Abstand; jede Farbe ergibt sowohl eine ruhige getönte Fläche als auch eine
+// WCAG-AA-lesbare dunkle Tinte (siehe eventSurfaceStyle + calendar.css). Konkreter
+// Hex, weil Events die Farbe als Hex in der DB speichern und color.js Luminanz rechnet.
 const EVENT_COLORS = [
-  '#007AFF', '#34C759', '#FF9500', '#FF3B30',
-  '#AF52DE', '#FF6B35', '#5AC8FA', '#FFCC00',
-  '#8E8E93', '#30B0C7',
+  '#587DCE', '#3CA368', '#E0843E', '#CE5053',
+  '#8156C0', '#DB684C', '#3E9DCA', '#D8B349',
+  '#85868B', '#279EA4',
 ];
 
 const EVENT_COLOR_NAMES = () => ({
-  '#007AFF': t('calendar.colorBlue'),
-  '#34C759': t('calendar.colorGreen'),
-  '#FF9500': t('calendar.colorOrange'),
-  '#FF3B30': t('calendar.colorRed'),
-  '#AF52DE': t('calendar.colorPurple'),
-  '#FF6B35': t('calendar.colorCoral'),
-  '#5AC8FA': t('calendar.colorSkyBlue'),
-  '#FFCC00': t('calendar.colorYellow'),
-  '#8E8E93': t('calendar.colorGray'),
-  '#30B0C7': t('calendar.colorCyan'),
+  '#587DCE': t('calendar.colorBlue'),
+  '#3CA368': t('calendar.colorGreen'),
+  '#E0843E': t('calendar.colorOrange'),
+  '#CE5053': t('calendar.colorRed'),
+  '#8156C0': t('calendar.colorPurple'),
+  '#DB684C': t('calendar.colorCoral'),
+  '#3E9DCA': t('calendar.colorSkyBlue'),
+  '#D8B349': t('calendar.colorYellow'),
+  '#85868B': t('calendar.colorGray'),
+  '#279EA4': t('calendar.colorCyan'),
 });
 
 const EVENT_ICON_ALIASES = {
@@ -208,10 +218,12 @@ const EVENT_ICONS = EVENT_ICON_CATEGORIES().flatMap((cat) => cat.icons);
 const CUSTOM_EVENT_ICONS = new Set(['tooth']);
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const ATTACHMENT_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
-const CALENDAR_VIEW_STORAGE_KEY = 'oikos:calendar:view';
-const LEGACY_CALENDAR_VIEW_STORAGE_KEY = 'oikos-calendar-view';
-const LAYER_HOLIDAYS_KEY = 'oikos:calendar:layer:holidays';
-const LAYER_SCHOOL_KEY   = 'oikos:calendar:layer:school';
+const CALENDAR_VIEW_STORAGE_KEY = 'yuvomi:calendar:view';
+const LEGACY_CALENDAR_VIEW_STORAGE_KEY = 'yuvomi-calendar-view';
+const LAYER_HOLIDAYS_KEY = 'yuvomi:calendar:layer:holidays';
+const LAYER_SCHOOL_KEY    = 'yuvomi:calendar:layer:school';
+const ASSIGNED_TO_ME_KEY  = 'yuvomi:calendar:assignedToMe';
+const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const HOUR_HEIGHT = 56; // px pro Stunde in Wochen-/Tagesansicht
 
@@ -307,22 +319,6 @@ function openIconPickerDialog(selectedIcon, onSelect, onClose = () => {}) {
   if (window.lucide) lucide.createIcons({ el: panel });
 }
 
-/**
- * Gibt eine lesbare Textfarbe für eine Hintergrundfarbe zurück.
- * Helle Hintergründe (z.B. Hellgelb, Hellgrün) → dunkles Grau statt Weiß.
- */
-function getContrastColor(hex) {
-  if (!hex || hex.length < 7) return null;
-  try {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    const lin = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-    return L > 0.30 ? '#3D3D3D' : null; // null → CSS-Standard (weiß) bleibt
-  } catch { return null; }
-}
-
 // --------------------------------------------------------
 // Farbberechnung: Assignee-Farben haben Vorrang
 // Hierarchie: Assignees → manuelle Event-Farbe → Kalenderfarbe → Grau
@@ -343,22 +339,53 @@ function resolveEventColor(ev) {
 }
 
 /**
- * Gibt einen CSS-Farbwert oder einen CSS-Gradienten zurück.
- * - Kein Assignee → manuelle Event-Farbe → Kalenderfarbe → Grau (immer einfarbig)
- * - 1 Assignee → dessen Avatar-Farbe
- * - N Assignees → diagonaler Gradient aller Avatar-Farben (135°, gleichmäßig aufgeteilt)
+ * Gibt eine einzelne CSS-Füllfarbe zurück (nie ein Gradient).
+ * Eine Farbachse: 1. erster Assignee, 2. manuelle Event-Farbe, 3. Kalenderfarbe, 4. Grau.
+ * Mehrere Zugewiesene werden über den Avatar-Stack kommuniziert, nicht über eine
+ * diagonal geteilte Füllung — die wirkte wie ein Render-Artefakt und blieb bei der
+ * zweiten Farbe ungeprüft im Kontrast.
  */
 function resolveEventBackground(ev) {
-  const assignees = ev.assigned_users ?? [];
-  if (assignees.length === 0) return ev.color || ev.cal_color || FALLBACK_COLOR;
-  if (assignees.length === 1) return assignees[0].color || FALLBACK_COLOR;
-  const colors = assignees.map((u) => u.color || FALLBACK_COLOR);
-  const step = 100 / colors.length;
-  const stops = colors.flatMap((c, i) => [
-    `${c} ${i * step}%`,
-    `${c} ${(i + 1) * step}%`,
-  ]);
-  return `linear-gradient(135deg, ${stops.join(', ')})`;
+  return resolveEventColor(ev);
+}
+
+/**
+ * Inline-Style für eine getönte Event-Fläche (Monat/Woche/Tag/Ganztägig).
+ * Setzt nur `--ev-color`; Tönung, lesbare Tinte und Kante leitet calendar.css per
+ * color-mix ab (theme-korrekt in Light & Dark, WCAG-AA für die gesamte Palette).
+ * Ersetzt die frühere vollgesättigte Füllung + getContrastColor-Textfarbe.
+ */
+function eventSurfaceStyle(ev) {
+  return `--ev-color:${esc(resolveEventColor(ev))};`;
+}
+
+/**
+ * Rendert den Avatar-Stack der Zugewiesenen für einen Termin-Chip in den
+ * Gitter-Ansichten (Monat/Woche/Tag). Die Chip-Farbe trägt bereits den ersten
+ * Assignee; der Stack liefert die Identität (Foto/Initialen), die Farbe allein
+ * nicht kommunizieren kann. Leerstring, wenn niemand zugewiesen ist.
+ */
+function chipAssigneeStack(ev, { size, maxVisible }) {
+  const users = ev.assigned_users ?? [];
+  if (!users.length) return '';
+  return `<span class="cal-chip__assigned">${renderAvatarStack(users, { size, maxVisible })}</span>`;
+}
+
+/**
+ * Textalternative der Zuweisung, z. B. „Zugewiesen an: Linda, Marco". Trägt die
+ * „Wer"-Information, die der Avatar-Stack nur visuell kommuniziert, in title-/
+ * aria-label-Attribute — damit Screenreader sie im Gitter mitbekommen.
+ * Leerstring, wenn niemand zugewiesen ist.
+ */
+function chipAssigneeLabel(ev) {
+  const names = (ev.assigned_users ?? []).map((u) => u.display_name).filter(Boolean);
+  return names.length ? `${t('calendar.assignedLabel')}: ${names.join(', ')}` : '';
+}
+
+/** Escapte ` · Zugewiesen an: …`-Ergänzung zum Anhängen an ein title-Attribut. */
+function chipAssigneeTitleSuffix(ev) {
+  const label = chipAssigneeLabel(ev);
+  return label ? ` · ${esc(label)}` : '';
 }
 
 // --------------------------------------------------------
@@ -376,11 +403,24 @@ let state = {
   rangeTo:       '',
   holidays:      [],       // cached entries from holiday_cache
   holidayPrefs:  {},       // subset of /preferences
+  weekStart:     1,        // getDay()-Index des Wochenstarts (0=So,1=Mo,6=Sa)
   documentUploadBackend: 'local',
   layerHolidays: true,     // toggle for public holiday layer
   layerSchool:   true,     // toggle for school holiday layer
+  offlineSince:  null,     // Date des letzten Cache-Stands, wenn offline bedient
+  defaultDuration: 60,     // Standard-Termindauer (Minuten) aus den Präferenzen
+  currentUserId: null,     // eigene User-ID für „Mir zugewiesen"-Filter
+  assignedToMe:  false,    // nur Termine/Aufgaben zeigen, die mir zugewiesen sind
 };
 let _container = null;
+
+// Termin-Suche (#471): datumsunabhängiges Finden über den FTS-Index. Der
+// Suchmodus blendet eine Leiste unter der Toolbar ein und ersetzt den Ansichts-
+// Body durch eine chronologische Trefferliste; Schließen stellt die Ansicht her.
+let searchActive  = false;
+let searchQuery   = '';
+let searchResults = [];
+let searchTotal   = 0;
 
 // --------------------------------------------------------
 // Datumshelfer
@@ -432,6 +472,21 @@ function localDate(str) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function validDateParam(value) {
+  return DATE_KEY_RE.test(String(value || '')) ? String(value) : '';
+}
+
+function deepLinkTargetDate(initialEvent, dateParam) {
+  return validDateParam(dateParam) || localDate(initialEvent?.start_datetime);
+}
+
+function findDeepLinkedOccurrence(events, initialEvent, targetDate) {
+  if (!initialEvent) return null;
+  return events.find(
+    (ev) => ev.id === initialEvent.id && localDate(ev.start_datetime) === targetDate
+  ) || initialEvent;
+}
+
 // Extract HH:MM in the browser's local timezone from a datetime string.
 function localTime(str) {
   if (!str || str.length <= 10) return '00:00';
@@ -451,11 +506,12 @@ function addDays(dateStr, n) {
   return isoDate(d);
 }
 
-function getMondayOf(dateStr) {
-  const d   = new Date(dateStr + 'T00:00:00');
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1 - day);
-  d.setDate(d.getDate() + diff);
+// Erster Tag der Woche, die `dateStr` enthält, gemäß haushaltweitem Wochenstart
+// (state.weekStart als getDay()-Index). Standard Montag – wie zuvor getMondayOf.
+function startOfWeekOf(dateStr, weekStart = state.weekStart) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const diff = (d.getDay() - weekStart + 7) % 7;
+  d.setDate(d.getDate() - diff);
   return isoDate(d);
 }
 
@@ -602,20 +658,6 @@ function selectedAttachmentLabel(name) {
   return t('documents.selectedFileLabel', { name: name || t('calendar.attachmentFallback') });
 }
 
-function bindDateInputs(root) {
-  root.querySelectorAll('.js-date-input').forEach((input) => {
-    input.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.length !== 1) return;
-      if (!/[\d./\-]/.test(e.key)) e.preventDefault();
-    });
-    input.addEventListener('blur', () => {
-      const parsed = parseDateInput(input.value);
-      if (parsed) input.value = formatDateInput(parsed);
-    });
-  });
-}
-
 function readDateInput(root, selector) {
   return parseDateInput(root.querySelector(selector)?.value || '');
 }
@@ -626,8 +668,8 @@ function getMonthRange(dateStr) {
   const month = d.getMonth();
   // Start des Monats, dann bis auf den Montag zurückgehen (Kalenderraster)
   const firstOfMonth = new Date(year, month, 1);
-  let startOffset = firstOfMonth.getDay() - 1; // Montag = 0
-  if (startOffset < 0) startOffset = 6;        // Sonntag → 6
+  // Bis zum gewählten Wochenstart zurückgehen (Kalenderraster).
+  const startOffset = (firstOfMonth.getDay() - state.weekStart + 7) % 7;
   const gridStart = new Date(firstOfMonth);
   gridStart.setDate(gridStart.getDate() - startOffset);
   const from = isoDate(gridStart);
@@ -637,8 +679,8 @@ function getMonthRange(dateStr) {
 }
 
 function getWeekRange(dateStr) {
-  const monday = getMondayOf(dateStr);
-  return { from: monday, to: addDays(monday, 6) };
+  const weekStart = startOfWeekOf(dateStr);
+  return { from: weekStart, to: addDays(weekStart, 6) };
 }
 
 function getAgendaRange(dateStr) {
@@ -695,13 +737,24 @@ function buildDayIndex() {
   _dayIndex.active = true;
 }
 
+/**
+ * True, wenn der „Mir zugewiesen"-Filter aus ist oder das Element der eigenen
+ * User-ID zugewiesen ist. Wird auf Termine und Kalender-Aufgaben angewandt.
+ */
+function belongsToMe(item) {
+  if (!state.assignedToMe || state.currentUserId == null) return true;
+  return (item.assigned_users ?? []).some((u) => u.id === state.currentUserId);
+}
+
 function eventsOnDay(dateStr) {
-  if (_dayIndex.active) return _dayIndex.events.get(dateStr) ?? [];
-  return state.events.filter((e) => {
-    const start = localDate(e.start_datetime);
-    const end   = e.end_datetime ? localDate(e.end_datetime) : start;
-    return start <= dateStr && end >= dateStr;
-  });
+  const list = _dayIndex.active
+    ? (_dayIndex.events.get(dateStr) ?? [])
+    : state.events.filter((e) => {
+        const start = localDate(e.start_datetime);
+        const end   = e.end_datetime ? localDate(e.end_datetime) : start;
+        return start <= dateStr && end >= dateStr;
+      });
+  return state.assignedToMe ? list.filter(belongsToMe) : list;
 }
 
 /** True, wenn Start- und Enddatum auf verschiedene Kalendertage fallen. */
@@ -745,8 +798,10 @@ function filterTasksForCalendar(tasks) {
 
 /** Tasks, die an einem bestimmten Tag fällig sind. */
 function tasksOnDay(dateStr) {
-  if (_dayIndex.active) return _dayIndex.tasks.get(dateStr) ?? [];
-  return state.tasks.filter((t) => t.due_date === dateStr);
+  const list = _dayIndex.active
+    ? (_dayIndex.tasks.get(dateStr) ?? [])
+    : state.tasks.filter((t) => t.due_date === dateStr);
+  return state.assignedToMe ? list.filter(belongsToMe) : list;
 }
 
 /** Holiday entries that overlap a given date (respects layer toggles). */
@@ -781,9 +836,10 @@ function renderTaskChip(task) {
 // --------------------------------------------------------
 
 async function loadRange(from, to) {
+  const calPath = `/calendar?from=${from}&to=${to}`;
   try {
     const [evRes, taskRes, holRes] = await Promise.all([
-      api.get(`/calendar?from=${from}&to=${to}`),
+      api.get(calPath),
       api.get('/tasks?include_future=1').catch((err) => {
         console.warn('[Calendar] Tasks-Fetch fehlgeschlagen:', err);
         return { data: [] };
@@ -793,15 +849,40 @@ async function loadRange(from, to) {
     state.events   = evRes.data;
     state.tasks    = filterTasksForCalendar(taskRes.data ?? []);
     state.holidays = holRes.data ?? [];
+    // Offline-Stand: wenn der Browser offline ist, kamen die Daten aus dem
+    // Service-Worker-Cache. Den Cache-Zeitstempel (x-cached-at) als „Stand" lesen.
+    state.offlineSince = navigator.onLine ? null : await getCachedAt(calPath);
   } catch (err) {
     console.error('[Calendar] loadRange Fehler:', err);
     state.events   = [];
     state.tasks    = [];
     state.holidays = [];
-    window.oikos?.showToast(t('calendar.loadError'), 'danger');
+    state.offlineSince = null;
+    window.yuvomi?.showToast(t('calendar.loadError'), 'danger');
   }
   state.rangeFrom = from;
   state.rangeTo   = to;
+}
+
+/**
+ * Liest den x-cached-at-Zeitstempel einer offline bedienten API-Antwort aus dem
+ * Service-Worker-API-Cache. Findet den Cache versionsunabhängig per Prefix.
+ * @returns {Promise<Date|null>}
+ */
+async function getCachedAt(path) {
+  if (typeof caches === 'undefined') return null;
+  try {
+    const names    = await caches.keys();
+    const apiCache = names.find((n) => n.startsWith('yuvomi-api-'));
+    if (!apiCache) return null;
+    const cache = await caches.open(apiCache);
+    const res   = await cache.match(`/api/v1${path}`);
+    const ts    = res?.headers.get('x-cached-at');
+    const ms    = ts ? Number(ts) : NaN;
+    return Number.isFinite(ms) ? new Date(ms) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function loadUsers() {
@@ -826,13 +907,38 @@ export async function render(container, { user }) {
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
     <div class="calendar-page" id="calendar-page">
-      <div class="page-toolbar cal-toolbar" id="cal-toolbar"></div>
+      <div class="page-toolbar page-toolbar--wrap cal-toolbar" id="cal-toolbar"></div>
       <div id="cal-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
       <button class="page-fab" id="fab-new-event" aria-label="${t('calendar.newEvent')}">
         <i data-lucide="plus" class="icon-xl" aria-hidden="true"></i>
       </button>
     </div>
   `);
+
+  // Lade-Skeleton sofort einblenden, damit der erste Frame nicht leer bleibt,
+  // während Termine/Präferenzen laden (Sichtbarkeit des Systemstatus). Wird von
+  // renderView() beim ersten Render ersetzt; aria-busy quittiert den Ladezustand.
+  const bodyEl = container.querySelector('#cal-body');
+  bodyEl.setAttribute('aria-busy', 'true');
+  bodyEl.insertAdjacentHTML('beforeend', renderSkeletonList({ rows: 6, lines: 2 }));
+
+  const params    = new URLSearchParams(window.location.search);
+  const openId    = params.get('open');
+  const dateParam = validDateParam(params.get('date'));
+  let initialEvent = null;
+  if (openId && /^\d+$/.test(openId)) {
+    try {
+      const eventRes = await api.get(`/calendar/${openId}`);
+      if (eventRes?.data) {
+        initialEvent = eventRes.data;
+        state.cursor = deepLinkTargetDate(initialEvent, dateParam);
+      } else {
+        console.warn('[Calendar] Deep-link event not found:', openId);
+      }
+    } catch (err) {
+      console.warn('[Calendar] Deep-link event load failed:', err);
+    }
+  }
 
   const { from, to } = getRangeForView(state.view, state.cursor);
   const [,, prefsRes, documentOptionsRes] = await Promise.all([
@@ -842,25 +948,44 @@ export async function render(container, { user }) {
     api.get('/documents/meta/options').catch(() => ({ data: {} })),
   ]);
   state.holidayPrefs  = prefsRes.data ?? {};
+  state.weekStart     = weekStartIndex(prefsRes.data?.week_start);
+  state.defaultDuration = Number(prefsRes.data?.calendar_default_duration) || 60;
+  // Standardwerte für neue Termine (#497/#498).
+  state.defaultReminders = Array.isArray(prefsRes.data?.calendar_default_reminders)
+    ? prefsRes.data.calendar_default_reminders.map(Number)
+    : [];
+  state.defaultAssignMe  = !!prefsRes.data?.calendar_default_assign_me;
   state.documentUploadBackend = documentOptionsRes.data?.active_upload_backend ?? 'local';
   state.layerHolidays = localStorage.getItem(LAYER_HOLIDAYS_KEY) !== 'false';
   state.layerSchool   = localStorage.getItem(LAYER_SCHOOL_KEY)   !== 'false';
+  state.currentUserId = user?.id ?? null;
+  state.assignedToMe  = localStorage.getItem(ASSIGNED_TO_ME_KEY) === '1';
 
   renderToolbar();
   renderView();
+  bodyEl.removeAttribute('aria-busy');
 
   container.querySelector('#fab-new-event')?.addEventListener('click', () => openEventModal({ mode: 'create' }));
 
-  // Deep-Link: ?open=<id> öffnet direkt das Edit-Modal
-  const openId = new URLSearchParams(window.location.search).get('open');
-  if (openId) {
-    try {
-      const [eventRes, reminder] = await Promise.all([
-        api.get(`/calendar/${openId}`),
-        loadReminderForEvent(openId),
-      ]);
-      openEventModal({ mode: 'edit', event: eventRes.data, reminder });
-    } catch { /* Event existiert nicht oder kein Zugriff */ }
+  if (initialEvent) {
+    const targetDate = deepLinkTargetDate(initialEvent, dateParam);
+    const occurrence = findDeepLinkedOccurrence(state.events, initialEvent, targetDate);
+
+    const chip =
+      container.querySelector(`[data-date="${CSS.escape(targetDate)}"] [data-id="${CSS.escape(openId)}"]`)
+      ?? container.querySelector(`[data-id="${CSS.escape(openId)}"]`);
+
+    if (chip) {
+      chip.scrollIntoView({ block: 'center', behavior: 'instant' });
+      showEventPopup(occurrence, chip);
+    } else {
+      try {
+        const reminder = await loadReminderForEvent(openId);
+        openEventModal({ mode: 'edit', event: occurrence, reminder });
+      } catch {
+        openEventModal({ mode: 'edit', event: occurrence });
+      }
+    }
   }
 }
 
@@ -901,28 +1026,41 @@ function renderToolbar() {
 
   bar.replaceChildren();
   bar.insertAdjacentHTML('beforeend', `
-    <h1 class="sr-only">${t('calendar.title')}</h1>
-    <div class="cal-toolbar__nav">
+    <h1 class="page-toolbar__title">${t('calendar.title')}</h1>
+    <div class="page-toolbar__center cal-toolbar__month">
+      <button class="cal-toolbar__today" id="cal-today">${t('calendar.today')}</button>
       <button class="btn btn--icon" id="cal-prev" aria-label="${t('calendar.back')}">
         <i data-lucide="chevron-left" aria-hidden="true"></i>
       </button>
-    </div>
-    <button class="cal-toolbar__today" id="cal-today">${t('calendar.today')}</button>
-    <span class="cal-toolbar__label" id="cal-label"></span>
-    ${holidayToggleHtml}
-    <div class="cal-toolbar__views">
-      ${VIEWS.map((v) => `
-        <button class="cal-toolbar__view-btn ${v === state.view ? 'cal-toolbar__view-btn--active' : ''}"
-                data-view="${v}">${VIEW_LABELS()[v]}</button>
-      `).join('')}
-    </div>
-    <button class="btn btn--primary btn--icon toolbar-new-btn" id="cal-add" aria-label="${t('calendar.addEvent')}"
-            style="margin-left:auto;">
-      <i data-lucide="plus" aria-hidden="true"></i>
-    </button>
-    <div class="cal-toolbar__nav">
+      <span class="cal-toolbar__label" id="cal-label"></span>
       <button class="btn btn--icon" id="cal-next" aria-label="${t('calendar.forward')}">
         <i data-lucide="chevron-right" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="page-toolbar__actions">
+      ${holidayToggleHtml}
+      ${state.users.length > 1 && state.currentUserId != null ? `
+        <button class="cal-toolbar__layer-btn cal-toolbar__mine-btn ${state.assignedToMe ? 'cal-toolbar__layer-btn--active' : ''}"
+                id="cal-assigned-me" aria-pressed="${state.assignedToMe ? 'true' : 'false'}"
+                title="${t('calendar.assignedToMe')}" style="--layer-color:var(--module-calendar)">
+          <i data-lucide="user" class="icon-sm" aria-hidden="true"></i>
+          <span>${t('calendar.assignedToMe')}</span>
+        </button>
+      ` : ''}
+      <button class="btn btn--icon cal-toolbar__search-btn" id="cal-search"
+              aria-label="${t('calendar.searchOpen')}" title="${t('calendar.searchOpen')}"
+              aria-expanded="false" aria-controls="cal-search-bar">
+        <i data-lucide="search" aria-hidden="true"></i>
+      </button>
+      <div class="cal-toolbar__views" role="tablist" aria-label="${t('nav.calendar')}">
+        ${VIEWS.map((v) => `
+          <button class="cal-toolbar__view-btn ${v === state.view ? 'cal-toolbar__view-btn--active' : ''}"
+                  role="tab" data-tab-id="${v}" aria-selected="${v === state.view ? 'true' : 'false'}"
+                  tabindex="${v === state.view ? '0' : '-1'}">${VIEW_LABELS()[v]}</button>
+        `).join('')}
+      </div>
+      <button class="btn btn--primary btn--icon toolbar-new-btn" id="cal-add" aria-label="${t('calendar.addEvent')}">
+        <i data-lucide="plus" aria-hidden="true"></i>
       </button>
     </div>
   `);
@@ -935,6 +1073,16 @@ function renderToolbar() {
   bar.querySelector('#cal-next').addEventListener('click', () => navigate(1));
   bar.querySelector('#cal-today').addEventListener('click', goToday);
   bar.querySelector('#cal-add').addEventListener('click', () => openEventModal({ mode: 'create' }));
+  bar.querySelector('#cal-search').addEventListener('click', openCalendarSearch);
+
+  bar.querySelector('#cal-assigned-me')?.addEventListener('click', (e) => {
+    state.assignedToMe = !state.assignedToMe;
+    try { localStorage.setItem(ASSIGNED_TO_ME_KEY, state.assignedToMe ? '1' : '0'); } catch {}
+    const btn = e.currentTarget;
+    btn.classList.toggle('cal-toolbar__layer-btn--active', state.assignedToMe);
+    btn.setAttribute('aria-pressed', String(state.assignedToMe));
+    renderView();
+  });
 
   bar.querySelectorAll('[data-layer]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -952,17 +1100,17 @@ function renderToolbar() {
     });
   });
 
-  bar.querySelectorAll('[data-view]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      if (btn.dataset.view === state.view) return;
-      state.view = btn.dataset.view;
-      setSavedCalendarView(state.view);
-      bar.querySelectorAll('[data-view]').forEach((b) =>
-        b.classList.toggle('cal-toolbar__view-btn--active', b.dataset.view === state.view)
-      );
+  viewTabs = wireTablist(bar.querySelector('.cal-toolbar__views'), {
+    activeId: state.view,
+    activeClass: 'cal-toolbar__view-btn--active',
+    onChange: async (view) => {
+      if (searchActive) closeCalendarSearch({ restoreView: false });
+      state.view = view;
+      setSavedCalendarView(view);
       await reloadForView();
+      updateLabel();
       renderView();
-    });
+    },
   });
 }
 
@@ -980,12 +1128,21 @@ function updateLabel() {
 }
 
 function getWeekNumber(dateStr) {
-  const d   = new Date(dateStr + 'T00:00:00');
-  const jan = new Date(d.getFullYear(), 0, 1);
-  return Math.ceil(((d - jan) / 86400000 + jan.getDay() + 1) / 7);
+  // ISO-8601: Woche 1 enthält den ersten Donnerstag des Jahres; Wochen beginnen
+  // montags. Verhindert die Off-by-one-Abweichung des naiven Jan-1-Ansatzes an
+  // Jahresgrenzen.
+  const d = new Date(dateStr + 'T00:00:00');
+  const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNr = (target.getUTCDay() + 6) % 7; // Mo=0 … So=6
+  target.setUTCDate(target.getUTCDate() - dayNr + 3); // Donnerstag dieser Woche
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
+  const firstDayNr = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNr + 3);
+  return 1 + Math.round((target - firstThursday) / (7 * 86400000));
 }
 
 async function navigate(dir) {
+  if (searchActive) closeCalendarSearch({ restoreView: false });
   if (state.view === 'month') {
     state.cursor = addMonths(state.cursor, dir);
   } else if (state.view === 'week') {
@@ -1002,6 +1159,7 @@ async function navigate(dir) {
 }
 
 async function goToday() {
+  if (searchActive) closeCalendarSearch({ restoreView: false });
   state.cursor = state.today;
   await reloadForView();
   updateLabel();
@@ -1012,9 +1170,7 @@ async function switchToDayView(date) {
   state.cursor = date;
   state.view = 'day';
   setSavedCalendarView('day');
-  _container.querySelectorAll('[data-view]').forEach((b) =>
-    b.classList.toggle('cal-toolbar__view-btn--active', b.dataset.view === 'day')
-  );
+  viewTabs?.sync('day');
   await reloadForView();
   updateLabel();
   renderView();
@@ -1031,6 +1187,38 @@ async function reloadForView() {
 // --------------------------------------------------------
 // Ansicht-Dispatcher
 // --------------------------------------------------------
+
+// Dezenter Offline-Hinweis oberhalb der Toolbar: zeigt den letzten Cache-Stand,
+// wenn der Kalender offline aus dem Service-Worker-Cache bedient wurde.
+function updateOfflineNotice() {
+  const page = _container?.querySelector('#calendar-page');
+  if (!page) return;
+  const existing = page.querySelector('#cal-offline-notice');
+
+  if (!state.offlineSince) {
+    existing?.remove();
+    return;
+  }
+
+  const stamp = `${formatPreferredDate(state.offlineSince)} ${formatTime(state.offlineSince)}`.trim();
+  const label = t('offline.staleData', { time: stamp });
+
+  if (existing) {
+    const span = existing.querySelector('.cal-offline-notice__text');
+    if (span) span.textContent = label;
+    return;
+  }
+
+  const toolbar = page.querySelector('#cal-toolbar');
+  const html = `
+    <div class="cal-offline-notice" id="cal-offline-notice" role="status">
+      <i data-lucide="cloud-off" class="icon-sm" aria-hidden="true"></i>
+      <span class="cal-offline-notice__text">${esc(label)}</span>
+    </div>`;
+  if (toolbar) toolbar.insertAdjacentHTML('beforebegin', html);
+  else page.insertAdjacentHTML('afterbegin', html);
+  if (window.lucide) lucide.createIcons({ el: page.querySelector('#cal-offline-notice') });
+}
 
 function renderView() {
   const body = _container.querySelector('#cal-body');
@@ -1049,6 +1237,7 @@ function renderView() {
     _dayIndex.active = false;
   }
   if (window.lucide) lucide.createIcons({ el: body });
+  updateOfflineNotice();
 }
 
 // --------------------------------------------------------
@@ -1062,9 +1251,8 @@ function renderMonthView(container) {
 
   // Erster Tag des Monats
   const firstDay  = new Date(year, month, 1);
-  // Montag-basiert: 0=Mo … 6=So
-  let startOffset = firstDay.getDay() - 1;
-  if (startOffset < 0) startOffset = 6;
+  // Bis zum gewählten Wochenstart zurückgehen.
+  const startOffset = (firstDay.getDay() - state.weekStart + 7) % 7;
 
   // 42 Tage anzeigen (6 Wochen)
   const startDate = new Date(firstDay);
@@ -1080,7 +1268,7 @@ function renderMonthView(container) {
   container.insertAdjacentHTML('beforeend', `
     <div class="month-view">
       <div class="month-weekdays">
-        ${[t('calendar.dayShortMonday'),t('calendar.dayShortTuesday'),t('calendar.dayShortWednesday'),t('calendar.dayShortThursday'),t('calendar.dayShortFriday'),t('calendar.dayShortSaturday'),t('calendar.dayShortSunday')].map((n) => `<div class="month-weekday">${n}</div>`).join('')}
+        ${weekdayOrder(state.weekStart).map((idx) => `<div class="month-weekday">${DAY_NAMES_SHORT()[idx]}</div>`).join('')}
       </div>
       <div class="month-grid" id="month-grid">
         ${days.map(({ date, inMonth }) => renderMonthDay(date, inMonth)).join('')}
@@ -1092,7 +1280,7 @@ function renderMonthView(container) {
     const taskChip = e.target.closest('.cal-task-chip');
     if (taskChip) {
       e.stopPropagation();
-      window.oikos.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
+      window.yuvomi.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
       return;
     }
     const evEl = e.target.closest('.month-day__event');
@@ -1124,23 +1312,19 @@ function renderMonthDay(date, inMonth) {
   const shown    = evs.slice(0, MAX_SHOW);
   const extra    = evs.length - MAX_SHOW;
 
-  const evHtml = shown.map((ev) => {
-    const bg = resolveEventBackground(ev);
-    const fg = getContrastColor(resolveEventColor(ev));
-    return `
+  const evHtml = shown.map((ev) => `
     <div class="month-day__event"
          data-id="${ev.id}"
-         style="background:${esc(bg)};${fg ? `color:${fg};` : ''}"
-         title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}"
-    >${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span>${(ev.recurrence_rule || ev.is_recurring_instance) ? calendarRepeatIconHtml() : ''}</div>
-  `;
-  }).join('');
+         style="${eventSurfaceStyle(ev)}"
+         title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}${chipAssigneeTitleSuffix(ev)}"
+    >${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span>${chipAssigneeStack(ev, { size: 15, maxVisible: 2 })}</div>
+  `).join('');
 
   const MAX_TASK_SHOW = 2;
   const taskHtml = dayTasks.slice(0, MAX_TASK_SHOW).map(renderTaskChip).join('');
 
   const holHtml = dayHols.map((h) => `
-    <div class="month-day__holiday" style="--holi-color:${esc(h.color)}" title="${esc(h.name)}">
+    <div class="month-day__holiday" style="--holi-color:${esc(h.color)};--holi-ink:${esc(getReadableTextColor(h.color))}" title="${esc(h.name)}">
       <span>${esc(h.name)}</span>
     </div>
   `).join('');
@@ -1166,8 +1350,8 @@ function renderWeekView(container) {
   const days = isMobile
     ? Array.from({ length: 3 }, (_, i) => addDays(state.cursor, i - 1))
     : (() => {
-        const monday = getMondayOf(state.cursor);
-        return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+        const weekStart = startOfWeekOf(state.cursor);
+        return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
       })();
   const colCount = days.length;
 
@@ -1199,19 +1383,15 @@ function renderWeekView(container) {
         ${days.map((d, i) => `
           <div class="allday-cell">
             ${holidaysOnDay(d).map((h) => `
-              <div class="allday-holiday" style="--holi-color:${esc(h.color)}" title="${esc(h.name)}">
+              <div class="allday-holiday" style="--holi-color:${esc(h.color)};--holi-ink:${esc(getReadableTextColor(h.color))}" title="${esc(h.name)}">
                 <span>${esc(h.name)}</span>
               </div>
             `).join('')}
-            ${alldayEvs[i].map((ev) => {
-              const bg = resolveEventBackground(ev);
-              const fg = getContrastColor(resolveEventColor(ev));
-              return `
+            ${alldayEvs[i].map((ev) => `
               <div class="allday-event" data-id="${ev.id}"
-                   style="background:${esc(bg)};${fg ? `color:${fg};` : ''}"
-                   title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span></div>
-            `;
-            }).join('')}
+                   style="${eventSurfaceStyle(ev)}"
+                   title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}${chipAssigneeTitleSuffix(ev)}">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span>${chipAssigneeStack(ev, { size: 16, maxVisible: 3 })}</div>
+            `).join('')}
             ${tasksOnDay(d).map(renderTaskChip).join('')}
           </div>
         `).join('')}
@@ -1221,7 +1401,7 @@ function renderWeekView(container) {
           <div class="week-view__times">
             ${Array.from({ length: 24 }, (_, h) => `
               <div class="week-view__time-slot" style="height:${HOUR_HEIGHT}px;">
-                <span class="week-view__time-label">${h === 0 ? '' : `${pad(h)}:00`}</span>
+                <span class="week-view__time-label">${h === 0 ? '' : formatTime(new Date(2000, 0, 1, h, 0, 0))}</span>
               </div>
             `).join('')}
           </div>
@@ -1256,13 +1436,16 @@ function renderWeekView(container) {
       return;
     }
     const col = e.target.closest('[data-date]');
-    if (col) openEventModal({ mode: 'create', date: col.dataset.date });
+    if (col) {
+      const time = clickedTime(e, col);
+      openEventModal({ mode: 'create', date: col.dataset.date, time });
+    }
   });
 
   container.querySelector('.allday-row').addEventListener('click', (e) => {
     const taskChip = e.target.closest('.cal-task-chip');
     if (taskChip) {
-      window.oikos.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
+      window.yuvomi.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
       return;
     }
     const evEl = e.target.closest('.allday-event');
@@ -1288,13 +1471,12 @@ function renderWeekEvent(ev, layout = null) {
   const height = (duration / 60) * HOUR_HEIGHT - 2;
   const left = layout ? `calc(${(layout.colIndex / layout.totalCols) * 100}% + 2px)` : '2px';
   const width = layout ? `calc(${100 / layout.totalCols}% - 4px)` : 'auto';
-  const bg = resolveEventBackground(ev);
-  const fg = getContrastColor(resolveEventColor(ev));
 
   return `
     <div class="week-event" data-id="${ev.id}"
-         style="top:${top}px;height:${height}px;left:${left};width:${width};background:${esc(bg)};${fg ? `color:${fg};` : ''}">
-      <div class="week-event__title">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span>${(ev.recurrence_rule || ev.is_recurring_instance) ? calendarRepeatIconHtml() : ''}</div>
+         style="top:${top}px;height:${height}px;left:${left};width:${width};${eventSurfaceStyle(ev)}"
+         title="${esc(ev.title)}${chipAssigneeTitleSuffix(ev)}">
+      <div class="week-event__title">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span>${(ev.recurrence_rule || ev.is_recurring_instance) ? calendarRepeatIconHtml() : ''}${chipAssigneeStack(ev, { size: 14, maxVisible: 2 })}</div>
       <div class="week-event__time">${formatTime(ev.start_datetime)}${ev.end_datetime ? '–' + formatTime(ev.end_datetime) : ''}</div>
     </div>
   `;
@@ -1306,10 +1488,35 @@ function timeToMinutes(timeStr) {
   return h * 60 + (m || 0);
 }
 
+/**
+ * Addiert eine Minutendauer auf eine Datum/Zeit-Kombination und trägt den
+ * Überlauf über Mitternacht auf das Datum über.
+ * @returns {{ date: string, time: string }} lokaler Datums-Key (YYYY-MM-DD) + HH:MM
+ */
+function addDurationToDateTime(dateKey, timeStr, minutes) {
+  const total    = timeToMinutes(timeStr) + Math.max(0, minutes);
+  const dayShift = Math.floor(total / (24 * 60));
+  const dayMins  = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
+  return {
+    date: dayShift ? addDays(dateKey, dayShift) : dateKey,
+    time: `${pad(Math.floor(dayMins / 60))}:${pad(dayMins % 60)}`,
+  };
+}
+
 function nowTop() {
   const now = new Date();
   const minutes = now.getHours() * 60 + now.getMinutes();
   return (minutes / 60) * HOUR_HEIGHT;
+}
+
+/** Berechnet die geklickte Uhrzeit (auf 30-Minuten gerundet) aus einem Click-Event
+ *  relativ zum übergebenen Spalten-Element. */
+function clickedTime(e, colEl) {
+  const rect = colEl.getBoundingClientRect();
+  const yOffset = Math.max(0, e.clientY - rect.top);
+  const totalMinutes = Math.round((yOffset / HOUR_HEIGHT) * 60 / 30) * 30;
+  const clamped = Math.min(Math.max(totalMinutes, 0), 23 * 60 + 30);
+  return `${pad(Math.floor(clamped / 60))}:${pad(clamped % 60)}`;
 }
 
 function timeRangeForEvent(ev) {
@@ -1394,18 +1601,14 @@ function renderDayView(container) {
         <div class="calendar-all-day-label">${t('calendar.allDayShort')}</div>
         <div class="allday-cell">
           ${holidaysOnDay(state.cursor).map((h) => `
-            <div class="allday-holiday" style="--holi-color:${esc(h.color)}" title="${esc(h.name)}">
+            <div class="allday-holiday" style="--holi-color:${esc(h.color)};--holi-ink:${esc(getReadableTextColor(h.color))}" title="${esc(h.name)}">
               <span>${esc(h.name)}</span>
             </div>
           `).join('')}
-          ${allday.map((ev) => {
-            const bg = resolveEventBackground(ev);
-            const fg = getContrastColor(resolveEventColor(ev));
-            return `
+          ${allday.map((ev) => `
             <div class="allday-event" data-id="${ev.id}"
-                 style="background:${esc(bg)};${fg ? `color:${fg};` : ''}"
-                 title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span></div>`;
-          }).join('')}
+                 style="${eventSurfaceStyle(ev)}"
+                 title="${esc(ev.title)}${ev.cal_name ? ' · ' + ev.cal_name : ''}${chipAssigneeTitleSuffix(ev)}">${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span>${chipAssigneeStack(ev, { size: 16, maxVisible: 3 })}</div>`).join('')}
           ${tasksOnDay(state.cursor).map(renderTaskChip).join('')}
         </div>
       </div>` : ''}
@@ -1414,7 +1617,7 @@ function renderDayView(container) {
           <div class="day-view__times">
             ${Array.from({ length: 24 }, (_, h) => `
               <div class="week-view__time-slot" style="height:${HOUR_HEIGHT}px;">
-                <span class="week-view__time-label">${h === 0 ? '' : `${pad(h)}:00`}</span>
+                <span class="week-view__time-label">${h === 0 ? '' : formatTime(new Date(2000, 0, 1, h, 0, 0))}</span>
               </div>
             `).join('')}
           </div>
@@ -1433,7 +1636,7 @@ function renderDayView(container) {
   container.querySelector('.allday-row')?.addEventListener('click', (e) => {
     const taskChip = e.target.closest('.cal-task-chip');
     if (taskChip) {
-      window.oikos.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
+      window.yuvomi.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
       return;
     }
     const evEl = e.target.closest('.allday-event');
@@ -1450,7 +1653,8 @@ function renderDayView(container) {
       if (ev) showEventPopup(ev, evEl);
       return;
     }
-    openEventModal({ mode: 'create', date: state.cursor });
+    const time = clickedTime(e, e.currentTarget);
+    openEventModal({ mode: 'create', date: state.cursor, time });
   });
 
   const scroll = container.querySelector('#day-scroll');
@@ -1476,7 +1680,11 @@ function renderAgendaView(container) {
   container.insertAdjacentHTML('beforeend', `
     <div class="agenda-view" id="agenda-view">
       ${groups.length === 0
-        ? `<div class="agenda-empty">${t('calendar.agendaEmpty')}</div>`
+        ? `<div class="empty-state">
+             <i data-lucide="calendar-plus" class="empty-state__icon" aria-hidden="true"></i>
+             <div class="empty-state__title">${t('calendar.agendaEmpty')}</div>
+             <button class="btn btn--primary empty-state__cta" id="agenda-empty-cta">${t('calendar.newEvent')}</button>
+           </div>`
         : groups.map(({ date, events, tasks, holidays }) => `
           <div class="agenda-day">
             <div class="agenda-day__header ${date === state.today ? 'agenda-day__header--today' : ''}">
@@ -1499,9 +1707,13 @@ function renderAgendaView(container) {
   stagger(container.querySelectorAll('.agenda-event'));
 
   container.querySelector('#agenda-view').addEventListener('click', (e) => {
+    if (e.target.closest('#agenda-empty-cta')) {
+      openEventModal({ mode: 'create' });
+      return;
+    }
     const taskChip = e.target.closest('.cal-task-chip');
     if (taskChip) {
-      window.oikos.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
+      window.yuvomi.navigate(`/tasks?open=${taskChip.dataset.taskId}`);
       return;
     }
     const evEl = e.target.closest('.agenda-event');
@@ -1510,6 +1722,245 @@ function renderAgendaView(container) {
       if (ev) showEventPopup(ev, evEl);
     }
   });
+
+  // Tastaturaktivierung der als role="button" ausgezeichneten Zeilen (Enter/Space).
+  container.querySelector('#agenda-view').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const evEl = e.target.closest('.agenda-event');
+    if (!evEl) return;
+    e.preventDefault();
+    const ev = state.events.find((x) => x.id === parseInt(evEl.dataset.id, 10));
+    if (ev) showEventPopup(ev, evEl);
+  });
+}
+
+// --------------------------------------------------------
+// Termin-Suche (#471)
+// Datumsunabhängiges Finden über den FTS-Index (Titel/Beschreibung/Ort).
+// Eine Leiste unter der Toolbar; der Body zeigt eine chronologische Trefferliste
+// (Vergangenheit + Zukunft) mit „Heute"-Anker. Klick öffnet den Termin im Kontext.
+// --------------------------------------------------------
+
+function openCalendarSearch() {
+  if (searchActive) {
+    _container.querySelector('#cal-search-input')?.focus();
+    return;
+  }
+  const toolbar = _container.querySelector('#cal-toolbar');
+  if (!toolbar) return;
+  searchActive  = true;
+  searchQuery   = '';
+  searchResults = [];
+
+  const toggle = _container.querySelector('#cal-search');
+  toggle?.setAttribute('aria-expanded', 'true');
+  toggle?.classList.add('cal-toolbar__search-btn--active');
+
+  toolbar.insertAdjacentHTML('afterend', `
+    <div class="cal-search" id="cal-search-bar" role="search">
+      <i data-lucide="search" class="cal-search__icon" aria-hidden="true"></i>
+      <input type="search" class="cal-search__input" id="cal-search-input"
+             placeholder="${esc(t('calendar.searchPlaceholder'))}"
+             aria-label="${esc(t('calendar.searchPlaceholder'))}"
+             autocomplete="off" enterkeyhint="search" spellcheck="false">
+      <button class="btn btn--icon cal-search__close" id="cal-search-close"
+              aria-label="${esc(t('calendar.searchClose'))}" title="${esc(t('calendar.searchClose'))}">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+      <span id="cal-search-live" class="sr-only" role="status" aria-live="polite"></span>
+    </div>
+  `);
+
+  const bar   = _container.querySelector('#cal-search-bar');
+  const input = bar.querySelector('#cal-search-input');
+  if (window.lucide) lucide.createIcons({ el: bar });
+
+  renderCalendarSearchState('hint');
+
+  let timer = null;
+  input.addEventListener('input', () => {
+    const q = input.value;
+    clearTimeout(timer);
+    timer = setTimeout(() => runCalendarSearch(q), 220);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); closeCalendarSearch(); }
+  });
+  bar.querySelector('#cal-search-close').addEventListener('click', () => closeCalendarSearch());
+
+  input.focus();
+}
+
+function closeCalendarSearch({ restoreView = true } = {}) {
+  if (!searchActive) return;
+  searchActive  = false;
+  searchQuery   = '';
+  searchResults = [];
+  _container.querySelector('#cal-search-bar')?.remove();
+
+  const toggle = _container.querySelector('#cal-search');
+  toggle?.setAttribute('aria-expanded', 'false');
+  toggle?.classList.remove('cal-toolbar__search-btn--active');
+
+  if (restoreView) renderView();
+  toggle?.focus();
+}
+
+async function runCalendarSearch(raw) {
+  if (!searchActive) return;
+  const q = String(raw ?? '').trim();
+  searchQuery = q;
+
+  if (q.length < 2) {
+    searchResults = [];
+    searchTotal = 0;
+    renderCalendarSearchState('hint');
+    return;
+  }
+
+  renderCalendarSearchState('loading');
+  try {
+    const res = await api.get(`/calendar/search?q=${encodeURIComponent(q)}`);
+    // Verworfen, wenn die Suche zwischenzeitlich geschlossen oder weitergetippt wurde.
+    if (!searchActive || searchQuery !== q) return;
+    searchResults = res.data ?? [];
+    searchTotal = Number.isFinite(res.total) ? res.total : searchResults.length;
+    renderCalendarSearchState(searchResults.length ? 'results' : 'empty');
+  } catch (err) {
+    if (!searchActive || searchQuery !== q) return;
+    console.warn('[Calendar] Suche fehlgeschlagen:', err);
+    renderCalendarSearchState('error');
+  }
+}
+
+// Aktualisiert die persistente sr-only-Live-Region in der Suchleiste. Bewusst
+// getrennt von der sichtbaren Trefferliste, damit Screenreader Statuswechsel
+// zuverlässig ansagen (ein bei jedem Render neu erzeugtes role=status wird oft
+// nicht vorgelesen).
+function setSearchLive(message) {
+  const live = _container.querySelector('#cal-search-live');
+  if (live) live.textContent = message;
+}
+
+function calendarSearchCountLabel() {
+  return searchTotal > searchResults.length
+    ? t('calendar.searchCountCapped', { shown: searchResults.length, total: searchTotal })
+    : t('calendar.searchCount', { count: searchResults.length });
+}
+
+function renderCalendarSearchState(kind) {
+  const body = _container.querySelector('#cal-body');
+  if (!body) return;
+  body.replaceChildren();
+
+  if (kind === 'hint') {
+    body.insertAdjacentHTML('beforeend', `
+      <div class="cal-search-status">
+        <i data-lucide="search" class="cal-search-status__icon" aria-hidden="true"></i>
+        <p class="cal-search-status__text">${esc(t('calendar.searchHint'))}</p>
+      </div>`);
+    setSearchLive(t('calendar.searchHint'));
+  } else if (kind === 'loading') {
+    body.insertAdjacentHTML('beforeend', renderSkeletonList({ rows: 5, lines: 2 }));
+    setSearchLive(t('common.loading'));
+  } else if (kind === 'empty') {
+    body.insertAdjacentHTML('beforeend', `
+      <div class="cal-search-status">
+        <i data-lucide="calendar-search" class="cal-search-status__icon" aria-hidden="true"></i>
+        <p class="cal-search-status__text">${esc(t('calendar.searchEmpty', { query: searchQuery }))}</p>
+        <button class="btn btn--secondary" id="cal-search-empty-cta">${esc(t('calendar.newEvent'))}</button>
+      </div>`);
+    body.querySelector('#cal-search-empty-cta')?.addEventListener('click', () => openEventModal({ mode: 'create' }));
+    setSearchLive(t('calendar.searchEmpty', { query: searchQuery }));
+  } else if (kind === 'error') {
+    body.insertAdjacentHTML('beforeend', `
+      <div class="cal-search-status">
+        <i data-lucide="alert-triangle" class="cal-search-status__icon cal-search-status__icon--error" aria-hidden="true"></i>
+        <p class="cal-search-status__text">${esc(t('calendar.searchError'))}</p>
+        <button class="btn btn--secondary" id="cal-search-retry">${esc(t('common.retry'))}</button>
+      </div>`);
+    body.querySelector('#cal-search-retry')?.addEventListener('click', () => runCalendarSearch(searchQuery));
+    setSearchLive(t('calendar.searchError'));
+  } else if (kind === 'results') {
+    renderCalendarSearchResults(body);
+    setSearchLive(calendarSearchCountLabel());
+  }
+
+  if (window.lucide) lucide.createIcons({ el: body });
+}
+
+function renderCalendarSearchResults(body) {
+  // Treffer nach Tag gruppieren; der Endpoint liefert bereits chronologisch sortiert.
+  const groups = [];
+  const byDate = new Map();
+  for (const ev of searchResults) {
+    const d = localDate(ev.start_datetime);
+    if (!byDate.has(d)) {
+      const g = { date: d, events: [] };
+      byDate.set(d, g);
+      groups.push(g);
+    }
+    byDate.get(d).events.push(ev);
+  }
+
+  body.insertAdjacentHTML('beforeend', `
+    <div class="agenda-view cal-search-results" id="cal-search-results">
+      <p class="cal-search-results__count" aria-hidden="true">${esc(calendarSearchCountLabel())}</p>
+      ${groups.map(({ date, events }) => `
+        <div class="agenda-day" data-date="${esc(date)}">
+          <div class="agenda-day__header ${date === state.today ? 'agenda-day__header--today' : ''}">
+            <span class="agenda-day__date">${formatDate(date, { long: true })}</span>
+            <span class="agenda-day__weekday">${DAY_NAMES_LONG()[new Date(date + 'T00:00:00').getDay()]}</span>
+          </div>
+          ${events.map((ev) => renderAgendaEvent(ev, date)).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `);
+
+  const results = body.querySelector('#cal-search-results');
+  stagger(results.querySelectorAll('.agenda-event'));
+
+  const activateResult = (evEl) => {
+    const ev = searchResults.find((x) => String(x.id) === evEl.dataset.id);
+    if (ev) openFoundEvent(ev);
+  };
+  results.addEventListener('click', (e) => {
+    const evEl = e.target.closest('.agenda-event');
+    if (evEl) activateResult(evEl);
+  });
+  results.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const evEl = e.target.closest('.agenda-event');
+    if (!evEl) return;
+    e.preventDefault();
+    activateResult(evEl);
+  });
+
+  // Auf den nächsten kommenden Treffer scrollen — Vergangenes bleibt darüber
+  // erreichbar, aber der Blick startet beim relevantesten (heute/zukünftig).
+  const upcoming = groups.find((g) => g.date >= state.today);
+  if (upcoming) {
+    results.querySelector(`.agenda-day[data-date="${CSS.escape(upcoming.date)}"]`)
+      ?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
+}
+
+// Öffnet einen gefundenen Termin im Kontext: springt in die Tagesansicht des
+// Termindatums und zeigt das Detail-Popup (Fallback: Bearbeiten-Modal).
+async function openFoundEvent(ev) {
+  const date = localDate(ev.start_datetime);
+  closeCalendarSearch({ restoreView: false });
+  await switchToDayView(date);
+
+  const full = state.events.find((e) => e.id === ev.id) || ev;
+  const chip = _container.querySelector(`[data-id="${CSS.escape(String(ev.id))}"]`);
+  if (chip) {
+    chip.scrollIntoView({ block: 'center', behavior: 'instant' });
+    showEventPopup(full, chip);
+  } else {
+    openEventModal({ mode: 'edit', event: full });
+  }
 }
 
 export const __test = {
@@ -1520,8 +1971,13 @@ export const __test = {
   isMultiDayEvent,
   isAllDayLike,
   agendaSegmentKind,
+  deepLinkTargetDate,
+  findDeepLinkedOccurrence,
+  validDateParam,
   hasAttachment,
   attachmentUrls,
+  clickedTime,
+  HOUR_HEIGHT,
 };
 
 function renderAgendaEvent(ev, dayStr) {
@@ -1548,7 +2004,8 @@ function renderAgendaEvent(ev, dayStr) {
   const calLabelColor = ev.cal_color || ev.color || displayColor;
   const assignedUsers = ev.assigned_users ?? [];
   return `
-    <div class="agenda-event" data-id="${ev.id}">
+    <div class="agenda-event" data-id="${ev.id}" role="button" tabindex="0"
+         aria-label="${esc(ev.title)}, ${esc(timeStr)}${chipAssigneeLabel(ev) ? ', ' + esc(chipAssigneeLabel(ev)) : ''}">
       <div class="agenda-event__color" style="background:${esc(displayBg)};"></div>
       <div class="agenda-event__body">
         <div class="agenda-event__title">${eventIconHtml(ev.icon)}<span>${esc(ev.title)}</span>${(ev.recurrence_rule || ev.is_recurring_instance) ? calendarRepeatIconHtml() : ''}</div>
@@ -1556,11 +2013,23 @@ function renderAgendaEvent(ev, dayStr) {
           <span class="calendar-meta-item">${calendarMetaIconHtml('clock')}<span>${esc(timeStr)}</span></span>
           ${ev.location ? `<span class="calendar-meta-item">${calendarMetaIconHtml('map-pin')}<span>${esc(fmtLocation(ev.location))}</span></span>` : ''}
           ${ev.cal_name ? `<span class="event-cal-label" style="--cal-color:${esc(calLabelColor)}">${esc(ev.cal_name)}</span>` : ''}
+          ${eventVisibilityMeta(ev.visibility)}
           ${assignedUsers.length ? `<span class="agenda-event__assigned">${renderAvatarStack(assignedUsers, { size: 20, maxVisible: 3 })}</span>` : ''}
         </div>
       </div>
     </div>
   `;
+}
+
+// Sichtbarkeits-Indikator (#474): nur bei eingeschränkten Terminen ein dezentes
+// Icon mit Label — „Alle" bleibt icon-los.
+function eventVisibilityMeta(visibility) {
+  if (!visibility || visibility === 'all') return '';
+  const icon  = visibility === 'private' ? 'lock' : 'users';
+  const label = visibility === 'private'
+    ? t('common.visibility.private')
+    : t('common.visibility.assignees');
+  return `<span class="calendar-meta-item" title="${esc(label)}">${calendarMetaIconHtml(icon)}<span>${esc(label)}</span></span>`;
 }
 
 // --------------------------------------------------------
@@ -1573,6 +2042,9 @@ function showEventPopup(ev, anchor) {
   const popup = document.createElement('div');
   popup.id        = 'event-popup';
   popup.className = 'event-popup';
+  popup.setAttribute('role', 'dialog');
+  popup.setAttribute('aria-label', ev.title || t('calendar.title'));
+  popup.tabIndex  = -1;
 
   const timeStr = ev.all_day
     ? t('calendar.allDay')
@@ -1582,6 +2054,14 @@ function showEventPopup(ev, anchor) {
   const displayBg     = resolveEventBackground(ev);
   const displayColor  = resolveEventColor(ev);
   const calLabelColor = ev.cal_color || ev.color || displayColor;
+
+  // Alle zugewiesenen Mitglieder anzeigen, nicht nur das erste (#492).
+  const assignedNames = (ev.assigned_users ?? [])
+    .map((u) => u.display_name)
+    .filter(Boolean);
+  const assignedLabel = assignedNames.length
+    ? assignedNames.join(', ')
+    : (ev.assigned_name || '');
   popup.insertAdjacentHTML('beforeend', `
     <div class="event-popup__color-bar" style="background:${esc(displayBg)};"></div>
     <div class="event-popup__title">${eventIconHtml(ev.icon)}<span>${esc(ev.title)}</span></div>
@@ -1591,7 +2071,7 @@ function showEventPopup(ev, anchor) {
       ${ev.location ? `<div class="calendar-meta-item">${calendarMetaIconHtml('map-pin')}<span>${esc(fmtLocation(ev.location))}</span></div>` : ''}
       ${ev.description ? `<div>${esc(truncateDescription(ev.description, 500))}</div>` : ''}
       ${hasAttachment(ev) ? attachmentHtml(ev) : ''}
-      ${ev.assigned_name ? `<div class="calendar-meta-item">${calendarMetaIconHtml('user')}<span>${esc(ev.assigned_name)}</span></div>` : ''}
+      ${assignedLabel ? `<div class="calendar-meta-item">${calendarMetaIconHtml(assignedNames.length > 1 ? 'users' : 'user')}<span>${esc(assignedLabel)}</span></div>` : ''}
     </div>
     <div class="event-popup__actions">
       <button class="btn btn--secondary event-popup__edit" id="popup-edit">${t('calendar.popupEdit')}</button>
@@ -1614,11 +2094,13 @@ function showEventPopup(ev, anchor) {
       e.preventDefault();
       try {
         await api.post(`/calendar/${ev.id}/reset`, {});
-        popup.remove();
+        dismiss();
         await reloadForView();
-        window.oikos?.showToast(t('calendar.ics.resetToast'), 'success');
+        window.yuvomi?.showToast(t('calendar.ics.resetToast'), 'success');
       } catch (err) {
-        window.oikos?.showToast(err.message, 'danger');
+        // Server-Meldung bevorzugen (nutzerorientiert), sonst lokalisierter
+        // Fallback — nie den rohen JS-/Netzwerk-Fehlertext zeigen.
+        window.yuvomi?.showToast(err.data?.error ?? t('calendar.saveError'), 'danger');
       }
     });
     popup.querySelector('.event-popup__actions').before(resetLink);
@@ -1643,26 +2125,35 @@ function showEventPopup(ev, anchor) {
   popup.style.top = `${Math.min(Math.max(margin, top), maxTop)}px`;
   popup.style.left = `${left}px`;
 
-  popup.querySelector('#popup-edit').addEventListener('click', async () => {
+  // Gemeinsames Schließen: entfernt Popup und beide globalen Listener, damit
+  // kein keydown-/click-Handler verwaist zurückbleibt.
+  const onKeydown = (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); dismiss(); anchor?.focus?.(); }
+  };
+  function dismiss() {
     popup.remove();
+    document.removeEventListener('keydown', onKeydown);
+    document.removeEventListener('click', onOutsideClick);
+  }
+  function onOutsideClick(e) {
+    if (!popup.isConnected || !popup.contains(e.target)) dismiss();
+  }
+
+  popup.querySelector('#popup-edit').addEventListener('click', async () => {
+    dismiss();
     const reminder = await loadReminderForEvent(ev.id);
     openEventModal({ mode: 'edit', event: ev, reminder });
   });
 
   popup.querySelector('#popup-delete').addEventListener('click', async () => {
-    popup.remove();
-    await deleteEvent(ev.id);
+    dismiss();
+    await requestDeleteEvent(ev);
   });
 
-  // Schließen bei Klick außerhalb
-  setTimeout(() => {
-    document.addEventListener('click', function closePopup(e) {
-      if (!popup.isConnected || !popup.contains(e.target)) {
-        popup.remove();
-        document.removeEventListener('click', closePopup);
-      }
-    });
-  }, 0);
+  // Escape schließt und gibt den Fokus an den Auslöser zurück; Außenklick schließt.
+  document.addEventListener('keydown', onKeydown);
+  setTimeout(() => document.addEventListener('click', onOutsideClick), 0);
+  popup.focus();
 }
 
 // --------------------------------------------------------
@@ -1671,12 +2162,16 @@ function showEventPopup(ev, anchor) {
 
 async function loadReminderForEvent(eventId) {
   try {
-    const data = await api.get(`/reminders?entity_type=event&entity_id=${eventId}`);
-    return data.data;
+    const data = await api.get(`/reminders/all?entity_type=event&entity_id=${eventId}`);
+    return Array.isArray(data.data) ? data.data : [];
   } catch {
-    return null;
+    return [];
   }
 }
+
+// Obergrenze für mehrere Erinnerungen je Termin — muss mit dem Server-Cap
+// (MAX_REMINDERS_PER_ENTITY in server/routes/reminders.js) übereinstimmen.
+const MAX_CALENDAR_REMINDERS = 5;
 
 const REMINDER_OFFSETS = () => [
   { value: '',     label: t('reminders.offsetNone')   },
@@ -1692,7 +2187,7 @@ const REMINDER_OFFSETS = () => [
 
 function reminderOffsetFromEvent(event, reminder) {
   if (!reminder || !event?.start_datetime) return '';
-  const remindMs = new Date(reminder.remind_at).getTime();
+  const remindMs = parseRemindAtAsUtc(reminder.remind_at).getTime();
   const startMs  = new Date(reminderStartValue(event.start_datetime)).getTime();
   const diffMin  = Math.round((startMs - remindMs) / 60000);
   const opts = [0, 15, 60, 1440, 2880, 10080, 20160];
@@ -1704,7 +2199,7 @@ function customReminderFromEvent(event, reminder) {
   const fallback = { amount: 1, unit: 'days' };
   if (!reminder || !event?.start_datetime) return fallback;
   const diffMin = Math.max(0, Math.round(
-    (new Date(reminderStartValue(event.start_datetime)).getTime() - new Date(reminder.remind_at).getTime()) / 60000
+    (new Date(reminderStartValue(event.start_datetime)).getTime() - parseRemindAtAsUtc(reminder.remind_at).getTime()) / 60000
   ));
   if (diffMin % 10080 === 0 && diffMin >= 10080) return { amount: diffMin / 10080, unit: 'weeks' };
   if (diffMin % 1440 === 0 && diffMin >= 1440) return { amount: diffMin / 1440, unit: 'days' };
@@ -1724,53 +2219,128 @@ function reminderStartValue(startDatetime) {
   return startDatetime?.includes('T') ? startDatetime : `${startDatetime}T09:00`;
 }
 
-function toLocalDateTimeString(date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function renderCalendarReminderSection(reminder = null, event = null) {
-  const currentOffset = event ? reminderOffsetFromEvent(event, reminder) : '';
-  const custom = customReminderFromEvent(event, reminder);
+/**
+ * Rendert eine einzelne Erinnerungs-Zeile (Offset-Select + Custom-Felder +
+ * Entfernen-Button). Ohne Argument entsteht eine leere Standardzeile (#436).
+ */
+function reminderRowHtml({ offset = '0', amount = 1, unit = 'days' } = {}) {
+  const isCustom = offset === 'custom';
   return `
-    <div class="reminder-section">
-      <div class="form-group reminder-section__group">
-        <label class="form-label" for="modal-reminder-offset">${t('reminders.offsetLabel')}</label>
-        <select class="form-input" id="modal-reminder-offset">
-          ${REMINDER_OFFSETS().map((o) =>
-            `<option value="${o.value}" ${currentOffset === o.value ? 'selected' : ''}>${esc(o.label)}</option>`
+    <div class="reminder-row" data-reminder-row>
+      <div class="reminder-row__main">
+        <select class="form-input js-reminder-offset" aria-label="${esc(t('reminders.offsetLabel'))}">
+          ${REMINDER_OFFSETS().filter((o) => o.value !== '').map((o) =>
+            `<option value="${o.value}" ${offset === o.value ? 'selected' : ''}>${esc(o.label)}</option>`
           ).join('')}
         </select>
+        <button type="button" class="btn btn--ghost btn--icon js-reminder-remove" aria-label="${esc(t('reminders.removeReminder'))}">
+          <i data-lucide="x" class="icon-md" aria-hidden="true"></i>
+        </button>
       </div>
-      <div class="modal-grid modal-grid--2 reminder-custom" id="modal-reminder-custom" ${currentOffset === 'custom' ? '' : 'hidden'}>
+      <div class="modal-grid modal-grid--2 reminder-custom js-reminder-custom" ${isCustom ? '' : 'hidden'}>
         <div class="form-group" style="margin:0">
-          <label class="form-label" for="modal-reminder-custom-amount">${t('reminders.customAmountLabel')}</label>
-          <input class="form-input" type="number" id="modal-reminder-custom-amount" min="1" max="999" value="${custom.amount}">
+          <label class="form-label">${t('reminders.customAmountLabel')}</label>
+          <input class="form-input js-reminder-custom-amount" type="number" min="1" max="999" value="${amount}">
         </div>
         <div class="form-group" style="margin:0">
-          <label class="form-label" for="modal-reminder-custom-unit">${t('reminders.customUnitLabel')}</label>
-          <select class="form-input" id="modal-reminder-custom-unit">
-            <option value="minutes" ${custom.unit === 'minutes' ? 'selected' : ''}>${t('reminders.customMinutes')}</option>
-            <option value="hours" ${custom.unit === 'hours' ? 'selected' : ''}>${t('reminders.customHours')}</option>
-            <option value="days" ${custom.unit === 'days' ? 'selected' : ''}>${t('reminders.customDays')}</option>
-            <option value="weeks" ${custom.unit === 'weeks' ? 'selected' : ''}>${t('reminders.customWeeks')}</option>
+          <label class="form-label">${t('reminders.customUnitLabel')}</label>
+          <select class="form-input js-reminder-custom-unit">
+            <option value="minutes" ${unit === 'minutes' ? 'selected' : ''}>${t('reminders.customMinutes')}</option>
+            <option value="hours" ${unit === 'hours' ? 'selected' : ''}>${t('reminders.customHours')}</option>
+            <option value="days" ${unit === 'days' ? 'selected' : ''}>${t('reminders.customDays')}</option>
+            <option value="weeks" ${unit === 'weeks' ? 'selected' : ''}>${t('reminders.customWeeks')}</option>
           </select>
         </div>
       </div>
     </div>`;
 }
 
-function bindTimeInputs(root) {
-  root.querySelectorAll('.js-time-input').forEach((input) => {
-    input.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.length !== 1) return;
-      if (!/[\d: apmAPM]/.test(e.key)) e.preventDefault();
-    });
-    input.addEventListener('blur', () => {
-      const parsed = parseTimeInput(input.value);
-      if (parsed) input.value = formatTimeInput(parsed);
-    });
+function renderCalendarReminderSection(reminders = [], event = null, defaultOffsets = []) {
+  const list = Array.isArray(reminders) ? reminders : (reminders ? [reminders] : []);
+  let rows = list.map((rem) => ({
+    offset: reminderOffsetFromEvent(event, rem) || '0',
+    ...customReminderFromEvent(event, rem),
+  }));
+  // Neue Termine ohne bestehende Erinnerung: Standard-Erinnerungen vorbelegen (#497).
+  // Die Default-Offsets decken sich mit den Preset-Werten des Offset-Selects.
+  if (rows.length === 0 && Array.isArray(defaultOffsets) && defaultOffsets.length) {
+    rows = defaultOffsets.map((min) => ({ offset: String(min), amount: 1, unit: 'days' }));
+  }
+  const enabled = rows.length > 0;
+  const rowsHtml = (enabled ? rows : [{ offset: '0', amount: 1, unit: 'days' }])
+    .map((r) => reminderRowHtml(r)).join('');
+  return `
+    <div class="reminder-section">
+      <div class="reminder-section__header">
+        <label class="toggle" style="margin:0">
+          <input type="checkbox" id="modal-reminder-toggle" ${enabled ? 'checked' : ''}>
+          <span class="toggle__track"></span>
+          <span class="reminder-section__title">${t('reminders.enableLabel')}</span>
+        </label>
+      </div>
+      <div id="modal-reminder-fields" class="reminder-fields" ${enabled ? '' : 'style="display:none"'}>
+        <div class="reminder-rows" id="modal-reminder-rows">
+          ${rowsHtml}
+        </div>
+        <button type="button" class="btn btn--secondary btn--sm" id="modal-reminder-add">
+          <i data-lucide="plus" class="icon-sm" aria-hidden="true"></i>
+          ${t('reminders.addReminder')}
+        </button>
+      </div>
+    </div>`;
+}
+
+/**
+ * Verdrahtet die Mehrfach-Erinnerungs-Liste im Event-Modal (#436):
+ * Toggle, „Hinzufügen"/„Entfernen" und die Custom-Feld-Umschaltung je Zeile.
+ */
+function wireReminderRows(panel) {
+  const toggle = panel.querySelector('#modal-reminder-toggle');
+  const fields = panel.querySelector('#modal-reminder-fields');
+  const rowsEl = panel.querySelector('#modal-reminder-rows');
+  const addBtn = panel.querySelector('#modal-reminder-add');
+  if (!rowsEl) return;
+
+  const rowCount = () => rowsEl.querySelectorAll('[data-reminder-row]').length;
+  const syncAddState = () => {
+    if (addBtn) addBtn.disabled = rowCount() >= MAX_CALENDAR_REMINDERS;
+  };
+
+  const appendRow = () => {
+    rowsEl.insertAdjacentHTML('beforeend', reminderRowHtml());
+    const newRow = rowsEl.lastElementChild;
+    if (window.lucide && newRow) lucide.createIcons({ el: newRow });
+    syncAddState();
+  };
+
+  // Custom-Felder je Zeile ein-/ausblenden.
+  rowsEl.addEventListener('change', (e) => {
+    const sel = e.target.closest('.js-reminder-offset');
+    if (!sel) return;
+    const custom = sel.closest('[data-reminder-row]')?.querySelector('.js-reminder-custom');
+    if (custom) custom.hidden = sel.value !== 'custom';
   });
+
+  // Zeile entfernen.
+  rowsEl.addEventListener('click', (e) => {
+    const rm = e.target.closest('.js-reminder-remove');
+    if (!rm) return;
+    rm.closest('[data-reminder-row]')?.remove();
+    syncAddState();
+  });
+
+  addBtn?.addEventListener('click', () => {
+    if (rowCount() >= MAX_CALENDAR_REMINDERS) return;
+    appendRow();
+  });
+
+  toggle?.addEventListener('change', () => {
+    const on = toggle.checked;
+    if (fields) fields.style.display = on ? '' : 'none';
+    if (on && rowCount() === 0) appendRow();
+  });
+
+  syncAddState();
 }
 
 // --------------------------------------------------------
@@ -1860,13 +2430,29 @@ async function loadSyncTargets(selectElement, currentEvent = null) {
 // Event-Modal (Erstellen / Bearbeiten)
 // --------------------------------------------------------
 
-function openEventModal({ mode, event = null, date = null, reminder = null }) {
+// Blendet einen Hinweis ein, wenn „Nur Zugewiesene" gewählt ist, aber niemand
+// zugewiesen wurde — dann sieht faktisch nur der Ersteller den Termin (#474 Guard).
+function wireVisibilityWarning(panel, selectSel, msName, warnSel) {
+  const select = panel.querySelector(selectSel);
+  const warn   = panel.querySelector(warnSel);
+  if (!select || !warn) return;
+  const ms = panel.querySelector(`.user-ms[data-ms-name="${msName}"]`);
+  const update = () => {
+    const count = getSelectedUserIds(panel, msName).length;
+    warn.hidden = !(select.value === 'assignees' && count === 0);
+  };
+  select.addEventListener('change', update);
+  ms?.addEventListener('click', () => setTimeout(update, 0));
+  update();
+}
+
+function openEventModal({ mode, event = null, date = null, reminder = null, time = null }) {
   if (mode === 'edit' && event?.housekeeping_visit_id) {
-    window.oikos.navigate(`/housekeeping?editVisit=${event.housekeeping_visit_id}`);
+    window.yuvomi.navigate(`/housekeeping?editVisit=${event.housekeeping_visit_id}`);
     return;
   }
   const isEdit = mode === 'edit';
-  const content = buildEventModalContent({ mode, event, date, reminder });
+  const content = buildEventModalContent({ mode, event, date, reminder, time });
 
   openSharedModal({
     title: isEdit ? t('calendar.editEvent') : t('calendar.newEvent'),
@@ -1876,6 +2462,7 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
       // RRULE-Events binden
       bindRRuleEvents(panel, 'event');
       bindUserMultiSelect(panel, 'cal_assigned');
+      wireVisibilityWarning(panel, '#modal-visibility', 'cal_assigned', '#modal-visibility-warning');
 
       // Color-Picker ausgrauen wenn Assignees gesetzt sind (Avatar-Farbe hat Vorrang)
       function syncColorPickerState() {
@@ -1944,9 +2531,6 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
       });
       if (isEdit && event?.all_day) { timeFields.style.display = 'none'; alldayFields.style.display = ''; }
 
-      bindDateInputs(panel);
-      bindTimeInputs(panel);
-
       const iconInput = panel.querySelector('#modal-icon');
       const iconTrigger = panel.querySelector('#modal-icon-trigger');
       const selectIcon = (icon) => {
@@ -1971,8 +2555,6 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
         });
       });
 
-      const reminderOffset = panel.querySelector('#modal-reminder-offset');
-      const reminderCustom = panel.querySelector('#modal-reminder-custom');
       const attachmentInput = panel.querySelector('#modal-attachment');
       const selectedAttachment = panel.querySelector('#modal-selected-attachment');
       const attachmentPreview = panel.querySelector('#modal-attachment-preview');
@@ -2053,9 +2635,10 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
       }
 
       syncSelectedAttachment();
-      reminderOffset?.addEventListener('change', () => {
-        if (reminderCustom) reminderCustom.hidden = reminderOffset.value !== 'custom';
-      });
+
+      // Erinnerungen: Toggle blendet die Zeilenliste ein/aus; „Hinzufügen" und
+      // „Entfernen" verwalten mehrere Erinnerungen je Termin (#436).
+      wireReminderRows(panel);
 
       // Load unified sync targets (Google + CalDAV)
       const syncTargetSelect = panel.querySelector('#event-sync-target');
@@ -2085,11 +2668,16 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
       wireDateFollow('#modal-start-date', '#modal-end-date');
       wireDateFollow('#modal-allday-start', '#modal-allday-end');
 
+      // Dynamische Termindauer (#441): das Ende folgt dem Start um die gemerkte
+      // Dauer. Ändert der Nutzer das Ende, wird die neue Dauer übernommen und bei
+      // der nächsten Start-Änderung angewendet. Nur für Zeit-Termine.
+      wireDurationMemory(panel);
+
       panel.querySelector('#modal-cancel').addEventListener('click', closeModal);
 
       panel.querySelector('#modal-delete')?.addEventListener('click', async () => {
         closeModal({ force: true });
-        await deleteEvent(event.id);
+        await requestDeleteEvent(event);
       });
 
       panel.querySelector('#modal-save').addEventListener('click', () => saveEvent(panel, mode, event?.id, reminder, attachmentState));
@@ -2098,21 +2686,143 @@ function openEventModal({ mode, event = null, date = null, reminder = null }) {
   });
 }
 
-function buildEventModalContent({ mode, event, date, reminder = null }) {
+/**
+ * Verdrahtet die dynamische Termindauer (#441) im Event-Modal.
+ * - Start-Zeit ändern → Ende = Start + gemerkte Dauer (mit Datums-Übertrag).
+ * - Ende-Zeit ändern → gemerkte Dauer = Ende − Start (nur wenn positiv).
+ * Wirkt nur auf die Zeit-Felder; „Ganztägig" bleibt unberührt.
+ */
+function wireDurationMemory(panel) {
+  const startDateEl = panel.querySelector('#modal-start-date');
+  const startTimeEl = panel.querySelector('#modal-start-time');
+  const endDateEl   = panel.querySelector('#modal-end-date');
+  const endTimeEl   = panel.querySelector('#modal-end-time');
+  if (!startDateEl || !startTimeEl || !endDateEl || !endTimeEl) return;
+
+  const daysBetween = (fromKey, toKey) =>
+    Math.round((new Date(toKey + 'T00:00:00') - new Date(fromKey + 'T00:00:00')) / 86400000);
+
+  const readDuration = () => {
+    const sd = parseDateInput(startDateEl.value);
+    const st = parseTimeInput(startTimeEl.value);
+    const ed = parseDateInput(endDateEl.value);
+    const et = parseTimeInput(endTimeEl.value);
+    if (!sd || !st || !ed || !et) return null;
+    const diff = daysBetween(sd, ed) * 1440 + (timeToMinutes(et) - timeToMinutes(st));
+    return diff > 0 ? diff : null;
+  };
+
+  // Init: bereits gesetzte Dauer übernehmen, sonst Präferenz-Default.
+  let durationMin = readDuration() ?? (state.defaultDuration || 60);
+
+  startTimeEl.addEventListener('change', () => {
+    const sd = parseDateInput(startDateEl.value);
+    const st = parseTimeInput(startTimeEl.value);
+    if (!sd || !st) return;
+    const next = addDurationToDateTime(sd, st, durationMin);
+    endTimeEl.value = formatTimeInput(next.time);
+    if (isDateInputValid(endDateEl.value)) endDateEl.value = formatDateInput(next.date);
+  });
+
+  endTimeEl.addEventListener('change', () => {
+    const dur = readDuration();
+    if (dur) durationMin = dur;
+  });
+}
+
+function buildEventModalContent({ mode, event, date, reminder = null, time = null }) {
   const isEdit = mode === 'edit';
   const today  = date || state.today;
 
   const startDate = isEdit ? localDate(event.start_datetime) : today;
   const startTime = isEdit && event.start_datetime.length > 10
-    ? localTime(event.start_datetime) : '09:00';
-  const endDate   = isEdit && event.end_datetime ? localDate(event.end_datetime) : startDate;
+    ? localTime(event.start_datetime) : (time ?? '09:00');
+  // Standard-Termindauer aus den Präferenzen: neue Termine erhalten ein Ende,
+  // das um die konfigurierte Dauer nach dem Start liegt (#441).
+  const durationMin = state.defaultDuration || 60;
+  const derivedEnd  = addDurationToDateTime(startDate, startTime, durationMin);
+  const endDate   = isEdit && event.end_datetime ? localDate(event.end_datetime) : derivedEnd.date;
   const endTime   = isEdit && event.end_datetime && event.end_datetime.length > 10
-    ? localTime(event.end_datetime) : '10:00';
+    ? localTime(event.end_datetime)
+    : derivedEnd.time;
   const selectedIcon = eventIconName(isEdit ? event.icon : 'calendar');
 
+  // Neue Termine: optional den aktuellen Nutzer vorbelegen (#498).
   const selectedUserIds = isEdit
     ? (event.assigned_users?.map((u) => u.id) ?? (event.assigned_to ? [event.assigned_to] : []))
-    : [];
+    : (state.defaultAssignMe && state.currentUserId != null ? [state.currentUserId] : []);
+  const visibility = (isEdit ? event.visibility : null) || 'all';
+
+  // Sekundärfelder: wandern hinter „Weitere Einstellungen". Beim Bearbeiten
+  // automatisch geöffnet, falls bereits Werte gesetzt sind.
+  const advancedFieldsOpen = isEdit
+    && (!!event.location || !!event.description || hasAttachment(event));
+
+  const advancedFieldsHtml = `
+    <div class="form-group">
+      <label class="form-label" for="modal-location">${t('calendar.locationLabel')}</label>
+      <input type="text" class="form-input" id="modal-location"
+             placeholder="${t('calendar.locationPlaceholder')}" value="${esc(isEdit && event.location ? event.location : '')}">
+    </div>
+
+    <div class="form-group js-color-picker-group">
+      <label class="form-label" id="event-color-label">${t('calendar.colorLabel')}</label>
+      <div class="color-picker" id="event-color-picker" role="radiogroup" aria-labelledby="event-color-label">
+        ${EVENT_COLORS.map((c, i) => `
+          <div class="color-swatch" data-color="${c}" style="background-color:${c};"
+               role="radio"
+               tabindex="${i === 0 ? '0' : '-1'}"
+               aria-checked="false"
+               aria-label="${EVENT_COLOR_NAMES()[c] ?? c}"></div>
+        `).join('')}
+      </div>
+      <p class="form-hint color-picker__assignee-hint" id="color-picker-assignee-hint" hidden>${t('calendar.colorOverriddenByAssignee')}</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="event-sync-target">${t('calendar.syncTargetLabel')}</label>
+      <select class="form-input" id="event-sync-target">
+        <option value="">${t('calendar.syncTargetLocal')}</option>
+      </select>
+      <small class="form-hint">${t('calendar.syncTargetHint')}</small>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="modal-description">${t('calendar.descriptionLabel')}</label>
+      <textarea class="form-input" id="modal-description" rows="2"
+                placeholder="${t('calendar.descriptionPlaceholder')}">${esc(isEdit && event.description ? event.description : '')}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="modal-attachment">${t('calendar.attachmentLabel')}</label>
+      <p class="document-storage-target">
+        <i data-lucide="${state.documentUploadBackend === 'webdav' ? 'cloud' : state.documentUploadBackend === 'local_folder' ? 'folder' : 'database'}" aria-hidden="true"></i>
+        <span>${t('documents.activeUploadTarget', {
+          target: state.documentUploadBackend === 'webdav'
+            ? t('documents.storageWebdav')
+            : state.documentUploadBackend === 'local_folder'
+              ? t('documents.storageLocalFolder')
+              : t('documents.storageLocal'),
+        })}</span>
+      </p>
+      <label class="document-dropzone" id="modal-attachment-dropzone" for="modal-attachment">
+        <input class="sr-only" id="modal-attachment" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        <span class="document-dropzone__icon">
+          <i data-lucide="file-up" aria-hidden="true"></i>
+        </span>
+        <span class="document-dropzone__title">${t('documents.dropzoneTitle')}</span>
+        <span class="document-dropzone__hint">${t('documents.dropzoneHint')}</span>
+        <span class="document-dropzone__file" id="modal-selected-attachment" ${isEdit && event.attachment_name ? '' : 'hidden'}>
+          ${isEdit && event.attachment_name ? esc(selectedAttachmentLabel(event.attachment_name)) : ''}
+        </span>
+      </label>
+      <div class="form-help">${t('calendar.attachmentHint')}</div>
+      <div class="event-attachment-preview" id="modal-attachment-preview" ${isEdit && hasAttachment(event) ? '' : 'hidden'}>
+        ${isEdit && hasAttachment(event) ? attachmentPreviewHtml(event) : ''}
+      </div>
+      <button class="btn btn--secondary" id="modal-remove-attachment" type="button"
+              ${isEdit && hasAttachment(event) ? '' : 'hidden'}>${t('calendar.attachmentRemove')}</button>
+    </div>`;
 
   return `
     <div class="event-title-picker">
@@ -2147,21 +2857,21 @@ function buildEventModalContent({ mode, event, date, reminder = null }) {
       <div class="modal-grid modal-grid--2">
         <div class="form-group">
           <label class="form-label" for="modal-start-date">${t('calendar.startDateLabel')}</label>
-          <input type="date" class="form-input" id="modal-start-date" value="${startDate}">
+          <yuvomi-datepicker type="date" id="modal-start-date" value="${esc(formatDateInput(startDate))}" label="${esc(t('calendar.startDateLabel'))}"></yuvomi-datepicker>
         </div>
         <div class="form-group">
           <label class="form-label" for="modal-start-time">${t('calendar.startTimeLabel')}</label>
-          <input type="text" class="form-input js-time-input" id="modal-start-time" value="${formatTimeInput(startTime)}" placeholder="${timeInputPlaceholder()}">
+          <yuvomi-datepicker type="time" id="modal-start-time" value="${esc(formatTimeInput(startTime))}" label="${esc(t('calendar.startTimeLabel'))}"></yuvomi-datepicker>
         </div>
       </div>
       <div class="modal-grid modal-grid--2">
         <div class="form-group">
           <label class="form-label" for="modal-end-date">${t('calendar.endDateLabel')}</label>
-          <input type="date" class="form-input" id="modal-end-date" value="${endDate}">
+          <yuvomi-datepicker type="date" id="modal-end-date" value="${esc(formatDateInput(endDate))}" label="${esc(t('calendar.endDateLabel'))}"></yuvomi-datepicker>
         </div>
         <div class="form-group">
           <label class="form-label" for="modal-end-time">${t('calendar.endTimeLabel')}</label>
-          <input type="text" class="form-input js-time-input" id="modal-end-time" value="${formatTimeInput(endTime)}" placeholder="${timeInputPlaceholder()}">
+          <yuvomi-datepicker type="time" id="modal-end-time" value="${esc(formatTimeInput(endTime))}" label="${esc(t('calendar.endTimeLabel'))}"></yuvomi-datepicker>
         </div>
       </div>
     </div>
@@ -2170,85 +2880,36 @@ function buildEventModalContent({ mode, event, date, reminder = null }) {
       <div class="modal-grid modal-grid--2">
         <div class="form-group">
           <label class="form-label" for="modal-allday-start">${t('calendar.fromLabel')}</label>
-          <input type="date" class="form-input" id="modal-allday-start" value="${startDate}">
+          <yuvomi-datepicker type="date" id="modal-allday-start" value="${esc(formatDateInput(startDate))}" label="${esc(t('calendar.fromLabel'))}"></yuvomi-datepicker>
         </div>
         <div class="form-group">
           <label class="form-label" for="modal-allday-end">${t('calendar.toLabel')}</label>
-          <input type="date" class="form-input" id="modal-allday-end" value="${endDate}">
+          <yuvomi-datepicker type="date" id="modal-allday-end" value="${esc(formatDateInput(endDate))}" label="${esc(t('calendar.toLabel'))}"></yuvomi-datepicker>
         </div>
       </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="modal-location">${t('calendar.locationLabel')}</label>
-      <input type="text" class="form-input" id="modal-location"
-             placeholder="${t('calendar.locationPlaceholder')}" value="${esc(isEdit && event.location ? event.location : '')}">
     </div>
 
     <div class="form-group">
       ${renderUserMultiSelect(state.users, selectedUserIds, 'cal_assigned', 'calendar.assignedLabel')}
     </div>
 
-    <div class="form-group js-color-picker-group">
-      <label class="form-label" id="event-color-label">${t('calendar.colorLabel')}</label>
-      <div class="color-picker" id="event-color-picker" role="radiogroup" aria-labelledby="event-color-label">
-        ${EVENT_COLORS.map((c, i) => `
-          <div class="color-swatch" data-color="${c}" style="background-color:${c};"
-               role="radio"
-               tabindex="${i === 0 ? '0' : '-1'}"
-               aria-checked="false"
-               aria-label="${EVENT_COLOR_NAMES()[c] ?? c}"></div>
-        `).join('')}
-      </div>
-      <p class="form-hint color-picker__assignee-hint" id="color-picker-assignee-hint" hidden>${t('calendar.colorOverriddenByAssignee')}</p>
-    </div>
-
+    ${state.users.length > 1 ? `
     <div class="form-group">
-      <label class="form-label" for="event-sync-target">${t('calendar.syncTargetLabel')}</label>
-      <select class="form-input" id="event-sync-target">
-        <option value="">${t('calendar.syncTargetLocal')}</option>
+      <label class="form-label" for="modal-visibility">${t('common.visibility.label')}</label>
+      <select class="input" id="modal-visibility" name="visibility">
+        <option value="all"       ${visibility === 'all'       ? 'selected' : ''}>${t('common.visibility.all')}</option>
+        <option value="assignees" ${visibility === 'assignees' ? 'selected' : ''}>${t('common.visibility.assignees')}</option>
+        <option value="private"   ${visibility === 'private'   ? 'selected' : ''}>${t('common.visibility.private')}</option>
       </select>
-      <small class="form-hint">${t('calendar.syncTargetHint')}</small>
-    </div>
+      <p class="form-hint">${t('common.visibility.hint')}</p>
+      <p class="form-hint field-hint--warn" id="modal-visibility-warning" role="status" hidden><i data-lucide="alert-triangle" aria-hidden="true"></i><span>${t('common.visibility.assigneesNobodyHint')}</span></p>
+    </div>` : ''}
 
-    <div class="form-group">
-      <label class="form-label" for="modal-description">${t('calendar.descriptionLabel')}</label>
-      <textarea class="form-input" id="modal-description" rows="2"
-                placeholder="${t('calendar.descriptionPlaceholder')}">${esc(isEdit && event.description ? event.description : '')}</textarea>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="modal-attachment">${t('calendar.attachmentLabel')}</label>
-      <p class="document-storage-target">
-        <i data-lucide="${state.documentUploadBackend === 'webdav' ? 'cloud' : 'database'}" aria-hidden="true"></i>
-        <span>${t('documents.activeUploadTarget', {
-          target: state.documentUploadBackend === 'webdav'
-            ? t('documents.storageWebdav')
-            : t('documents.storageLocal'),
-        })}</span>
-      </p>
-      <label class="document-dropzone" id="modal-attachment-dropzone" for="modal-attachment">
-        <input class="sr-only" id="modal-attachment" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-        <span class="document-dropzone__icon">
-          <i data-lucide="file-up" aria-hidden="true"></i>
-        </span>
-        <span class="document-dropzone__title">${t('documents.dropzoneTitle')}</span>
-        <span class="document-dropzone__hint">${t('documents.dropzoneHint')}</span>
-        <span class="document-dropzone__file" id="modal-selected-attachment" ${isEdit && event.attachment_name ? '' : 'hidden'}>
-          ${isEdit && event.attachment_name ? esc(selectedAttachmentLabel(event.attachment_name)) : ''}
-        </span>
-      </label>
-      <div class="form-help">${t('calendar.attachmentHint')}</div>
-      <div class="event-attachment-preview" id="modal-attachment-preview" ${isEdit && hasAttachment(event) ? '' : 'hidden'}>
-        ${isEdit && hasAttachment(event) ? attachmentPreviewHtml(event) : ''}
-      </div>
-      <button class="btn btn--secondary" id="modal-remove-attachment" type="button"
-              ${isEdit && hasAttachment(event) ? '' : 'hidden'}>${t('calendar.attachmentRemove')}</button>
-    </div>
+    ${advancedSection(advancedFieldsHtml, { open: advancedFieldsOpen })}
 
     ${renderRRuleFields('event', isEdit ? event.recurrence_rule : null)}
 
-    ${renderCalendarReminderSection(reminder, event)}
+    ${renderCalendarReminderSection(reminder, event, isEdit ? [] : state.defaultReminders)}
 
     <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
       ${isEdit ? `<button class="btn btn--danger btn--icon" id="modal-delete" aria-label="${t('calendar.deleteEvent')}">
@@ -2266,7 +2927,7 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
   const title   = overlay.querySelector('#modal-title').value.trim();
 
   if (!title) {
-    window.oikos?.showToast(t('calendar.titleRequired'), 'error');
+    window.yuvomi?.showToast(t('calendar.titleRequired'), 'error');
     return;
   }
 
@@ -2293,7 +2954,7 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
     const etRaw = overlay.querySelector('#modal-end-time').value;
     const et = parseTimeInput(etRaw);
     if ((stRaw && !st) || (etRaw && !et)) {
-      window.oikos?.showToast(t('calendar.invalidDate'), 'error');
+      window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
       return;
     }
     start_datetime = st ? `${sd}T${st}` : sd;
@@ -2305,11 +2966,11 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
     : ['#modal-start-date', '#modal-end-date'];
   const hasInvalidDate = visibleDateFields.some((selector) => !isDateInputValid(overlay.querySelector(selector)?.value));
   if (!start_datetime || hasInvalidDate) {
-    window.oikos?.showToast(t('calendar.invalidDate'), 'error');
+    window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
     return;
   }
   if (isEndBeforeStart(start_datetime, end_datetime)) {
-    window.oikos?.showToast(t('calendar.endBeforeStart'), 'error');
+    window.yuvomi?.showToast(t('calendar.endBeforeStart'), 'error');
     return;
   }
 
@@ -2319,7 +2980,7 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
   try {
     const rrule = getRRuleValues(overlay, 'event');
     if (!rrule.valid_until) {
-      window.oikos?.showToast(t('calendar.invalidDate'), 'error');
+      window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
       saveBtn.disabled    = false;
       saveBtn.textContent = mode === 'edit' ? t('common.save') : t('common.create');
       return;
@@ -2356,6 +3017,7 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
       title, description, start_datetime, end_datetime,
       all_day: allday ? 1 : 0,
       location, color, icon, assigned_to,
+      visibility: overlay.querySelector('#modal-visibility')?.value || 'all',
       recurrence_rule: rrule.recurrence_rule,
       target_google_calendar_id,
       target_caldav_account_id,
@@ -2386,34 +3048,44 @@ async function saveEvent(overlay, mode, eventId, existingReminder = null, attach
       if (idx !== -1) state.events[idx] = res.data;
     }
 
-    // Erinnerung speichern oder löschen
+    // Erinnerungen speichern oder löschen (mehrere je Termin möglich, #436).
     if (savedEventId) {
-      const offsetSel = overlay.querySelector('#modal-reminder-offset');
-      const offsetVal = offsetSel?.value;
+      const reminderOn = overlay.querySelector('#modal-reminder-toggle')?.checked;
+      const rowsEl     = overlay.querySelector('#modal-reminder-rows');
+      const startMs    = new Date(reminderStartValue(start_datetime)).getTime();
+      let remindAts = [];
 
-      if (offsetVal !== '' && offsetVal !== undefined) {
-        // Remind-Zeitpunkt = start_datetime - offset (in Minuten)
-        const startMs  = new Date(reminderStartValue(start_datetime)).getTime();
-        const offsetMinutes = offsetVal === 'custom'
-          ? customReminderMinutes(
-              overlay.querySelector('#modal-reminder-custom-amount')?.value,
-              overlay.querySelector('#modal-reminder-custom-unit')?.value
-            )
-          : parseInt(offsetVal, 10);
-        const remindAt = toLocalDateTimeString(new Date(startMs - offsetMinutes * 60000));
-        await api.post('/reminders', { entity_type: 'event', entity_id: savedEventId, remind_at: remindAt });
-        refreshReminders();
-      } else {
-        api.delete(`/reminders?entity_type=event&entity_id=${savedEventId}`).catch(() => {});
-        refreshReminders();
+      if (reminderOn && rowsEl) {
+        for (const row of rowsEl.querySelectorAll('[data-reminder-row]')) {
+          const offsetVal = row.querySelector('.js-reminder-offset')?.value;
+          if (offsetVal == null || offsetVal === '') continue;
+          const offsetMinutes = offsetVal === 'custom'
+            ? customReminderMinutes(
+                row.querySelector('.js-reminder-custom-amount')?.value,
+                row.querySelector('.js-reminder-custom-unit')?.value
+              )
+            : parseInt(offsetVal, 10);
+          remindAts.push(new Date(startMs - offsetMinutes * 60000).toISOString().slice(0, 19));
+        }
+        remindAts = [...new Set(remindAts)].slice(0, MAX_CALENDAR_REMINDERS);
       }
+
+      if (remindAts.length) {
+        await api.put(`/reminders?entity_type=event&entity_id=${savedEventId}`, { remind_ats: remindAts });
+      } else {
+        await api.delete(`/reminders?entity_type=event&entity_id=${savedEventId}`).catch(() => {});
+      }
+      refreshReminders();
     }
 
     closeModal({ force: true });
     renderView();
-    window.oikos?.showToast(mode === 'create' ? t('calendar.createdToast') : t('calendar.savedToast'), 'success');
+    window.yuvomi?.showToast(mode === 'create' ? t('calendar.createdToast') : t('calendar.savedToast'), 'success');
   } catch (err) {
-    window.oikos?.showToast(err.data?.error ?? err.message ?? t('calendar.saveError'), 'error');
+    // Server-Validierungsmeldung bevorzugen, sonst lokalisierter Fallback; der
+    // rohe err.message-Text (Netzwerk/JS) wird nie gezeigt. Das Modal bleibt offen
+    // und der Button reaktiviert — die Eingaben des Nutzers bleiben erhalten.
+    window.yuvomi?.showToast(err.data?.error ?? t('calendar.saveError'), 'error');
     saveBtn.disabled    = false;
     saveBtn.textContent = mode === 'edit' ? t('common.save') : t('common.create');
   }
@@ -2425,7 +3097,7 @@ async function deleteEvent(id) {
   renderView();
 
   let undone = false;
-  window.oikos?.showToast(t('calendar.deletedToast'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('calendar.deletedToast'), 'default', 5000, () => {
     undone = true;
     if (event) {
       state.events = [...state.events, event];
@@ -2444,7 +3116,90 @@ async function deleteEvent(id) {
         state.events = [...state.events, event];
         renderView();
       }
-      window.oikos?.showToast(err.data?.error ?? t('calendar.deleteError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('calendar.deleteError'), 'danger');
+    }
+  }, 5000);
+}
+
+/**
+ * Einstiegspunkt für das Löschen (#489). Lokale Serien fragen „nur dieser Termin"
+ * vs. „ganze Serie"; alles andere (Einzeltermine, externe Serien) wird direkt gelöscht.
+ */
+async function requestDeleteEvent(event) {
+  // Nur rein lokale Serien bekommen die Einzeltermin-Option (#489); extern
+  // synchronisierte (Google/Apple/CalDAV/ICS) behalten „ganze Serie löschen".
+  const isLocalSeries = !!event?.recurrence_rule
+    && (event.external_source ?? 'local') === 'local'
+    && !event.calendar_ref_id && !event.subscription_id;
+  if (!isLocalSeries) {
+    await deleteEvent(event.id);
+    return;
+  }
+  const choice = await recurringDeleteChoice();
+  if (choice === 'series') await deleteEvent(event.id);
+  else if (choice === 'this') await deleteSingleOccurrence(event);
+  // null → abgebrochen, nichts tun
+}
+
+/**
+ * Auswahl-Dialog für das Löschen wiederkehrender Termine (Blaupause:
+ * recurringChoiceModal in budget.js). Löst zu 'this' | 'series' | null auf.
+ */
+function recurringDeleteChoice() {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const finish = (value) => {
+      if (resolved) return;
+      resolved = true;
+      closeModal({ force: true });
+      resolve(value);
+    };
+    openSharedModal({
+      title: t('calendar.deleteRecurringTitle'),
+      size: 'sm',
+      content: `
+        <p class="form-hint modal-lead">${t('calendar.deleteRecurringHint')}</p>
+        <div class="modal-actions modal-actions--stack">
+          <button type="button" class="btn btn--primary" id="rds-this">${t('calendar.deleteThisOccurrence')}</button>
+          <button type="button" class="btn btn--danger" id="rds-series">${t('calendar.deleteWholeSeries')}</button>
+          <button type="button" class="btn btn--ghost" id="rds-cancel">${t('common.cancel')}</button>
+        </div>`,
+      onClose: () => finish(null),
+      onSave(panel) {
+        panel.querySelector('#rds-this')?.addEventListener('click', () => finish('this'));
+        panel.querySelector('#rds-series')?.addEventListener('click', () => finish('series'));
+        panel.querySelector('#rds-cancel')?.addEventListener('click', () => finish(null));
+      },
+    });
+  });
+}
+
+/**
+ * Nimmt genau ein Vorkommen einer lokalen Serie aus (#489), mit optimistischer
+ * Entfernung und Undo-Toast wie beim regulären Löschen.
+ */
+async function deleteSingleOccurrence(event) {
+  const date       = event.start_datetime.slice(0, 10);
+  const matches    = (e) => e.id === event.id && e.start_datetime.slice(0, 10) === date;
+  const removed    = state.events.filter(matches);
+  state.events     = state.events.filter((e) => !matches(e));
+  renderView();
+
+  let undone = false;
+  window.yuvomi?.showToast(t('calendar.deletedToast'), 'default', 5000, () => {
+    undone = true;
+    state.events = [...state.events, ...removed];
+    renderView();
+  });
+
+  setTimeout(async () => {
+    if (undone) return;
+    try {
+      await api.post(`/calendar/${event.id}/exceptions`, { date });
+    } catch (err) {
+      state.events = [...state.events, ...removed];
+      renderView();
+      window.yuvomi?.showToast(err.data?.error ?? t('calendar.deleteError'), 'danger');
     }
   }, 5000);
 }

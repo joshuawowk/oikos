@@ -7,7 +7,10 @@
     "generating": "…",
     "optional": "任意",
     "stepCounter": "ステップ {{n}} / {{total}}",
-    "toggleVisibility": "値を表示または非表示にする"
+    "toggleVisibility": "値を表示または非表示にする",
+    "copy": "コピー",
+    "copied": "コピーしました ✓",
+    "language": "言語"
   },
   "config": {
     "title": "基本設定",
@@ -28,7 +31,8 @@
     "sessionHint": "ブラウザのセッション Cookie に署名します。",
     "dbLabel": "データベース暗号化キー",
     "dbHint": "保存時に SQLite データベースを暗号化します。",
-    "errBoth": "両方のキーが必要です。"
+    "errBoth": "両方のキーが必要です。",
+    "dangerWarn": "これらのキーを今すぐ保存してください。失うと、暗号化されたデータは復元できません — リセットはありません。"
   },
   "weather": {
     "title": "天気ウィジェット",
@@ -73,11 +77,23 @@
     "google": "Google カレンダー",
     "apple": "Apple CalDAV",
     "documentWebdav": "WebDAV ドキュメント",
+    "documentLocal": "ローカルドキュメント",
     "save": "保存して Docker を起動",
     "saving": "保存中 …",
     "errSave": ".env の保存に失敗しました。",
     "weatherEnabled": "有効（{{city}}）",
-    "configured": "設定済み"
+    "configured": "設定済み",
+    "finalNote": "これにより .env が書き込まれ（既存のものはバックアップされます）、コンテナが起動します。",
+    "confirm": "確認するにはもう一度クリック",
+    "access": "アクセス",
+    "accessProxy": "リバースプロキシ（HTTPS）",
+    "accessDirect": "直接 / HTTP",
+    "email": "メール",
+    "oidc": "シングルサインオン",
+    "backups": "バックアップ",
+    "webdavBackup": "外部バックアップ",
+    "on": "有効",
+    "off": "無効"
   },
   "docker": {
     "title": "Yuvomi を起動しています",
@@ -110,7 +126,10 @@
   "done": {
     "title": "Yuvomi の準備が整いました！",
     "subtitle": "ファミリープランナーが稼働し、管理者アカウントの設定が完了しました。",
-    "open": "Yuvomi を開く →"
+    "open": "Yuvomi を開く →",
+    "backupReminder": "今すぐ .env ファイルをバックアップするのを忘れずに — キーが含まれています。",
+    "download": ".env ファイルをダウンロード",
+    "savedTo": "{{path}} に保存しました"
   },
   "advanced": {
     "tag": "詳細設定 · 任意",
@@ -139,6 +158,68 @@
     "documentWebdavUsernameLabel": "ユーザー名",
     "documentWebdavPasswordLabel": "パスワード",
     "documentWebdavPathLabel": "ベースパス",
-    "documentWebdavPathHint": "ドキュメント用のリモートフォルダー。空の場合は yuvomi-documents を使用します。"
+    "documentWebdavPathHint": "ドキュメント用のリモートフォルダー。空の場合は yuvomi-documents を使用します。",
+    "documentLocal": "ローカルドキュメントストレージ",
+    "documentLocalEnable": "新しいドキュメントをローカルフォルダーに保存する",
+    "documentLocalPathLabel": "フォルダーのパス",
+    "documentLocalPathHint": "コンテナ内のパス。空欄の場合は /documents を使用します。",
+    "sectionNetwork": "ネットワーク",
+    "sectionIntegrations": "連携とバックアップ",
+    "errSchedule": "無効な cron スケジュールです（スペース区切りの5フィールドが必要、例：0 2 * * *）。",
+    "errKeep": "保持するバックアップ数は正の数である必要があります。",
+    "webdavBackup": "外部バックアップ（WebDAV）",
+    "webdavBackupHint": "各バックアップを WebDAV サーバー（例：Nextcloud）にコピーし、ディスク障害でも残るようにします。",
+    "webdavBackupEnable": "バックアップを WebDAV にも送信",
+    "webdavBackupUrlLabel": "WebDAV URL",
+    "webdavBackupUsernameLabel": "ユーザー名",
+    "webdavBackupPasswordLabel": "パスワード",
+    "webdavBackupPathLabel": "リモートパス",
+    "sectionMore": "その他のオプション",
+    "fixerLabel": "Fixer API キー（リアルタイム為替レート）",
+    "fixerHint": "任意です。サブスクの通貨をリアルタイムレートで換算します。これがなくてもサブスクは機能します。",
+    "pushSubjectLabel": "プッシュ連絡先アドレス",
+    "pushSubjectHint": "サーバーの連絡先としてプッシュサービスに送信されます。既定値を使うには空欄のままにします。"
+  },
+  "welcome": {
+    "title": "Yuvomi へようこそ",
+    "subtitle": "プライベートな家族プランナーを立ち上げましょう。セットアップ方法を選んでください。",
+    "simpleTitle": "簡単セットアップ",
+    "simpleBadge": "おすすめ",
+    "simpleDesc": "技術的な詳細はこちらで対応します。自宅で Yuvomi を使うのに最適です。",
+    "simpleTime": "約2分",
+    "advancedTitle": "詳細セットアップ",
+    "advancedDesc": "完全な制御：リバースプロキシ、カレンダー同期、メール、シングルサインオン、バックアップ。",
+    "advancedTime": "すべての項目を順番に"
+  },
+  "simple": {
+    "title": "準備完了",
+    "subtitle": "安全な既定値ですべて準備しました。あとはアカウントを作成するだけです。",
+    "itemKeysTitle": "セキュリティキーを生成しました",
+    "itemKeysDesc": "セッションとデータベースは自動的に暗号化されます。",
+    "itemAccessTitle": "ローカルアクセス",
+    "itemAccessDesc": "このマシンの {{url}} でアクセスできます。",
+    "itemBackupsTitle": "毎日のバックアップが有効",
+    "itemBackupsDesc": "毎晩ローカルバックアップを保持します。",
+    "backupReminder": "セットアップ後、生成された .env ファイルをバックアップしてください。唯一の暗号化キーが含まれています。",
+    "switchAdvanced": "もっとオプションが必要ですか？詳細セットアップに切り替える",
+    "start": "Yuvomi をセットアップして起動"
+  },
+  "email": {
+    "title": "メールとパスワードリセット",
+    "subtitle": "家族が忘れたパスワードをメールでリセットできるようにします。任意です — 不要ならスキップしてください。",
+    "enable": "メール送信を有効にする",
+    "hint": "ご自身の SMTP サーバーを使用します（メールプロバイダー、セルフホスト、またはトランザクションサービス）。",
+    "hostLabel": "SMTP サーバー",
+    "portLabel": "ポート",
+    "secureLabel": "暗号化",
+    "secureStarttls": "STARTTLS（ポート 587）",
+    "secureSsl": "SSL/TLS（ポート 465）",
+    "secureNone": "なし（非推奨）",
+    "userLabel": "ユーザー名",
+    "passLabel": "パスワード",
+    "fromLabel": "差出人アドレス",
+    "fromHint": "受信者に表示される「差出人」アドレスです。多くのプロバイダーではユーザー名と一致させる必要があります。",
+    "fromNameLabel": "差出人名",
+    "errIncomplete": "SMTP サーバーと差出人アドレスは必須です。"
   }
 }

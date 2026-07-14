@@ -135,6 +135,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
@@ -181,17 +182,15 @@
   z-index: var(--z-nav);
   backdrop-filter: var(--blur-md) saturate(180%);
   -webkit-backdrop-filter: var(--blur-md) saturate(180%);
-  transition: transform 0.2s var(--ease-out);
-}
-
-.nav-bottom--hidden {
-  transform: translateY(100%);
 }
 
 /* ── Items-Reihe ── */
 .nav-bottom__items {
   display: flex;
-  height: var(--nav-height-mobile);
+  /* min-height statt fixer Höhe: lange Labels (de/fr, z. B. „Haushaltsbuch",
+   * „Paramètres") dürfen die Bar auf zwei Zeilen wachsen lassen, statt zu
+   * clippen. Kurze Labels behalten die kompakte Höhe. */
+  min-height: var(--nav-height-mobile);
 }
 
 /* ── More-Button (Button-Basis, ansonsten wie nav-item) ── */
@@ -229,6 +228,17 @@
   to   { opacity: 1; }
 }
 
+/* Der persistente Install-Promo-Banner (z-toast) weicht JEDEM fokussierten
+ * Overlay — regulären Modals (.modal-overlay: Hilfe, Änderungen, Löschdialoge,
+ * Formulare …), dem More-Sheet und dem Such-Overlay — statt deren Inhalt zu
+ * überlagern. Deklarativ via :has() (im Projekt etabliert: login.css,
+ * user-multi-select.css); reaktiv beim Ein-/Ausblenden, ohne JS-Hooks. */
+html:has(.modal-overlay) yuvomi-install-prompt,
+html:has(.more-sheet[aria-hidden="false"]) yuvomi-install-prompt,
+html:has(.search-overlay--visible) yuvomi-install-prompt {
+  display: none;
+}
+
 /* ── More-Sheet ── */
 .more-sheet {
   position: fixed;
@@ -240,11 +250,21 @@
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--space-4) var(--space-4) calc(var(--space-4) + var(--safe-area-inset-bottom));
   z-index: calc(var(--z-nav) + 2);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   transform: translateY(100%);
   transition: transform 0.25s var(--ease-out);
+}
+
+/* App-Launcher-Raster: farbige Modul-Icons als Helden, kein Kasten drumherum.
+ * Dicht (4 Spalten) statt aufgeblähter 3er-Karten. */
+.more-sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  column-gap: var(--space-2);
+  row-gap: var(--space-3);
+  margin-block: var(--space-1);
 }
 
 .more-sheet[aria-hidden="false"] {
@@ -319,76 +339,61 @@
   flex: 1;
 }
 
-.more-sheet__search-kbd {
-  display: none;
-  font-size: var(--text-xs);
-  color: var(--color-text-quaternary, var(--color-text-tertiary));
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 1px 5px;
-  font-family: inherit;
-  line-height: 1.4;
-  flex-shrink: 0;
-}
-
-@media (min-width: 1024px) {
-  html:not(.search-kbd-done) .more-sheet__search-kbd {
-    display: inline;
-  }
-}
-
-/* ── More-Item ── */
+/* ── More-Item: App-Icon (farbiges Icon = Held, kein Kasten) ── */
 .more-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-2);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-surface-elevated);
+  gap: var(--space-2);
+  padding: 0;
+  background: none;
   color: var(--color-text-secondary);
   text-decoration: none;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition: color var(--transition-fast);
   -webkit-tap-highlight-color: transparent;
-  min-height: var(--target-lg);
 }
 
-.more-item:active {
-  background-color: var(--color-surface-hover);
-  transform: scale(0.96);
+.more-item:active .more-item__icon-well {
+  transform: scale(0.92);
 }
 
 .more-item[aria-current="page"] {
   color: var(--active-module-accent, var(--color-accent));
-  background-color: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 12%, transparent);
+  font-weight: var(--font-weight-semibold);
 }
 
+/* Das farbige Rounded-Square IST das Modul (echte App-Icon-Sprache): solide
+ * Akzentfläche + kontrastierender Glyph (--color-ink-on-vivid: weiß im Light-,
+ * dunkle Tinte im Dark-Mode). Solide Flächen trennen ähnliche Hues (Rose ≠
+ * Mauve ≠ Beere) deutlich besser als blasse 20%-Pastelle. */
 .more-item__icon-well {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--item-module-accent, var(--color-text-secondary)) 20%, var(--color-surface-elevated));
-  color: var(--item-module-accent, var(--color-text-secondary));
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--item-module-accent, var(--color-text-secondary));
+  color: var(--color-ink-on-vivid);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 30%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 12%, transparent);
+  transition: transform 0.12s var(--ease-out);
 }
 
+/* Aktives Modul (Sheet auf dieser Route geöffnet): Akzent-Ring statt Tint. */
 .more-item[aria-current="page"] .more-item__icon-well {
-  background: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 26%, var(--color-surface-elevated));
-  color: var(--active-module-accent, var(--color-accent));
+  outline: 2px solid var(--active-module-accent, var(--color-accent));
+  outline-offset: 2px;
 }
 
 .more-item__icon {
-  width: 18px;
-  height: 18px;
+  width: var(--space-6);
+  height: var(--space-6);
   flex-shrink: 0;
 }
 
@@ -397,6 +402,79 @@
   font-weight: var(--font-weight-medium);
   text-align: center;
   line-height: 1.2;
+  /* Lange Modulnamen brechen um statt zu überlaufen (schmale Spalten ~80px). */
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.more-item[aria-current="page"] .more-item__label {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── More-Sheet Divider: trennt Modul-Grid vom System-Cluster ── */
+.more-sheet__divider {
+  height: 1px;
+  background-color: var(--color-border-subtle);
+  margin: 0;
+}
+
+/* ── System-Cluster: kompakte Reihe (Einstellungen | Hilfe | Änderungen |
+ * Abmelden) — Icon-über-Label, monochrom. ── */
+.more-sheet__system {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+/* System-Item: Icon-über-Label, monochrom — leichter als die farbigen
+ * Modul-App-Icons, klar als „Meta/System" lesbar. */
+.more-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  min-height: var(--target-base);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.more-action:active {
+  background-color: var(--color-surface-hover);
+  transform: scale(0.96);
+}
+
+/* Aktives System-Ziel (z. B. Einstellungen offen) markieren. */
+.more-action[aria-current="page"] {
+  color: var(--active-module-accent, var(--color-accent));
+  font-weight: var(--font-weight-semibold);
+}
+
+.more-action__icon {
+  width: var(--space-6);
+  height: var(--space-6);
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+
+.more-action[aria-current="page"] .more-action__icon {
+  color: var(--active-module-accent, var(--color-accent));
+}
+
+.more-action__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 /* ── Such-Overlay ── */
@@ -479,7 +557,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
-  letter-spacing: 0.01em;
+  letter-spacing: var(--tracking-normal);
   margin-bottom: var(--space-2);
 }
 
@@ -513,7 +591,7 @@
   gap: var(--space-0h);
   padding: var(--space-1) var(--space-1);
   color: var(--color-text-tertiary);
-  transition: color var(--transition-fast), transform 0.12s ease;
+  transition: color var(--transition-fast);
   -webkit-tap-highlight-color: transparent;
   min-height: var(--target-lg);
   min-width: var(--target-lg);
@@ -523,6 +601,8 @@
 
 .nav-bottom .nav-item {
   padding-block: var(--space-0h);
+  padding-inline: var(--space-0h);
+  min-width: 0;
 }
 
 .nav-item__icon-wrap {
@@ -551,11 +631,6 @@
   right: calc(-1 * var(--space-1));
 }
 
-.nav-item:active {
-  transform: scale(0.92);
-  transition-duration: 0.06s;
-}
-
 /* ── Nav-Item: Aktiv ── */
 .nav-item[aria-current="page"] {
   color: var(--active-module-accent, var(--color-accent));
@@ -568,16 +643,28 @@
   justify-content: center;
   flex-shrink: 0;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--item-module-accent, var(--color-text-secondary)) 18%, var(--color-surface-elevated));
-  color: var(--item-module-accent, var(--color-text-secondary));
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-secondary);
+  box-shadow: inset 0 var(--space-px) 0 var(--glass-highlight-subtle);
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .nav-bottom .nav-item__icon-well {
   width: var(--target-base);
-  height: var(--target-sm);
+  /* Sichtbare Tap-Fläche 44×40 statt 44×32 — füllt die 44×44-Komfortzone für
+   * Ein-Daumen-Nutzung besser aus und senkt das Fehl-Tap-Risiko. */
+  height: var(--target-md);
   border-radius: var(--radius-full);
+  /* Inaktiv: nacktes Icon, keine gefüllte Well-Kachel (auch im No-Glass-
+   * Fallback). Leichter, ruhiger Ton — die aktive Pille trägt den Zustand. */
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    transform 0.12s var(--ease-out),
+    opacity 0.12s var(--ease-out);
 }
 
 .nav-sidebar .nav-item__icon-well {
@@ -585,14 +672,15 @@
   height: 26px;
 }
 
-/* Aktiv und nav-item--active: stärkere Farbe auf der Well */
+/* Der äußere Indikator ist die einzige aktive Fläche; das Icon trägt den Modulakzent. */
 .nav-item[aria-current="page"] .nav-item__icon-well,
 .nav-item--active .nav-item__icon-well {
-  background: color-mix(in srgb, var(--item-module-accent, var(--color-accent)) 28%, var(--color-surface-elevated));
-  color: var(--item-module-accent, var(--color-accent));
+  background: transparent;
+  color: var(--item-module-accent, var(--active-module-accent, var(--color-accent)));
+  box-shadow: none;
 }
 
-/* Bottom-Nav aktiv: kein Chip-Hintergrund auf dem ganzen Item (Well übernimmt) */
+/* Bottom-Nav aktiv: die gleitende Indikatorfläche übernimmt den Zustand. */
 .nav-bottom .nav-item[aria-current="page"],
 .nav-bottom .nav-item--active {
   background: none;
@@ -614,6 +702,44 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Bottom-Bar-Labels dürfen zweizeilig umbrechen statt einzeilig zu ellipsieren.
+ * In 5 gleichen Flex-Slots (~72px bei 360px) clippt eine Single-Line lange
+ * Komposita (de/fr) zu „Einst…"; zwei zentrierte Zeilen erhalten die
+ * Recognition. overflow-wrap:anywhere bricht auch fugenlose Langwörter. */
+.nav-bottom .nav-item__label {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+}
+
+.nav-bottom .nav-item[aria-current="page"] .nav-item__label,
+.nav-bottom .nav-item--active .nav-item__label {
+  color: var(--item-module-accent, var(--active-module-accent, var(--color-accent)));
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Fokusring außen um die Icon-Well legen (nicht innen ins Item) — so ist er
+ * für Tastatur-/Sehbeeinträchtigte klar zu orten, statt hinter Icon+Label zu
+ * verschwinden. */
+.nav-bottom .nav-item:focus-visible {
+  outline: none;
+}
+
+.nav-bottom .nav-item:focus-visible .nav-item__icon-well {
+  outline: var(--space-0h) solid var(--item-module-accent, var(--active-module-accent, var(--color-accent)));
+  outline-offset: var(--space-0h);
+}
+
+.nav-bottom .nav-item:active .nav-item__icon-well {
+  transform: translateY(var(--space-px)) scale(0.96);
+  opacity: var(--opacity-glass-elevated);
 }
 
 /* --------------------------------------------------------
@@ -638,7 +764,7 @@
   border-radius: var(--radius-full);
   background-color: var(--module-accent, var(--color-accent));
   color: var(--color-ink-on-vivid);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.10);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -661,7 +787,7 @@
 .page-fab:focus-visible {
   outline: 2px solid var(--color-bg);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--color-accent);
+  box-shadow: 0 0 0 4px var(--module-accent, var(--color-accent));
 }
 
 /* Long Loop: FAB-Animation nach N Aufrufen deaktivieren */
@@ -705,8 +831,8 @@ html.fab-anim-done .page-fab {
 }
 
 .page-toolbar__title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-bold);
+  /* Größe/Weight kommen aus der Canonical-Page-Head-Rolle in typography.css
+   * (.u-toolbar-title / .page-toolbar__title → --type-toolbar-title, 20px). */
   white-space: nowrap;
   min-width: 0;
 }
@@ -720,14 +846,42 @@ html.fab-anim-done .page-fab {
   margin-left: auto;
 }
 
+/* Center-Slot des Canonical Page Head: wachsende Mitte (Suche, Datums-Nav).
+ * flex:1 schiebt die Aktionen via deren margin-left:auto an den Rand. Auf
+ * schmalen Viewports darf der Kopf umbrechen — der Center-Slot nimmt dann
+ * eine eigene Zeile ein (siehe .page-toolbar--wrap). */
+.page-toolbar__center {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Opt-in: Kopf darf umbrechen; Center-Slot rutscht auf Zeile 2 unter
+ * Titel + Aktionen, sobald der Platz in einer Zeile nicht reicht. */
+.page-toolbar--wrap {
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
+.page-toolbar--wrap .page-toolbar__center {
+  flex-basis: 100%;
+  order: 3;
+}
+
+@media (min-width: 768px) {
+  .page-toolbar--wrap .page-toolbar__center {
+    flex-basis: auto;
+    order: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .page-toolbar {
     padding: var(--space-2) var(--space-3);
   }
 
-  .page-toolbar__title {
-    font-size: var(--text-base);
-  }
 }
 
 /* Toolbar-"Neu"-Buttons überall verstecken - FAB übernimmt.
@@ -820,7 +974,7 @@ html.fab-anim-done .page-fab {
   .nav-sidebar__brand-name {
     font-size: var(--text-lg);
     font-weight: var(--font-weight-bold);
-    letter-spacing: -0.6px;
+    letter-spacing: var(--tracking-tight);
     color: var(--color-text-primary);
     white-space: nowrap;
     overflow: hidden;
@@ -831,7 +985,7 @@ html.fab-anim-done .page-fab {
     margin-top: var(--space-0h);
     font-size: var(--text-xs);
     font-weight: var(--font-weight-medium);
-    letter-spacing: 0.04em;
+    letter-spacing: var(--tracking-label);
     color: var(--color-text-tertiary);
   }
 
@@ -840,14 +994,43 @@ html.fab-anim-done .page-fab {
     display: flex;
     flex-direction: column;
     gap: var(--space-0h);
-    /* Kein Container-Padding: Item-Padding allein steuert die Icon-Flucht,
-     * die schwebende Indikator-Pille zieht ihren Einzug über left/right. */
-    padding: 0;
+    /* Kein seitliches Container-Padding: Item-Padding steuert die Icon-Flucht,
+     * die schwebende Indikator-Pille zieht ihren Einzug über left/right. Unten
+     * ein kleiner Puffer, damit das letzte Item (Settings) beim Scrollen nicht an
+     * die Footer-Haarlinie stößt. */
+    padding: 0 0 var(--space-2);
     flex: 1;
     overflow-y: auto;
     scrollbar-width: none;
   }
   .nav-sidebar__items::-webkit-scrollbar { display: none; }
+
+  /* Footer ist eine eigene, nicht-scrollende Region (flex-shrink:0) und setzt
+   * sich mit einer Haarlinie vom scrollenden Nav-Bereich ab — so verschmilzt das
+   * gepinnte Settings-Item nie mit Hilfe/Änderungen/Abmelden. */
+  .nav-sidebar__footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-0h);
+    padding: var(--space-2) var(--space-1) 0;
+    margin-top: var(--space-1);
+    border-top: 1px solid var(--color-border-subtle);
+    flex-shrink: 0;
+  }
+
+  /* Abmelden bricht in eine eigene, volle Zeile unter Hilfe/Änderungen und
+   * setzt sich mit einer Haarlinie als terminale Aktion ab. Doppelte
+   * Klassen-Spezifität (.nav-item.nav-item--logout) + volle flex-Shorthand
+   * schlagen die spätere `.nav-item { flex: 0 1 auto }`-Regel, die sonst
+   * flex-basis auf auto zurücksetzte → Zeile blieb schmal statt vollbreit. */
+  .nav-sidebar__footer-actions .nav-item.nav-item--logout {
+    flex: 1 1 100%;
+    margin-top: var(--space-1);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border-subtle);
+  }
 
   /* ── Nav-Item: Sidebar ── */
   .nav-sidebar .nav-item {
@@ -882,6 +1065,15 @@ html.fab-anim-done .page-fab {
     font-weight: var(--font-weight-medium);
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-sidebar__footer-actions .nav-item {
+    flex: 0 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+    padding: var(--space-2) var(--space-1);
+    gap: var(--space-1);
   }
 
   /* ── Hover: dezente Hintergrundfarbe ── */
@@ -915,12 +1107,8 @@ html.fab-anim-done .page-fab {
   }
 
   /* ── Einstellungen ans Ende ── */
-  .nav-sidebar__items > a:last-child:not(:only-child) {
+  .nav-sidebar__items > .nav-item--pinned-end:not(:only-child) {
     margin-top: auto;
-  }
-
-  .nav-sidebar__items > a:only-child {
-    margin-top: 0;
   }
 
   /* ── Sidebar Toggle ── */
@@ -967,12 +1155,87 @@ html.fab-anim-done .page-fab {
     padding-left: 0;
   }
 
+  /* Eingeklappt: Labels bleiben im Layout (Sidebar-Breite ist fix, overflow:hidden
+   * beschneidet den Überhang), nur per Opacity verborgen. So kein „display:block"-
+   * Pop, der den Text mitten in der Breiten-Animation auf Einzelzeichen klippt —
+   * und der Accessible Name des Items bleibt erhalten (besser für Screenreader). */
   html.sidebar-collapsed .nav-sidebar .nav-item__label {
-    display: none;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+  }
+
+  html.sidebar-collapsed .nav-sidebar .nav-sidebar__footer-actions {
+    flex-direction: column;
+    padding-inline: var(--space-1);
+  }
+
+  /* Eingeklappt stapelt der Footer bereits vertikal (icon-only) — der
+   * Vollzeilen-Umbruch entfällt (flex komplett zurücksetzen, sonst streckt
+   * flex-grow das Icon in der Spalte), die Haarlinie bleibt als Trenner. */
+  html.sidebar-collapsed .nav-sidebar__footer-actions .nav-item.nav-item--logout {
+    flex: 0 0 auto;
+    margin-top: var(--space-0h);
   }
 
   html.sidebar-collapsed .nav-sidebar .nav-section-label {
-    display: none;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+  }
+
+  /* ── Eingeklappt: Rail expandiert bei Hover/Fokus und zeigt Labels ──
+   * Wandelt den Icon-only-Recall in Recognition-on-demand für Maus (hover) und
+   * Tastatur (focus-within). Touch ist bewusst NICHT abgedeckt: ein Tap
+   * navigiert sofort und verweilt nicht im Fokus — auf Touch bleibt der
+   * eingeklappte Rail icon-only (bei ≥1024px jedoch selten). Die Sidebar ist
+   * fixed und überlagert Inhalt beim Aufklappen wie ein Flyout — --sidebar-width
+   * (und damit der .app-content-Margin) bleibt 56px, also kein Reflow. Die
+   * Breite animiert über die bestehende width-Transition. */
+  html.sidebar-collapsed:not(.sidebar-collapse-pointer-lock) .nav-sidebar:hover,
+  html.sidebar-collapsed .nav-sidebar:focus-within {
+    width: var(--sidebar-width-expanded);
+    box-shadow: var(--shadow-lg);
+  }
+
+  html.sidebar-collapsed:not(.sidebar-collapse-pointer-lock) .nav-sidebar:hover .nav-sidebar__brand-text,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-sidebar__brand-text {
+    display: flex;
+  }
+
+  /* Beim Aufklappen die Labels erst einblenden, NACHDEM die Breite gewachsen ist
+   * (Delay ≈ Dauer der width-Transition 0.4s). So erscheint der Text bei voller
+   * Breite statt beschnitten mitzuwachsen. Ausblenden (un-hover) läuft ohne Delay
+   * über die Basis-Regel oben. */
+  html.sidebar-collapsed:not(.sidebar-collapse-pointer-lock) .nav-sidebar:hover .nav-item__label,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-item__label,
+  html.sidebar-collapsed:not(.sidebar-collapse-pointer-lock) .nav-sidebar:hover .nav-section-label,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-section-label {
+    opacity: 1;
+    transition: opacity 0.18s ease 0.22s;
+  }
+
+  /* Beim Aufklappen (Hover/Fokus) muss der Footer das Expanded-Layout annehmen:
+   * Zeile statt Spalte, Abmelden bricht als volle Zeile um. Ohne dies blieben
+   * Hilfe/Änderungen/Abmelden in der eingeklappten, zentrierten Spalte stehen
+   * und flüchteten nicht linksbündig wie im gepinnten Zustand (#488). */
+  html.sidebar-collapsed:not(.sidebar-collapse-pointer-lock) .nav-sidebar:hover .nav-sidebar__footer-actions,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-sidebar__footer-actions {
+    flex-direction: row;
+  }
+
+  html.sidebar-collapsed:not(.sidebar-collapse-pointer-lock) .nav-sidebar:hover .nav-sidebar__footer-actions .nav-item.nav-item--logout,
+  html.sidebar-collapsed .nav-sidebar:focus-within .nav-sidebar__footer-actions .nav-item.nav-item--logout {
+    flex: 1 1 100%;
+    margin-top: var(--space-1);
+  }
+
+  /* ── Fokus-Ring der Nav-Items/Toggle nach innen versetzt ──
+   * Die Items sitzen flush-links an der geclippten Sidebar-Kante
+   * (.nav-sidebar overflow:hidden, .nav-sidebar__items overflow-y:auto → auch
+   * horizontal beschnitten). Der globale outline-offset:3px würde den Ring an
+   * der linken Kante abschneiden; ein Inset-Ring bleibt vollständig sichtbar. */
+  .nav-sidebar .nav-item:focus-visible,
+  .nav-sidebar__toggle:focus-visible {
+    outline-offset: -2px;
   }
 }
 
@@ -999,9 +1262,6 @@ html.fab-anim-done .page-fab {
 .page__title {
   /* Feste Token-Stufen statt fluidem clamp (Produkt-Register: feste rem-Skala,
    * keine literalen rem). Mobil --text-2xl (24px), Desktop --text-3xl (30px). */
-  font-size: var(--text-2xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: -0.5px;
   text-wrap: balance;
 }
 
@@ -1011,8 +1271,6 @@ html.fab-anim-done .page-fab {
   }
 
   .page__title {
-    font-size: var(--text-3xl);
-    letter-spacing: -0.8px;
   }
 }
 
@@ -1101,7 +1359,7 @@ html.fab-anim-done .page-fab {
 }
 
 .card__title {
-  font-size: var(--text-sm);
+  font-size: var(--type-card-title);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   text-wrap: balance;
@@ -1126,7 +1384,14 @@ html.fab-anim-done .page-fab {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: var(--color-overlay);
+  /* Modul-getönter, leicht geblurter Backdrop: das Modul bleibt als
+   * weiches, eingefärbtes Bild hinter dem Panel sichtbar statt durch eine
+   * flache Dim-Fläche ersetzt zu werden. --blur-xs wird unter
+   * prefers-reduced-transparency/-contrast automatisch zu blur(0) — der
+   * Fallback unten stellt dann ein volldeckenderes Overlay wieder her. */
+  background-color: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 10%, var(--color-overlay-glass));
+  backdrop-filter: var(--blur-xs) saturate(120%);
+  -webkit-backdrop-filter: var(--blur-xs) saturate(120%);
   z-index: var(--z-modal);
   display: flex;
   align-items: center;
@@ -1150,14 +1415,19 @@ html.fab-anim-done .page-fab {
 .modal-panel {
   background-color: var(--color-surface);
   width: 100%;
-  max-height: calc(100dvh - (2 * var(--space-3)) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  /* Mobile: bewusst auf ~88dvh gedeckelt, damit oben ein Streifen des
+   * geblurten Moduls sichtbar bleibt — das Sheet wirkt als Karte über dem
+   * Modul, nicht als Vollbild-Takeover. Safe-Areas bleiben respektiert. */
+  max-height: min(88dvh, calc(100dvh - (2 * var(--space-3)) - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
   overflow: hidden;
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-lg);
-  animation: modal-slide-up 0.25s var(--ease-out) forwards;
+  /* Dezentes Einfahren: kurzer Hub + leichte Skalierung statt vollem
+   * translateY(100%)-Vollhub. Wirkt leichter und weniger einnehmend. */
+  animation: modal-sheet-in 0.28s var(--ease-out) forwards;
   /* Cursor vom Overlay zurücksetzen */
   cursor: default;
 }
@@ -1185,7 +1455,7 @@ html.fab-anim-done .page-fab {
 }
 
 .modal-panel__title {
-  font-size: var(--text-md);
+  font-size: var(--type-section-title);
   font-weight: var(--font-weight-semibold);
   text-wrap: balance;
 }
@@ -1217,6 +1487,10 @@ html.fab-anim-done .page-fab {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  /* Container für Formular-Raster: 2-Spalten-Felder collabieren nach
+   * MODALBREITE (sm 400 / md 520 / lg 680), nicht Viewport. Ein sm-Modal
+   * auf großem Desktop bleibt so einspaltig statt gequetscht. */
+  container: modal-body / inline-size;
 }
 
 /* Modal-Content-Grids (z. B. 2 Spalten in Formularen) */
@@ -1250,10 +1524,141 @@ html.fab-anim-done .page-fab {
   flex-direction: column;
 }
 
-@media (max-width: 639px) {
+@container modal-body (max-width: 480px) {
   .modal-grid--2 {
     grid-template-columns: 1fr;
   }
+}
+
+/* Live-Changelog modal */
+.changelog-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.changelog-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2);
+}
+
+.changelog-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  min-width: 0;
+}
+
+.changelog-summary__item span {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+.changelog-summary__item strong {
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.changelog-version-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.changelog-version-note--warning {
+  color: var(--color-warning, var(--color-text-secondary));
+}
+
+.changelog-status {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.changelog-status--muted {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+}
+
+.changelog-status--error {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+}
+
+.changelog-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.changelog-release {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.changelog-release--current {
+  border-color: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 7%, var(--color-surface));
+}
+
+.changelog-release__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.changelog-release__version {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--color-text-primary);
+}
+
+.changelog-release__badge {
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 14%, var(--color-surface));
+  color: var(--active-module-accent, var(--color-accent));
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.changelog-section + .changelog-section {
+  margin-top: var(--space-3);
+}
+
+.changelog-section__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.changelog-section__list {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-primary);
+}
+
+.changelog-section__list li + li {
+  margin-top: var(--space-1);
+}
+
+.changelog-release__empty {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
 }
 
 .form-stack {
@@ -1262,10 +1667,82 @@ html.fab-anim-done .page-fab {
   gap: var(--space-4);
 }
 
+/* --------------------------------------------------------
+ * Progressive Disclosure: „Weitere Einstellungen"
+ * Einklappbarer Block für Sekundärfelder in Modal-Formularen.
+ * -------------------------------------------------------- */
+.form-advanced {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.form-advanced__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--target-base);
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--type-secondary);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--transition-fast);
+}
+
+/* Default-Disclosure-Dreieck entfernen (Cross-Browser) */
+.form-advanced__summary::-webkit-details-marker { display: none; }
+.form-advanced__summary::marker { content: ''; }
+
+.form-advanced__summary:hover {
+  color: var(--color-text-primary);
+}
+
+.form-advanced__summary:focus-visible {
+  outline: 2px solid var(--active-module-accent, var(--color-accent));
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.form-advanced__chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+
+.form-advanced[open] .form-advanced__chevron {
+  transform: rotate(180deg);
+}
+
+.form-advanced__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-advanced__chevron { transition: none; }
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+
+/* Einleitender Hinweis-Text über gestapelten Modal-Aktionen (z. B. Scope-Wahl). */
+.modal-lead {
+  margin: 0 0 var(--space-4);
+}
+
+.modal-actions--stack {
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .modal-panel__footer {
@@ -1292,8 +1769,20 @@ html.fab-anim-done .page-fab {
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* Mobile-Sheet: sanfter kurzer Hub + leichte Skalierung (kein Vollhub). */
+@keyframes modal-sheet-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
 /* ── Bottom Sheet: Handle + Closing Animation (Mobile < 768px) ── */
 @media (max-width: 767px) {
+  /* Sheet am unteren Rand verankern: oben bleibt ein Streifen des geblurten
+   * Moduls sichtbar (Karte über dem Modul statt zentrierter Vollbild-Dialog). */
+  .modal-overlay {
+    align-items: flex-end;
+  }
+
   .modal-panel {
     /* Extra top padding for the drag handle */
     padding-top: calc(var(--space-4) + 20px);
@@ -1422,6 +1911,72 @@ html.fab-anim-done .page-fab {
   pointer-events: none;
 }
 
+/* ================================================================
+ * Zeilen-Aktionen — geteilte Grammatik (Audit F1)
+ *
+ * EIN Stil für Bearbeiten/Löschen/Mehr-Aktionen in allen Listen und Karten:
+ * nackter Icon-Button, ruhiger Grundzustand, klare 44px-Touch-Fläche, ohne
+ * Hover-Reveal lesbar (Touch). Ersetzt die zuvor pro Modul gestreuten Stile
+ * (mal Fill-Kreis, mal nacktes Icon, mal zu blass). Delete trägt --danger,
+ * semantische Sonderfälle (z.B. Anrufen) setzen nur die Farbe.
+ * ================================================================ */
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.row-action {
+  width: var(--target-lg);
+  height: var(--target-lg);
+  min-width: var(--target-lg);
+  min-height: var(--target-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.row-action:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.row-action:active {
+  transform: scale(0.94);
+}
+
+.row-action:focus-visible {
+  outline: 2px solid var(--active-module-accent, var(--color-accent));
+  outline-offset: 2px;
+}
+
+.row-action--danger:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.row-action--success {
+  color: var(--color-success);
+}
+
+.row-action--success:hover {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.row-action svg {
+  width: 18px;
+  height: 18px;
+}
+
 .btn--icon {
   padding: var(--space-2);
   min-height: var(--target-lg);
@@ -1459,7 +2014,7 @@ html.fab-anim-done .page-fab {
   border: 1.5px solid var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text-primary);
-  font-size: var(--text-md);
+  font-size: var(--text-base);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   min-height: var(--target-lg);
 }
@@ -1481,7 +2036,8 @@ html.fab-anim-done .page-fab {
 
 .input::placeholder,
 .form-input::placeholder {
-  color: var(--color-text-disabled);
+  color: var(--color-text-placeholder);
+  opacity: 1; /* Firefox setzt ::placeholder sonst auf opacity < 1 und senkt den Kontrast erneut */
 }
 
 .label, .form-label {
@@ -1553,11 +2109,87 @@ html.fab-anim-done .page-fab {
 }
 
 /* --------------------------------------------------------
+ * Zutaten-Zeile (geteilt: Mahlzeiten- + Rezept-Modal)
+ * Global statt modul-scoped, weil Modals im geteilten Overlay rendern und der
+ * Router immer nur EIN Modul-Stylesheet aktiv hält. Markup: ingredient-row.js.
+ * -------------------------------------------------------- */
+.ingredient-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-glass-inner);
+}
+
+.ingredient-row__name {
+  flex: 2;
+}
+
+.ingredient-row__qty {
+  flex: 1;
+  min-width: 0;
+}
+
+.ingredient-row__cat {
+  flex: 1.5;
+  min-width: 0;
+  font-size: var(--type-body);
+}
+
+.ingredient-row__remove {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-disabled);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.ingredient-row__remove::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.ingredient-row__remove:hover {
+  color: var(--color-danger);
+}
+
+.meal-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-0h) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.meal-type-badge--breakfast { background: var(--meal-breakfast-light); color: var(--meal-breakfast); }
+.meal-type-badge--lunch     { background: var(--meal-lunch-light);    color: var(--meal-lunch); }
+.meal-type-badge--dinner    { background: var(--meal-dinner-light);   color: var(--meal-dinner); }
+.meal-type-badge--snack     { background: var(--meal-snack-light);    color: var(--meal-snack); }
+
+/* --------------------------------------------------------
  * Toggle-Switch
  * Custom iOS-style toggle, ersetzt native Checkboxen.
  * Usage: <label class="toggle"><input type="checkbox"><span class="toggle__track"></span></label>
  * -------------------------------------------------------- */
 .toggle {
+  /* position:relative macht dieses Label zum Containing-Block der visuell
+   * versteckten, absolut positionierten .toggle-Checkbox. Ohne das positioniert
+   * sich die Checkbox relativ zum nächsten positionierten Vorfahren (dem
+   * overflow:hidden .modal-panel); beim Antippen scrollt der Browser dann das
+   * Panel statt des Modal-Bodys in die Checkbox — es entsteht ein großer leerer
+   * Block und die folgenden Felder werden unerreichbar (#483, nur mobil, hier
+   * beim Erinnerungs-Toggle im Termin-Modal). */
+  position: relative;
   display: inline-flex;
   align-items: center;
   cursor: pointer;
@@ -1637,11 +2269,14 @@ html.fab-anim-done .page-fab {
  * Skeleton-Loading
  * -------------------------------------------------------- */
 .skeleton {
+  /* Linienfarbe aus Surface + Ink gemischt: garantierter Kontrast in beiden
+   * Themes mit EINER Definition (zuvor border-subtle/surface-2 — im Dark Mode
+   * deckungsgleich mit der Kartenfläche #222220, dadurch unsichtbar). */
   background: linear-gradient(
     90deg,
-    var(--color-border-subtle) 25%,
-    var(--color-surface-2) 50%,
-    var(--color-border-subtle) 75%
+    color-mix(in srgb, var(--color-text-primary) 18%, var(--color-surface)) 25%,
+    color-mix(in srgb, var(--color-text-primary) 30%, var(--color-surface)) 50%,
+    color-mix(in srgb, var(--color-text-primary) 18%, var(--color-surface)) 75%
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
@@ -1652,6 +2287,42 @@ html.fab-anim-done .page-fab {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* Reduced-Motion: Shimmer aus, statische Fläche bleibt sichtbar. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* ── Geteilte Skeleton-Liste (alle Module) ──
+ * EINE Lade-Sprache statt modul-eigener „Lädt…"-Texte. Global definiert,
+ * damit die Breiten-Varianten auf JEDER Seite greifen (zuvor lagen sie nur
+ * in dashboard.css und waren außerhalb des Dashboards wirkungslos).
+ * Markup-Hilfe: public/utils/skeleton.js → renderSkeletonList(). */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: var(--radius-xs);
+}
+
+.skeleton-line--title  { height: 18px; width: 45%; }
+.skeleton-line--short  { width: 35%; }
+.skeleton-line--medium { width: 60%; }
+.skeleton-line--full   { width: 100%; }
 
 /* --------------------------------------------------------
  * Leer-Zustände (Empty States)
@@ -1684,7 +2355,7 @@ html.fab-anim-done .page-fab {
 }
 
 .empty-state__title {
-  font-size: var(--text-md);
+  font-size: var(--text-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
@@ -1730,7 +2401,7 @@ html.fab-anim-done .page-fab {
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 600px) {
+@media (min-width: 640px) {
   .grid--2 { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -2017,6 +2688,12 @@ html.fab-anim-done .page-fab {
   padding: var(--space-3);
   background: var(--color-surface-2);
   border-radius: var(--radius-sm);
+}
+
+/* Progressive Disclosure: bei „keine Wiederholung" trägt das Element das
+ * hidden-Attribut — display:flex oben darf es nicht überstimmen. */
+.rrule-details[hidden] {
+  display: none;
 }
 
 .rrule-row {
@@ -2307,6 +2984,14 @@ html.fab-anim-done .page-fab {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+
+  /* Ohne Blur braucht der Modal-Backdrop wieder volle Deckkraft, damit das
+   * dahinterliegende Modul nicht unscharf-frei durchscheint. */
+  .modal-overlay {
+    background-color: var(--color-overlay);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 /* --------------------------------------------------------
@@ -2318,7 +3003,8 @@ html.fab-anim-done .page-fab {
   gap: var(--space-1);
 }
 
-.shortcuts-row {
+.shortcuts-row,
+.help-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -2326,8 +3012,15 @@ html.fab-anim-done .page-fab {
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.shortcuts-row:last-child {
+.shortcuts-row:last-child,
+.help-row:last-child {
   border-bottom: none;
+}
+
+/* Mobile-Hilfe-Zeilen tragen ein Lucide-Icon statt einer Taste. */
+.help-row__icon {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
 }
 
 .shortcut-kbd {
@@ -2438,7 +3131,7 @@ html.fab-anim-done .page-fab {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 9999;
+  z-index: var(--z-skip-link);
   width: auto;
   height: auto;
   padding: var(--space-2) var(--space-4);
@@ -2525,7 +3218,8 @@ textarea.input { resize: vertical; }
   }
 
   /* Aktiver Nav-Eintrag: zusätzliche Unterstreichung als farb-unabhängiger Indikator */
-  .nav-item[aria-current="page"] {
+  .nav-item[aria-current="page"],
+  .nav-item--active {
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -2557,7 +3251,8 @@ textarea.input { resize: vertical; }
   .fab          { border: 1px solid ButtonText; }
   .card         { border: 1px solid CanvasText; }
   .modal-panel  { border: 2px solid CanvasText; }
-  .nav-item[aria-current="page"] { border-bottom: 2px solid Highlight; }
+  .nav-item[aria-current="page"],
+  .nav-item--active { border-bottom: 2px solid Highlight; }
 }
 
 /* ============================================================
@@ -2577,7 +3272,9 @@ textarea.input { resize: vertical; }
   position: relative;
 }
 
-/* ── Sidebar: Morphende Indikator-Pille (Strukturell) ── */
+/* ── Sidebar: Morphende Indikator-Pille (Strukturell) ──
+ * Persistente Aktiv-Pille: verankert am aktiven Item, gleitet nur bei echtem
+ * Routenwechsel (Signature-Moment) — nicht beim Hover. */
 .nav-sidebar__indicator {
   position: absolute;
   /* Schwebend zentriert: seitlicher Einzug statt voller Breite */
@@ -2592,6 +3289,35 @@ textarea.input { resize: vertical; }
     opacity 0.25s ease;
   will-change: transform;
   z-index: 0;
+}
+
+/* ── Sidebar: Zarte Hover-/Fokus-Vorschau (Strukturell) ──
+ * Entkoppelt vom Aktiv-Marker: eine ruhige Fläche (kein Glas-Blur, kein Akzent),
+ * die dem Hover/Fokus folgt, damit die Aktiv-Pille beim Erkunden stehen bleibt. */
+.nav-sidebar__hover {
+  position: absolute;
+  left: var(--space-1);
+  right: var(--space-1);
+  top: 0;
+  height: var(--target-base); /* 44px */
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.28s cubic-bezier(0.28, 1.25, 0.36, 1),
+    opacity 0.18s ease;
+  will-change: transform, opacity;
+  z-index: 0;
+}
+
+/* ── Sidebar: Sektions-Gruppe (SR-Semantik) ──
+ * role="group" + aria-labelledby macht die visuelle Gruppierung für Screenreader
+ * sichtbar. display:flex bewahrt das Item-Stacking + gemeinsame Lücke. */
+.nav-sidebar__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0h);
 }
 
 /* Nav-Items über dem Sidebar-Indikator */
@@ -2611,18 +3337,18 @@ textarea.input { resize: vertical; }
 }
 
 /* Kein statischer Hover-Hintergrund wenn Liquid-Indikator aktiv —
- * die schwebende Pille übernimmt die Hover-Vorschau (opacity 0.5 via router.js) */
+ * das separate .nav-sidebar__hover-Element übernimmt die Vorschau (via router.js). */
 .nav-sidebar__items--liquid .nav-item:hover:not([aria-current="page"]) {
   background: transparent !important;
   box-shadow: none !important;
 }
 
-/* ── Sidebar: Abschnittsbezeichnung (z.B. "Haushalt") ── */
+/* ── Sidebar: Abschnittsbezeichnung (z.B. "Haushalt") ──
+ * Sentence-Case Gruppierungslabel (Typo-Rolle in typography.css). Tertiär
+ * gefärbt, damit es als ruhige Über-Beschriftung liest und nicht mit den
+ * Nav-Item-Labels (secondary, 14px) um Gewicht konkurriert. #6A6964 auf
+ * --sidebar-bg ≈ 5:1 (AA ✓). */
 .nav-section-label {
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--color-text-tertiary);
   padding: var(--space-3) var(--space-3) var(--space-1);
   user-select: none;
@@ -2634,17 +3360,24 @@ textarea.input { resize: vertical; }
 /* ── Mobile: Tab-Indikator (Strukturell) ── */
 .nav-bottom__indicator {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
+  top: var(--space-1);
+  bottom: var(--space-1);
   left: 0;
   border-radius: var(--radius-full);
   pointer-events: none;
   transition:
-    transform 0.45s cubic-bezier(0.28, 1.25, 0.36, 1),
-    width 0.45s cubic-bezier(0.28, 1.25, 0.36, 1),
-    opacity 0.25s ease;
-  will-change: transform, width;
+    transform 0.2s var(--ease-out),
+    opacity var(--transition-fast);
+  will-change: transform;
   z-index: 0;
+}
+
+.nav-bottom__indicator::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: var(--space-1);
+  border-radius: inherit;
 }
 
 /* Nav-Items im Bottom-Bar über dem Indikator */
@@ -2655,7 +3388,98 @@ textarea.input { resize: vertical; }
 
 @media (prefers-reduced-motion: reduce) {
   .nav-sidebar__indicator,
+  .nav-sidebar__hover,
   .nav-bottom__indicator {
     transition: opacity 0.01ms;
   }
+
+  /* Flyout-Labels ohne Einblend-Verzögerung — sofort sichtbar statt 0.22s Delay. */
+  html.sidebar-collapsed .nav-sidebar .nav-item__label,
+  html.sidebar-collapsed .nav-sidebar .nav-section-label {
+    transition: opacity 0.01ms;
+  }
+
+  .nav-bottom .nav-item:active .nav-item__icon-well {
+    transform: none;
+    opacity: 1;
+  }
+
+  /* More-Sheet: kein vestibulär belastender Slide-up. Der Transform snappt
+   * ohne Bewegung; das Erscheinen trägt ein sanfter Opacity-Fade (die
+   * kanonische Reduced-Motion-Alternative). Backdrop faded weiterhin nur
+   * Opacity (bewegungsfrei) und bleibt daher unverändert. */
+  .more-sheet {
+    transition: opacity var(--transition-fast);
+    opacity: 0;
+  }
+
+  .more-sheet[aria-hidden="false"] {
+    opacity: 1;
+  }
+
+  .more-sheet__search:active,
+  .more-action:active {
+    transform: none;
+  }
+
+  .more-item:active .more-item__icon-well {
+    transform: none;
+  }
+
+  /* Das aus der More-Sheet-Suche geöffnete Voll-Overlay teilt denselben
+   * translateY-Slide — ebenfalls durch einen bewegungsfreien Fade ersetzen. */
+  .search-overlay {
+    transition: opacity var(--transition-fast);
+    opacity: 0;
+  }
+
+  .search-overlay--visible {
+    opacity: 1;
+  }
+}
+
+/* Read-only-Modul-Modus (#467): Bei „Nur lesen"-Rechten die Anlege-Affordance
+   ausblenden und einen erklärenden Hinweis oben in der Seite zeigen. Die
+   verbindliche Sperre liegt am Server; dies ist die ehrliche UI-Entsprechung. */
+html[data-module-readonly] .page-fab {
+  display: none !important;
+}
+
+.module-readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.module-readonly-banner i {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* Warn-Variante für Formular-Hinweise (#474 Sichtbarkeits-Guard): hebt einen
+   Hinweis mit überraschender Konsequenz von neutralem Hilfetext ab, ohne zu
+   schreien. Als Zusatzklasse neben .form-hint / .task-field-hint. Der p-Selektor
+   erhöht die Spezifität, damit die später geladene Page-CSS-Hint-Farbe nicht gewinnt. */
+p.field-hint--warn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-warning);
+}
+
+p.field-hint--warn i,
+p.field-hint--warn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }

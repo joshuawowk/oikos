@@ -8,6 +8,8 @@ import { lookup as dnsLookup } from 'node:dns/promises';
 import { Agent as HttpAgent } from 'node:http';
 import { Agent as HttpsAgent } from 'node:https';
 import { BlockList, isIP } from 'node:net';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import fetch from 'node-fetch';
 import * as db from '../db.js';
 
@@ -23,6 +25,7 @@ const ENV_FIELDS = {
   password: 'DOCUMENT_STORAGE_WEBDAV_PASSWORD',
   path: 'DOCUMENT_STORAGE_WEBDAV_PATH',
 };
+const ENV_ALLOW_PRIVATE_NETWORK = 'DOCUMENT_STORAGE_WEBDAV_ALLOW_PRIVATE_NETWORK';
 const PASSWORD_MASK_RE = /^(?:\*|•){4,}$/;
 const BLOCKED_HOST_SUFFIXES = ['.localhost', '.local', '.internal', '.home.arpa'];
 const BLOCKED_NETWORKS = new BlockList();
@@ -68,6 +71,59 @@ export class StorageError extends Error {
     this.name = 'StorageError';
     this.storageCode = storageCode;
   }
+}
+
+// Local storage helpers (optional folder-backed document storage).
+// Configured purely via env (a host mount, analogous to BACKUP_DIR). When
+// enabled it takes precedence over the WebDAV backend and over the in-DB BLOB
+// default. Folder-backed rows are stored with storage_backend='local' and a
+// non-null relative storage_key; legacy in-DB BLOB rows keep storage_key=null.
+// Strict boolean env parsing, mirroring parseEnabled(): an unset/empty flag is
+// off, but a non-empty typo (e.g. "yes") fails loudly instead of silently
+// disabling the feature.
+function parseEnvFlag(name) {
+  const raw = process.env[name];
+  if (raw === undefined || String(raw).trim() === '') return false;
+  const normalized = String(raw).trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1') return true;
+  if (normalized === 'false' || normalized === '0') return false;
+  throw new StorageError(
+    'DOCUMENT_STORAGE_INVALID_CONFIG',
+    `${name} must be true, false, 1, or 0.`
+  );
+}
+
+export function getLocalStorageConfig() {
+  const basePath = String(process.env.DOCUMENT_STORAGE_LOCAL_PATH || '/documents').trim();
+  return {
+    enabled: parseEnvFlag('DOCUMENT_STORAGE_LOCAL_ENABLED'),
+    basePath: basePath || '/documents',
+  };
+}
+
+// The upload backend that new documents will be written to, in precedence order:
+// a mounted local folder wins over WebDAV, which wins over the in-DB BLOB default.
+export function getActiveUploadBackend() {
+  if (getLocalStorageConfig().enabled) return 'local_folder';
+  if (getConfig().enabled) return 'webdav';
+  return 'local';
+}
+
+// Resolve a validated storage key to an absolute path inside basePath.
+// normalizeStorageKey already rejects '..', backslashes, a leading '/' and
+// control characters; the containment check is defence in depth against any
+// future change to the key format.
+function resolveLocalPath(basePath, storageKey) {
+  const rel = normalizeStorageKey(storageKey);
+  const root = path.resolve(basePath);
+  const full = path.resolve(root, rel);
+  if (full !== root && !full.startsWith(root + path.sep)) {
+    throw new StorageError(
+      'DOCUMENT_STORAGE_INVALID_CONFIG',
+      'The local storage key escapes the configured storage path.'
+    );
+  }
+  return full;
 }
 
 function cfgGet(field) {
@@ -243,8 +299,17 @@ function normalizedHostname(hostname) {
     : value;
 }
 
+function isPrivateNetworkEnvAllowed() {
+  const raw = process.env[ENV_ALLOW_PRIVATE_NETWORK];
+  return raw !== undefined && (raw.trim() === 'true' || raw.trim() === '1');
+}
+
 function privateNetworkAllowed(config) {
-  return privateNetworkAccessForTests || config.envControlled?.url === true;
+  return (
+    privateNetworkAccessForTests
+    || config.envControlled?.url === true
+    || isPrivateNetworkEnvAllowed()
+  );
 }
 
 function assertHostnameAllowed(hostname, allowPrivate = false) {
@@ -392,6 +457,11 @@ function remoteUrl(config, relativeSegments) {
 async function davFetch(config, method, relativeSegments, { body, headers } = {}) {
   const url = remoteUrl(config, relativeSegments);
   const agent = requestAgent(url, config);
+  // SSRF-Schutz: URL ist ausschliesslich admin-konfigurierbar; agent nutzt
+  // validatedLookup (blockiert private/loopback/link-local IPs zur DNS-Zeit)
+  // und assertWebdavTargetAllowed als Pre-Flight. CodeQL js/request-forgery
+  // ist als False Positive dismissed (GitHub-Alert #19) — Inline-Suppression-
+  // Kommentare werden von GitHub Code Scanning fuer CodeQL nicht ausgewertet.
   return fetch(url, {
     method,
     redirect: 'manual',
@@ -544,6 +614,7 @@ export function getStatus() {
     lastTest: config.lastTest,
     lastError: config.lastError,
     envControlled: config.envControlled,
+    allowPrivateNetwork: isPrivateNetworkEnvAllowed(),
   };
 }
 
@@ -646,13 +717,41 @@ export async function stageDocumentUpload({
   originalName,
 }) {
   const content = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+
+  // Folder-backed local storage (env opt-in) takes precedence over WebDAV and
+  // the in-DB BLOB default. Writes go to DOCUMENT_STORAGE_LOCAL_PATH/<storage_key>.
+  // A write failure surfaces loudly (e.g. read-only mount, wrong ownership) so
+  // the misconfiguration is fixed rather than silently masked.
+  const localCfg = getLocalStorageConfig();
+  if (localCfg.enabled) {
+    const relKey = normalizeStorageKey(buildStorageKey({ category, originalName }));
+    const destPath = resolveLocalPath(localCfg.basePath, relKey);
+    try {
+      await fs.mkdir(path.dirname(destPath), { recursive: true });
+      await fs.writeFile(destPath, content);
+    } catch (error) {
+      throw toStorageError(
+        error,
+        'DOCUMENT_STORAGE_UPLOAD_FAILED',
+        'The document could not be written to local storage.'
+      );
+    }
+    return {
+      storage_backend: 'local',
+      storage_provider: 'local',
+      storage_key: relKey,
+      content_data: '',
+    };
+  }
+
   const config = getConfig();
   if (!config.enabled) {
     return {
       storage_backend: 'local',
       storage_provider: 'local',
       storage_key: null,
-      content_data: content.toString('base64'),
+      // Raw buffer stored in SQLite BLOB (legacy/default behaviour)
+      content_data: content,
     };
   }
 
@@ -714,10 +813,51 @@ export async function verifyExistingWebdavDocument(document, config) {
   }
 }
 
+/**
+ * Local-Dokumentinhalt als Buffer liefern. `content_data` liegt als binärer BLOB
+ * in SQLite (better-sqlite3 gibt BLOB-Werte direkt als Buffer zurück). Alt-Zeilen,
+ * die noch als base64-TEXT vorliegen (z. B. vor Abschluss der Migration 67 oder
+ * durch ältere Seeds), werden weiterhin toleriert, damit Downloads nicht brechen.
+ */
+function toStoredBinary(value) {
+  if (Buffer.isBuffer(value)) return value;
+  if (value === null || value === undefined || value === '') return Buffer.alloc(0);
+  return Buffer.from(String(value), 'base64');
+}
+
 export async function readDocumentContent(document, { dmsResolver } = {}) {
   if (document.storage_backend === 'local') {
+    // Folder-backed local storage: a non-null storage_key points to a relative
+    // path under the configured base. Legacy rows keep storage_key=null and are
+    // read from the in-DB BLOB below.
+    if (document.storage_key) {
+      const { basePath } = getLocalStorageConfig();
+      const full = resolveLocalPath(basePath, document.storage_key);
+      try {
+        const stat = await fs.stat(full);
+        if (stat.size > MAX_READ_BYTES) {
+          throw new StorageError(
+            'DOCUMENT_STORAGE_READ_FAILED',
+            'The local document exceeds the maximum readable size.'
+          );
+        }
+        return {
+          buffer: await fs.readFile(full),
+          mime: document.mime_type || 'application/octet-stream',
+        };
+      } catch (error) {
+        if (error instanceof StorageError) throw error;
+        throw toStorageError(
+          error,
+          'DOCUMENT_STORAGE_READ_FAILED',
+          'The local document could not be read.'
+        );
+      }
+    }
+
+    // Legacy rows stored as a binary BLOB in the DB.
     return {
-      buffer: Buffer.from(document.content_data || '', 'base64'),
+      buffer: toStoredBinary(document.content_data),
       mime: document.mime_type || 'application/octet-stream',
     };
   }
@@ -780,23 +920,47 @@ export async function readDocumentContent(document, { dmsResolver } = {}) {
 }
 
 export async function deleteDocumentContent(document) {
-  if (document.storage_backend !== 'webdav') return;
-  const config = requireWebdavConfig(getConfig());
-  try {
-    const response = await davFetch(config, 'DELETE', [
-      ...config.basePath.split('/'),
-      ...normalizeStorageKey(document.storage_key).split('/'),
-    ]);
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`DELETE failed with status ${response.status}.`);
+  // WebDAV deletion
+  if (document.storage_backend === 'webdav') {
+    const config = requireWebdavConfig(getConfig());
+    try {
+      const response = await davFetch(config, 'DELETE', [
+        ...config.basePath.split('/'),
+        ...normalizeStorageKey(document.storage_key).split('/'),
+      ]);
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`DELETE failed with status ${response.status}.`);
+      }
+    } catch (error) {
+      throw toStorageError(
+        error,
+        'DOCUMENT_STORAGE_DELETE_FAILED',
+        'The WebDAV document could not be deleted.'
+      );
     }
-  } catch (error) {
-    throw toStorageError(
-      error,
-      'DOCUMENT_STORAGE_DELETE_FAILED',
-      'The WebDAV document could not be deleted.'
-    );
+    return;
   }
+
+  // Local folder-backed deletion. Legacy BLOB rows have no storage_key and need
+  // no file removal (the DB row carries the bytes).
+  if (document.storage_backend === 'local' && document.storage_key) {
+    const { basePath } = getLocalStorageConfig();
+    const full = resolveLocalPath(basePath, document.storage_key);
+    try {
+      await fs.unlink(full);
+    } catch (error) {
+      // Ignore an already-missing file, but surface other errors.
+      if (error && error.code === 'ENOENT') return;
+      throw toStorageError(
+        error,
+        'DOCUMENT_STORAGE_DELETE_FAILED',
+        'The local document could not be deleted.'
+      );
+    }
+    return;
+  }
+
+  // Other backends: nothing to do
 }
 
 export async function cleanupStagedUpload(staged) {

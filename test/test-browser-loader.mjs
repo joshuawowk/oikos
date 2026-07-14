@@ -7,12 +7,22 @@
  */
 
 const STUBS = {
+  '/sw-register.js': `
+    export function clearApiCache() {}
+  `,
   '/api.js': `
     export const api = {
       get: async () => ({ data: null }),
       post: async () => ({ data: null }),
       put: async () => ({ data: null }),
+      patch: async () => ({ data: null }),
       delete: async () => ({ data: null }),
+    };
+    export const auth = {
+      me: async () => ({ user: null }),
+      getUsers: async () => ({ data: [] }),
+      logout: async () => ({ ok: true }),
+      updateProfile: async () => ({ user: null }),
     };
   `,
   '/i18n.js': `
@@ -42,7 +52,9 @@ const STUBS = {
   '/components/modal.js': `
     export const openModal = () => {};
     export const closeModal = () => {};
+    export const confirmModal = async () => true;
     export const selectModal = async () => null;
+    export const advancedSection = (inner = '') => String(inner);
   `,
   '/utils/ux.js': `
     export const stagger = () => {};
@@ -73,11 +85,25 @@ const STUBS = {
   '/utils/kitchen-tabs.js': `
     export const renderKitchenTabsBar = () => {};
   `,
+  '/utils/pwa-install.js': `
+    export const getPwaInstallState = () => ({
+      installed: false,
+      ios: false,
+      canPrompt: false,
+      supported: false,
+    });
+    export const onPwaInstallStateChanged = () => () => {};
+    export const promptPwaInstall = async () => ({ outcome: 'unavailable' });
+  `,
   '/utils/date.js': `
     const pad = (n) => String(n).padStart(2, '0');
     export const toLocalDateKey = (date) => {
       const d = date instanceof Date ? date : new Date(String(date) + 'T00:00:00');
       return \`\${d.getFullYear()}-\${pad(d.getMonth() + 1)}-\${pad(d.getDate())}\`;
+    };
+    export const parseLocalDateKey = (dateKey) => {
+      const [y, m, dd] = String(dateKey).split('-').map(Number);
+      return new Date(y, (m || 1) - 1, dd || 1);
     };
     export const addLocalDays = (dateStr, days) => {
       const d = new Date(String(dateStr) + 'T00:00:00');
@@ -104,6 +130,12 @@ const STUBS = {
       if (endDay !== startDay) return endDay < startDay;
       if (startTime && endTime) return endTime < startTime;
       return false;
+    };
+    export const WEEK_START_INDEX = { monday: 1, sunday: 0, saturday: 6 };
+    export const weekStartIndex = (value) => WEEK_START_INDEX[value] ?? 1;
+    export const weekdayOrder = (weekStart = 1) => {
+      const start = typeof weekStart === 'number' ? weekStart : weekStartIndex(weekStart);
+      return Array.from({ length: 7 }, (_, i) => (start + i) % 7);
     };
   `,
 };

@@ -27,6 +27,10 @@ db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
 db.exec(MIGRATIONS_SQL[1]);
 // Migration 44: FTS5 index + sync triggers. Must apply cleanly.
 db.exec(MIGRATIONS_SQL[44]);
+// Migration 65: health tables (medications, health_activities) the search reads from.
+db.exec(MIGRATIONS_SQL[65]);
+// Migration 66: FTS triggers + backfill for medications and health activities.
+db.exec(MIGRATIONS_SQL[66]);
 
 console.log('\n[Search-Test] FTS5-Volltextsuche\n');
 
@@ -53,11 +57,27 @@ db.prepare(`INSERT INTO contacts (name, phone, email) VALUES ('Cake Bakery', '55
 db.prepare(`INSERT INTO calendar_events (title, description, start_datetime, created_by)
   VALUES ('Cake tasting', 'pick a flavor', '2030-01-01T10:00:00Z', ?)`).run(uid);
 
+// Health medications: own (private), foreign family-visible, foreign private.
+db.prepare(`INSERT INTO medications (user_id, name, dosage_text, visibility)
+  VALUES (?, 'Aspirin', '500mg tablet', 'private')`).run(uid);
+db.prepare(`INSERT INTO medications (user_id, name, dosage_text, visibility)
+  VALUES (?, 'Metformin', '850mg', 'family')`).run(otherUid);
+db.prepare(`INSERT INTO medications (user_id, name, dosage_text, visibility)
+  VALUES (?, 'Warfarin', 'secret dose', 'private')`).run(otherUid);
+
+// Health activities: own (private), foreign family-visible, foreign private.
+db.prepare(`INSERT INTO health_activities (user_id, type, performed_at, note, visibility)
+  VALUES (?, 'running', '2030-01-01T08:00:00Z', 'morning jog', 'private')`).run(uid);
+db.prepare(`INSERT INTO health_activities (user_id, type, performed_at, note, visibility)
+  VALUES (?, 'swimming', '2030-01-02T08:00:00Z', 'lap pool', 'family')`).run(otherUid);
+db.prepare(`INSERT INTO health_activities (user_id, type, performed_at, note, visibility)
+  VALUES (?, 'boxing', '2030-01-03T08:00:00Z', 'private spar', 'private')`).run(otherUid);
+
 test('Migration 44 legt FTS5-Tabelle und Trigger an, Backfill leer (Seed danach)', () => {
   const tbl = db.prepare(`SELECT name FROM sqlite_master WHERE name = 'search_index'`).get();
   assert(tbl, 'search_index sollte existieren');
   const triggers = db.prepare(`SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'trg_search_%'`).get();
-  assert(triggers.n === 15, `Erwartet 15 Trigger, erhalten ${triggers.n}`);
+  assert(triggers.n === 21, `Erwartet 21 Trigger (15 aus Mig. 44 + 6 aus Mig. 66), erhalten ${triggers.n}`);
 });
 
 test('buildMatchQuery erzeugt sichere Präfix-Phrasen, ignoriert Sonderzeichen', () => {
@@ -111,10 +131,54 @@ test('DELETE-Trigger entfernt aus dem Index', () => {
   assert(runSearch(db, 'zebra', uid).tasks.length === 0, 'Nachher nicht mehr gefunden');
 });
 
+test('Suche findet Medikament über Name (FTS MATCH)', () => {
+  const r = runSearch(db, 'Aspirin', uid);
+  assert(r.meds.length === 1, `Erwartet 1 Medikament, erhalten ${r.meds.length}`);
+  assert(r.meds[0].title === 'Aspirin', 'Korrektes Medikament');
+});
+
+test('Suche findet Medikament über Dosistext (Präfix)', () => {
+  const r = runSearch(db, 'tablet', uid);
+  assert(r.meds.some((m) => m.title === 'Aspirin'), 'Dosistext "500mg tablet" via Treffer');
+});
+
+test('Suche findet Aktivität über Notiz und über Typ', () => {
+  const byNote = runSearch(db, 'jog', uid);
+  assert(byNote.activities.some((a) => a.note === 'morning jog'), 'Aktivität über Notiz gefunden');
+  const byType = runSearch(db, 'running', uid);
+  assert(byType.activities.some((a) => a.title === 'running'), 'Aktivität über Typ gefunden');
+});
+
+test('Health-Suche zeigt family-sichtbare Fremdzeilen', () => {
+  const med = runSearch(db, 'Metformin', uid);
+  assert(med.meds.some((m) => m.title === 'Metformin'), 'Fremdes family-Medikament sichtbar');
+  const act = runSearch(db, 'swimming', uid);
+  assert(act.activities.some((a) => a.title === 'swimming'), 'Fremde family-Aktivität sichtbar');
+});
+
+test('Health-Suche verbirgt fremde private Zeilen', () => {
+  const med = runSearch(db, 'Warfarin', uid);
+  assert(med.meds.length === 0, 'Fremdes privates Medikament ausgeschlossen');
+  const act = runSearch(db, 'boxing', uid);
+  assert(act.activities.length === 0, 'Fremde private Aktivität ausgeschlossen');
+});
+
+test('Health-Suchtrigger halten den Index synchron (UPDATE/DELETE)', () => {
+  const m = db.prepare(`INSERT INTO medications (user_id, name, dosage_text, visibility)
+    VALUES (?, 'Zolpidemtmp', 'x', 'private')`).run(uid);
+  assert(runSearch(db, 'Zolpidemtmp', uid).meds.length === 1, 'Neu angelegt gefunden');
+  db.prepare(`UPDATE medications SET name = 'Renamedmed' WHERE id = ?`).run(m.lastInsertRowid);
+  assert(runSearch(db, 'Zolpidemtmp', uid).meds.length === 0, 'Alter Name weg');
+  assert(runSearch(db, 'Renamedmed', uid).meds.length === 1, 'Neuer Name im Index');
+  db.prepare(`DELETE FROM medications WHERE id = ?`).run(m.lastInsertRowid);
+  assert(runSearch(db, 'Renamedmed', uid).meds.length === 0, 'Nach DELETE nicht mehr im Index');
+});
+
 test('Leere/kurze Query liefert leere Ergebnisse', () => {
   const r = runSearch(db, '', uid);
   assert(r.tasks.length === 0 && r.events.length === 0 && r.notes.length === 0
-    && r.contacts.length === 0 && r.items.length === 0, 'Alles leer');
+    && r.contacts.length === 0 && r.items.length === 0
+    && r.meds.length === 0 && r.activities.length === 0, 'Alles leer');
 });
 
 console.log(`\n[Search-Test] Ergebnis: ${passed} bestanden, ${failed} fehlgeschlagen\n`);

@@ -10,7 +10,7 @@ import { esc } from '/utils/html.js';
 
 const VERSION_URL = '/api/v1/version';
 const DEFAULT_APP_NAME = 'Yuvomi';
-const APP_NAME_STORAGE_KEY = 'oikos-app-name';
+const APP_NAME_STORAGE_KEY = 'yuvomi-app-name';
 
 function getStoredAppName() {
   return localStorage.getItem(APP_NAME_STORAGE_KEY) || DEFAULT_APP_NAME;
@@ -29,10 +29,27 @@ function setAppBranding(appName) {
  */
 export async function render(container) {
   const storedAppName = getStoredAppName();
+
+  // SSO-Kapabilität VOR dem ersten Paint ermitteln, damit der SSO-Block nicht
+  // nachträglich einspringt und das zentrierte Formular verschiebt (Layout-Shift).
+  // Gebändigt per Timeout, sodass ein langsamer/nicht erreichbarer Server das
+  // Passwort-Login nie blockiert – dann wird ohne SSO gerendert.
+  const oidc = await fetchOidcConfig();
+  const ssoEnabled = oidc?.enabled === true;
+
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
     <main class="login-page" id="main-content">
       <div class="login-hero">
+        <span class="login-hero__mark" aria-hidden="true">
+          <svg viewBox="0 0 160 160" fill="currentColor">
+            <g fill-opacity="0.82">
+              <circle cx="64" cy="72" r="27" />
+              <circle cx="100" cy="78" r="25" />
+              <circle cx="80" cy="106" r="24" />
+            </g>
+          </svg>
+        </span>
         <h1 class="login-hero__title">${esc(storedAppName)}</h1>
         <p class="login-hero__tagline">${esc(t('login.tagline'))}</p>
       </div>
@@ -49,7 +66,6 @@ export async function render(container) {
               autocomplete="username"
               autocapitalize="none"
               autocorrect="off"
-              placeholder="${esc(t('login.usernamePlaceholder'))}"
               required
             />
           </div>
@@ -62,16 +78,26 @@ export async function render(container) {
               id="password"
               name="password"
               autocomplete="current-password"
-              placeholder="${esc(t('login.passwordPlaceholder'))}"
               required
             />
+            <p class="login-capslock" id="login-capslock" role="status" hidden>
+              <i data-lucide="arrow-up" aria-hidden="true"></i>
+              <span>${esc(t('login.capsLockWarning'))}</span>
+            </p>
           </div>
 
-          <div class="login-error" id="login-error" role="alert" aria-live="polite" hidden></div>
+          <div class="login-error" id="login-error" role="alert" tabindex="-1" hidden></div>
 
           <button type="submit" class="btn btn--primary login-form__submit" id="login-btn">
             <span class="login-btn__label">${esc(t('login.loginButton'))}</span>
           </button>
+          ${ssoEnabled ? `
+          <div class="login-divider">${esc(t('login.orDivider'))}</div>
+          <a href="/api/v1/auth/oidc/start" class="btn btn--secondary login-form__submit">${esc(t('login.loginWithSso'))}</a>
+          ` : ''}
+          <p class="login-form__forgot" hidden>
+            <a href="/forgot-password" data-link>${esc(t('login.forgotPassword'))}</a>
+          </p>
         </form>
       </div>
       <p class="login-version" id="login-version"></p>
@@ -82,6 +108,9 @@ export async function render(container) {
   const errorEl = container.querySelector('#login-error');
   const submitBtn = container.querySelector('#login-btn');
   const versionEl = container.querySelector('#login-version');
+
+  container.querySelectorAll('a[data-link]').forEach((a) =>
+    a.addEventListener('click', (e) => { e.preventDefault(); window.yuvomi.navigate(a.getAttribute('href')); }));
 
   // OIDC-Fehlermeldung aus URL-Parameter anzeigen (z.B. ?error=oidc_failed nach gescheitertem Callback)
   const urlParams = new URLSearchParams(window.location.search);
@@ -115,38 +144,43 @@ export async function render(container) {
     if (window.lucide) lucide.createIcons({ el: toggleBtn });
   });
 
+  // Caps-Lock-Hinweis: eine aktive Feststelltaste ist die häufigste Ursache für
+  // vermeintlich falsche Passwörter. Nur am Passwortfeld, nur solange aktiv.
+  const capslockEl = container.querySelector('#login-capslock');
+  if (window.lucide) lucide.createIcons({ el: capslockEl });
+  const updateCapsLock = (e) => {
+    if (typeof e.getModifierState !== 'function') return;
+    capslockEl.hidden = !e.getModifierState('CapsLock');
+  };
+  passwordInput.addEventListener('keydown', updateCapsLock);
+  passwordInput.addEventListener('keyup', updateCapsLock);
+  passwordInput.addEventListener('blur', () => { capslockEl.hidden = true; });
+
   setAppBranding(storedAppName);
+
+  // Autofocus nur auf Zeigegeräten (Desktop): spart Rückkehrern den Klick, ohne
+  // auf Touch sofort die virtuelle Tastatur hochzureißen und Hero/Branding zu
+  // verdecken, bevor der Nutzer sich orientiert hat.
+  if (window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) {
+    container.querySelector('#username').focus();
+  }
 
   fetch(VERSION_URL, { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
       if (d?.app_name) {
         try { localStorage.setItem(APP_NAME_STORAGE_KEY, d.app_name); } catch (_) {}
-        setAppBranding(d.app_name);
+        // Nur neu anwenden, wenn sich der Name tatsächlich geändert hat –
+        // verhindert ein sichtbares Titel-Flackern bei jedem Aufruf.
+        if (d.app_name !== storedAppName) setAppBranding(d.app_name);
+      }
+      // „Passwort vergessen?" wie SSO gaten: nur anbieten, wenn der Server eine
+      // Reset-Mail tatsächlich zustellen kann (SMTP + BASE_URL). Sonst Sackgasse.
+      if (d?.password_reset_enabled) {
+        const forgot = container.querySelector('.login-form__forgot');
+        if (forgot) forgot.hidden = false;
       }
       versionEl.textContent = d?.version ? t('login.version', { version: d.version }) : '';
-    })
-    .catch(() => {});
-
-  // OIDC/SSO: SSO-Button anzeigen wenn Backend OIDC aktiviert hat
-  fetch('/api/v1/auth/oidc/config', { cache: 'no-store' })
-    .then(r => r.json())
-    .then(data => {
-      if (!data?.enabled) return;
-
-      const card = container.querySelector('.login-card');
-
-      const divider = document.createElement('div');
-      divider.className = 'login-divider';
-      divider.textContent = t('login.orDivider');
-
-      const ssoBtn = document.createElement('a');
-      ssoBtn.href = '/api/v1/auth/oidc/start';
-      ssoBtn.className = 'btn btn--secondary login-form__submit';
-      ssoBtn.textContent = t('login.loginWithSso');
-
-      card.appendChild(divider);
-      card.appendChild(ssoBtn);
     })
     .catch(() => {});
 
@@ -167,6 +201,8 @@ export async function render(container) {
     passwordInput.setAttribute('aria-invalid', String(!password));
 
     if (!username || !password) {
+      // Nicht nur rote Rahmen: einen angesagten Grund nennen (auch für SR).
+      showError(errorEl, t('login.fillAllFields'));
       if (!username) usernameInput.focus();
       else passwordInput.focus();
       return;
@@ -175,6 +211,8 @@ export async function render(container) {
     const labelEl = submitBtn.querySelector('.login-btn__label');
 
     submitBtn.disabled = true;
+    usernameInput.disabled = true;
+    passwordInput.disabled = true;
     labelEl.textContent = t('login.loggingIn');
     const spinner = document.createElement('span');
     spinner.className = 'login-spinner';
@@ -183,14 +221,35 @@ export async function render(container) {
 
     try {
       const result = await auth.login(username, password);
-      window.oikos.navigate('/', result.user);
+      window.yuvomi.navigate('/', result.user);
     } catch (err) {
-      showError(errorEl, err.status === 429
-        ? t('login.tooManyAttempts')
-        : t('login.invalidCredentials')
-      );
+      // Fehler-Ehrlichkeit: nur 401 heißt „falsche Zugangsdaten". 429 ist die
+      // Sperre; alles andere (Status 0 = offline, 5xx = Serverfehler) ist ein
+      // Verbindungsproblem – der Nutzer darf nicht fälschlich an sich zweifeln.
+      let message;
+      if (err.status === 429) message = t('login.tooManyAttempts');
+      else if (err.status === 401) message = t('login.invalidCredentials');
+      else message = t('login.networkError');
+      showError(errorEl, message);
+
+      if (err.status === 401) {
+        // Beide Felder markieren (welches falsch ist, verrät der Server aus
+        // Sicherheitsgründen nicht) und den Recovery-Weg sichtbar betonen.
+        usernameGroup.classList.add('form-group--error');
+        passwordGroup.classList.add('form-group--error');
+        usernameInput.setAttribute('aria-invalid', 'true');
+        passwordInput.setAttribute('aria-invalid', 'true');
+        const forgot = container.querySelector('.login-form__forgot');
+        if (forgot && !forgot.hidden) forgot.classList.add('login-form__forgot--emphasis');
+      }
+
+      // Fokus auf die Fehlermeldung, damit auch sehende Tastaturnutzer sie
+      // bemerken (nicht nur Screenreader über role="alert").
+      errorEl.focus();
     } finally {
       submitBtn.disabled = false;
+      usernameInput.disabled = false;
+      passwordInput.disabled = false;
       labelEl.textContent = t('login.loginButton');
       spinner.remove();
     }
@@ -209,4 +268,23 @@ export async function render(container) {
 function showError(el, message) {
   el.textContent = message;
   el.hidden = false;
+}
+
+/**
+ * Holt die OIDC/SSO-Kapabilität, bevor das Formular gerendert wird, damit der
+ * SSO-Block bereits beim ersten Paint an Ort und Stelle ist (kein Layout-Shift).
+ * Per AbortController-Timeout gebändigt: schlägt der Request fehl oder hängt er,
+ * wird ohne SSO gerendert – das Passwort-Login darf nie am OIDC-Endpunkt hängen.
+ * @param {number} timeoutMs
+ * @returns {Promise<{enabled?: boolean}|null>}
+ */
+function fetchOidcConfig(timeoutMs = 2000) {
+  return new Promise((resolve) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => { controller.abort(); resolve(null); }, timeoutMs);
+    fetch('/api/v1/auth/oidc/config', { cache: 'no-store', signal: controller.signal })
+      .then((r) => r.json())
+      .then((data) => { clearTimeout(timer); resolve(data); })
+      .catch(() => { clearTimeout(timer); resolve(null); });
+  });
 }

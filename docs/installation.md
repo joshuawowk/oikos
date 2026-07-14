@@ -10,7 +10,7 @@ node tools/installer/install-server.js
 # Open http://localhost:8090
 ```
 
-Requires Node.js 18+ on the host. The browser-based wizard is fully localized (19 languages, auto-detected from your browser), detects your container engine (Docker or Podman) first, then configures your `.env` — including optional reverse-proxy/HTTPS, Single Sign-On (OIDC), and automatic backups — starts the container, and creates your admin account. The engine still runs the app itself.
+Requires Node.js 18+ on the host. The browser-based wizard is fully localized (23 languages, auto-detected from your browser), detects your container engine (Docker or Podman) first, then configures your `.env` — including optional reverse-proxy/HTTPS, Single Sign-On (OIDC), and automatic backups — starts the container, and creates your admin account. The engine still runs the app itself.
 
 ### Option B — CLI Installer (Linux / macOS)
 
@@ -19,9 +19,9 @@ git clone https://github.com/ulsklyc/yuvomi.git && cd yuvomi
 bash install.sh
 ```
 
-The script checks prerequisites, generates security keys, configures optional integrations, starts the container (Docker or Podman — auto-detected), and creates your admin account. Like the web installer, it is fully localized in 19 languages and auto-detects yours from the shell environment (`LANG`/`LC_ALL`).
+The script checks prerequisites, generates security keys, configures optional integrations, starts the container (Docker or Podman — auto-detected), and creates your admin account. Like the web installer, it is fully localized in 23 languages and auto-detects yours from the shell environment (`LANG`/`LC_ALL`).
 
-Force a specific language with `--lang` (one of `de en es fr it sv el ru tr zh ja ar hi pt uk pl nl vi`):
+Force a specific language with `--lang` (one of `de en es fr it sv el ru tr zh ja ar hi pt uk pl nl cs vi hu ko id fa`):
 
 ```bash
 bash install.sh --lang de
@@ -78,10 +78,10 @@ Complete setup instructions for Yuvomi - from Docker installation to your first 
 
 ## Architecture Overview
 
-Yuvomi is a self-hosted family planner that runs as a single Docker container. The Express.js backend serves both the API and the static frontend files. Application data is stored in a SQLCipher-encrypted SQLite database inside a host-mounted data folder, and automated database backups are written to a separate host-mounted backup folder. Optionally, newly uploaded document files can be stored on a WebDAV server instead of inside SQLite.
+Yuvomi is a self-hosted family planner that runs as a single Docker container. The Express.js backend serves both the API and the static frontend files. Application data is stored in a SQLCipher-encrypted SQLite database inside a host-mounted data folder, and automated database backups are written to a separate host-mounted backup folder. Optionally, newly uploaded document files can be stored on a mounted host folder or on a WebDAV server instead of inside SQLite.
 
 ```
-Browser ──HTTP──▶ Docker Container (Express.js :3000) ──▶ SQLite/SQLCipher (/data/oikos.db)
+Browser ──HTTP──▶ Docker Container (Express.js :3000) ──▶ SQLite/SQLCipher (/data/yuvomi.db)
 
 With HTTPS (recommended for network access):
 Browser ──HTTPS──▶ Nginx (Reverse Proxy) ──HTTP──▶ Docker Container (Express.js :3000) ──▶ SQLite/SQLCipher
@@ -168,15 +168,17 @@ node tools/installer/install-server.js
 
 #### 3. Open the Wizard
 
-Open your browser and navigate to **http://localhost:8090**. The wizard detects your browser language (19 languages supported), verifies that a container engine is available (Docker with Compose v2, or Podman with `podman compose` / `podman-compose`), and reports any existing `.env` file or running container before you start. It then guides you through:
+Open your browser and navigate to **http://localhost:8090**. The wizard detects your browser language (23 languages supported), verifies that a container engine is available (Docker with Compose v2, or Podman with `podman compose` / `podman-compose`), and reports any existing `.env` file or running container before you start. It then guides you through:
 
 - Basics — timezone (`TZ`) and HTTP host port (`OIKOS_HTTP_PORT`)
 - Security key generation (`SESSION_SECRET`, `DB_ENCRYPTION_KEY`)
-- Optional integrations (weather, Google Calendar, Apple CalDAV, WebDAV document storage)
+- Optional integrations (weather, Google Calendar, Apple CalDAV, local folder or WebDAV document storage)
 - Advanced settings — reverse-proxy/HTTPS (`SESSION_SECURE`, `TRUST_PROXY`), Single Sign-On (OIDC), and automatic backups
 - Writing your `.env` file (an existing `.env` is backed up to `.env.bak-<timestamp>` first)
 - Starting the container (via Docker or Podman, whichever was detected)
 - Creating your admin account
+
+The final screen lets you **download a copy of your `.env`** — keep it safe, as it holds the encryption keys that cannot be recovered if lost.
 
 The installer server shuts down automatically after setup completes (or after 30 minutes of inactivity).
 
@@ -395,6 +397,7 @@ All configuration happens in the `.env` file. The container reads these values o
 | `RATE_LIMIT_MAX_ATTEMPTS` | Max login attempts per window | `5` | No |
 | `RATE_LIMIT_BLOCK_DURATION_MS` | Block duration after exceeding limit (ms) | `900000` | No |
 | `ENABLE_API_DOCS` | API documentation (`/docs`, `/openapi.json`) is admin-only and hidden entirely in production. Set to `true` to expose it to signed-in admins in production too. | `false` (hidden) | No |
+| `MCP_INTERNAL_BASE_URL` | Base URL the built-in MCP endpoint (`/mcp`) uses when its `call_api_operation` bridge calls the REST API back over loopback. Only needed for non-standard bind addresses. | `BASE_URL` or `http://127.0.0.1:<PORT>` | No |
 
 Generate a secure `SESSION_SECRET`:
 
@@ -402,11 +405,63 @@ Generate a secure `SESSION_SECRET`:
 openssl rand -hex 32
 ```
 
+### Web Push (Optional)
+
+Push notifications deliver due reminders to a device as system notifications even when the app
+is closed. **Requires HTTPS** (the Push API and service workers only work over a secure origin —
+see [HTTPS / Reverse Proxy](#https--reverse-proxy-nginx)). Each device opts in under
+Settings → Personal → Notifications.
+
+Admins can also add household Gotify or ntfy channels on the same settings page. These channels
+are configured in the UI and do not require environment variables. The Yuvomi backend container or
+host must be able to reach the configured Gotify/ntfy base URL. HTTPS is recommended; HTTP is
+accepted for trusted internal networks such as a private LAN or container network.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `VAPID_PUBLIC_KEY` | VAPID public key. Auto-generated on first use and stored in the database if unset. | auto | No |
+| `VAPID_PRIVATE_KEY` | VAPID private key. Set together with the public key to pin a fixed pair across redeployments. | auto | No |
+| `VAPID_SUBJECT` | Contact URI (`mailto:` or `https:`) sent to push services. | `mailto:admin@localhost` | No |
+
+Generate a fixed key pair (optional):
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+### Email / SMTP (Optional)
+
+Configuring an outgoing SMTP server enables the self-service **"Forgot password"** flow on the
+login page. Without it, only an admin can reset another user's password. Can also be configured
+in Settings → Administration → Email (non-empty env values here override the database).
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `EMAIL_SMTP_HOST` | SMTP server hostname. | - | No |
+| `EMAIL_SMTP_PORT` | SMTP server port. | `587` | No |
+| `EMAIL_SMTP_SECURE` | Connection security: `ssl`, `starttls`, or `none`. | `starttls` | No |
+| `EMAIL_SMTP_USER` | SMTP auth username. | - | No |
+| `EMAIL_SMTP_PASS` | SMTP auth password. | - | No |
+| `EMAIL_FROM_ADDRESS` | Sender email address. | - | No |
+| `EMAIL_FROM_NAME` | Sender display name. | `Yuvomi` | No |
+| `BASE_URL` | Absolute origin used to build password-reset links and calendar export-feed URLs, e.g. `https://yuvomi.example.com`. **Required for reset emails to be sent** — the request `Host` header is never trusted as a fallback, to prevent reset-link poisoning. The export feed falls back to the request's protocol/host when unset. | - | No* |
+
+\* Not required to start Yuvomi. Without it (or without SMTP configured) the self-service reset
+cannot deliver a mail, so the login page hides the "Forgot password" link entirely rather than
+offering a dead end — an admin can still reset a member's password directly under
+Settings → Administration → Family.
+
+The "Test connection" button in Settings → Administration → Email verifies the SMTP connection and
+sends a probe email to the signed-in admin's own linked address. The SMTP password is never
+returned by the API once saved; it is stored in the database the same way as other integration
+credentials (e.g. the Apple app-specific password), with encryption-at-rest available via the
+optional `DB_ENCRYPTION_KEY`.
+
 ### Database & Storage
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `DB_PATH` | Path to the SQLite database file inside the container | `/data/oikos.db` | No |
+| `DB_PATH` | Path to the SQLite database file inside the container | `/data/yuvomi.db` | No |
 | `DB_ENCRYPTION_KEY` | Encryption key for SQLCipher AES-256. **Change this!** | - | **Yes** |
 | `DATA_DIR` | Host directory mounted at `/data` inside the container (set in `.env` or `docker-compose.yml`). | `./data` | No |
 | `BACKUP_DIR` | Host directory mounted at `/backups` for scheduled backup files. | `./backups` | No |
@@ -418,6 +473,36 @@ openssl rand -hex 32
 ```
 
 > **Warning**: If you lose this key, you cannot access your database. Keep a backup of your `.env` file in a safe place.
+
+### Local Folder Document Storage (Optional)
+
+Instead of storing document binaries inside SQLite (or on WebDAV), you can write newly uploaded
+document files to a plain host folder mounted into the container. This keeps the database small and
+lets other self-hosted tools share the same files directly. It is configured purely through the
+deployment environment (a mount, analogous to the data and backup folders) and, when enabled, takes
+precedence over WebDAV. Existing database/WebDAV documents are not migrated and remain readable; a
+write failure (e.g. a read-only mount) fails the upload loudly rather than silently falling back.
+
+Mount a host directory to the container path and enable the backend:
+
+```yaml
+# docker-compose.yml
+volumes:
+  - ${DOCUMENT_STORAGE_LOCAL_DIR:-./documents}:/documents
+environment:
+  - DOCUMENT_STORAGE_LOCAL_ENABLED=true
+  - DOCUMENT_STORAGE_LOCAL_PATH=/documents
+```
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DOCUMENT_STORAGE_LOCAL_ENABLED` | Write new document files to the mounted folder (`true`/`false`) | `false` | No |
+| `DOCUMENT_STORAGE_LOCAL_PATH` | Container path for document files | `/documents` | No |
+| `DOCUMENT_STORAGE_LOCAL_DIR` | Compose-only: host folder mounted to `/documents` | `./documents` | No |
+
+> Ensure the mounted folder is writable by the container (adjust ownership/permissions as needed).
+> Files live on the host volume, so include that folder in your host-level backups — database
+> backups hold only document metadata, not these binaries.
 
 ### WebDAV Document Storage (Optional)
 
@@ -455,7 +540,7 @@ PUT/GET/DELETE roundtrip in the target folder.
 
 ### Weather (Optional)
 
-The weather widget defaults to **Open-Meteo** — free, ECMWF-backed, and requiring **no API key**. Just set your coordinates (find them on [openstreetmap.org](https://www.openstreetmap.org) or Google Maps). You can also configure this in-app under **Settings → Weather** (admin only), which takes precedence over the environment variables.
+The weather widget defaults to **Open-Meteo** — free, ECMWF-backed, and requiring **no API key**. Just set your coordinates (find them on [openstreetmap.org](https://www.openstreetmap.org) or Google Maps). You can also configure this in-app under **Settings → Modules → Overview** (admin only), which takes precedence over the environment variables and acts as the household default. Any user can additionally set their own personal location under **Settings → Personal → My Weather**, which overrides the household default just for their own dashboard widget.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -503,16 +588,30 @@ Enable single sign-on via any OpenID Connect provider (Authentik, Keycloak, Goog
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `OIDC_ISSUER` | OIDC provider issuer URL (e.g. `https://authentik.example.com/application/o/oikos/`) | - | No |
+| `OIDC_ISSUER` | OIDC provider issuer URL (e.g. `https://authentik.example.com/application/o/yuvomi/`) | - | No |
 | `OIDC_CLIENT_ID` | Client ID registered with your OIDC provider | - | No |
 | `OIDC_CLIENT_SECRET` | Client secret for the registered application | - | No |
-| `OIDC_REDIRECT_URI` | OAuth callback URL — must be registered with the provider (e.g. `https://oikos.example.com/api/v1/auth/oidc/callback`) | - | No |
+| `OIDC_REDIRECT_URI` | OAuth callback URL — must be registered with the provider (e.g. `https://yuvomi.example.com/api/v1/auth/oidc/callback`) | - | No |
+| `OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM` | Set to `true` to allow account linking when the IdP omits the `email_verified` claim entirely. Only enable for IdPs fully under your control that never issue unverified addresses (e.g. older Authentik without an explicit `email_verified` property mapping). | - | No |
 
-When all four variables are set, a **"Sign in with SSO"** button appears on the login page. The flow uses Authorization Code + PKCE (S256) with a nonce. A matching Yuvomi user account (same `oidc_sub`) must already exist — automatic provisioning is not supported.
+When all four OIDC variables are set, a **"Sign in with SSO"** button appears on the login page. The flow uses Authorization Code + PKCE (S256) with a nonce. On first login, the user is matched by their OIDC `sub`. If no match exists, an existing local account is linked automatically **only when the provider reports a verified email (`email_verified: true`) and exactly one local account holds that email address**; otherwise a new account is provisioned. Unverified or ambiguous emails never take over an existing account. If your provider omits the `email_verified` claim, set `OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM=true` to enable linking.
+
+### Subscription Currency Conversion (Optional)
+
+Budget → Subscriptions works fully without external services. Fixer can optionally provide live
+exchange rates; this sends only currency codes to the configured provider.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `FIXER_API_KEY` | Fixer API key for live currency conversion. Rates are cached for 12 hours. | — | No |
+
+Logo discovery fetches only public HTTPS sites, rejects private/link-local targets, does not execute
+page scripts, and stores only a size-limited image. Service-name logo searches derive likely public
+domains and inspect those sites directly; they do not scrape search-engine image results.
 
 ### Automated Backups (Optional)
 
-Built-in cron-based database backup (default: 2 AM daily, keep last 7 copies). Status and manual trigger available in **Settings → Backup Management**.
+Built-in cron-based database backup (default: 2 AM daily, keep last 7 copies). Status and manual trigger available in **Settings → Administration → Backup and restore**.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -521,7 +620,7 @@ Built-in cron-based database backup (default: 2 AM daily, keep last 7 copies). S
 | `BACKUP_DIR` | Directory (inside container) where backup files are written | `/backups` | No |
 | `BACKUP_KEEP` | Number of most-recent backup files to retain | `7` | No |
 
-**WebDAV backup target (optional):** After each local backup, Yuvomi can automatically upload the file to any WebDAV-compatible server (Nextcloud, ownCloud, Hetzner Storage Box, Infomaniak kDrive, etc.). Configure in **Settings → Backup → WebDAV Backup Target**, or via environment variables (env vars take precedence over the UI):
+**WebDAV backup target (optional):** After each local backup, Yuvomi can automatically upload the file to any WebDAV-compatible server (Nextcloud, ownCloud, Hetzner Storage Box, Infomaniak kDrive, etc.). Configure in **Settings → Administration → Backup and restore → WebDAV Backup Target**, or via environment variables (env vars take precedence over the UI):
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -553,14 +652,14 @@ sudo apt install nginx
 Yuvomi ships with an example configuration. Copy it to Nginx:
 
 ```bash
-sudo cp nginx.conf.example /etc/nginx/sites-available/oikos
-sudo ln -s /etc/nginx/sites-available/oikos /etc/nginx/sites-enabled/
+sudo cp nginx.conf.example /etc/nginx/sites-available/yuvomi
+sudo ln -s /etc/nginx/sites-available/yuvomi /etc/nginx/sites-enabled/
 ```
 
 Edit the file and replace `deine-domain.de` with your actual domain:
 
 ```bash
-sudo nano /etc/nginx/sites-available/oikos
+sudo nano /etc/nginx/sites-available/yuvomi
 ```
 
 The configuration includes:
@@ -681,7 +780,7 @@ docker compose up -d --build
 
 ### Where is the Data?
 
-The SQLite database lives in the host folder configured through `DATA_DIR` and is mounted at `/data` inside the container. The database file is `/data/oikos.db`.
+The SQLite database lives in the host folder configured through `DATA_DIR` and is mounted at `/data` inside the container. The database file is `/data/yuvomi.db`.
 
 Scheduled backups are written to the host folder configured through `BACKUP_DIR` and mounted at `/backups` inside the container.
 
@@ -694,11 +793,11 @@ Scheduled backups are written to the host folder configured through `BACKUP_DIR`
 Use the built-in backup helper to create a consistent SQLite backup from the running container, then copy it to your host:
 
 ```bash
-docker compose exec oikos node -e "import('./server/db.js').then(async db => { await db.backupToFile('/data/oikos-backup.db'); process.exit(0); })"
-docker cp oikos:/data/oikos-backup.db ./oikos-backup-$(date +%Y%m%d).db
+docker compose exec oikos node -e "import('./server/db.js').then(async db => { await db.backupToFile('/data/yuvomi-backup.db'); process.exit(0); })"
+docker cp oikos:/data/yuvomi-backup.db ./yuvomi-backup-$(date +%Y%m%d).db
 ```
 
-Admins can also download a backup from **Settings → Backup Management**.
+Admins can also download a backup from **Settings → Administration → Backup and restore**.
 
 If you want to store the database and backups in specific local folders, set these in `.env` before starting Compose:
 
@@ -709,13 +808,13 @@ BACKUP_DIR=./backups
 
 ### Restore
 
-Admins can restore a backup from **Settings → Backup Management**. For operational restores via Docker Compose, stop the running app, mount the backup into a temporary container that uses the same Docker volume, and replace the database file:
+Admins can restore a backup from **Settings → Administration → Backup and restore**. For operational restores via Docker Compose, stop the running app, mount the backup into a temporary container that uses the same Docker volume, and replace the database file:
 
 ```bash
 SERVICE=oikos
-BACKUP="$PWD/oikos-backup-20260401.db"
+BACKUP="$PWD/yuvomi-backup-20260401.db"
 docker compose stop "$SERVICE"
-docker compose run --rm -v "$BACKUP:/tmp/oikos-restore.db:ro" --entrypoint sh "$SERVICE" -c 'set -eu; target="${DB_PATH:-/data/oikos.db}"; stamp=$(date -u +%Y%m%dT%H%M%SZ); if [ -f "$target" ]; then cp "$target" "$target.pre-restore-$stamp"; fi; rm -f "$target-wal" "$target-shm"; cp /tmp/oikos-restore.db "$target"; chown node:node "$target" 2>/dev/null || true'
+docker compose run --rm -v "$BACKUP:/tmp/yuvomi-restore.db:ro" --entrypoint sh "$SERVICE" -c 'set -eu; target="${DB_PATH:-/data/yuvomi.db}"; case "$target" in */oikos.db) target="${target%/oikos.db}/yuvomi.db";; esac; stamp=$(date -u +%Y%m%dT%H%M%SZ); if [ -f "$target" ]; then cp "$target" "$target.pre-restore-$stamp"; fi; rm -f "$target-wal" "$target-shm"; cp /tmp/yuvomi-restore.db "$target"; chown node:node "$target" 2>/dev/null || true'
 docker compose up -d "$SERVICE"
 ```
 
@@ -724,7 +823,7 @@ If your Compose service is renamed, set `SERVICE` to that name, for example `SER
 For a local CLI restore outside Docker, set the same environment variables used by the app and run:
 
 ```bash
-DB_PATH=/path/to/oikos.db node --import dotenv/config scripts/restore-backup.js ./oikos-backup-20260401.db
+DB_PATH=/path/to/yuvomi.db node --import dotenv/config scripts/restore-backup.js ./yuvomi-backup-20260401.db
 ```
 
 The restore helper validates that the file is an Yuvomi database before replacing the active database. It also keeps a pre-restore copy next to the database file for emergency rollback.
@@ -740,7 +839,7 @@ crontab -e
 Add this line:
 
 ```
-0 3 * * * docker compose exec -T oikos node -e "import('./server/db.js').then(async db => { await db.backupToFile('/data/oikos-cron-backup.db'); process.exit(0); })" && docker cp oikos:/data/oikos-cron-backup.db /path/to/backups/oikos-$(date +\%Y\%m\%d).db
+0 3 * * * docker compose exec -T oikos node -e "import('./server/db.js').then(async db => { await db.backupToFile('/data/yuvomi-cron-backup.db'); process.exit(0); })" && docker cp oikos:/data/yuvomi-cron-backup.db /path/to/backups/yuvomi-$(date +\%Y\%m\%d).db
 ```
 
 This creates a backup at 3:00 AM every day.

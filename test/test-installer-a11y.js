@@ -68,11 +68,20 @@ test('der Spinner ist für Screenreader ausgeblendet', () => {
 // ── 1.4 Fokus-Management bei Schrittwechsel ───────────────────────────────────
 
 test('jede Schritt-Überschrift ist per Skript fokussierbar (tabindex="-1")', () => {
-  const headings = [...html.matchAll(/<h[12][^>]*>/g)];
-  assert.ok(headings.length > 0, 'keine Überschriften gefunden');
+  // Die persistente, visuell versteckte Seiten-<h1 class="vh"> ist der einzige
+  // dauerhafte Landmark-Titel und wird NICHT per Skript fokussiert — ausnehmen.
+  const headings = [...html.matchAll(/<h[12][^>]*>/g)].filter(m => !/class="vh"/.test(m[0]));
+  assert.ok(headings.length > 0, 'keine Schritt-Überschriften gefunden');
   for (const m of headings) {
-    assert.match(m[0], /tabindex="-1"/, `Überschrift ohne tabindex="-1": ${m[0]}`);
+    assert.match(m[0], /tabindex="-1"/, `Schritt-Überschrift ohne tabindex="-1": ${m[0]}`);
   }
+});
+
+test('genau eine <h1> (persistenter Seitentitel) plus <main>-Landmark', () => {
+  const h1s = [...html.matchAll(/<h1[^>]*>/g)];
+  assert.equal(h1s.length, 1, `genau eine <h1> erwartet, gefunden: ${h1s.length}`);
+  assert.match(h1s[0][0], /class="vh"/, 'die einzige <h1> ist der versteckte Seitentitel');
+  assert.match(html, /<main\b/, 'die Karte braucht einen <main>-Landmark');
 });
 
 test('showStep setzt den Fokus auf die aktive Überschrift', () => {

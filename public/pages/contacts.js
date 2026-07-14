@@ -1,42 +1,78 @@
 /**
  * Modul: Kontakte (Contacts)
  * Zweck: Kontaktliste mit Kategorie-Filter, Suche, CRUD, tel:/mailto:/maps-Links
- * Abhängigkeiten: /api.js, /router.js (window.oikos)
+ * Abhängigkeiten: /api.js, /router.js (window.yuvomi)
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, advancedSection } from '/components/modal.js';
 import { stagger, vibrate } from '/utils/ux.js';
 import { t } from '/i18n.js';
 import { esc } from '/utils/html.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
+import '/components/category-manager.js';
 
 // --------------------------------------------------------
 // Konstanten
 // --------------------------------------------------------
 
-const CATEGORIES = ['Arzt', 'Schule/Kita', 'Behörde', 'Versicherung',
-                    'Handwerker', 'Notfall', 'Sonstiges'];
+// Kategorien sind seit #357 benutzer-verwaltbar und werden aus
+// /contacts/categories in state.categories geladen. Bestands-Kategorien tragen
+// label_key (i18n) + icon; benutzerdefinierte tragen name + Default-Icon 'tag'.
+// Der stabile key dient zugleich als CSS-Farb-Slug (.contact-group--<key>).
+const FALLBACK_CATEGORY = 'misc';
 
-const CATEGORY_ICONS = {
-  'Arzt':         '🏥',
-  'Schule/Kita':  '🏫',
-  'Behörde':      '🏛️',
-  'Versicherung': '🛡️',
-  'Handwerker':   '🔧',
-  'Notfall':      '🚨',
-  'Sonstiges':    '📋',
-};
+function catByKey(key) {
+  return state.categories.find((c) => c.key === key) || null;
+}
 
-function CATEGORY_LABELS() {
-  return {
-    'Arzt':         t('contacts.categoryDoctor'),
-    'Schule/Kita':  t('contacts.categorySchool'),
-    'Behörde':      t('contacts.categoryAuthority'),
-    'Versicherung': t('contacts.categoryInsurance'),
-    'Handwerker':   t('contacts.categoryCraftsman'),
-    'Notfall':      t('contacts.categoryEmergency'),
-    'Sonstiges':    t('contacts.categoryOther'),
-  };
+// Label auflösen: Seed → i18n via label_key, Custom → name; unbekannt → key.
+function catLabel(key) {
+  const c = catByKey(key);
+  if (!c) return key;
+  return c.label_key ? t(c.label_key) : (c.name || c.key);
+}
+
+// Sortier-Index einer Kategorie (folgt sort_order); Unbekannte ans Ende.
+function catSortIndex(key) {
+  const i = state.categories.findIndex((c) => c.key === key);
+  return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+}
+
+// Liefert das Lucide-Placeholder-Markup für eine Kategorie; aria-hidden, da stets
+// von einem Text-Label begleitet. lucide.createIcons() ersetzt den Platzhalter.
+function categoryIcon(key, size = 16) {
+  const name = catByKey(key)?.icon || 'tag';
+  return `<i data-lucide="${esc(name)}" class="contact-cat-icon" style="width:${size}px;height:${size}px;" aria-hidden="true"></i>`;
+}
+
+// CSS-Farbton-Klasse aus dem Key. Seed-Keys sind bereits Slugs und matchen
+// .contact-group--<key>; migrierte Freitext-Keys (z. B. aus CardDAV, mit
+// Leerzeichen) werden auf ein EINZELNES gültiges class-Token normalisiert, damit
+// sie die class-Liste nicht spalten — unbekannte Slugs matchen keine Farb-Regel
+// und fallen neutral zurück.
+function catTintClass(key) {
+  const slug = String(key).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  return slug ? `contact-group--${slug}` : '';
+}
+
+// Initialen aus dem Namen (max. 2 Buchstaben): Vorname + letzter Namensteil.
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  const first = parts[0][0] || '';
+  const last  = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}
+
+// Avatar einer Zeile: Familien-/Personen-Kontakte zeigen Initialen im Modul-Ton,
+// alle anderen das Kategorie-Icon im Kategorie-Ton (--cat der Gruppe).
+function contactAvatar(c, size = 20) {
+  if (c.family_user_id) {
+    return `<span class="contact-item__icon contact-item__icon--initials" aria-hidden="true">${esc(initials(c.name))}</span>`;
+  }
+  return `<span class="contact-item__icon">${categoryIcon(c.category, size)}</span>`;
 }
 
 // --------------------------------------------------------
@@ -45,10 +81,14 @@ function CATEGORY_LABELS() {
 
 let state = {
   contacts:       [],
+  categories:     [],
   activeCategory: null,
   searchQuery:    '',
+  selectMode:     false,
+  selected:       new Set(),
 };
 let _container = null;
+let contactsSearch = null;
 
 // --------------------------------------------------------
 // Entry Point
@@ -59,31 +99,39 @@ export async function render(container, { user }) {
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
     <div class="contacts-page">
-      <h1 class="sr-only">${t('contacts.title')}</h1>
-      <div class="contacts-toolbar">
-        <div class="contacts-toolbar__search">
-          <i data-lucide="search" class="contacts-toolbar__search-icon" aria-hidden="true"></i>
-          <input type="search" class="contacts-toolbar__search-input"
-                 id="contacts-search" placeholder="${t('contacts.searchPlaceholder')}"
-                 autocomplete="off">
+      <div class="page-toolbar page-toolbar--wrap contacts-toolbar">
+        <h1 class="page-toolbar__title">${t('contacts.title')}</h1>
+        ${renderPageSearch({ id: 'contacts-search', label: t('contacts.searchPlaceholder'), placeholder: t('contacts.searchPlaceholder'), value: state.searchQuery, clearLabel: t('common.searchClear'), className: 'contacts-toolbar__search page-toolbar__center' })}
+        <div class="page-toolbar__actions">
+          <button class="btn btn--icon btn--ghost" id="contacts-manage-cats" aria-label="${t('contacts.manageCategories')}" title="${t('contacts.manageCategories')}">
+            <i data-lucide="tags" style="width:16px;height:16px;" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn--secondary" id="contacts-select-btn" aria-pressed="false">
+            <i data-lucide="list-checks" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
+            ${t('contacts.selectButton')}
+          </button>
+          <label class="btn btn--secondary" title="${t('contacts.importTooltip')}" aria-label="${t('contacts.importLabel')}">
+            <i data-lucide="upload" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
+            ${t('contacts.importButton')}
+            <input type="file" id="contacts-import-input" accept=".vcf,text/vcard" style="display:none">
+          </label>
+          <button class="btn btn--primary toolbar-new-btn" id="contacts-add-btn">
+            <i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
+            ${t('contacts.addButton')}
+          </button>
         </div>
-        <label class="btn btn--secondary" title="${t('contacts.importTooltip')}" aria-label="${t('contacts.importLabel')}">
-          <i data-lucide="upload" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
-          ${t('contacts.importButton')}
-          <input type="file" id="contacts-import-input" accept=".vcf,text/vcard" style="display:none">
-        </label>
-        <button class="btn btn--primary toolbar-new-btn" id="contacts-add-btn">
-          <i data-lucide="plus" style="width:16px;height:16px;margin-right:4px;" aria-hidden="true"></i>
-          ${t('contacts.addButton')}
-        </button>
       </div>
-      <div class="contacts-filters" id="contacts-filters">
-        <button class="contact-filter-chip contact-filter-chip--active" data-cat="">${t('contacts.filterAll')}</button>
-        ${CATEGORIES.map((c) => `
-          <button class="contact-filter-chip" data-cat="${esc(c)}">${CATEGORY_ICONS[c] || ''} ${CATEGORY_LABELS()[c] || esc(c)}</button>
-        `).join('')}
+      <div class="contacts-selectbar" id="contacts-selectbar" role="toolbar" aria-label="${t('contacts.selectButton')}" hidden>
+        <button class="btn btn--secondary" data-action="select-cancel">${t('common.cancel')}</button>
+        <span class="contacts-selectbar__count" id="contacts-select-count" aria-live="polite"></span>
+        <div class="contacts-selectbar__actions">
+          <button class="btn btn--secondary" data-action="select-all">${t('contacts.selectAll')}</button>
+          <button class="btn btn--danger" data-action="select-delete">${t('common.delete')}</button>
+        </div>
       </div>
-      <div id="contacts-list" class="contacts-list"></div>
+      <div class="contacts-filters" id="contacts-filters" role="group" aria-label="${t('contacts.filterAll')}"></div>
+      <div id="contacts-status" class="sr-only" role="status" aria-live="polite"></div>
+      <div id="contacts-list" class="contacts-list" aria-busy="true">${renderSkeletonList({ rows: 6, lines: 2 })}</div>
       <button class="page-fab" id="fab-new-contact" aria-label="${t('contacts.newContactLabel')}">
         <i data-lucide="plus" style="width:24px;height:24px" aria-hidden="true"></i>
       </button>
@@ -92,9 +140,58 @@ export async function render(container, { user }) {
 
   if (window.lucide) lucide.createIcons({ el: container });
 
-  const res        = await api.get('/contacts');
+  // Listen-Interaktionen EINMALIG delegieren (der #contacts-list-Container bleibt
+  // über alle renderList()-Aufrufe hinweg bestehen; nur seine Kinder werden ersetzt).
+  const listEl = _container.querySelector('#contacts-list');
+  listEl.addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-action="delete"]');
+    if (del) { await deleteContact(parseInt(del.dataset.id, 10)); return; }
+    if (e.target.closest('[data-action="empty-cta"]')) {
+      document.querySelector('.page-fab')?.click();
+      return;
+    }
+    if (e.target.closest('[data-action="reset-filters"]')) {
+      contactsSearch?.clear();
+      state.searchQuery    = '';
+      state.activeCategory = null;
+      _container.querySelectorAll('.contact-filter-chip').forEach((chip) => {
+        const on = chip.dataset.cat === '';
+        chip.classList.toggle('contact-filter-chip--active', on);
+        chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      renderList();
+      return;
+    }
+    const open = e.target.closest('[data-open]');
+    if (open) {
+      const c = state.contacts.find((x) => x.id === parseInt(open.dataset.open, 10));
+      if (c) openContactModal({ mode: 'edit', contact: c });
+    }
+  });
+  listEl.addEventListener('beforetoggle', onPanelBeforeToggle, true);
+  listEl.addEventListener('toggle', onPanelToggle, true);
+
+  // Auswahl-Modus: Checkbox-Änderungen sammeln.
+  listEl.addEventListener('change', (e) => {
+    const cb = e.target.closest('[data-select]');
+    if (!cb) return;
+    const id = parseInt(cb.dataset.select, 10);
+    if (cb.checked) state.selected.add(id); else state.selected.delete(id);
+    cb.closest('.contact-item')?.classList.toggle('contact-item--selected', cb.checked);
+    updateSelectUI();
+  });
+
+  const [res, catRes] = await Promise.all([
+    api.get('/contacts'),
+    api.get('/contacts/categories'),
+  ]);
   state.contacts   = res.data;
-  renderList();
+  state.categories = catRes.data ?? [];
+  renderCategoryFilters();
+  renderList({ animate: true });
+
+  _container.querySelector('#contacts-manage-cats')
+    ?.addEventListener('click', openContactCategoryManager);
 
   // Deep-Link: ?open=<id> öffnet direkt das Edit-Modal
   const openId = new URLSearchParams(window.location.search).get('open');
@@ -104,22 +201,23 @@ export async function render(container, { user }) {
   }
 
   // Suche
-  let searchTimer;
-  _container.querySelector('#contacts-search').addEventListener('input', (e) => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      state.searchQuery = e.target.value.trim();
+  contactsSearch = wirePageSearch(_container, {
+    id: 'contacts-search',
+    onQuery: (value) => {
+      state.searchQuery = value.trim();
       renderList();
-    }, 200);
+    },
   });
 
   // Kategorie-Filter
   _container.querySelector('#contacts-filters').addEventListener('click', (e) => {
     const chip = e.target.closest('[data-cat]');
     if (!chip) return;
-    _container.querySelectorAll('.contact-filter-chip').forEach((c) =>
-      c.classList.toggle('contact-filter-chip--active', c === chip)
-    );
+    _container.querySelectorAll('.contact-filter-chip').forEach((c) => {
+      const on = c === chip;
+      c.classList.toggle('contact-filter-chip--active', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     state.activeCategory = chip.dataset.cat || null;
     renderList();
   });
@@ -129,6 +227,16 @@ export async function render(container, { user }) {
   _container.querySelector('#contacts-add-btn').addEventListener('click', addHandler);
   _container.querySelector('#fab-new-contact').addEventListener('click', addHandler);
 
+  // Auswahl-Modus (opt-in): Toggle in der Toolbar + Aktionen in der Auswahl-Leiste.
+  _container.querySelector('#contacts-select-btn').addEventListener('click', () => {
+    if (state.selectMode) exitSelectMode(); else enterSelectMode();
+  });
+  _container.querySelector('#contacts-selectbar').addEventListener('click', (e) => {
+    if (e.target.closest('[data-action="select-cancel"]')) { exitSelectMode(); return; }
+    if (e.target.closest('[data-action="select-all"]'))    { toggleSelectAll(); return; }
+    if (e.target.closest('[data-action="select-delete"]')) { deleteSelected(); return; }
+  });
+
   // vCard-Import
   _container.querySelector('#contacts-import-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -137,14 +245,85 @@ export async function render(container, { user }) {
     try {
       const text    = await file.text();
       const contact = parseVCard(text);
-      if (!contact.name) { window.oikos?.showToast(t('contacts.vcardNoName'), 'warning'); return; }
+      if (!contact.name) { window.yuvomi?.showToast(t('contacts.vcardNoName'), 'warning'); return; }
       const res = await api.post('/contacts', contact);
       state.contacts.push(res.data);
       renderList();
-      window.oikos?.showToast(t('contacts.importedToast', { name: res.data.name }), 'success');
+      window.yuvomi?.showToast(t('contacts.importedToast', { name: res.data.name }), 'success');
     } catch (err) {
-      window.oikos?.showToast(t('contacts.importError', { error: err.message }), 'danger');
+      window.yuvomi?.showToast(t('contacts.importError', { error: err.message }), 'danger');
     }
+  });
+
+  // Tastatur-Shortcuts (Power-User): „/" fokussiert die Suche, „n" legt neu an.
+  // document-Level, weil sie auch ohne Fokus in der Liste greifen sollen. Der
+  // Router bietet keinen Page-Teardown — daher meldet sich der Listener selbst ab,
+  // sobald sein Seiten-Container (Closure) aus dem DOM entfernt wurde.
+  const pageRoot = container;
+  const onKey = (e) => {
+    if (!pageRoot.isConnected) { document.removeEventListener('keydown', onKey); return; }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.getElementById('shared-modal-overlay')) return; // Modal offen
+    if (state.selectMode && e.key === 'Escape') { exitSelectMode(); return; }
+    const el = e.target;
+    const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'
+      || el.tagName === 'SELECT' || el.isContentEditable);
+    if (typing) return;
+    if (e.key === '/') {
+      e.preventDefault();
+      pageRoot.querySelector('#contacts-search')?.focus();
+    } else if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault();
+      openContactModal({ mode: 'create' });
+    }
+  };
+  document.addEventListener('keydown', onKey);
+}
+
+// --------------------------------------------------------
+// Kategorie-Filterleiste (aus state.categories aufgebaut) + Verwaltung (#357)
+// --------------------------------------------------------
+
+function renderCategoryFilters() {
+  const bar = _container?.querySelector('#contacts-filters');
+  if (!bar) return;
+  const active = state.activeCategory;
+  const allChip = `<button class="contact-filter-chip${active ? '' : ' contact-filter-chip--active'}" data-cat="" aria-pressed="${active ? 'false' : 'true'}">${esc(t('contacts.filterAll'))}</button>`;
+  const catChips = state.categories.map((c) => {
+    const on = active === c.key;
+    return `<button class="contact-filter-chip${on ? ' contact-filter-chip--active' : ''}" data-cat="${esc(c.key)}" aria-pressed="${on ? 'true' : 'false'}">${categoryIcon(c.key)} ${esc(catLabel(c.key))}</button>`;
+  }).join('');
+  bar.replaceChildren();
+  bar.insertAdjacentHTML('beforeend', allChip + catChips);
+  if (window.lucide) lucide.createIcons({ el: bar });
+}
+
+function openContactCategoryManager() {
+  let manager = null;
+  const onChanged = async () => {
+    try {
+      const res = await api.get('/contacts/categories');
+      state.categories = res.data ?? [];
+      renderCategoryFilters();
+      renderList();
+    } catch { /* Fehler wurde bereits vom Manager als Toast angezeigt */ }
+  };
+  openSharedModal({
+    title: t('contacts.manageCategories'),
+    content: '<yuvomi-category-manager></yuvomi-category-manager>',
+    size: 'lg',
+    onSave: (panel) => {
+      manager = panel.querySelector('yuvomi-category-manager');
+      manager.addEventListener('category-manager-changed', onChanged);
+      manager.configure({
+        basePath: '/contacts/categories',
+        groups: [{ key: '', addLabelKey: 'contacts.addCategory' }],
+        labelResolver: (item) => (item.label_key ? t(item.label_key) : (item.name || item.key)),
+        titleKey: 'contacts.manageCategories',
+        hintKey: 'category.manageHint',
+      });
+    },
+    onClose: () => manager?.removeEventListener('category-manager-changed', onChanged),
   });
 }
 
@@ -171,35 +350,63 @@ function filterContacts() {
   return list;
 }
 
-function renderList() {
+function renderList({ animate = false } = {}) {
   const container = _container.querySelector('#contacts-list');
   if (!container) return;
+  container.removeAttribute('aria-busy');
 
   const contacts = filterContacts();
 
+  // Ergebniszahl leise für Screenreader ansagen (Suche/Filter geben sonst
+  // keine hörbare Rückmeldung über die Trefferzahl).
+  const statusEl = _container.querySelector('#contacts-status');
+  if (statusEl) {
+    const n = contacts.length;
+    statusEl.textContent = n === 0 ? t('contacts.noResultsTitle')
+      : n === 1 ? t('contacts.countOne')
+      : t('contacts.countMany', { count: n });
+  }
+
   if (!contacts.length) {
+    // „Keine Treffer" (Suche/Filter aktiv) vom „Noch keine Kontakte"-Zustand
+    // (0 Gesamtkontakte) trennen — unterschiedliche Botschaft und Aktion.
+    const filtered = Boolean(state.searchQuery || state.activeCategory);
     container.replaceChildren();
-    container.insertAdjacentHTML('beforeend', `
-      <div class="empty-state">
-        <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        <div class="empty-state__title">${t('contacts.emptyTitle')}</div>
-        <div class="empty-state__description">${t('contacts.emptyDescription')}</div>
-        <p class="empty-state__hint">${t('emptyHint.contacts')}</p>
-        <button class="btn btn--primary empty-state__cta" id="empty-cta-contacts">
-          <i data-lucide="plus" aria-hidden="true" class="icon-md"></i>
-          ${t('contacts.emptyAction')}
-        </button>
-      </div>
-    `);
+    if (filtered) {
+      container.insertAdjacentHTML('beforeend', `
+        <div class="empty-state">
+          <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <div class="empty-state__title">${t('contacts.noResultsTitle')}</div>
+          <div class="empty-state__description">${t('contacts.noResultsDescription')}</div>
+          <button class="btn btn--secondary empty-state__cta" data-action="reset-filters">
+            <i data-lucide="x" aria-hidden="true" class="icon-md"></i>
+            ${t('contacts.resetSearch')}
+          </button>
+        </div>
+      `);
+    } else {
+      container.insertAdjacentHTML('beforeend', `
+        <div class="empty-state">
+          <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <div class="empty-state__title">${t('contacts.emptyTitle')}</div>
+          <div class="empty-state__description">${t('contacts.emptyDescription')}</div>
+          <p class="empty-state__hint">${t('emptyHint.contacts')}</p>
+          <button class="btn btn--primary empty-state__cta" data-action="empty-cta">
+            <i data-lucide="plus" aria-hidden="true" class="icon-md"></i>
+            ${t('contacts.emptyAction')}
+          </button>
+        </div>
+      `);
+    }
     if (window.lucide) lucide.createIcons({ el: container });
-    container.querySelector('#empty-cta-contacts')?.addEventListener('click', () => {
-      document.querySelector('.page-fab')?.click();
-    });
     return;
   }
 
@@ -212,83 +419,127 @@ function renderList() {
 
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', Object.entries(groups)
-    .sort(([a], [b]) => CATEGORIES.indexOf(a) - CATEGORIES.indexOf(b))
+    .sort(([a], [b]) => catSortIndex(a) - catSortIndex(b))
     .map(([cat, items]) => `
-      <div class="contact-group">
-        <div class="contact-group__header">${CATEGORY_ICONS[cat] || ''} ${CATEGORY_LABELS()[cat] || esc(cat)}</div>
+      <div class="contact-group ${catTintClass(cat)}">
+        <div class="contact-group__header">${categoryIcon(cat)} ${esc(catLabel(cat))}</div>
         ${items.map((c) => renderContactItem(c)).join('')}
       </div>
     `).join(''));
 
   if (window.lucide) lucide.createIcons({ el: container });
-  stagger(container.querySelectorAll('.contact-item'));
+  // Entrance-Stagger nur beim echten Erst-Load — nicht bei jedem Such-/Filter-
+  // Render (sonst flackert die Liste bei jeder Tastatureingabe).
+  if (animate) stagger(container.querySelectorAll('.contact-item'));
+}
 
-  // Event-Delegation
-  container.addEventListener('click', async (e) => {
-    if (e.target.closest('[data-action="delete"]')) {
-      const id = parseInt(e.target.closest('[data-action="delete"]').dataset.id, 10);
-      await deleteContact(id);
-      return;
-    }
-    const item = e.target.closest('.contact-item[data-id]');
-    if (item && !e.target.closest('a') && !e.target.closest('[data-action]')) {
-      const c = state.contacts.find((c) => c.id === parseInt(item.dataset.id, 10));
-      if (c) openContactModal({ mode: 'edit', contact: c });
-    }
-  });
+// Meta-Zeile: Telefon (schrumpft nicht) · E-Mail (wird gekürzt), damit die
+// Telefonnummer auf schmalem Viewport nie verschwindet.
+function renderMeta(c) {
+  if (!c.phone && !c.email) return '';
+  const phone = c.phone ? `<span class="contact-item__meta-phone">${esc(c.phone)}</span>` : '';
+  const email = c.email ? `<span class="contact-item__meta-email">${esc(c.email)}</span>` : '';
+  const sep   = c.phone && c.email ? `<span class="contact-item__meta-sep" aria-hidden="true">·</span>` : '';
+  return `<span class="contact-item__meta">${phone}${sep}${email}</span>`;
 }
 
 function renderContactItem(c) {
-  const phone   = c.phone  ? `<a href="tel:${esc(c.phone)}"   class="contact-action-btn contact-action-btn--call"  aria-label="${t('contacts.callLabel')}"><i data-lucide="phone" style="width:16px;height:16px;" aria-hidden="true"></i></a>` : '';
-  const email   = c.email  ? `<a href="mailto:${esc(c.email)}" class="contact-action-btn contact-action-btn--mail"  aria-label="${t('contacts.emailActionLabel')}"><i data-lucide="mail" style="width:16px;height:16px;" aria-hidden="true"></i></a>` : '';
-  const maps    = c.address ? `<a href="https://maps.google.com/?q=${encodeURIComponent(c.address)}" target="_blank" rel="noopener" class="contact-action-btn contact-action-btn--maps contact-action-btn--desktop-extra" aria-label="${t('contacts.mapsLabel')}"><i data-lucide="map-pin" style="width:16px;height:16px;" aria-hidden="true"></i></a>` : '';
-  const mobileMaps = c.address ? `<a href="https://maps.google.com/?q=${encodeURIComponent(c.address)}" target="_blank" rel="noopener" class="contact-action-btn contact-action-btn--maps contact-action-btn--mobile-menu" aria-label="${t('contacts.mapsLabel')}"><i data-lucide="map-pin" style="width:16px;height:16px;" aria-hidden="true"></i></a>` : '';
-  const exportAction = `<a href="/api/v1/contacts/${c.id}/vcard" download="${esc(c.name)}.vcf"
-           class="contact-action-btn contact-action-btn--desktop-extra" aria-label="${t('contacts.exportLabel')}" title="${t('contacts.exportTooltip')}">
-          <i data-lucide="download" style="width:16px;height:16px;" aria-hidden="true"></i>
-        </a>`;
-  const mobileExportAction = `<a href="/api/v1/contacts/${c.id}/vcard" download="${esc(c.name)}.vcf"
-           class="contact-action-btn contact-action-btn--mobile-menu" aria-label="${t('contacts.exportLabel')}" title="${t('contacts.exportTooltip')}">
-          <i data-lucide="download" style="width:16px;height:16px;" aria-hidden="true"></i>
-        </a>`;
-  const deleteAction = !c.family_user_id ? `
-          <button class="contact-action-btn contact-action-btn--delete contact-action-btn--desktop-extra" data-action="delete" data-id="${c.id}" aria-label="${t('contacts.deleteLabel')}">
-            <i data-lucide="trash-2" style="width:16px;height:16px;" aria-hidden="true"></i>
-          </button>
-        ` : '';
-  const mobileDeleteAction = !c.family_user_id ? `
-          <button class="contact-action-btn contact-action-btn--delete contact-action-btn--mobile-menu" data-action="delete" data-id="${c.id}" aria-label="${t('contacts.deleteLabel')}">
-            <i data-lucide="trash-2" style="width:16px;height:16px;" aria-hidden="true"></i>
-          </button>
-        ` : '';
-  const hasMobileMenu = Boolean(c.id);
-  const meta    = [c.phone, c.email].filter(Boolean).join(' · ');
+  const menuId  = `contact-more-${c.id}`;
+
+  // Auswahl-Modus: Zeile wird zur Checkbox (Familien-Kontakte deaktiviert,
+  // da einzeln nicht löschbar). Aktionen/Öffnen entfallen.
+  if (state.selectMode) {
+    const selected = state.selected.has(c.id);
+    return `
+      <div class="contact-item contact-item--select${selected ? ' contact-item--selected' : ''}" data-id="${c.id}">
+        <label class="contact-item__open contact-item__select">
+          <input type="checkbox" class="contact-item__checkbox" data-select="${c.id}"${selected ? ' checked' : ''}${c.family_user_id ? ' disabled' : ''} aria-label="${esc(c.name)}">
+          ${contactAvatar(c)}
+          <span class="contact-item__body">
+            <span class="contact-item__name">${esc(c.name)}</span>
+            ${renderMeta(c)}
+          </span>
+        </label>
+      </div>
+    `;
+  }
+
+  // Primäre, stets sichtbare Zeilenaktion: Anrufen (falls Telefon vorhanden).
+  const callBtn = c.phone
+    ? `<a href="tel:${esc(c.phone)}" class="row-action row-action--success" aria-label="${t('contacts.callLabel')}">
+         <i data-lucide="phone" aria-hidden="true"></i>
+       </a>`
+    : '';
+
+  // Sekundäre Aktionen als beschriftetes Menü (Icon + Textlabel), identisch auf
+  // Desktop und Mobile. Export ist immer verfügbar → das Menü ist nie leer.
+  const mapsUrl = c.address ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(c.address)}` : '';
+  const menuItems = [
+    c.email ? `<a href="mailto:${esc(c.email)}" class="contact-menu-item" role="menuitem">
+        <i data-lucide="mail" class="contact-menu-item__icon" aria-hidden="true"></i><span>${t('contacts.emailActionLabel')}</span>
+      </a>` : '',
+    c.address ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="contact-menu-item" role="menuitem">
+        <i data-lucide="map-pin" class="contact-menu-item__icon" aria-hidden="true"></i><span>${t('contacts.mapsLabel')}</span>
+      </a>` : '',
+    `<a href="/api/v1/contacts/${c.id}/vcard" download="${esc(c.name)}.vcf" class="contact-menu-item" role="menuitem">
+        <i data-lucide="download" class="contact-menu-item__icon" aria-hidden="true"></i><span>${t('contacts.exportLabel')}</span>
+      </a>`,
+    !c.family_user_id ? `<button type="button" class="contact-menu-item contact-menu-item--danger" data-action="delete" data-id="${c.id}" role="menuitem">
+        <i data-lucide="trash-2" class="contact-menu-item__icon" aria-hidden="true"></i><span>${t('common.delete')}</span>
+      </button>` : '',
+  ].join('');
 
   return `
     <div class="contact-item" data-id="${c.id}">
-      <div class="contact-item__icon">${CATEGORY_ICONS[c.category] || '📋'}</div>
-      <div class="contact-item__body">
-        <div class="contact-item__name">${esc(c.name)}</div>
-        ${meta ? `<div class="contact-item__meta">${esc(meta)}</div>` : ''}
-      </div>
-      <div class="contact-item__actions">
-        ${phone}${email}${maps}
-        ${exportAction}
-        ${deleteAction}
-        ${hasMobileMenu ? `
-        <details class="contact-more-menu">
-          <summary class="contact-action-btn" data-action="more" aria-label="${t('contacts.moreActions')}">
-            <i data-lucide="more-horizontal" style="width:16px;height:16px;" aria-hidden="true"></i>
-          </summary>
-          <div class="contact-more-menu__panel">
-            ${mobileMaps}
-            ${mobileExportAction}
-            ${mobileDeleteAction}
-          </div>
-        </details>` : ''}
+      <button type="button" class="contact-item__open" data-open="${c.id}">
+        ${contactAvatar(c)}
+        <span class="contact-item__body">
+          <span class="contact-item__name">${esc(c.name)}</span>
+          ${renderMeta(c)}
+        </span>
+        <i data-lucide="chevron-right" class="contact-item__chevron" aria-hidden="true"></i>
+      </button>
+      <div class="row-actions contact-item__actions">
+        ${callBtn}
+        <button type="button" class="row-action contact-more-menu__trigger"
+                popovertarget="${menuId}" aria-label="${t('contacts.moreActions')}">
+          <i data-lucide="more-horizontal" aria-hidden="true"></i>
+        </button>
+        <div class="contact-more-menu__panel" id="${menuId}" popover role="menu">
+          ${menuItems}
+        </div>
       </div>
     </div>
   `;
+}
+
+// Popover (mobiles „Mehr"-Menü) im Top-Layer positionieren — nahe dem Trigger,
+// nach oben gekippt, wenn unten kein Platz ist. beforetoggle/toggle bubbeln nicht,
+// daher werden die Listener in render() mit { capture:true } am Listen-Container
+// registriert (Capture-Phase erreicht auch nicht-bubbelnde Events).
+function onPanelBeforeToggle(e) {
+  const panel = e.target;
+  if (!(panel instanceof HTMLElement) || !panel.matches('.contact-more-menu__panel')) return;
+  if (e.newState === 'open') panel.style.opacity = '0'; // Flash vor Positionierung vermeiden
+}
+
+function onPanelToggle(e) {
+  const panel = e.target;
+  if (!(panel instanceof HTMLElement) || !panel.matches('.contact-more-menu__panel')) return;
+  if (e.newState !== 'open') { panel.style.opacity = ''; return; }
+  const trigger = _container?.querySelector(`[popovertarget="${panel.id}"]`);
+  if (trigger) {
+    const r    = trigger.getBoundingClientRect();
+    const pw   = panel.offsetWidth  || 200;
+    const ph   = panel.offsetHeight || 48;
+    const gap  = 4;
+    let left = Math.min(Math.max(8, r.right - pw), window.innerWidth  - pw - 8);
+    let top  = r.bottom + gap;
+    if (top + ph > window.innerHeight - 8) top = r.top - ph - gap; // nach oben kippen
+    panel.style.left = `${Math.round(left)}px`;
+    panel.style.top  = `${Math.round(Math.max(8, top))}px`;
+  }
+  panel.style.opacity = '1';
 }
 
 // --------------------------------------------------------
@@ -299,10 +550,22 @@ function openContactModal({ mode, contact = null }) {
   const isEdit = mode === 'edit';
   const v      = (field) => esc(isEdit && contact[field] ? contact[field] : '');
 
-  const catLabels = CATEGORY_LABELS();
-  const catOpts = CATEGORIES.map((c) =>
-    `<option value="${c}" ${isEdit && contact.category === c ? 'selected' : ''}>${catLabels[c] || esc(c)}</option>`
+  const defaultCat = state.categories[0]?.key ?? FALLBACK_CATEGORY;
+  const catOpts = state.categories.map((c) =>
+    `<option value="${esc(c.key)}" ${isEdit && contact.category === c.key ? 'selected' : ''}>${esc(catLabel(c.key))}</option>`
   ).join('');
+
+  const advancedOpen = isEdit && (!!contact.address || !!contact.notes);
+
+  const advancedFieldsHtml = `
+    <div class="form-group">
+      <label class="form-label" for="cm-address">${t('contacts.addressLabel')}</label>
+      <input type="text" class="form-input" id="cm-address" placeholder="${t('contacts.addressPlaceholder')}" value="${v('address')}" autocomplete="street-address">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="cm-notes">${t('contacts.notesLabel')}</label>
+      <textarea class="form-input" id="cm-notes" rows="2" placeholder="${t('contacts.notesPlaceholder')}">${v('notes')}</textarea>
+    </div>`;
 
   const content = `
     <div class="form-group">
@@ -311,7 +574,10 @@ function openContactModal({ mode, contact = null }) {
     </div>
     <div class="form-group">
       <label class="form-label" for="cm-category">${t('contacts.categoryLabel')}</label>
-      <select class="form-input" id="cm-category">${catOpts}</select>
+      <div class="contacts-cat-select">
+        <span class="contacts-cat-select__icon" id="cm-cat-icon" aria-hidden="true">${categoryIcon(isEdit && contact.category ? contact.category : defaultCat, 18)}</span>
+        <select class="form-input" id="cm-category">${catOpts}</select>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label" for="cm-phone">${t('contacts.phoneLabel')}</label>
@@ -321,20 +587,14 @@ function openContactModal({ mode, contact = null }) {
       <label class="form-label" for="cm-email">${t('contacts.emailLabel')}</label>
       <input type="email" class="form-input" id="cm-email" placeholder="${t('contacts.emailPlaceholder')}" value="${v('email')}" autocomplete="email">
     </div>
-    <div class="form-group">
-      <label class="form-label" for="cm-address">${t('contacts.addressLabel')}</label>
-      <input type="text" class="form-input" id="cm-address" placeholder="${t('contacts.addressPlaceholder')}" value="${v('address')}" autocomplete="street-address">
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="cm-notes">${t('contacts.notesLabel')}</label>
-      <textarea class="form-input" id="cm-notes" rows="2" placeholder="${t('contacts.notesPlaceholder')}">${v('notes')}</textarea>
-    </div>
 
-    <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
+    ${advancedSection(advancedFieldsHtml, { open: advancedOpen })}
+
+    <div class="modal-panel__footer contact-modal__footer">
       ${isEdit && !contact.family_user_id ? `<button class="btn btn--danger btn--icon" id="cm-delete" aria-label="${t('contacts.deleteLabel')}">
         <i data-lucide="trash-2" style="width:16px;height:16px;" aria-hidden="true"></i>
       </button>` : '<div></div>'}
-      <div style="display:flex;gap:var(--space-3);">
+      <div class="contact-modal__footer-actions">
         <button class="btn btn--secondary" id="cm-cancel">${t('common.cancel')}</button>
         <button class="btn btn--primary" id="cm-save">${isEdit ? t('common.save') : t('common.create')}</button>
       </div>
@@ -346,6 +606,15 @@ function openContactModal({ mode, contact = null }) {
     size: 'md',
     onSave(panel) {
       panel.querySelector('#cm-cancel').addEventListener('click', closeModal);
+
+      // Kategorie-Vorschau live aktualisieren (Icon links neben dem Select).
+      const catSel  = panel.querySelector('#cm-category');
+      const catIcon = panel.querySelector('#cm-cat-icon');
+      catSel?.addEventListener('change', () => {
+        catIcon.replaceChildren();
+        catIcon.insertAdjacentHTML('beforeend', categoryIcon(catSel.value, 18));
+        if (window.lucide) lucide.createIcons({ el: catIcon });
+      });
 
       panel.querySelector('#cm-delete')?.addEventListener('click', async () => {
         closeModal({ force: true });
@@ -361,7 +630,7 @@ function openContactModal({ mode, contact = null }) {
         const address  = panel.querySelector('#cm-address').value.trim() || null;
         const notes    = panel.querySelector('#cm-notes').value.trim() || null;
 
-        if (!name) { window.oikos?.showToast(t('common.nameRequired'), 'error'); return; }
+        if (!name) { window.yuvomi?.showToast(t('common.nameRequired'), 'error'); return; }
 
         saveBtn.disabled    = true;
         saveBtn.textContent = '…';
@@ -372,7 +641,7 @@ function openContactModal({ mode, contact = null }) {
             const res = await api.post('/contacts', body);
             state.contacts.push(res.data);
             state.contacts.sort((a, b) =>
-              CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category) ||
+              catSortIndex(a.category) - catSortIndex(b.category) ||
               a.name.localeCompare(b.name)
             );
           } else {
@@ -382,15 +651,86 @@ function openContactModal({ mode, contact = null }) {
           }
           closeModal({ force: true });
           renderList();
-          window.oikos?.showToast(mode === 'create' ? t('contacts.savedToast') : t('contacts.updatedToast'), 'success');
+          window.yuvomi?.showToast(mode === 'create' ? t('contacts.savedToast') : t('contacts.updatedToast'), 'success');
         } catch (err) {
-          window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
           saveBtn.disabled    = false;
           saveBtn.textContent = isEdit ? t('common.save') : t('common.create');
         }
       });
     },
   });
+}
+
+// --------------------------------------------------------
+// Auswahl-Modus (opt-in Bulk)
+// --------------------------------------------------------
+
+function enterSelectMode() {
+  state.selectMode = true;
+  state.selected.clear();
+  _container.querySelector('#contacts-select-btn')?.setAttribute('aria-pressed', 'true');
+  _container.querySelector('#contacts-selectbar').hidden = false;
+  _container.querySelector('.contacts-page')?.classList.add('is-selecting');
+  renderList();
+  updateSelectUI();
+}
+
+function exitSelectMode() {
+  state.selectMode = false;
+  state.selected.clear();
+  _container.querySelector('#contacts-select-btn')?.setAttribute('aria-pressed', 'false');
+  _container.querySelector('#contacts-selectbar').hidden = true;
+  _container.querySelector('.contacts-page')?.classList.remove('is-selecting');
+  renderList();
+}
+
+function updateSelectUI() {
+  const n = state.selected.size;
+  const countEl = _container.querySelector('#contacts-select-count');
+  if (countEl) countEl.textContent = t('contacts.selectCount', { count: n });
+  const delBtn = _container.querySelector('[data-action="select-delete"]');
+  if (delBtn) delBtn.disabled = n === 0;
+}
+
+// Nur nicht-verknüpfte Kontakte sind wählbar (Familien-Kontakte lassen sich
+// einzeln nicht löschen). „Alle" schaltet zwischen komplett aus/an um.
+function toggleSelectAll() {
+  const selectable = filterContacts().filter((c) => !c.family_user_id);
+  const allOn = selectable.length > 0 && selectable.every((c) => state.selected.has(c.id));
+  selectable.forEach((c) => allOn ? state.selected.delete(c.id) : state.selected.add(c.id));
+  renderList();
+  updateSelectUI();
+}
+
+async function deleteSelected() {
+  const ids = [...state.selected];
+  if (!ids.length) return;
+  const idSet   = new Set(ids);
+  const removed = state.contacts.filter((c) => idSet.has(c.id));
+  state.contacts = state.contacts.filter((c) => !idSet.has(c.id));
+  exitSelectMode();
+  vibrate([30, 50, 30]);
+
+  let undone = false;
+  const restore = () => {
+    state.contacts = [...state.contacts, ...removed].sort((a, b) => a.name.localeCompare(b.name));
+    renderList();
+  };
+  window.yuvomi?.showToast(t('contacts.bulkDeletedToast', { count: ids.length }), 'default', 5000, () => {
+    undone = true;
+    restore();
+  });
+
+  setTimeout(async () => {
+    if (undone) return;
+    try {
+      await Promise.all(ids.map((id) => api.delete(`/contacts/${id}`)));
+    } catch (err) {
+      restore();
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+    }
+  }, 5000);
 }
 
 async function deleteContact(id) {
@@ -400,7 +740,7 @@ async function deleteContact(id) {
   vibrate([30, 50, 30]);
 
   let undone = false;
-  window.oikos?.showToast(t('contacts.deletedToast'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('contacts.deletedToast'), 'default', 5000, () => {
     undone = true;
     if (contact) {
       state.contacts = [...state.contacts, contact].sort((a, b) => a.name.localeCompare(b.name));
@@ -417,7 +757,7 @@ async function deleteContact(id) {
         state.contacts = [...state.contacts, contact].sort((a, b) => a.name.localeCompare(b.name));
         renderList();
       }
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
 }
@@ -453,8 +793,12 @@ function parseVCard(text) {
   }
 
   const notes    = get('NOTE') || null;
-  const catRaw   = get('CATEGORIES') || null;
-  const category = CATEGORIES.find((c) => catRaw?.toLowerCase().includes(c.toLowerCase())) || 'Sonstiges';
+  const catRaw   = (get('CATEGORIES') || '').toLowerCase();
+  const matched  = catRaw
+    ? state.categories.find((c) =>
+        catRaw.includes(c.key.toLowerCase()) || catRaw.includes(catLabel(c.key).toLowerCase()))
+    : null;
+  const category = matched?.key || FALLBACK_CATEGORY;
 
   return { name, phone, email, address, notes, category };
 }

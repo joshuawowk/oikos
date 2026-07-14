@@ -14,10 +14,11 @@ import {
   assertWebdavTargetAllowed,
   cleanupStagedUpload,
   deleteDocumentContent,
+  getActiveUploadBackend,
   getConfig as getStorageConfig,
   getEffectiveTarget,
+  getLocalStorageConfig,
   getStatus as getStorageStatus,
-  isWebdavUploadEnabled,
   readDocumentContent,
   resolveConfig,
   saveConfig as saveStorageConfig,
@@ -68,6 +69,21 @@ const PREVIEWABLE_MIME = new Set([
   'text/plain',
   'text/csv',
 ]);
+
+function normalizeMime(value) {
+  return String(value || '').split(';')[0].trim().toLowerCase();
+}
+
+// Effektiver MIME-Typ für Preview/Download. Manche DMS (Papra) liefern ihre Datei
+// aus XSS-Schutz stets als application/octet-stream aus; in dem Fall ist der beim
+// Verlinken gespeicherte spezifische MIME-Typ verlässlicher (Issue #451).
+function effectiveMime(content, doc) {
+  const live = normalizeMime(content.mime);
+  const stored = normalizeMime(doc.mime_type);
+  if (live && live !== 'application/octet-stream') return live;
+  if (stored) return stored;
+  return live || 'application/octet-stream';
+}
 
 function userId(req) {
   return req.authUserId || req.session.userId;
@@ -188,16 +204,23 @@ function sendStorageError(res, error, fallbackMessage) {
 function storageConfigStatus() {
   const config = getStorageConfig();
   const status = getStorageStatus();
+  const local = getLocalStorageConfig();
+  const activeBackend = getActiveUploadBackend();
   const count = db.get().prepare(`
     SELECT COUNT(*) AS count
     FROM family_documents
     WHERE storage_backend = 'webdav'
   `).get().count;
+  const effectiveTarget = activeBackend === 'local_folder'
+    ? local.basePath
+    : (activeBackend === 'webdav' ? getEffectiveTarget(config) : null);
   return {
     enabled: status.enabled,
     configured: status.configured,
-    active_upload_backend: status.enabled ? 'webdav' : 'local',
-    effective_target: getEffectiveTarget(config),
+    active_upload_backend: activeBackend,
+    effective_target: effectiveTarget,
+    local_enabled: local.enabled,
+    local_path: local.basePath,
     webdav_document_count: count,
     last_test: status.lastTest,
     last_error: status.lastError,
@@ -337,6 +360,7 @@ router.post('/storage/test', async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ error: 'Not authorized.', code: 403 });
     }
+    await assertWebdavTargetAllowed(resolveConfig(req.body));
     const result = await testStorageConnection(req.body);
     res.json({ data: result });
   } catch (err) {
@@ -357,7 +381,7 @@ router.get('/meta/options', (req, res) => {
         max_file_size: MAX_FILE_BYTES,
         allowed_mime_types: Array.from(ALLOWED_MIME),
         storage_providers: ['local', 'external'],
-        active_upload_backend: isWebdavUploadEnabled() ? 'webdav' : 'local',
+        active_upload_backend: getActiveUploadBackend(),
         dms_accounts: isAdmin(req) ? dmsAccounts : [],
       },
     });
@@ -395,6 +419,45 @@ router.post('/folders', (req, res) => {
       return res.status(409).json({ error: 'Folder already exists.', code: 409 });
     }
     log.error('POST /folders error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+router.put('/folders/:id', (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid folder id.', code: 400 });
+    }
+    const vName = str(req.body.name, 'Name', { max: MAX_TITLE });
+    if (vName.error) return res.status(400).json({ error: vName.error, code: 400 });
+    const existing = db.get().prepare('SELECT id FROM family_document_folders WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Folder not found.', code: 404 });
+    db.get().prepare('UPDATE family_document_folders SET name = ? WHERE id = ?').run(vName.value, id);
+    const row = db.get().prepare('SELECT id, name, created_by, created_at, updated_at FROM family_document_folders WHERE id = ?').get(id);
+    res.json({ data: row });
+  } catch (err) {
+    if (err.message?.includes('UNIQUE constraint')) {
+      return res.status(409).json({ error: 'Folder already exists.', code: 409 });
+    }
+    log.error('PUT /folders/:id error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+router.delete('/folders/:id', (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid folder id.', code: 400 });
+    }
+    const existing = db.get().prepare('SELECT id FROM family_document_folders WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Folder not found.', code: 404 });
+    // Dokumente behalten ihre Zeile: folder_id wird per ON DELETE SET NULL geleert.
+    db.get().prepare('DELETE FROM family_document_folders WHERE id = ?').run(id);
+    res.json({ data: { id } });
+  } catch (err) {
+    log.error('DELETE /folders/:id error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });
   }
 });
@@ -572,8 +635,7 @@ router.get('/:id/preview', async (req, res) => {
     const doc = getVisibleDocument(id, req, true);
     if (!doc) return res.status(404).json({ error: 'Document not found.', code: 404 });
     const content = await resolveDocumentContent(doc);
-    const rawMime = (content.mime || doc.mime_type || 'application/octet-stream')
-      .split(';')[0].trim().toLowerCase();
+    const rawMime = effectiveMime(content, doc);
     // Inline-Auslieferung nur für nicht-skriptfähige Typen. Alles andere kann über
     // /download (als attachment) geholt werden.
     if (!PREVIEWABLE_MIME.has(rawMime)) {
@@ -615,8 +677,7 @@ router.get('/:id/download', async (req, res) => {
     const doc = getVisibleDocument(id, req, true);
     if (!doc) return res.status(404).json({ error: 'Document not found.', code: 404 });
     const content = await resolveDocumentContent(doc);
-    const rawMime = (content.mime || doc.mime_type || 'application/octet-stream')
-      .split(';')[0].trim().toLowerCase();
+    const rawMime = effectiveMime(content, doc);
     const filename = encodeURIComponent((doc.original_name || `${doc.id}`).replace(/[/\\]/g, '_'));
     res.setHeader('Content-Type', rawMime);
     res.setHeader('Content-Length', String(content.buffer.length));

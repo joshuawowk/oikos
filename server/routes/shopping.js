@@ -10,7 +10,8 @@
 import { createLogger } from '../logger.js';
 import express from 'express';
 import * as db from '../db.js';
-import { str, oneOf, num, collectErrors, MAX_TITLE, MAX_SHORT } from '../middleware/validate.js';
+import { str, oneOf, url, date, collectErrors, MAX_TITLE, MAX_SHORT, MAX_TEXT } from '../middleware/validate.js';
+import { aggregateMealIngredients } from '../services/shopping-import.js';
 
 const log = createLogger('Shopping');
 
@@ -208,8 +209,8 @@ router.get('/suggestions', (req, res) => {
 
 // --------------------------------------------------------
 // PATCH /api/v1/shopping/items/:itemId
-// Artikel aktualisieren (is_checked, name, quantity, category).
-// Body: { is_checked?, name?, quantity?, category? }
+// Artikel aktualisieren (is_checked, name, quantity, category, notes, url).
+// Body: { is_checked?, name?, quantity?, category?, notes?, url? }
 // Response: { data: ShoppingItem }
 // --------------------------------------------------------
 router.patch('/items/:itemId', (req, res) => {
@@ -224,6 +225,8 @@ router.patch('/items/:itemId', (req, res) => {
       name       = item.name,
       quantity   = item.quantity,
       category   = item.category,
+      notes      = item.notes,
+      url: urlVal = item.url,
     } = req.body;
 
     if (!name?.trim()) return res.status(400).json({ error: 'name darf nicht leer sein.', code: 400 });
@@ -232,11 +235,17 @@ router.patch('/items/:itemId', (req, res) => {
     if (category && !validNames.includes(category))
       return res.status(400).json({ error: 'Invalid category.', code: 400 });
 
+    // notes/url gleich validieren wie beim Anlegen (URL nur http/https → XSS-sicher).
+    const vNotes = str(notes, 'Notiz', { max: MAX_TEXT, required: false });
+    const vUrl   = url(urlVal, 'URL');
+    const fieldErrors = collectErrors([vNotes, vUrl]);
+    if (fieldErrors.length) return res.status(400).json({ error: fieldErrors.join(' '), code: 400 });
+
     db.get().prepare(`
       UPDATE shopping_items
-      SET is_checked = ?, name = ?, quantity = ?, category = ?
+      SET is_checked = ?, name = ?, quantity = ?, category = ?, notes = ?, url = ?
       WHERE id = ?
-    `).run(is_checked ? 1 : 0, name.trim(), quantity ?? null, category, req.params.itemId);
+    `).run(is_checked ? 1 : 0, name.trim(), quantity ?? null, category, vNotes.value, vUrl.value, req.params.itemId);
 
     const updated = db.get()
       .prepare('SELECT * FROM shopping_items WHERE id = ?')
@@ -397,7 +406,7 @@ router.get('/:listId/items', (req, res) => {
 // --------------------------------------------------------
 // POST /api/v1/shopping/:listId/items
 // Artikel zur Liste hinzufügen.
-// Body: { name, quantity?, category? }
+// Body: { name, quantity?, category?, notes?, url? }
 // Response: { data: ShoppingItem }
 // --------------------------------------------------------
 router.post('/:listId/items', (req, res) => {
@@ -411,16 +420,18 @@ router.post('/:listId/items', (req, res) => {
     const defaultCat = validNames[0] ?? 'Sonstiges';
     const requestedCat = req.body.category || defaultCat;
 
-    const vName = str(req.body.name, 'Name', { max: MAX_TITLE });
-    const vQty  = str(req.body.quantity, 'Menge', { max: MAX_SHORT, required: false });
-    const vCat  = oneOf(requestedCat, validNames, 'Kategorie');
-    const errors = collectErrors([vName, vQty, vCat]);
+    const vName  = str(req.body.name, 'Name', { max: MAX_TITLE });
+    const vQty   = str(req.body.quantity, 'Menge', { max: MAX_SHORT, required: false });
+    const vCat   = oneOf(requestedCat, validNames, 'Kategorie');
+    const vNotes = str(req.body.notes, 'Notiz', { max: MAX_TEXT, required: false });
+    const vUrl   = url(req.body.url, 'URL');
+    const errors = collectErrors([vName, vQty, vCat, vNotes, vUrl]);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
 
     const result = db.get().prepare(`
-      INSERT INTO shopping_items (list_id, name, quantity, category)
-      VALUES (?, ?, ?, ?)
-    `).run(req.params.listId, vName.value, vQty.value, vCat.value || defaultCat);
+      INSERT INTO shopping_items (list_id, name, quantity, category, notes, url)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(req.params.listId, vName.value, vQty.value, vCat.value || defaultCat, vNotes.value, vUrl.value);
 
     const item = db.get()
       .prepare('SELECT * FROM shopping_items WHERE id = ?')
@@ -428,6 +439,64 @@ router.post('/:listId/items', (req, res) => {
     res.status(201).json({ data: item });
   } catch (err) {
     log.error('POST /:listId/items error:', err);
+    res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// POST /api/v1/shopping/:listId/import-meal-plan
+// Importiert Zutaten aus dem Essensplan eines Datumsbereichs in eine Liste.
+// Body: { from: YYYY-MM-DD, to: YYYY-MM-DD }
+// Response: { data: { transferred: number, added: number } }
+// --------------------------------------------------------
+router.post('/:listId/import-meal-plan', (req, res) => {
+  try {
+    const list = db.get()
+      .prepare('SELECT id FROM shopping_lists WHERE id = ?')
+      .get(req.params.listId);
+    if (!list) return res.status(404).json({ error: 'List not found.', code: 404 });
+
+    const vFrom = date(req.body.from, 'From date', true);
+    const vTo = date(req.body.to, 'To date', true);
+    const errors = collectErrors([vFrom, vTo]);
+    if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
+    if (vFrom.value > vTo.value) {
+      return res.status(400).json({ error: 'From date must be before or equal to end date.', code: 400 });
+    }
+
+    const ingredients = db.get().prepare(`
+      SELECT mi.id, mi.meal_id, mi.name, mi.quantity, mi.category
+      FROM meal_ingredients mi
+      JOIN meals m ON m.id = mi.meal_id
+      WHERE m.date BETWEEN ? AND ?
+        AND mi.on_shopping_list = 0
+      ORDER BY m.date ASC, mi.id ASC
+    `).all(vFrom.value, vTo.value);
+
+    if (!ingredients.length) {
+      return res.json({ data: { transferred: 0, added: 0 } });
+    }
+
+    const aggregated = aggregateMealIngredients(ingredients);
+    const added = db.get().transaction(() => {
+      const insertItem = db.get().prepare(`
+        INSERT INTO shopping_items (list_id, name, quantity, category, added_from_meal)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      const markDone = db.get().prepare('UPDATE meal_ingredients SET on_shopping_list = 1 WHERE id = ?');
+
+      for (const item of aggregated) {
+        insertItem.run(req.params.listId, item.name, item.quantity, item.category, item.added_from_meal);
+      }
+      for (const ingredient of ingredients) {
+        markDone.run(ingredient.id);
+      }
+      return aggregated.length;
+    })();
+
+    res.json({ data: { transferred: ingredients.length, added } });
+  } catch (err) {
+    log.error('POST /:listId/import-meal-plan error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });
   }
 });

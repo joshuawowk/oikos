@@ -36,8 +36,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-top: 3px solid var(--module-accent);
+  /* Schlanker als die Modul-Tabs darüber: liest sich als sekundäre Sub-Leiste,
+   * nicht als zweite gleichrangige Navigation. */
+  padding: var(--space-1) var(--space-4);
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-surface);
   overflow-x: auto;
@@ -46,6 +47,17 @@
 }
 
 .list-tabs-bar::-webkit-scrollbar { display: none; }
+
+/* Kategorie-Marker: bleibt links stehen (scrollt nicht mit den Chips weg). */
+.list-tabs-bar__marker {
+  position: sticky;
+  left: 0;
+  flex-shrink: 0;
+  width: var(--space-4);
+  height: var(--space-4);
+  color: var(--color-text-tertiary);
+  background-color: var(--color-surface);
+}
 
 .list-tab {
   display: inline-flex;
@@ -69,21 +81,21 @@
   color: var(--color-text-primary);
 }
 
+/* Aktive Liste: getönte Pille wie .sub-tab--active/.budget-tab--active.
+ * Tint + Border tragen die Modul-Identität; das Label bleibt Ink + semibold,
+ * da Modul-Akzent-Text auf Hell nur ~3.5:1 erreicht (unter AA 4.5). */
 .list-tab--active {
-  background-color: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-ink-on-vivid);
+  background-color: color-mix(in srgb, var(--module-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--module-accent) 40%, transparent);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .list-tab__count {
-  background-color: var(--color-glass);
+  background-color: color-mix(in srgb, currentColor 15%, transparent);
   border-radius: var(--radius-full);
   padding: var(--space-px) var(--space-1);
   font-size: var(--text-xs);
-}
-
-.list-tab--active .list-tab__count {
-  background-color: var(--color-glass-hover);
 }
 
 .list-tab__new {
@@ -116,7 +128,7 @@
   justify-content: space-between;
   padding: var(--space-3) var(--space-4) var(--space-2);
   flex-shrink: 0;
-  border-top: 3px solid var(--module-accent);
+  border-bottom: 1px solid var(--color-border-subtle);
   /* Opaque background required: backdrop-filter on position:sticky inside overflow:auto
    * triggers a WebKit compositor bug that blanks the entire scroll container (iOS 26+). */
   background-color: var(--color-surface);
@@ -126,8 +138,6 @@
 }
 
 .list-header__name {
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-bold);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -149,6 +159,32 @@
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
+}
+
+.list-header__import-btn {
+  gap: var(--space-2);
+}
+
+.shopping-import-meals-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (max-width: 767px) {
+  .list-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .list-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .list-header__import-btn span {
+    display: none;
+  }
 }
 
 /* --------------------------------------------------------
@@ -180,7 +216,7 @@
   border: 1.5px solid var(--glass-border-subtle);
   background-color: var(--color-surface);
   color: var(--color-text-primary);
-  font-size: var(--text-md);
+  font-size: var(--text-base);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   min-height: var(--target-base);
 }
@@ -200,7 +236,8 @@
   border: 1.5px solid var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text-primary);
-  font-size: var(--text-md);
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
   text-align: center;
   min-height: var(--target-base);
   height: var(--target-base);
@@ -220,7 +257,7 @@
   border: 1.5px solid var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text-secondary);
-  font-size: var(--text-md);
+  font-size: var(--text-base);
   cursor: pointer;
   min-height: var(--target-base);
 }
@@ -240,8 +277,8 @@
   }
 
   .quick-add__input { font-size: var(--text-base); }
-  .quick-add__qty   { font-size: var(--text-sm); }
-  .quick-add__cat   { font-size: var(--text-sm); }
+  .quick-add__qty   { font-size: var(--text-base); }
+  .quick-add__cat   { font-size: var(--text-base); }
 }
 
 .quick-add__btn {
@@ -291,6 +328,12 @@
   color: var(--color-accent);
 }
 
+/* Lade-Feedback beim Listenwechsel: dimmt den alten Inhalt, bis der neue steht. */
+#list-content[aria-busy="true"] {
+  opacity: 0.55;
+  transition: opacity var(--transition-fast);
+}
+
 /* --------------------------------------------------------
  * Artikel-Liste (scrollbar)
  * -------------------------------------------------------- */
@@ -308,12 +351,27 @@
   margin-bottom: var(--space-4);
 }
 
+/* Web: Einkauf-Content als zentrierte, breitenbegrenzte Spalte statt
+ * links auslaufender Vollbreite (Liste liest sich auf ≥1024px ruhiger). */
+@media (min-width: 1024px) {
+  .shopping-page .list-header,
+  .shopping-page .quick-add,
+  .shopping-page .item-category {
+    width: 100%;
+    max-width: var(--content-max-width-narrow);
+    margin-inline: auto;
+  }
+
+  /* Listen-Auswahl-Leiste bleibt Vollbreite-Toolbar (durchgehender Trenner),
+   * aber ihre Pills rücken per Padding auf dieselbe zentrierte Spalte ein,
+   * damit „Weekly Shop" (Pill) mit dem Listen-Header darunter fluchtet. */
+  .shopping-page .list-tabs-bar {
+    padding-inline: max(var(--space-4), calc((100% - var(--content-max-width-narrow)) / 2));
+  }
+}
+
 .item-category__header {
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   padding: var(--space-2) 0 var(--space-1);
   border-bottom: 1px solid var(--color-border-subtle);
   margin-bottom: var(--space-1);
@@ -417,6 +475,7 @@
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   margin-top: 1px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Löschen-Button */
@@ -452,6 +511,69 @@
 
 .item-delete:hover { color: var(--color-danger); }
 
+/* Detail-Indikatoren (Link/Notiz) inline hinter dem Namen — dezent. */
+.item-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  color: var(--module-accent, var(--color-text-secondary));
+  vertical-align: middle;
+}
+
+.item-meta__icon {
+  width: 0.9em;
+  height: 0.9em;
+}
+
+.shopping-item--checked .item-meta {
+  color: var(--color-text-disabled);
+}
+
+/* Details-Button (URL/Notiz bearbeiten). Anders als der Löschen-Button bleibt er
+ * auf Touch erreichbar (kein Hover-Reveal), da es keine Swipe-Alternative gibt. */
+.item-details {
+  width: var(--target-base);
+  height: var(--target-base);
+  min-width: var(--target-base);
+  min-height: var(--target-base);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-disabled);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+  border: none;
+  flex-shrink: 0;
+}
+
+.shopping-item:hover .item-details,
+.shopping-item:focus-within .item-details {
+  opacity: 1;
+}
+
+.item-details:hover { color: var(--color-text-secondary); }
+
+/* Klickbare Link-Vorschau im Detail-Drawer. */
+.item-details__link-wrap:not(:empty) {
+  margin-top: var(--space-2);
+}
+
+.item-details__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--module-accent, var(--color-primary));
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.item-details__link:hover { text-decoration: underline; }
+
 /* --------------------------------------------------------
  * Swipe-Wrapper - Shopping-spezifische Styles
  * -------------------------------------------------------- */
@@ -483,25 +605,94 @@
   .item-delete {
     display: none;
   }
+
+  /* Der Bearbeiten-Button ist mobil die einzige sichtbare Inline-Aktion
+   * (Löschen per Swipe). Ohne Hover muss er voll sichtbar und lesbar sein,
+   * statt im Disabled-Grau bei opacity 0.55 zu verschwinden (Audit F10). */
+  .item-details {
+    opacity: 1;
+    color: var(--color-text-tertiary);
+  }
 }
 
 /* --------------------------------------------------------
- * No-Lists-Zustand
+ * No-Lists-Zustand: geteilte .empty-state-Grammatik (layout.css).
+ * Als direktes Kind von #list-content vertikal füllen/zentrieren.
  * -------------------------------------------------------- */
-.no-lists {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+#list-content > .empty-state {
   flex: 1;
-  gap: var(--space-4);
-  padding: var(--space-12);
-  text-align: center;
 }
 
-.no-lists__icon {
-  width: var(--target-lg);
-  height: var(--target-lg);
-  color: var(--color-text-disabled);
+/* --------------------------------------------------------
+ * Kategorie-Manager (yuvomi-shopping-category-manager)
+ * Kanonischer Ort der Einkaufskategorien (früher in Settings).
+ * -------------------------------------------------------- */
+.shopping-cat-manager__title {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-primary);
+}
+
+.shopping-cat-manager__hint {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.shopping-cat-list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.shopping-cat-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-glass-inner);
+  transition: background var(--transition-fast);
+}
+
+.shopping-cat-row:hover {
+  background: var(--glass-bg-card-hover);
+}
+
+.shopping-cat-row__icon {
   flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.shopping-cat-row__name {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shopping-cat-row__name:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.shopping-cat-row__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.shopping-cat-add-form {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.shopping-cat-add-form__input {
+  flex: 1;
 }

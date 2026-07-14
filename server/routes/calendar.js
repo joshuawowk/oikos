@@ -11,12 +11,15 @@ import * as db from '../db.js';
 import * as googleCalendar from '../services/google-calendar.js';
 import * as appleCalendar from '../services/apple-calendar.js';
 import * as icsSubscription from '../services/ics-subscription.js';
+import * as icsExport from '../services/ics-export.js';
 import * as caldavSync from '../services/caldav-sync.js';
 import * as caldavReminders from '../services/caldav-reminders-sync.js';
 import * as holidays from '../services/holidays.js';
 import { requireAdmin } from '../auth.js';
 import { str, color, datetime, rrule, collectErrors, MAX_TITLE, MAX_TEXT, DATE_RE, DATETIME_RE } from '../middleware/validate.js';
-import { expandRecurringEvents, getUpcomingEvents } from '../services/calendar-events.js';
+import { expandRecurringEvents, getUpcomingEvents, loadEventExceptions } from '../services/calendar-events.js';
+import { buildMatchQuery } from '../services/search.js';
+import { normalizeVisibility, visibilityWhere } from '../services/visibility.js';
 import {
   StorageError,
   cleanupStagedUpload,
@@ -277,6 +280,10 @@ router.get('/', (req, res) => {
     `;
     const params = [to, from, to, getUserId(req)];
 
+    // Sichtbarkeit (#474): eigene + für alle sichtbare + zugewiesene-sichtbare.
+    sql += ` AND ${visibilityWhere('e', 'event_assignments', 'event_id')}`;
+    params.push(getUserId(req), getUserId(req));
+
     if (req.query.assigned_to) {
       sql += ' AND EXISTS (SELECT 1 FROM event_assignments ea WHERE ea.event_id = e.id AND ea.user_id = ?)';
       params.push(parseInt(req.query.assigned_to, 10));
@@ -289,8 +296,10 @@ router.get('/', (req, res) => {
 
     sql += ' ORDER BY e.start_datetime ASC, e.all_day DESC';
 
-    const rawEvents = db.get().prepare(sql).all(...params);
-    const events    = expandRecurringEvents(rawEvents, from, to).map(serializeEvent);
+    const rawEvents  = db.get().prepare(sql).all(...params);
+    const recurringIds = rawEvents.filter((e) => e.recurrence_rule).map((e) => e.id);
+    const exceptions   = loadEventExceptions(db.get(), recurringIds);
+    const events    = expandRecurringEvents(rawEvents, from, to, exceptions).map(serializeEvent);
     res.json({ data: events, from, to });
   } catch (err) {
     log.error('', err);
@@ -311,6 +320,84 @@ router.get('/upcoming', (req, res) => {
       .map(serializeEvent);
 
     res.json({ data: expanded });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// GET /api/v1/calendar/search?q=<query>
+// Termin-Suche über den FTS-Index (Titel, Beschreibung, Ort) — datumsunabhängig,
+// über den geladenen Zeitraum hinaus (#471). Liefert dieselbe serialisierte
+// Event-Form wie GET / (inkl. cal_name/assigned_users), damit die Agenda-Zeilen
+// direkt gerendert werden können. Sichtbarkeit deckt sich mit der Listenansicht:
+// alle Familientermine, ICS nur aus geteilten/eigenen Abos. Vor /:id registriert.
+// Response: { data: Event[] }
+// --------------------------------------------------------
+router.get('/search', (req, res) => {
+  try {
+    const match = buildMatchQuery(req.query.q ?? '');
+    if (!match) return res.json({ data: [], total: 0 });
+
+    const userId = getUserId(req);
+    const LIMIT  = 100;
+    // Sichtbarkeit deckt sich mit GET / (alle Familientermine; ICS nur aus
+    // geteilten/eigenen Abos). Als Fragment wiederverwendet für Count + Liste.
+    const whereSql = `
+      s.entity = 'event' AND s.search_index MATCH @match
+      AND (
+        e.external_source <> 'ics'
+        OR e.subscription_id IN (
+          SELECT id FROM ics_subscriptions WHERE shared = 1 OR created_by = @userId
+        )
+      )
+      AND ${visibilityWhere('e', 'event_assignments', 'event_id', '@userId')}`;
+
+    const total = db.get().prepare(`
+      SELECT COUNT(*) AS n
+      FROM search_index s
+      JOIN calendar_events e ON e.id = s.entity_id
+      WHERE ${whereSql}
+    `).get({ match, userId }).n;
+
+    const rows = db.get().prepare(`
+      SELECT e.*,
+             u_assigned.display_name AS assigned_name,
+             u_assigned.avatar_color AS assigned_color,
+             u_created.display_name  AS creator_name,
+             ec.name  AS cal_name,
+             ec.color AS cal_color,
+             ${ASSIGNED_USERS_SQL}
+      FROM search_index s
+      JOIN calendar_events e ON e.id = s.entity_id
+      LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
+      LEFT JOIN users u_created  ON u_created.id  = e.created_by
+      LEFT JOIN external_calendars ec ON ec.id = e.calendar_ref_id
+      WHERE ${whereSql}
+      ORDER BY e.start_datetime ASC
+      LIMIT @limit
+    `).all({ match, userId, limit: LIMIT });
+
+    // Wiederkehrende Treffer auf die nächste Instanz ab heute auflösen (statt des
+    // Serienstarts, der Jahre zurückliegen kann). Findet die Serie im 1-Jahres-
+    // Fenster keine kommende Instanz, bleibt der Master-Termin unverändert (#471).
+    const today  = new Date().toISOString().slice(0, 10);
+    // 2-Jahres-Fenster: fängt auch Serien, deren nächste Instanz mehr als ein Jahr
+    // voraus liegt (z. B. mehrjährige Intervalle). Findet sich keine, bleibt der Master.
+    const future = new Date(Date.now() + 730 * 86400000).toISOString().slice(0, 10);
+    const searchExceptions = loadEventExceptions(
+      db.get(), rows.filter((r) => r.recurrence_rule).map((r) => r.id)
+    );
+    const resolved = rows.map((row) => {
+      if (!row.recurrence_rule) return row;
+      return expandRecurringEvents([row], today, future, searchExceptions)[0] || row;
+    });
+    // Nach der Auflösung neu chronologisch sortieren, damit die Frontend-Gruppierung
+    // die tatsächlichen (nicht die Master-)Daten in Reihenfolge zeigt.
+    resolved.sort((a, b) => String(a.start_datetime).localeCompare(String(b.start_datetime)));
+
+    res.json({ data: resolved.map(serializeEvent), total });
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: 'Interner Fehler', code: 500 });
@@ -431,6 +518,47 @@ router.patch('/google/calendars', requireAdmin, async (req, res) => {
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: err.message, code: 500 });
+  }
+});
+
+/**
+ * PATCH /api/v1/calendar/external-calendars
+ * Admin only. Setzt die Standard-Zuweisung eines synchronisierten Kalenders (#459).
+ * Provider-übergreifend (Google/Apple/CalDAV) über die geteilte external_calendars-Tabelle,
+ * adressiert per (source, external_id). Die Zeile entsteht beim ersten Sync — der Picker
+ * erscheint im UI nur für aktivierte Kalender.
+ * Body: { source: 'google'|'apple'|'caldav', external_id: string, default_assignee_user_id: number|null }
+ * Response: { data: { source, external_id, default_assignee_user_id } }
+ */
+router.patch('/external-calendars', requireAdmin, (req, res) => {
+  try {
+    const { source, external_id } = req.body;
+    if (!['google', 'apple', 'caldav'].includes(source)) {
+      return res.status(400).json({ error: 'source muss google, apple oder caldav sein.', code: 400 });
+    }
+    if (typeof external_id !== 'string' || external_id.trim().length === 0) {
+      return res.status(400).json({ error: 'external_id fehlt oder ist ungültig.', code: 400 });
+    }
+    const raw = req.body.default_assignee_user_id;
+    const assignee = (raw === null || raw === undefined || raw === '') ? null : Number(raw);
+    if (assignee !== null && !Number.isInteger(assignee)) {
+      return res.status(400).json({ error: 'default_assignee_user_id muss eine Zahl oder null sein.', code: 400 });
+    }
+    if (assignee !== null && !db.get().prepare('SELECT 1 FROM users WHERE id = ?').get(assignee)) {
+      return res.status(400).json({ error: 'Unbekannte Nutzer-ID.', code: 400 });
+    }
+
+    const result = db.get().prepare(
+      'UPDATE external_calendars SET default_assignee_user_id = ? WHERE source = ? AND external_id = ?'
+    ).run(assignee, source, external_id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Kalender noch nicht synchronisiert.', code: 404 });
+    }
+    res.json({ data: { source, external_id, default_assignee_user_id: assignee } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
   }
 });
 
@@ -570,8 +698,10 @@ router.post('/subscriptions', async (req, res) => {
       return res.status(400).json({ error: 'name: Pflichtfeld, max. 100 Zeichen.', code: 400 });
     if (!url || typeof url !== 'string')
       return res.status(400).json({ error: 'url: Pflichtfeld.', code: 400 });
-    try { const u = new URL(url.replace(/^webcal:\/\//i, 'https://')); if (!['https:'].includes(u.protocol)) throw new Error(); }
-    catch { return res.status(400).json({ error: 'url: Nur https:// und webcal:// sind erlaubt.', code: 400 }); }
+    const allowPrivate = icsSubscription.isPrivateNetworkAllowed();
+    const allowedProtocols = allowPrivate ? ['https:', 'http:'] : ['https:'];
+    try { const u = new URL(url.replace(/^webcal:\/\//i, 'https://')); if (!allowedProtocols.includes(u.protocol)) throw new Error(); }
+    catch { return res.status(400).json({ error: allowPrivate ? 'url: Nur http://, https:// und webcal:// sind erlaubt.' : 'url: Nur https:// und webcal:// sind erlaubt.', code: 400 }); }
     if (!colorVal || !ICS_COLOR_RE.test(colorVal))
       return res.status(400).json({ error: 'color: Pflichtfeld, muss #RRGGBB sein.', code: 400 });
 
@@ -604,6 +734,10 @@ router.patch('/subscriptions/:id', (req, res) => {
       fields.color = req.body.color;
     }
     if (req.body.shared !== undefined) fields.shared = req.body.shared;
+    if (req.body.default_assignee_user_id !== undefined) {
+      const raw = req.body.default_assignee_user_id;
+      fields.default_assignee_user_id = (raw === null || raw === '') ? null : Number(raw);
+    }
 
     const updated = icsSubscription.update(getUserId(req), subId, fields, isAdmin);
     if (!updated) return res.status(404).json({ error: 'Abonnement nicht gefunden.', code: 404 });
@@ -648,6 +782,101 @@ router.post('/subscriptions/:id/sync', async (req, res) => {
   }
 });
 
+// POST /api/v1/calendar/import → einmaliger Import aus ICS-Datei/Feed als
+// echte, bearbeitbare lokale Termine (Discussion #437, Kalender-Migration).
+router.post('/import', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated.', code: 401 });
+
+    const ics = typeof req.body.ics === 'string' ? req.body.ics : null;
+    const url = typeof req.body.url === 'string' ? req.body.url.trim() : null;
+    if (!ics?.trim() && !url) {
+      return res.status(400).json({ error: 'Either an ICS file or a URL is required.', code: 400 });
+    }
+
+    let vColorValue = null;
+    if (req.body.color) {
+      const vColor = color(req.body.color, 'Farbe');
+      if (vColor.error) return res.status(400).json({ error: vColor.error, code: 400 });
+      vColorValue = vColor.value;
+    }
+
+    const result = await icsSubscription.importToLocal(userId, {
+      ics, url, color: vColorValue,
+    });
+    res.status(201).json({ data: result });
+  } catch (err) {
+    // Nutzerorientierte Fehler (SSRF-Block, ungültige URL, HTTP-Status,
+    // Größenlimit) direkt zurückgeben; Rest als generischer Serverfehler.
+    if (err instanceof TypeError || /URL|https?|private IP|ICS file|HTTP \d|required/i.test(err.message || '')) {
+      return res.status(400).json({ error: err.message, code: 400 });
+    }
+    log.error('POST /import:', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// Read-only ICS-Export-Feed (Discussion #387)
+// --------------------------------------------------------
+function feedUrl(req, token) {
+  const base = process.env.BASE_URL?.replace(/\/+$/, '')
+    || `${req.protocol}://${req.get('host')}`;
+  return `${base}/feed/calendar/${token}.ics`;
+}
+
+// GET /api/v1/calendar/feed → aktueller Feed-Status
+router.get('/feed', (req, res) => {
+  try {
+    const token = icsExport.getFeedToken(db.get(), getUserId(req));
+    if (!token) return res.json({ data: null });
+    const showAssignees = icsExport.getFeedShowAssignees(db.get(), getUserId(req));
+    res.json({ data: { token, url: feedUrl(req, token), showAssignees } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// PUT /api/v1/calendar/feed → Feed-Optionen setzen (showAssignees, #482)
+router.put('/feed', (req, res) => {
+  try {
+    if (typeof req.body?.showAssignees !== 'boolean') {
+      return res.status(400).json({ error: 'showAssignees (boolean) required.', code: 400 });
+    }
+    const showAssignees = icsExport.setFeedShowAssignees(
+      db.get(), getUserId(req), req.body.showAssignees
+    );
+    res.json({ data: { showAssignees } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// POST /api/v1/calendar/feed/regenerate → neuen Token erzeugen
+router.post('/feed/regenerate', (req, res) => {
+  try {
+    const token = icsExport.regenerateFeedToken(db.get(), getUserId(req));
+    res.json({ data: { token, url: feedUrl(req, token) } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// DELETE /api/v1/calendar/feed → Feed deaktivieren
+router.delete('/feed', (req, res) => {
+  try {
+    icsExport.clearFeedToken(db.get(), getUserId(req));
+    res.json({ data: { token: null } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // GET /api/v1/calendar/holidays?from=YYYY-MM-DD&to=YYYY-MM-DD
 // Muss VOR /:id stehen, damit "holidays" nicht als ID-Parameter interpretiert wird.
@@ -685,7 +914,8 @@ router.get('/:id', (req, res) => {
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by
       WHERE e.id = ?
-    `).get(id);
+        AND ${visibilityWhere('e', 'event_assignments', 'event_id')}
+    `).get(id, getUserId(req), getUserId(req));
 
     if (!event) return res.status(404).json({ error: 'Termin nicht gefunden', code: 404 });
     res.json({ data: serializeEvent(event) });
@@ -760,8 +990,8 @@ router.post('/', async (req, res) => {
           (title, description, start_datetime, end_datetime, all_day,
            location, color, icon, assigned_to, created_by, recurrence_rule,
            attachment_name, attachment_mime, attachment_size, attachment_data, attachment_document_id,
-           target_caldav_account_id, target_caldav_calendar_url, target_google_calendar_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           target_caldav_account_id, target_caldav_calendar_url, target_google_calendar_id, visibility)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         vTitle.value, vDesc.value,
         vStart.value, vEnd.value,
@@ -775,7 +1005,8 @@ router.post('/', async (req, res) => {
         documentId,
         vCaldav.value.accountId,
         vCaldav.value.calendarUrl,
-        vGoogle.value
+        vGoogle.value,
+        normalizeVisibility(req.body.visibility)
       );
       setEventAssignments(db.get(), result.lastInsertRowid, userIds);
       return result.lastInsertRowid;
@@ -949,6 +1180,7 @@ router.put('/:id', async (req, res) => {
             target_caldav_account_id   = ?,
             target_caldav_calendar_url = ?,
             target_google_calendar_id  = ?,
+            visibility      = ?,
             user_modified   = ?
         WHERE id = ?
       `).run(
@@ -970,6 +1202,9 @@ router.put('/:id', async (req, res) => {
         caldavAccountId,
         caldavCalendarUrl,
         googleTargetId,
+        req.body.visibility !== undefined
+          ? normalizeVisibility(req.body.visibility, event.visibility)
+          : event.visibility,
         userModified,
         id
       );
@@ -1038,6 +1273,48 @@ router.post('/:id/reset', (req, res) => {
 
     db.get().prepare('UPDATE calendar_events SET user_modified = 0 WHERE id = ?').run(id);
     res.json({ data: { reset: true } });
+  } catch (err) {
+    log.error('', err);
+    res.status(500).json({ error: 'Interner Fehler', code: 500 });
+  }
+});
+
+// --------------------------------------------------------
+// POST /api/v1/calendar/:id/exceptions
+// Nimmt ein einzelnes Vorkommen einer lokalen Serie aus (EXDATE, #489).
+// Body: { date: 'YYYY-MM-DD' } — Start-Datum der auszunehmenden Instanz.
+// Nur lokale (nicht extern synchronisierte) wiederkehrende Termine.
+// Response: 201 { data: { event_id, exception_date } }
+// --------------------------------------------------------
+router.post('/:id/exceptions', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Ungültige ID.', code: 400 });
+
+    const date = req.body?.date;
+    if (!DATE_RE.test(date || ''))
+      return res.status(400).json({ error: 'date muss YYYY-MM-DD sein.', code: 400 });
+
+    const event = db.get().prepare('SELECT * FROM calendar_events WHERE id = ?').get(id);
+    if (!event) return res.status(404).json({ error: 'Termin nicht gefunden', code: 404 });
+    if (!event.recurrence_rule)
+      return res.status(400).json({ error: 'Termin ist keine Serie.', code: 400 });
+    // Nur rein lokale Serien: extern synchronisierte (Google/Apple/CalDAV via
+    // calendar_ref_id, ICS-Abo via subscription_id) würden beim nächsten Sync
+    // wiederkehren; deren EXDATE-Propagierung ist bewusst out of scope (#489).
+    if (event.external_source !== 'local' || event.calendar_ref_id || event.subscription_id)
+      return res.status(400).json({ error: 'Externe Serien können nicht einzeln ausgenommen werden.', code: 400 });
+
+    const userId  = getUserId(req);
+    const isAdmin = isAdminUser(req);
+    if (!isAdmin && event.created_by !== userId)
+      return res.status(403).json({ error: 'Nicht autorisiert.', code: 403 });
+
+    db.get().prepare(
+      'INSERT OR IGNORE INTO calendar_event_exceptions (event_id, exception_date) VALUES (?, ?)'
+    ).run(id, date);
+
+    res.status(201).json({ data: { event_id: id, exception_date: date } });
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: 'Interner Fehler', code: 500 });

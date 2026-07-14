@@ -5,10 +5,12 @@
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal, selectModal } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, selectModal, advancedSection, promptModal, confirmModal } from '/components/modal.js';
 import { t, formatDate } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { stagger } from '/utils/ux.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 
 const CATEGORIES = ['medical', 'school', 'identity', 'insurance', 'finance', 'home', 'vehicle', 'legal', 'travel', 'pets', 'warranty', 'taxes', 'work', 'other'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -44,6 +46,25 @@ function categoryLabels() {
   return Object.fromEntries(CATEGORIES.map((category) => [category, t(`documents.category.${category}`)]));
 }
 
+// Aktiven Zustand einer Chip-Gruppe umschalten (aria-pressed + Modifier).
+function setActiveChip(active, groupSelector) {
+  _container.querySelectorAll(`${groupSelector} .documents-filter-chip`).forEach((chip) => {
+    const on = chip === active;
+    chip.classList.toggle('documents-filter-chip--active', on);
+    chip.setAttribute('aria-pressed', String(on));
+  });
+}
+
+// Nutzerfreundliche Fehlermeldung: strukturierte Server-Meldung (err.data.error)
+// bevorzugt; lokalisierte Client-Validierungsfehler (plain Error mit t()-Text)
+// bleiben erhalten; technische ApiError-Strings („HTTP 500"/„offline") werden auf
+// eine generische Copy gemappt statt roh angezeigt.
+function friendlyError(err) {
+  return err?.data?.error
+    || (err?.name === 'ApiError' ? t('common.unknownError') : err?.message)
+    || t('common.unknownError');
+}
+
 let state = {
   allDocuments: [],
   documents: [],
@@ -51,7 +72,7 @@ let state = {
   members: [],
   dmsAccounts: [],
   activeUploadBackend: 'local',
-  view: localStorage.getItem('oikos-documents-view') || 'grid',
+  view: localStorage.getItem('yuvomi-documents-view') || 'grid',
   status: 'active',
   category: '',
   folderId: '',
@@ -66,47 +87,42 @@ export async function render(container) {
     <div class="documents-page">
       <div class="page-toolbar documents-toolbar">
         <h1 class="page-toolbar__title">${t('documents.title')}</h1>
-        <div class="documents-toolbar__search">
-          <i data-lucide="search" class="documents-toolbar__search-icon" aria-hidden="true"></i>
-          <input class="documents-toolbar__search-input" id="documents-search" type="search" placeholder="${t('documents.searchPlaceholder')}" autocomplete="off">
-        </div>
-        <div class="documents-view-toggle" role="group" aria-label="${t('documents.viewToggle')}">
-          <button class="documents-view-toggle__btn ${state.view === 'grid' ? 'documents-view-toggle__btn--active' : ''}" data-view="grid" aria-label="${t('documents.gridView')}">
-            <i data-lucide="layout-grid" aria-hidden="true"></i>
-          </button>
-          <button class="documents-view-toggle__btn ${state.view === 'list' ? 'documents-view-toggle__btn--active' : ''}" data-view="list" aria-label="${t('documents.listView')}">
-            <i data-lucide="list" aria-hidden="true"></i>
-          </button>
-        </div>
-        <button class="btn btn--primary" id="documents-add-btn">
-          <i data-lucide="upload" class="icon-md" aria-hidden="true"></i>
-          ${t('documents.addButton')}
-        </button>
-        <button class="btn btn--secondary" id="documents-folder-btn">
-          <i data-lucide="folder-plus" class="icon-md" aria-hidden="true"></i>
-          ${t('documents.addFolderButton')}
-        </button>
-      </div>
-      <div class="documents-filters">
-        <select class="input documents-filter-select" id="documents-status">
-          <option value="active">${t('documents.statusActive')}</option>
-          <option value="archived">${t('documents.statusArchived')}</option>
-        </select>
-        <select class="input documents-filter-select" id="documents-category">
-          <option value="">${t('documents.allCategories')}</option>
-          ${CATEGORIES.map((category) => `<option value="${category}">${categoryLabels()[category]}</option>`).join('')}
-        </select>
-        <select class="input documents-filter-select" id="documents-folder">
-          <option value="">${t('documents.allFolders')}</option>
-          <option value="__none">${t('documents.noFolder')}</option>
-        </select>
+        ${renderPageSearch({ id: 'documents-search', label: t('documents.searchPlaceholder'), placeholder: t('documents.searchPlaceholder'), value: state.query, clearLabel: t('common.searchClear'), className: 'documents-toolbar__search' })}
+        <details class="documents-secondary-controls">
+          <summary class="btn btn--secondary btn--icon documents-secondary-controls__trigger" aria-label="${t('nav.more')}">
+            <i data-lucide="sliders-horizontal" class="icon-md" aria-hidden="true"></i>
+          </summary>
+          <div class="documents-secondary-controls__panel">
+            <div class="documents-view-toggle" role="group" aria-label="${t('documents.viewToggle')}">
+              <button class="documents-view-toggle__btn ${state.view === 'grid' ? 'documents-view-toggle__btn--active' : ''}" data-view="grid" aria-label="${t('documents.gridView')}" aria-pressed="${state.view === 'grid'}">
+                <i data-lucide="layout-grid" aria-hidden="true"></i>
+              </button>
+              <button class="documents-view-toggle__btn ${state.view === 'list' ? 'documents-view-toggle__btn--active' : ''}" data-view="list" aria-label="${t('documents.listView')}" aria-pressed="${state.view === 'list'}">
+                <i data-lucide="list" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="documents-filter-group" id="documents-status" role="group" aria-label="${t('documents.statusLabel')}">
+              <button type="button" class="documents-filter-chip${state.status === 'active' ? ' documents-filter-chip--active' : ''}" data-status="active" aria-pressed="${state.status === 'active'}">${t('documents.statusActive')}</button>
+              <button type="button" class="documents-filter-chip${state.status === 'archived' ? ' documents-filter-chip--active' : ''}" data-status="archived" aria-pressed="${state.status === 'archived'}">${t('documents.statusArchived')}</button>
+            </div>
+            <div class="documents-filter-chips" id="documents-category" role="group" aria-label="${t('documents.categoryLabel')}">
+              <button type="button" class="documents-filter-chip${!state.category ? ' documents-filter-chip--active' : ''}" data-category="" aria-pressed="${!state.category}">${t('documents.allCategories')}</button>
+              ${CATEGORIES.map((category) => `<button type="button" class="documents-filter-chip${state.category === category ? ' documents-filter-chip--active' : ''}" data-category="${esc(category)}" aria-pressed="${state.category === category}"><i data-lucide="${CATEGORY_ICONS[category] || 'folder'}" class="icon-md" aria-hidden="true"></i>${esc(categoryLabels()[category])}</button>`).join('')}
+            </div>
+          </div>
+        </details>
       </div>
       <div class="documents-browser-layout">
         <aside class="documents-folder-browser" aria-label="${t('documents.folderBrowserTitle')}">
-          <div class="documents-folder-browser__title">${t('documents.folderBrowserTitle')}</div>
+          <div class="documents-folder-browser__head">
+            <span class="documents-folder-browser__title">${t('documents.folderBrowserTitle')}</span>
+            <button class="documents-folder-browser__add" id="documents-folder-add" type="button" aria-label="${t('documents.addFolderButton')}" title="${t('documents.addFolderButton')}">
+              <i data-lucide="folder-plus" aria-hidden="true"></i>
+            </button>
+          </div>
           <div class="documents-folder-browser__list" id="documents-folder-browser"></div>
         </aside>
-        <div id="documents-list" class="documents-list documents-list--${state.view}"></div>
+        <div id="documents-list" class="documents-list documents-list--${state.view}" aria-busy="true">${renderSkeletonList({ rows: 6, lines: 2 })}</div>
       </div>
       <button class="page-fab" id="fab-new-document" aria-label="${t('documents.addButton')}">
         <i data-lucide="upload" class="icon-xl" aria-hidden="true"></i>
@@ -120,7 +136,6 @@ export async function render(container) {
   await loadDocuments();
   renderDmsHeaderBtn();
   bindPageEvents();
-  renderFolderOptions();
   renderFolderBrowser();
   renderDocuments();
 }
@@ -171,25 +186,11 @@ function renderDmsHeaderBtn() {
   btn.append(icon);
   btn.append(document.createTextNode(t('documents.linkFromDms')));
   btn.addEventListener('click', () => openDmsLinkModal());
-  // Insert after the folder button
-  const folderBtn = toolbar.querySelector('#documents-folder-btn');
-  if (folderBtn) {
-    folderBtn.insertAdjacentElement('afterend', btn);
-  } else {
-    toolbar.append(btn);
-  }
+  // Vor die Sekundär-Steuerung (Slider) hängen, damit die Toolbar-Reihenfolge stimmt.
+  const secondary = toolbar.querySelector('.documents-secondary-controls');
+  if (secondary) secondary.insertAdjacentElement('beforebegin', btn);
+  else toolbar.append(btn);
   if (window.lucide) lucide.createIcons({ el: btn });
-}
-
-function renderFolderOptions() {
-  const select = _container.querySelector('#documents-folder');
-  if (!select) return;
-  select.replaceChildren();
-  select.insertAdjacentHTML('beforeend', `<option value="">${t('documents.allFolders')}</option>`);
-  select.insertAdjacentHTML('beforeend', `<option value="__none" ${state.folderId === '__none' ? 'selected' : ''}>${t('documents.noFolder')}</option>`);
-  state.folders.forEach((folder) => {
-    select.insertAdjacentHTML('beforeend', `<option value="${folder.id}" ${String(folder.id) === String(state.folderId) ? 'selected' : ''}>${esc(folder.name)}</option>`);
-  });
 }
 
 function syncFolderDocuments() {
@@ -203,33 +204,58 @@ function syncFolderDocuments() {
 }
 
 function bindPageEvents() {
-  _container.querySelector('#documents-add-btn')?.addEventListener('click', () => openDocumentModal());
-  _container.querySelector('#documents-folder-btn')?.addEventListener('click', () => openFolderModal());
+  _container.querySelector('#documents-folder-add')?.addEventListener('click', () => openFolderModal());
   _container.querySelector('#fab-new-document')?.addEventListener('click', () => openDocumentModal());
-  let documentsSearchTimer;
-  _container.querySelector('#documents-search')?.addEventListener('input', (e) => {
-    const value = e.target.value.trim().toLowerCase();
-    clearTimeout(documentsSearchTimer);
-    documentsSearchTimer = setTimeout(() => {
-      state.query = value;
+
+  // Sekundär-Steuerung (<details>-Slider, nur auf Mobile als Overlay-Panel):
+  // per Außenklick oder Escape schließbar machen — sonst bleibt das Panel über
+  // dem Inhalt liegen, bis der kleine Summary-Trigger erneut getroffen wird.
+  // Listener nur im geöffneten Zustand aktiv (kein Dauer-Leak); auf Desktop
+  // bleibt das Summary ausgeblendet, das Panel öffnet dort nie.
+  const secondary = _container.querySelector('.documents-secondary-controls');
+  if (secondary) {
+    const onOutside = (e) => { if (!secondary.contains(e.target)) secondary.removeAttribute('open'); };
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      secondary.removeAttribute('open');
+      secondary.querySelector('summary')?.focus();
+    };
+    secondary.addEventListener('toggle', () => {
+      if (secondary.open) {
+        document.addEventListener('click', onOutside, true);
+        document.addEventListener('keydown', onKey, true);
+      } else {
+        document.removeEventListener('click', onOutside, true);
+        document.removeEventListener('keydown', onKey, true);
+      }
+    });
+  }
+  wirePageSearch(_container, {
+    id: 'documents-search',
+    onQuery: (value) => {
+      state.query = value.trim().toLowerCase();
       renderDocuments();
-    }, 200);
+    },
   });
-  _container.querySelector('#documents-status')?.addEventListener('change', async (e) => {
-    state.status = e.target.value;
+  _container.querySelector('#documents-status')?.addEventListener('click', async (e) => {
+    const chip = e.target.closest('[data-status]');
+    if (!chip || chip.dataset.status === state.status) return;
+    state.status = chip.dataset.status;
+    setActiveChip(chip, '#documents-status');
+    showDocumentsLoading();
     await loadDocuments();
     renderFolderBrowser();
     renderDocuments();
   });
-  _container.querySelector('#documents-category')?.addEventListener('change', async (e) => {
-    state.category = e.target.value;
+  _container.querySelector('#documents-category')?.addEventListener('click', async (e) => {
+    const chip = e.target.closest('[data-category]');
+    if (!chip) return;
+    const next = chip.dataset.category;
+    if (next === state.category) return;
+    state.category = next;
+    setActiveChip(chip, '#documents-category');
+    showDocumentsLoading();
     await loadDocuments();
-    renderFolderBrowser();
-    renderDocuments();
-  });
-  _container.querySelector('#documents-folder')?.addEventListener('change', async (e) => {
-    state.folderId = e.target.value;
-    syncFolderDocuments();
     renderFolderBrowser();
     renderDocuments();
   });
@@ -237,19 +263,29 @@ function bindPageEvents() {
     const btn = e.target.closest('[data-view]');
     if (!btn) return;
     state.view = btn.dataset.view;
-    localStorage.setItem('oikos-documents-view', state.view);
-    _container.querySelectorAll('.documents-view-toggle__btn').forEach((el) =>
-      el.classList.toggle('documents-view-toggle__btn--active', el === btn)
-    );
+    localStorage.setItem('yuvomi-documents-view', state.view);
+    _container.querySelectorAll('.documents-view-toggle__btn').forEach((el) => {
+      const active = el === btn;
+      el.classList.toggle('documents-view-toggle__btn--active', active);
+      el.setAttribute('aria-pressed', String(active));
+    });
     renderDocuments();
   });
   _container.querySelector('#documents-list')?.addEventListener('click', handleDocumentAction);
-  _container.querySelector('#documents-folder-browser')?.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-folder-id]');
+  const folderBrowser = _container.querySelector('#documents-folder-browser');
+  // Horizontale Chip-Leiste (≤1023px): Rand-Fade signalisiert weitere Ordner.
+  folderBrowser?.addEventListener('scroll', () => updateFolderScrollHint(folderBrowser), { passive: true });
+  folderBrowser?.addEventListener('click', (e) => {
+    const menuBtn = e.target.closest('[data-folder-menu]');
+    if (menuBtn) {
+      const folder = state.folders.find((f) => String(f.id) === menuBtn.dataset.folderMenu);
+      if (folder) openFolderMenu(folder, menuBtn);
+      return;
+    }
+    const btn = e.target.closest('[data-folder-select]');
     if (!btn) return;
-    state.folderId = btn.dataset.folderId;
+    state.folderId = btn.dataset.folderSelect;
     syncFolderDocuments();
-    renderFolderOptions();
     renderFolderBrowser();
     renderDocuments();
   });
@@ -264,9 +300,23 @@ function filteredDocuments() {
   );
 }
 
+// Ladezustand beim Netzwerk-gebundenen Filterwechsel (Status/Kategorie):
+// dieselbe Skeleton-Sprache wie beim Erstaufbau, statt die veraltete Liste
+// stumm stehen zu lassen. `aria-busy` schaltet die Grid/Flex-Ansicht via CSS
+// auf full-width-Block. renderDocuments() räumt beides wieder ab.
+function showDocumentsLoading() {
+  const list = _container?.querySelector('#documents-list');
+  if (!list) return;
+  list.className = `documents-list documents-list--${state.view}`;
+  list.setAttribute('aria-busy', 'true');
+  list.replaceChildren();
+  list.insertAdjacentHTML('beforeend', renderSkeletonList({ rows: 6, lines: 2 }));
+}
+
 function renderDocuments() {
   const list = _container.querySelector('#documents-list');
   if (!list) return;
+  list.removeAttribute('aria-busy');
   const docs = filteredDocuments();
   list.className = `documents-list documents-list--${state.view}`;
   if (!docs.length) {
@@ -317,19 +367,190 @@ function renderFolderBrowser() {
   if (!browser) return;
   const counts = folderCounts();
   const items = [
-    { id: '', name: t('documents.allFolders'), icon: 'folders' },
-    { id: '__none', name: t('documents.noFolder'), icon: 'folder-x' },
-    ...state.folders.map((folder) => ({ id: String(folder.id), name: folder.name, icon: 'folder' })),
+    { id: '', name: t('documents.allFolders'), icon: 'folders', managed: false },
+    { id: '__none', name: t('documents.noFolder'), icon: 'folder-x', managed: false },
+    ...state.folders.map((folder) => ({ id: String(folder.id), name: folder.name, icon: 'folder', managed: true })),
   ];
   browser.replaceChildren();
-  browser.insertAdjacentHTML('beforeend', items.map((item) => `
-    <button class="documents-folder-item ${String(state.folderId) === item.id ? 'documents-folder-item--active' : ''}" type="button" data-folder-id="${esc(item.id)}" aria-current="${String(state.folderId) === item.id ? 'true' : 'false'}">
-      <span class="documents-folder-item__icon"><i data-lucide="${esc(item.icon)}" aria-hidden="true"></i></span>
-      <span class="documents-folder-item__name">${esc(item.name)}</span>
-      <span class="documents-folder-item__count">${counts.get(item.id) || 0}</span>
-    </button>
-  `).join(''));
+  browser.insertAdjacentHTML('beforeend', items.map((item) => {
+    const active = String(state.folderId) === item.id;
+    return `
+    <div class="documents-folder-item ${active ? 'documents-folder-item--active' : ''} ${item.managed ? 'documents-folder-item--managed' : ''}">
+      <button class="documents-folder-item__select" type="button" data-folder-select="${esc(item.id)}" aria-current="${active ? 'true' : 'false'}">
+        <span class="documents-folder-item__icon"><i data-lucide="${esc(item.icon)}" aria-hidden="true"></i></span>
+        <span class="documents-folder-item__name">${esc(item.name)}</span>
+        <span class="documents-folder-item__count">${counts.get(item.id) || 0}</span>
+      </button>
+      ${item.managed ? `
+      <button class="documents-folder-item__menu" type="button" data-folder-menu="${esc(item.id)}" aria-label="${t('documents.folderActions')}" title="${t('documents.folderActions')}">
+        <i data-lucide="more-vertical" aria-hidden="true"></i>
+      </button>` : ''}
+    </div>`;
+  }).join(''));
   if (window.lucide) lucide.createIcons({ el: browser });
+  updateFolderScrollHint(browser);
+}
+
+// Rand-Fade der horizontalen Ordner-Leiste (Mobile/Tablet): nur zeigen, wenn
+// tatsächlich überlaufend, und am rechten Ende ausblenden — ehrliche Affordanz
+// „hier gibt es mehr Ordner", statt einer ständig abgeschnittenen letzten Kachel.
+function updateFolderScrollHint(browser) {
+  if (!browser) return;
+  const scrollable = browser.scrollWidth - browser.clientWidth > 1;
+  const atEnd = browser.scrollLeft + browser.clientWidth >= browser.scrollWidth - 1;
+  browser.classList.toggle('documents-folder-browser__list--scrollable', scrollable);
+  browser.classList.toggle('documents-folder-browser__list--at-end', atEnd);
+}
+
+// --------------------------------------------------------
+// Kontext-Popover (Ordner- & Dokument-Aktionen)
+// Body-Level + position:fixed → entkommt overflow-Clipping der Chip-Leiste/Sidebar.
+// --------------------------------------------------------
+
+let _contextMenu = null;
+
+function closeContextMenu() {
+  if (!_contextMenu) return;
+  const { el, anchorBtn, onDoc, onKey } = _contextMenu;
+  document.removeEventListener('click', onDoc, true);
+  document.removeEventListener('keydown', onKey, true);
+  window.removeEventListener('resize', closeContextMenu, true);
+  window.removeEventListener('scroll', closeContextMenu, true);
+  el.remove();
+  anchorBtn?.setAttribute('aria-expanded', 'false');
+  _contextMenu = null;
+}
+
+// Geteiltes Body-Level-Popover für Ordner- und Dokument-Aktionen.
+// `itemsHtml` liefert die <button role="menuitem" data-menu-action="…">-Einträge,
+// `onAction(action)` wird nach dem Schließen mit dem gewählten Wert aufgerufen.
+// Tastatur: Pfeil hoch/runter + Home/End wandern zwischen den Einträgen, Escape
+// schließt und gibt den Fokus an den Auslöser zurück.
+function openContextMenu(anchorBtn, itemsHtml, onAction) {
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'documents-context-menu';
+  menu.setAttribute('role', 'menu');
+  menu.insertAdjacentHTML('beforeend', itemsHtml);
+  document.body.appendChild(menu);
+  if (window.lucide) lucide.createIcons({ el: menu });
+
+  const r = anchorBtn.getBoundingClientRect();
+  const mw = menu.offsetWidth;
+  const mh = menu.offsetHeight;
+  let left = Math.max(8, r.right - mw);
+  left = Math.min(left, window.innerWidth - mw - 8);
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.top = `${Math.round(top)}px`;
+  anchorBtn.setAttribute('aria-expanded', 'true');
+
+  const onDoc = (e) => {
+    if (menu.contains(e.target) || anchorBtn.contains(e.target)) return;
+    closeContextMenu();
+  };
+  const items = () => Array.from(menu.querySelectorAll('[data-menu-action]'));
+  const onKey = (e) => {
+    if (e.key === 'Escape') { closeContextMenu(); anchorBtn.focus(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') return;
+    e.preventDefault();
+    const list = items();
+    if (!list.length) return;
+    const current = list.indexOf(document.activeElement);
+    let next;
+    if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = list.length - 1;
+    else if (e.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % list.length;
+    else next = current <= 0 ? list.length - 1 : current - 1;
+    list[next].focus();
+  };
+
+  menu.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-menu-action]');
+    if (!item) return;
+    const action = item.dataset.menuAction;
+    closeContextMenu();
+    onAction(action);
+  });
+
+  _contextMenu = { el: menu, anchorBtn, onDoc, onKey };
+  setTimeout(() => {
+    document.addEventListener('click', onDoc, true);
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('resize', closeContextMenu, true);
+    window.addEventListener('scroll', closeContextMenu, true);
+    items()[0]?.focus();
+  }, 0);
+}
+
+function openFolderMenu(folder, anchorBtn) {
+  openContextMenu(anchorBtn, `
+    <button class="documents-context-menu__item" type="button" role="menuitem" data-menu-action="rename">
+      <i data-lucide="pencil" aria-hidden="true"></i><span>${t('documents.renameFolder')}</span>
+    </button>
+    <button class="documents-context-menu__item documents-context-menu__item--danger" type="button" role="menuitem" data-menu-action="delete">
+      <i data-lucide="trash-2" aria-hidden="true"></i><span>${t('documents.deleteFolder')}</span>
+    </button>
+  `, async (action) => {
+    if (action === 'rename') await renameFolder(folder);
+    else if (action === 'delete') await deleteFolder(folder);
+  });
+}
+
+// Overflow-Menü einer Dokumentkarte/-zeile: Sekundäraktionen aus der Aktionszeile
+// (bearbeiten, archivieren, an DMS senden, löschen) — hält die Zeile auf zwei
+// Primäraktionen (Ansehen/Download) + Kebab begrenzt.
+function openDocumentMenu(doc, anchorBtn) {
+  const archived = doc.status === 'archived';
+  const canPushDms = documentStorageBackend(doc) !== 'dms' && state.dmsAccounts.length > 0;
+  openContextMenu(anchorBtn, `
+    <button class="documents-context-menu__item" type="button" role="menuitem" data-menu-action="edit">
+      <i data-lucide="pencil" aria-hidden="true"></i><span>${t('documents.editAction')}</span>
+    </button>
+    <button class="documents-context-menu__item" type="button" role="menuitem" data-menu-action="archive">
+      <i data-lucide="${archived ? 'archive-restore' : 'archive'}" aria-hidden="true"></i><span>${archived ? t('documents.restoreAction') : t('documents.archiveAction')}</span>
+    </button>
+    ${canPushDms ? `
+    <button class="documents-context-menu__item" type="button" role="menuitem" data-menu-action="push-dms">
+      <i data-lucide="upload" aria-hidden="true"></i><span>${t('documents.pushToDms')}</span>
+    </button>` : ''}
+    <button class="documents-context-menu__item documents-context-menu__item--danger" type="button" role="menuitem" data-menu-action="delete">
+      <i data-lucide="trash-2" aria-hidden="true"></i><span>${t('common.delete')}</span>
+    </button>
+  `, (action) => runDocumentAction(action, doc));
+}
+
+async function renameFolder(folder) {
+  const newName = await promptModal(t('documents.renameFolder'), folder.name);
+  if (!newName || newName === folder.name) return;
+  try {
+    await api.put(`/documents/folders/${folder.id}`, { name: newName });
+    window.yuvomi?.showToast(t('documents.folderRenamedToast'), 'success');
+    await loadFolders();
+    renderFolderBrowser();
+  } catch (err) {
+    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+  }
+}
+
+async function deleteFolder(folder) {
+  const confirmed = await confirmModal(
+    t('documents.deleteFolderConfirm', { name: folder.name }),
+    { danger: true, confirmLabel: t('documents.deleteFolder') },
+  );
+  if (!confirmed) return;
+  try {
+    await api.delete(`/documents/folders/${folder.id}`);
+    window.yuvomi?.showToast(t('documents.folderDeletedToast'), 'default');
+    if (String(state.folderId) === String(folder.id)) state.folderId = '';
+    await loadFolders();
+    await loadDocuments();
+    renderFolderBrowser();
+    renderDocuments();
+  } catch (err) {
+    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+  }
 }
 
 function renderMeta(doc) {
@@ -348,6 +569,18 @@ function documentStorageBackend(doc) {
   return doc.storage_provider === 'external' ? 'dms' : 'local';
 }
 
+function uploadBackendLabel(backend) {
+  if (backend === 'webdav') return t('documents.storageWebdav');
+  if (backend === 'local_folder') return t('documents.storageLocalFolder');
+  return t('documents.storageLocal');
+}
+
+function uploadTargetIcon(backend) {
+  if (backend === 'webdav') return 'cloud';
+  if (backend === 'local_folder') return 'folder';
+  return 'database';
+}
+
 function storageBadgeHtml(doc) {
   const backend = documentStorageBackend(doc);
   if (backend === 'webdav') {
@@ -359,32 +592,29 @@ function storageBadgeHtml(doc) {
   if (backend === 'dms') {
     return `<span class="doc-badge doc-badge--dms">${t('documents.storageDms')}</span>`;
   }
-  return `<span class="doc-badge doc-badge--local">${t('documents.storageLocal')}</span>`;
+  // Folder-backed local documents carry a storage_key; they are a non-default
+  // target and earn a badge. The in-DB BLOB default (no key) stays badge-less so
+  // a badge remains a meaningful signal.
+  if (backend === 'local' && doc.storage_key) {
+    return `<span class="doc-badge doc-badge--folder">${t('documents.storageLocalFolder')}</span>`;
+  }
+  return '';
 }
 
+// Zwei Primäraktionen (Ansehen/Download) bleiben in der Zeile; alles Weitere
+// (bearbeiten, archivieren, DMS, löschen) liegt hinter dem Kebab-Overflow.
+// „Ansehen" wird für ALLE Typen gerendert — auch nicht darstellbare öffnen die
+// Detailansicht (mit Download-Fallback) und sind so per Tastatur erreichbar.
 function renderActions(doc) {
-  const canView = VIEWABLE_MIME.has(doc.mime_type);
-  const storageBackend = documentStorageBackend(doc);
   return `
-    ${canView ? `
     <button class="btn btn--ghost btn--icon btn--icon-sm" data-action="view" data-id="${doc.id}" title="${t('documents.viewAction')}" aria-label="${t('documents.viewAction')}">
       <i data-lucide="eye" class="icon-md" aria-hidden="true"></i>
-    </button>` : ''}
+    </button>
     <a class="btn btn--ghost btn--icon btn--icon-sm" href="/api/v1/documents/${doc.id}/download" download title="${t('documents.downloadAction')}" aria-label="${t('documents.downloadAction')}">
       <i data-lucide="download" class="icon-md" aria-hidden="true"></i>
     </a>
-    <button class="btn btn--ghost btn--icon btn--icon-sm" data-action="edit" data-id="${doc.id}" title="${t('documents.editAction')}" aria-label="${t('documents.editAction')}">
-      <i data-lucide="settings" class="icon-md" aria-hidden="true"></i>
-    </button>
-    <button class="btn btn--ghost btn--icon btn--icon-sm" data-action="archive" data-id="${doc.id}" data-archived="${doc.status === 'archived'}" title="${doc.status === 'archived' ? t('documents.restoreAction') : t('documents.archiveAction')}" aria-label="${doc.status === 'archived' ? t('documents.restoreAction') : t('documents.archiveAction')}">
-      <i data-lucide="${doc.status === 'archived' ? 'archive-restore' : 'archive'}" class="icon-md" aria-hidden="true"></i>
-    </button>
-    ${storageBackend !== 'dms' && state.dmsAccounts.length > 0 ? `
-    <button class="btn btn--ghost btn--icon btn--icon-sm" data-action="push-dms" data-id="${doc.id}" title="${t('documents.pushToDms')}" aria-label="${t('documents.pushToDms')}">
-      <i data-lucide="upload" class="icon-md" aria-hidden="true"></i>
-    </button>` : ''}
-    <button class="btn btn--ghost btn--icon btn--icon-sm documents-danger" data-action="delete" data-id="${doc.id}" title="${t('common.delete')}" aria-label="${t('common.delete')}">
-      <i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i>
+    <button class="btn btn--ghost btn--icon btn--icon-sm" data-action="menu" data-id="${doc.id}" title="${t('nav.more')}" aria-label="${t('nav.more')}" aria-haspopup="menu" aria-expanded="false">
+      <i data-lucide="more-vertical" class="icon-md" aria-hidden="true"></i>
     </button>
   `;
 }
@@ -419,7 +649,13 @@ function renderListItem(doc) {
   `;
 }
 
-async function handleDocumentAction(e) {
+function handleDocumentAction(e) {
+  const menuBtn = e.target.closest('[data-action="menu"]');
+  if (menuBtn) {
+    const doc = state.documents.find((item) => String(item.id) === String(menuBtn.dataset.id));
+    if (doc) openDocumentMenu(doc, menuBtn);
+    return;
+  }
   // Klick auf Karte/Zeile (nicht auf einen Button/Link) → Viewer öffnen
   if (!e.target.closest('[data-action]') && !e.target.closest('a') && !e.target.closest('.btn')) {
     const card = e.target.closest('[data-id]');
@@ -429,21 +665,23 @@ async function handleDocumentAction(e) {
     }
     return;
   }
-
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const doc = state.documents.find((item) => String(item.id) === String(btn.dataset.id));
-  if (!doc) return;
-  if (btn.dataset.action === 'view') openDocumentViewer(doc);
-  if (btn.dataset.action === 'edit') openDocumentModal(doc);
-  if (btn.dataset.action === 'archive') {
+  if (doc) runDocumentAction(btn.dataset.action, doc);
+}
+
+async function runDocumentAction(action, doc) {
+  if (action === 'view') openDocumentViewer(doc);
+  if (action === 'edit') openDocumentModal(doc);
+  if (action === 'archive') {
     await api.patch(`/documents/${doc.id}/archive`, { archived: doc.status !== 'archived' });
-    window.oikos?.showToast(doc.status === 'archived' ? t('documents.restoredToast') : t('documents.archivedToast'), 'success');
+    window.yuvomi?.showToast(doc.status === 'archived' ? t('documents.restoredToast') : t('documents.archivedToast'), 'success');
     await loadDocuments();
     renderFolderBrowser();
     renderDocuments();
   }
-  if (btn.dataset.action === 'push-dms') {
+  if (action === 'push-dms') {
     if (!state.dmsAccounts.length) return;
     let accountId = state.dmsAccounts[0].id;
     if (state.dmsAccounts.length > 1) {
@@ -457,20 +695,20 @@ async function handleDocumentAction(e) {
     }
     try {
       await api.post('/documents/dms/push', { account_id: accountId, document_id: doc.id });
-      window.oikos?.showToast(t('documents.pushToDmsQueued'), 'success');
+      window.yuvomi?.showToast(t('documents.pushToDmsQueued'), 'success');
     } catch (err) {
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
     return;
   }
-  if (btn.dataset.action === 'delete') {
+  if (action === 'delete') {
     state.allDocuments = state.allDocuments.filter((d) => d.id !== doc.id);
     syncFolderDocuments();
     renderFolderBrowser();
     renderDocuments();
 
     let undone = false;
-    window.oikos?.showToast(t('documents.deletedToast'), 'default', 5000, () => {
+    window.yuvomi?.showToast(t('documents.deletedToast'), 'default', 5000, () => {
       undone = true;
       state.allDocuments = [...state.allDocuments, doc].sort((a, b) => a.name.localeCompare(b.name));
       syncFolderDocuments();
@@ -490,7 +728,7 @@ async function handleDocumentAction(e) {
         syncFolderDocuments();
         renderFolderBrowser();
         renderDocuments();
-        window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+        window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
       }
     }, 5000);
   }
@@ -508,56 +746,26 @@ function memberOptions(selected = []) {
 
 function openDocumentModal(doc = null) {
   const isEdit = !!doc;
-  openSharedModal({
-    title: isEdit ? t('documents.editTitle') : t('documents.newTitle'),
-    size: 'lg',
-    content: `
-      <form id="document-form" class="document-form">
-        <div class="modal-grid modal-grid--2">
-          <div class="form-group">
-            <label class="label" for="document-name">${t('documents.nameLabel')}</label>
-            <input class="input" id="document-name" name="name" required maxlength="200" value="${esc(doc?.name || '')}">
-          </div>
-          <div class="form-group">
-            <label class="label" for="document-category">${t('documents.categoryLabel')}</label>
-            <select class="input" id="document-category">
-              ${CATEGORIES.map((category) => `<option value="${category}" ${doc?.category === category ? 'selected' : ''}>${categoryLabels()[category]}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="label" for="document-folder">${t('documents.folderLabel')}</label>
-            <select class="input" id="document-folder">
-              <option value="">${t('documents.noFolder')}</option>
-              ${state.folders.map((folder) => `<option value="${folder.id}" ${String(doc?.folder_id || '') === String(folder.id) ? 'selected' : ''}>${esc(folder.name)}</option>`).join('')}
-            </select>
-          </div>
-        </div>
+
+  // Kontextbezogener Upload: ist im Browser ein echter Ordner gewählt, wird er
+  // im Modal vorausgewählt (weiterhin änderbar). „Alle Ordner"/„Kein Ordner"
+  // (leer bzw. __none) setzen keinen Zielordner.
+  const presetFolderId = (!isEdit && state.folderId && state.folderId !== '__none')
+    ? String(state.folderId)
+    : String(doc?.folder_id || '');
+
+  // Sekundärfelder: Beschreibung, Sichtbarkeit/Status + Mitglieder-Freigabe.
+  const advancedOpen = isEdit && (
+    !!doc.description
+    || (!!doc.visibility && doc.visibility !== 'family')
+    || doc.status === 'archived'
+  );
+
+  const advancedFieldsHtml = `
         <div class="form-group">
           <label class="label" for="document-description">${t('documents.descriptionLabel')}</label>
           <textarea class="input" id="document-description" rows="3" maxlength="5000">${esc(doc?.description || '')}</textarea>
         </div>
-        ${!isEdit ? `
-        <div class="form-group">
-          <label class="label" for="document-file">${t('documents.fileLabel')}</label>
-          <p class="document-storage-target">
-            <i data-lucide="${state.activeUploadBackend === 'webdav' ? 'cloud' : 'database'}" aria-hidden="true"></i>
-            <span>${t('documents.activeUploadTarget', {
-              target: state.activeUploadBackend === 'webdav'
-                ? t('documents.storageWebdav')
-                : t('documents.storageLocal'),
-            })}</span>
-          </p>
-          <label class="document-dropzone" id="document-dropzone" for="document-file">
-            <input class="sr-only" id="document-file" type="file" required>
-            <span class="document-dropzone__icon">
-              <i data-lucide="file-up" aria-hidden="true"></i>
-            </span>
-            <span class="document-dropzone__title">${t('documents.dropzoneTitle')}</span>
-            <span class="document-dropzone__hint">${t('documents.dropzoneHint')}</span>
-            <span class="document-dropzone__file" id="document-selected-file" hidden></span>
-          </label>
-          <p class="document-form__hint">${t('documents.fileHint')}</p>
-        </div>` : ''}
         <div class="modal-grid modal-grid--2">
           <div class="form-group">
             <label class="label" for="document-visibility">${t('documents.visibilityLabel')}</label>
@@ -578,7 +786,53 @@ function openDocumentModal(doc = null) {
         <div class="document-member-picker" id="document-member-picker">
           <div class="label">${t('documents.allowedMembersLabel')}</div>
           <div class="document-member-picker__grid">${memberOptions(doc?.allowed_member_ids || [])}</div>
+        </div>`;
+
+  openSharedModal({
+    title: isEdit ? t('documents.editTitle') : t('documents.newTitle'),
+    size: 'lg',
+    content: `
+      <form id="document-form" class="document-form">
+        <div class="modal-grid modal-grid--2">
+          <div class="form-group">
+            <label class="label" for="document-name">${t('documents.nameLabel')}</label>
+            <input class="input" id="document-name" name="name" required maxlength="200" value="${esc(doc?.name || '')}">
+          </div>
+          <div class="form-group">
+            <label class="label" for="document-category">${t('documents.categoryLabel')}</label>
+            <select class="input" id="document-category">
+              ${CATEGORIES.map((category) => `<option value="${category}" ${doc?.category === category ? 'selected' : ''}>${categoryLabels()[category]}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="label" for="document-folder">${t('documents.folderLabel')}</label>
+            <select class="input" id="document-folder">
+              <option value="">${t('documents.noFolder')}</option>
+              ${state.folders.map((folder) => `<option value="${folder.id}" ${presetFolderId === String(folder.id) ? 'selected' : ''}>${esc(folder.name)}</option>`).join('')}
+            </select>
+          </div>
         </div>
+        ${!isEdit ? `
+        <div class="form-group">
+          <label class="label" for="document-file">${t('documents.fileLabel')}</label>
+          <p class="document-storage-target">
+            <i data-lucide="${uploadTargetIcon(state.activeUploadBackend)}" aria-hidden="true"></i>
+            <span>${t('documents.activeUploadTarget', {
+              target: uploadBackendLabel(state.activeUploadBackend),
+            })}</span>
+          </p>
+          <label class="document-dropzone" id="document-dropzone" for="document-file">
+            <input class="sr-only" id="document-file" type="file" required>
+            <span class="document-dropzone__icon">
+              <i data-lucide="file-up" aria-hidden="true"></i>
+            </span>
+            <span class="document-dropzone__title">${t('documents.dropzoneTitle')}</span>
+            <span class="document-dropzone__hint">${t('documents.dropzoneHint')}</span>
+            <span class="document-dropzone__file" id="document-selected-file" hidden></span>
+          </label>
+          <p class="document-form__hint">${t('documents.fileHint')}</p>
+        </div>` : ''}
+        ${advancedSection(advancedFieldsHtml, { open: advancedOpen })}
         <div id="document-error" class="login-error" hidden></div>
         <div class="modal-panel__footer" style="padding:0;border:none;margin-top:var(--space-5)">
           <button type="submit" class="btn btn--primary" id="document-submit">${isEdit ? t('common.save') : t('documents.uploadAction')}</button>
@@ -664,13 +918,13 @@ async function saveDocument(event, doc) {
     if (!payload.name) throw new Error(t('common.required'));
     if (doc) await api.put(`/documents/${doc.id}`, payload);
     else await api.post('/documents', payload);
-    window.oikos?.showToast(doc ? t('documents.savedToast') : t('documents.uploadedToast'), 'success');
+    window.yuvomi?.showToast(doc ? t('documents.savedToast') : t('documents.uploadedToast'), 'success');
     closeModal({ force: true });
     await loadDocuments();
     renderFolderBrowser();
     renderDocuments();
   } catch (err) {
-    error.textContent = err.message;
+    error.textContent = friendlyError(err);
     error.hidden = false;
   } finally {
     submit.disabled = false;
@@ -701,16 +955,16 @@ function openFolderModal() {
         error.hidden = true;
         try {
           const res = await api.post('/documents/folders', { name: input.value.trim() });
-          window.oikos?.showToast(t('documents.folderCreatedToast'), 'success');
+          window.yuvomi?.showToast(t('documents.folderCreatedToast'), 'success');
           state.folderId = String(res.data?.id || '');
           await loadFolders();
           await loadDocuments();
           closeModal({ force: true });
-          renderFolderOptions();
+          syncFolderDocuments();
           renderFolderBrowser();
           renderDocuments();
         } catch (err) {
-          error.textContent = err.message;
+          error.textContent = friendlyError(err);
           error.hidden = false;
         }
       });
@@ -753,11 +1007,8 @@ function openDmsLinkModal() {
 
         accountSelect.addEventListener('change', () => {
           selectedAccountId = accountSelect.value;
-          // Clear results and re-run search with new account
-          results.replaceChildren();
-          if (input.value.trim()) {
-            input.dispatchEvent(new Event('input'));
-          }
+          // Re-run listing for the new account (empty query lists all documents).
+          runDmsSearch(input.value.trim());
         });
 
         root.append(accountLabel, accountSelect);
@@ -775,24 +1026,29 @@ function openDmsLinkModal() {
 
       root.append(input, results);
 
+      const runDmsSearch = async (q) => {
+        results.replaceChildren();
+        try {
+          const res = await api.get(`/documents/dms/search?account_id=${selectedAccountId}&q=${encodeURIComponent(q)}`);
+          renderDmsResults(results, res.data, selectedAccountId);
+        } catch {
+          const li = document.createElement('li');
+          li.className = 'form-hint';
+          li.textContent = t('documents.dmsNoResults');
+          results.appendChild(li);
+        }
+      };
+
       let dmsSearchTimer;
       input.addEventListener('input', () => {
         clearTimeout(dmsSearchTimer);
-        dmsSearchTimer = setTimeout(async () => {
-          const q = input.value.trim();
-          results.replaceChildren();
-          if (!q) return;
-          try {
-            const res = await api.get(`/documents/dms/search?account_id=${selectedAccountId}&q=${encodeURIComponent(q)}`);
-            renderDmsResults(results, res.data, selectedAccountId);
-          } catch {
-            const li = document.createElement('li');
-            li.className = 'form-hint';
-            li.textContent = t('documents.dmsNoResults');
-            results.appendChild(li);
-          }
-        }, 300);
+        // Leere Eingabe listet alle Dokumente (statt zu leeren), damit der Nutzer
+        // ohne exakte Suchbegriffe durchblättern kann (Issue #449).
+        dmsSearchTimer = setTimeout(() => runDmsSearch(input.value.trim()), 300);
       });
+
+      // Beim Öffnen bereits die volle Dokumentliste zeigen.
+      runDmsSearch('');
 
       setTimeout(() => input.focus(), 60);
     },
@@ -836,7 +1092,7 @@ function renderDmsResults(container, items, accountId) {
         renderDocuments();
       } catch (err) {
         btn.disabled = false;
-        window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+        window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
       }
     });
 
@@ -855,6 +1111,9 @@ function readFileAsDataUrl(file) {
 }
 
 function formatFileSize(bytes) {
+  // Fehlende/unbekannte Größe (z. B. DMS-verknüpfte Dokumente) → „—" statt „0 KB",
+  // das wie ein leeres Dokument aussähe.
+  if (bytes == null) return '—';
   if (!bytes) return '0 KB';
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -938,7 +1197,7 @@ function renderViewerContent(doc, previewUrl, downloadUrl) {
   if (doc.mime_type === 'text/plain' || doc.mime_type === 'text/csv') {
     // Inhalt wird asynchron in onSave geladen; Platzhalter anzeigen
     return `<div class="document-viewer__loading">
-      <i data-lucide="loader-circle" style="width:18px;height:18px" aria-hidden="true"></i>
+      <i data-lucide="loader-circle" class="document-viewer__spinner" aria-hidden="true"></i>
       ${esc(doc.original_name)}
     </div>`;
   }

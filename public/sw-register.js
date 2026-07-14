@@ -38,3 +38,18 @@ if ('serviceWorker' in navigator) {
     if (document.visibilityState === 'visible') refreshSw();
   });
 }
+
+/**
+ * Weist den aktiven Service Worker an, den Read-only-Offline-API-Cache zu leeren.
+ * Aufgerufen bei Logout und Session-Ende, um Daten-Leaks bei Nutzerwechsel am
+ * selben Gerät zu verhindern. Defensive Guards: kein SW / kein Controller → No-Op.
+ */
+export function clearApiCache() {
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_API_CACHE' });
+    }
+  } catch (err) {
+    console.warn('[SW] clearApiCache fehlgeschlagen:', err);
+  }
+}

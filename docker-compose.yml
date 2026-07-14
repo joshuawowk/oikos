@@ -1,6 +1,6 @@
 services:
   oikos:
-    image: ghcr.io/ulsklyc/yuvomi:0.68.3
+    image: ghcr.io/ulsklyc/yuvomi:latest
     build: .                          # optional: use --build to build locally instead
     container_name: oikos
     restart: unless-stopped
@@ -17,12 +17,17 @@ services:
       - ./custom/index.js:/app/server/index.js:ro
       - ./custom/router.js:/app/public/router.js:ro
       - ./custom/kitchen-tabs.js:/app/public/utils/kitchen-tabs.js:ro
+      # Optional local documents folder: mount a host directory to /documents inside the container
+      - ${DOCUMENT_STORAGE_LOCAL_DIR:-./documents}:/documents
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-      - DB_PATH=${DB_PATH:-/data/oikos.db}
+      - DB_PATH=${DB_PATH:-/data/yuvomi.db}
       - BACKUP_DIR=/backups
+      # Local document storage (optional): set to true to store uploaded documents on the mounted /documents folder.
+      - DOCUMENT_STORAGE_LOCAL_ENABLED=${DOCUMENT_STORAGE_LOCAL_ENABLED:-false}
+      - DOCUMENT_STORAGE_LOCAL_PATH=${DOCUMENT_STORAGE_LOCAL_PATH:-/documents}
       # Secure cookies come from .env (the installer sets them):
       #   - Reverse proxy + HTTPS → SESSION_SECURE=true, TRUST_PROXY=1
       #   - Direct HTTP access     → SESSION_SECURE=false, TRUST_PROXY=loopback

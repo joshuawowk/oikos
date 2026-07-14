@@ -7,6 +7,1463 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.2] - 2026-07-13
+
+### Changed
+- Row actions (edit, delete, call, more) across all lists and cards now share one consistent style: bare icon buttons with a 48px touch target. This replaces the previous mix of filled circle buttons (Birthdays, Contacts) and bare icons of varying visibility elsewhere.
+- Statistics cards in Housekeeping and Subscriptions now use a compact two-column layout on mobile instead of four full-width stacked cards, so more information is visible without scrolling.
+
+### Fixed
+- Budget: the recurring-entry indicator now uses a monochrome icon consistent with the calendar, instead of a colored emoji.
+- Documents: on mobile, the filter button now sits beside the page title instead of alone below it.
+- Subscriptions: the two toolbar action buttons no longer stretch into full-width empty pills on mobile; they now share one compact row.
+- Housekeeping: the "recorded today" state now shows a readable label with a green check instead of a near-invisible checkmark.
+- Recipes: the "open recipe link" now carries an external-link icon so it reads as a link rather than plain text.
+- Shopping: the edit button on each item is now fully visible on touch devices instead of staying dimmed until hover.
+- Meals: the floating action button no longer overlaps the last "add meal" button at the end of the week.
+
+## [1.20.1] - 2026-07-13
+
+### Fixed
+- Search fields no longer show two magnifier icons in WebKit-based browsers (Safari). The browser's native search-field magnifier is now suppressed so only the app's own leading icon appears, across the shared page search (Notes, Contacts, Documents, Birthdays), Subscriptions, and the Split-expenses group filter.
+
+## [1.20.0] - 2026-07-13
+
+### Changed
+- UI/UX consistency pass across list and filter modules. Budget tabs now use the same shared tab component and keyboard behavior (arrow keys, Home/End, roving focus) as the Rewards and Housekeeping tabs.
+- Document filters (status and category) are now chip toggles instead of dropdown menus, matching the filter style already used in Contacts.
+- Search fields in Notes, Contacts, Documents, and Birthdays now share one persistent, labeled search field with a clear button, so search looks and behaves the same across those modules.
+- The Housekeeping page title now matches its navigation label.
+
+### Fixed
+- Budget: opening an account's transactions from the Accounts tab now moves the highlighted tab to "Budget" so it matches the content shown, instead of leaving the highlight on "Accounts".
+
+## [1.19.1] - 2026-07-13
+
+### Changed
+- The "delete recurring event" dialog now leads with the safe "Only this event" action (primary), with "Whole series" clearly marked as destructive.
+- Default reminders in Settings → Calendar are now a compact chip picker instead of a stacked checkbox list, and saving is debounced so selecting several at once confirms once instead of once per click.
+
+### Fixed
+- Accessibility: the default-reminders picker now exposes a proper group label to screen readers (`role="group"` + `aria-labelledby`).
+
+## [1.19.0] - 2026-07-13
+
+### Added
+- Delete a single occurrence of a recurring event: deleting an event in a series now asks whether to remove only that occurrence or the whole series. "Only this event" keeps the series running and skips just that date everywhere it appears (calendar, upcoming, dashboard, search), and the excluded date is also emitted as an `EXDATE` line in the ICS export feed. Offered for local series only; externally synced series (Google/Apple/CalDAV/ICS) keep whole-series deletion.
+- Default reminders for new events: set a list of reminder offsets in Settings → Calendar that every newly created event receives automatically (up to five, per user).
+- Assign new events to me by default: an optional per-user toggle in Settings → Calendar that pre-fills the current user as the assignee when creating an event.
+
+## [1.18.4] - 2026-07-12
+
+### Fixed
+- Placeholder text in input fields (for example "New category") was nearly invisible in dark mode: it used a disabled-state colour that dropped to about 1.4:1 contrast. Placeholders now use a dedicated, theme-aware colour that meets WCAG AA (≥5:1) in both light and dark mode, across every input in the app.
+
+### Changed
+- Category names in the manager (Tasks, Contacts, Budget) now show a visible pencil button, so renaming is discoverable on touch devices where the tap-the-name hint never appears. Clicking the name still works as a shortcut.
+
+## [1.18.3] - 2026-07-12
+
+### Fixed
+- The category manager no longer shows its title twice — the modal header already carries it, so the duplicate heading inside the dialog is gone.
+- Contact category color tints no longer break when a category name contains spaces (e.g. one imported via CardDAV): the group's CSS class is now always a single valid token.
+
+## [1.18.2] - 2026-07-12
+
+### Changed
+- Category-manager error messages (category in use, last category, duplicate name) are now shown in your language instead of always in English, and the "in use" message includes how many entries still reference the category. Applies to the Tasks, Contacts, and Budget category managers.
+- The "Manage categories" action now sits directly in the Tasks and Contacts toolbars as a tags icon — consistent with Budget — instead of being hidden inside the Tasks overflow menu.
+
+### Fixed
+- Category names in the manager can now be renamed with the keyboard: they are proper buttons, closing a gap for keyboard and screen-reader users.
+
+## [1.18.1] - 2026-07-12
+
+### Fixed
+- Translated the "Add category" button label into Arabic, Greek, Hindi, Japanese, Russian, Turkish, and Chinese — it was still displaying English ("+ category") in those languages across the Tasks, Contacts, and Budget category managers.
+
+## [1.18.0] - 2026-07-12
+
+### Added
+- **Customizable task categories.** The Tasks module gains a "Manage categories" action in its toolbar to add, rename, reorder, and delete task categories, matching the category management already available in Budget and Shopping. The eight built-in categories stay translated; categories you add appear everywhere tasks are grouped, filtered, and created. Deleting a category is blocked while tasks still use it, or when it is the last one.
+- **Customizable contact categories.** Contacts gains the same "Manage categories" button, so the contact directory is no longer limited to the fixed set. Built-in categories keep their icons, color tints, and translations; custom categories use a neutral tag icon. The same in-use and last-category safeguards apply.
+
+### Changed
+- Task and contact categories are now stored in the database instead of being hardcoded. Existing tasks and contacts keep their categories automatically, and any categories already in your data are preserved as custom entries.
+
+## [1.17.1] - 2026-07-12
+
+### Changed
+- **Pregnancy mode polish.** The estimated due date now only accepts a plausible window (roughly six weeks in the past to about ten months ahead) so the gestational week and countdown always stay sensible, and turning pregnancy mode off no longer discards the due date you entered. The cycle tab's quick actions no longer offer "start period" while pregnancy mode is on, and the status card heading is quieter and matches the rest of the module.
+
+## [1.17.0] - 2026-07-12
+
+### Added
+- **Pregnancy mode for cycle tracking.** The Health module's Cycle settings gain a pregnancy toggle that pauses all cycle predictions — next period, ovulation, fertile window, the cycle ring, and the calendar projection — so nothing is forecast while you are pregnant. Add an optional estimated due date and the tab instead shows your gestational week, trimester, a countdown to the due date, and a progress bar. Daily logging of periods, symptoms, and mood stays fully available, and predictions resume automatically when you turn the mode off.
+
+## [1.16.0] - 2026-07-12
+
+### Added
+- **Budget accounts with real balances.** The Budget module gains an **Accounts** tab where you can set up separate accounts — checking, savings, cash, credit card, investment, or other — each with its own starting balance. Every account shows its running current balance (starting balance plus the entries assigned to it) alongside your household net worth, so you can finally see what is actually in each account instead of only this month's income and expenses.
+- **Assign transactions to an account** directly from the entry form, and click any account to drill into just its transactions; each transaction shows which account it belongs to.
+- **Archive accounts** you no longer use — they stay out of the net-worth total and the default list without losing their history — and give each account an accent color to tell them apart. Deleting an account keeps its transactions.
+
+## [1.15.0] - 2026-07-12
+
+### Changed
+- **Redesigned the desktop sidebar's active-page marker.** The highlight now stays anchored to the page you are on instead of following the cursor when you hover other items, so you never lose track of where you are. Hovering shows a separate, quieter preview, and the active pill glides only when you actually change pages.
+- **Reorganized the desktop navigation into clearer sections.** The single overflowing "Home" group is split into **Household**, **People**, and **Finance** — each kept short and scannable — and the dashboard now sits at the top without a redundant header. The new section labels are translated into all 23 languages.
+- **Sidebar navigation sections are now exposed to screen readers as labelled groups** (instead of an invalid list), and the collapsed icon rail keeps each item's accessible name.
+
+### Fixed
+- **The Settings entry no longer merges into the footer** at the bottom of the desktop sidebar when many modules are enabled; the footer is now a clearly separated region.
+- **Collapsed-sidebar labels no longer flash truncated to single characters** while the rail expands on hover or focus.
+
+## [1.14.2] - 2026-07-12
+
+### Added
+- **Caps Lock warning on the login password field.** The single most common cause of a false "wrong password" is now surfaced live while you type, and hidden again when the field loses focus.
+- **Clear message when the login form is submitted empty** ("Please enter your username and password") instead of only the fields turning red — announced to screen readers, not conveyed by colour alone.
+
+### Fixed
+- **Login no longer mislabels a server or connection problem as "invalid credentials."** A network or server error now shows a distinct message that points self-hosters at their server, so an unreachable server never makes you doubt a correct password. Only a genuine 401 reports wrong credentials.
+- **Password visibility toggle now works correctly in right-to-left languages** (Arabic, Persian) — it sits on the correct side, no longer overlaps typed text, and its tap target meets the 44px comfortable minimum.
+- **No more layout shift when single sign-on is enabled.** The SSO button is resolved before the login screen renders, with a timeout so a slow identity provider never blocks password login.
+
+### Changed
+- **Improved login error recovery.** After a failed sign-in both fields are highlighted, focus moves to the error message, and "Forgot password?" is emphasized when password reset is available.
+- **Warmer login greeting** ("Welcome back to your family planner.") and a calmer single-accent background. Username autofocus is now limited to pointer devices, so opening the login screen on a phone no longer pops up the keyboard over the branding.
+
+## [1.14.1] - 2026-07-12
+
+### Fixed
+- **Reminder toggle no longer breaks the event dialog layout on mobile (#483).** The follow-up to the earlier #483 fix: the same blank-block bug still occurred when enabling reminders in the appointment dialog. The reminder toggle's visually hidden checkbox resolved its position against the scrollable dialog panel instead of its own label, so tapping it on a narrow viewport scrolled the panel and left a large empty gap that hid the reminder, visibility, and save controls. The toggle component is now its own positioning context, keeping every field reachable.
+
+## [1.14.0] - 2026-07-12
+
+### Added
+- **Show assigned members in the calendar export feed (#482).** A new opt-in toggle under Settings → Calendar sync → "Kalender-Feed exportieren" appends each event's assigned members to its title in the read-only ICS feed, e.g. `Poolparty (Mama, Papa)`. Names are ordered alphabetically and shown in every calendar app that subscribes to the feed (Apple Calendar, Google Calendar, Thunderbird). It is off by default, so existing subscribers' titles stay unchanged until enabled, and it takes effect immediately without regenerating the feed link.
+
+## [1.13.3] - 2026-07-12
+
+### Added
+- **Assigned members now appear on calendar events (#493).** The month, week, day, and agenda views show an avatar stack (profile photo or initials, with a "+N" overflow) for each event's assigned members — the same treatment as the Tasks list. The event title truncates first so the assignment stays visible, and the assignee names are carried in each event's tooltip and accessible label for screen readers.
+
+## [1.13.2] - 2026-07-12
+
+### Fixed
+- **Event preview now lists every assigned member (#492).** When an appointment had more than one member assigned, the detail popup only showed the first name. It now shows all assigned members, comma-separated, with a group icon when more than one is assigned.
+
+## [1.13.1] - 2026-07-12
+
+### Fixed
+- **Collapsed sidebar footer no longer misaligns on hover (#488).** When hovering an unpinned, collapsed desktop sidebar to expand it, the footer actions (Help, Changelog, Log out) stayed in their icon-only centered column instead of matching the pinned layout. The flyout now restores the expanded row layout, with Help and Changelog side by side and Log out on its own full-width row.
+
+## [1.13.0] - 2026-07-11
+
+### Added
+- **Laypeople-friendly web installer wizard.** The welcome screen now offers a **Simple setup** (auto-generated keys, safe localhost/HTTP defaults, straight to account creation) and an **Advanced setup** that walks every option step by step. A visible 23-language picker overrides browser detection and remembers your choice (right-to-left for Arabic and Persian), and navigation is flow-based rather than fixed step numbers.
+- **More can be configured from the web installer:** SMTP email for the "forgot password" flow (`EMAIL_SMTP_*`, `EMAIL_FROM_*`), off-site WebDAV backups (`WEBDAV_BACKUP_*`), live currency rates (`FIXER_API_KEY`), the Web-Push contact address (`VAPID_SUBJECT`), and an automatically derived `BASE_URL` for password-reset links. A review screen summarizes access, email, single sign-on, and backups before writing.
+- **Web installer: download your `.env`.** The final screen offers a one-click download of the generated `.env` file — the only backup of your encryption keys. In Simple setup, where the keys are never shown, the download leads until you've saved them.
+
+### Fixed
+- **Web installer no longer blocks non-SSO users.** The pre-filled OIDC redirect URI was counted in the "all four fields or none" check, blocking every Advanced user who didn't configure single sign-on; only the three manually entered core fields are counted now.
+- **Web installer stays legible if its stylesheet can't load.** Inline fallback design tokens (including a dark-mode variant) now precede the app stylesheet, so a misconfigured or missing `tokens.css` no longer renders the wizard as unstyled black-on-transparent text.
+- **Web installer: validation errors point at the offending field.** Invalid inputs are now flagged with a red border and `aria-invalid`, and focus moves to the field — not just a message at the bottom of the step.
+- **Web installer: passwords and values with special characters survive.** `.env` values containing spaces, `#`, `$`, or quotes are now quote-escaped so Docker Compose reads them back verbatim instead of truncating or misinterpreting them.
+- **Web installer no longer crashes if the container engine disappears mid-startup.** The status poll now handles a vanished Docker/Podman binary gracefully instead of exiting.
+
+### Security
+- **Web installer rejects cross-origin requests.** State-changing endpoints (writing `.env`, starting the container, creating the admin account) now require a loopback origin, guarding against DNS-rebinding/CSRF from a page visited while the installer is running.
+
+## [1.12.0] - 2026-07-11
+
+### Added
+- **Selectable week start (#484, #465).** Settings → Modules → Calendar → View now lets the household choose whether the week begins on Monday, Sunday, or Saturday. The month grid, week view, and their navigation all follow the choice; a segmented control shows a live weekday-order preview and saves instantly. The displayed ISO week number stays Monday-based, per ISO 8601.
+
+### Changed
+- The calendar's default appointment duration now saves instantly when you pick a value, consistent with the new week-start control — the separate "Save" button is gone.
+
+### Fixed
+- The segmented controls in Settings (theme switch and week start) now show a visible keyboard focus ring for keyboard and assistive-technology users.
+
+## [1.11.4] - 2026-07-11
+
+### Fixed
+- Fixed a large blank area appearing in the appointment dialog on mobile after assigning a family member, which pushed the visibility, reminder and save controls out of reach. Tapping a member no longer scrolls the dialog panel instead of its scrollable body. (#483)
+
+## [1.11.3] - 2026-07-11
+
+### Fixed
+- The region/format picker no longer jumps to the wrong region after saving. When several regions share the same currency, date and time format (for example French and Spanish), your selection is now remembered instead of snapping to another region with identical formats. (#486)
+
+## [1.11.2] - 2026-07-11
+
+### Fixed
+- The login screen now shows the new app logo (three overlapping circles) instead of the old house glyph, so the first screen you see matches the rest of the app.
+
+## [1.11.1] - 2026-07-11
+
+### Changed
+- **New app icon and logo.** The house glyph has been replaced with a mark of three overlapping, translucent circles representing the family. The redesign has two reasons: the house referenced "Oikos" (Greek for *household*) and no longer fit after the rename to **Yuvomi**, and the old house-on-a-rounded-square looked too much like smart-home apps such as Apple Home. The brand violet is unchanged; the mark is applied everywhere (app icon, maskable/PWA icons, favicon, in-app sidebar, the website, and the Unraid/Umbrel catalog icons). The TrueNAS catalog icon is hosted upstream and updates with the pending catalog rename.
+
+### Fixed
+- Count placeholders in translated text no longer leak stray braces. The dashboard birthdays widget, the health lab-report badges, and other counters showed strings like "{63}" or "{8} analytes" instead of the number, because of a triple-brace typo (`{{{count}}}`) that was present in every locale. Corrected to `{{count}}` across all 23 languages.
+
+## [1.11.0] - 2026-07-11
+
+### Added
+- Per-item visibility for tasks and calendar events: choose "all family members" (default), "assignees only", or "private" (only you). Enforced server-side on every read path — list, detail, dashboard, search, and MCP — with no admin bypass, so a private item stays hidden even from a parent/admin (useful for preparing a surprise). Restricted items carry a lock/people icon in the list, and the event export feed is deliberately not filtered by it. (Discussion #474)
+- "Assigned to me" quick filter on the Tasks and Calendar views: one toggle limits the list to items assigned to you, remembered per device and shown only in multi-member households. (Discussion #472)
+- Default assignee per calendar sync target: give each synced Google/CalDAV calendar or ICS subscription an optional default person in Settings → Sync, and newly imported events of that target are automatically assigned to them (new events only, never retroactively). (Discussion #459)
+
+## [1.10.2] - 2026-07-11
+
+### Fixed
+- Family members who are both a shared-expense guest and hold a family role without Budget access no longer get stuck in an infinite redirect loop between the dashboard and the Budget module (which previously crashed the tab with a "Maximum call stack size exceeded" error). The guest→Budget redirect now defers to the permission check, so a user without Budget access lands on an accessible page instead. (#480)
+
+## [1.10.1] - 2026-07-11
+
+### Fixed
+- The **Log out** action in the desktop sidebar footer now spans its own full-width row below Help / Changelog, so it reads clearly as a distinct action. A CSS specificity conflict previously left it rendering as a narrow, easy-to-miss item. (#479)
+
+## [1.10.0] - 2026-07-11
+
+### Added
+- **Calendar search (#471):** a magnifier button in the calendar toolbar — or the new `f` keyboard shortcut — opens an in-context search that finds appointments across the whole timeline, past and future, even when you don't know the date. It matches by title, location, and notes, lists results grouped by date (anchored on the next upcoming hit), resolves recurring events to their next occurrence, and jumps straight to the day and opens the event when you pick a result. Result rows are fully keyboard-operable, and the count shows "N of M" when a very large result set is capped.
+
+### Changed
+- Global search now also finds calendar events by their **location**, and the whole search index is **accent-insensitive**: "muller" finds "Müller" and "strasse" finds "Straße". Calendar events in global search are now family-visible (matching the calendar list) rather than limited to the event's creator.
+
+### Fixed
+- Keyboard shortcuts no longer intercept Cmd/Ctrl/Alt key combinations, so browser and OS shortcuts such as Cmd+F ("find in page") keep working as expected.
+
+## [1.9.0] - 2026-07-11
+
+### Added
+- Logging out is now reachable directly from the navigation: a **Log out** action sits in the desktop sidebar footer and in the mobile "More" sheet, so you no longer have to dig through Settings → Personal → Account. A short confirmation guards against accidental logouts. (#479)
+
+## [1.8.2] - 2026-07-11
+
+### Fixed
+- Logout: the module navigation bar no longer stays visible after logging out. The app shell (sidebar and bottom navigation) is now torn down when navigating to a full-screen auth page, so only the login form is shown. The session state is also reset on logout so the login page appears immediately without briefly flashing the dashboard. (#478)
+
+## [1.8.1] - 2026-07-10
+
+### Changed
+- Extended the shared date and time picker to the last fields that still used plain text entry: the task start date, due date and due time, the meal-planner date, and the recurrence "until" date now open the same calendar or time picker (or the native OS picker on touch) as every other date field, completing the app-wide rollout.
+
+## [1.8.0] - 2026-07-10
+
+### Added
+- Every date and time field across the app now offers a built-in picker: click the calendar or clock icon to open a themed month grid or time list — or the native OS picker on phones and tablets — while free-text entry keeps working as before with locale-aware shorthands (e.g. `0930`/`9h30` → `09:30`). The picker takes each module's accent color, marks today, enforces optional earliest/latest date limits, is fully keyboard-navigable, and mirrors for right-to-left languages.
+
+### Changed
+- Unified date and time input across all modules (calendar appointments, budget, health, birthdays, shopping, split expenses, housekeeping, subscriptions and settings) onto one shared picker, replacing the previous mix of native browser controls and plain text fields so every date field looks and behaves the same.
+
+## [1.7.2] - 2026-07-10
+
+### Fixed
+- Holidays: school breaks no longer appear twice in the calendar for regions where the provider models several same-named holiday variants with differing dates for one subdivision (e.g. Swiss cantons such as Bern, whose German- and French-speaking school regions have different summer-break dates). Overlapping same-named entries of the same type are now merged into a single span on read, so the fix applies to already-cached entries without needing a re-sync. This is a distinct cause from the earlier #434 duplicates, which stemmed from stale cross-scope cache rows and "Exception"-tagged variants.
+
+## [1.7.1] - 2026-07-10
+
+### Security
+- ICS calendar subscriptions and one-off feed imports now validate the destination IP at the moment the connection is established, closing a DNS-rebinding hole where an attacker-controlled hostname could pass the pre-flight private-IP check but resolve to an internal address (e.g. cloud metadata) during the actual fetch. Literal private IPs — including IPv6 loopback and IPv4-mapped IPv6 in both decimal and hex form — are now rejected as well. The `ICS_SUBSCRIPTION_ALLOW_PRIVATE_NETWORK` opt-in continues to bypass both checks for trusted LAN feeds.
+
+### Changed
+- Bumped `tsdav` to 2.3.1 and pinned build-script permissions (`allowScripts`) for `better-sqlite3`, `bcrypt` and `puppeteer`.
+
+## [1.7.0] - 2026-07-10
+
+### Added
+- Documents: optional local folder storage backend. With `DOCUMENT_STORAGE_LOCAL_ENABLED=true`, new document files and calendar attachments are written to a mounted host folder (`DOCUMENT_STORAGE_LOCAL_PATH`, default `/documents`) instead of the SQLite database, keeping the database small and letting other self-hosted tools share the same files. When enabled it takes precedence over WebDAV; existing database and WebDAV documents are not migrated and stay readable. Configurable in the web and CLI installers.
+- Documents: the storage settings card and the upload and calendar-attachment dialogs now show the active upload target (local folder, WebDAV, or database), and folder-backed documents display a "Local folder" badge in the list.
+
+### Security
+- Documents: the local folder backend validates storage keys against path traversal and fails an upload loudly on an unwritable mount instead of silently falling back to another location.
+
+## [1.6.6] - 2026-07-10
+
+### Changed
+- Mobile navigation: redesigned the "More" menu as a compact app launcher — solid full-color module icons in a dense four-column grid, with Settings, Help and Changelog grouped into a single quiet system row. The sheet now takes roughly 40% of the screen instead of ~70%.
+- Mobile navigation: bottom-bar inactive tabs now show bare icons with a single sliding pill marking the active tab, and the keyboard-focus ring sits outside the icon so it is clearly visible.
+
+### Fixed
+- Mobile navigation: opening Settings from the "More" menu now closes the sheet, and switching language or toggling a module no longer reverts the menu to an outdated layout.
+- The install prompt now steps aside for any open modal, the "More" menu, or search instead of overlapping their content.
+- Search: a failed query now shows a clear "search is currently unavailable" message instead of appearing empty.
+
+## [1.6.5] - 2026-07-10
+
+### Changed
+- Birthdays: the page is now a single list sorted by proximity (the nearest birthday first) with live search, replacing the separate "upcoming" panel and the search-suggestions dropdown that only filtered the list.
+- Birthdays: the day itself is now celebrated — the person whose birthday is today gets a highlighted card with a cake icon and a filled accent chip, and every row shows a consistent countdown (Today / Tomorrow / in N days) alongside a "date · turns N" line.
+- Birthdays: the page now uses the shared canonical page header (title + search) for a look consistent with the other modules, and the empty state welcomes new users with an icon and an "Add birthday" button.
+- Birthdays: a new birthday now defaults its reminder to "1 day before" instead of at the moment of the birthday, and the reminder menu is trimmed to the common offsets.
+
+### Fixed
+- Birthdays: avatar initials and countdown chips now meet WCAG AA contrast in both light and dark themes, fixing a bug where the fallback avatar became illegible in dark mode.
+- Birthdays: the birth-date picker no longer allows selecting a future date, and the edit/delete and photo controls now meet the minimum touch-target size.
+
+## [1.6.4] - 2026-07-10
+
+### Added
+- Health: the vitals and lab trend charts now have a labelled value axis, a dated time axis, exact values on hover, and a shaded area under single-value trends; each vital metric card also carries a mini sparkline of its recent trend.
+
+### Changed
+- Health: medication adherence now reads "Nothing logged yet" instead of a discouraging "0 %" until the first dose is logged, the streak counter only appears once a streak has actually started, and the percentage is shown in neutral ink rather than the module accent.
+- Health: the overview reflows as a masonry layout so short cards no longer leave an empty gap beside taller ones, the "due today" medication rows are more compact, and the low-stock refill chip wraps to its own line instead of breaking the stock text mid-line.
+
+## [1.6.3] - 2026-07-10
+
+### Fixed
+- Meals: on phone-width screens the weekly plan can now be scrolled through all seven days again. A broken flex height chain left the day grid unable to scroll, so only today and tomorrow were reachable and swiping did nothing.
+
+## [1.6.2] - 2026-07-10
+
+### Changed
+- Contacts: each row now shows a single primary "Call" action plus a labelled "More" menu (Email, Route, Export, Delete) that is identical on desktop and mobile, replacing the row of up to five icon-only buttons and the hover-only actions.
+- Contacts: every category now has its own colour-tinted icon (doctor green, school amber, authority violet, insurance teal, tradesperson orange, emergency red, other neutral), person and family contacts show initials avatars, and the module now uses its own blue accent consistently instead of the global violet — so the list reads at a glance.
+- Contacts: a chevron on each row makes it clearer that tapping a contact opens it for editing, a long email address no longer truncates the phone number in the row summary, and the add/edit dialog shows a live category icon preview.
+
+### Fixed
+- Contacts: the bulk-selection bar is now correctly hidden until you enter selection mode; a missing style guard had left it permanently visible.
+
+## [1.6.1] - 2026-07-09
+
+### Fixed
+- Tasks: the empty-state hint now matches the actual swipe gestures — swipe a card left to check it off, right to edit. It previously said "swipe left to delete", which instead toggled the task done.
+- Tasks: reminder settings are now validated before the task is saved, so choosing a reminder without a due date or offset no longer shows an error on top of an already-saved task.
+
+### Changed
+- Tasks: bulk-deleting selected tasks now uses the same optimistic 5-second undo as single delete, instead of a native browser confirmation dialog, so a bulk delete can be undone.
+- Tasks: task-group, board-column, and filter headings are now sentence-case instead of all-caps, matching the rest of the navigation.
+- Tasks: the group and board count badges use a higher-contrast text colour for readability.
+- Notes: the note colour palette was retuned to softer, paper-friendly tones; existing notes keep their current colours.
+
+## [1.6.0] - 2026-07-09
+
+### Added
+- Budget: a new **Plan** tab for planned/estimated budgets, so a household can see whether its spending and savings targets are being met. Set a monthly savings goal (shown as a progress ring comparing planned savings against the month's income minus expenses, with a reached/short/negative status) and a monthly budget per expense category (shown as planned-vs-actual progress bars that turn amber near the limit and red when over budget, each with a plain-text "X left"/"X over budget" label so status never relies on colour alone). Budgets and the goal are set, edited, and removed from a modal; deleting is confirmation-gated. The Statistics tab draws a target marker on each category bar at its planned amount (month range), and the dashboard Budget widget shows savings-goal progress when a goal is set. (#468)
+
+### Added
+- Calendar: one-time import of events from an `.ics` file or a shared calendar feed URL into editable local events, under Settings → Sync → Calendar → "Import calendar". Unlike an ICS subscription (which stays read-only and auto-synced), imported events become your own editable events and are not synced afterwards — the migration path when moving from another calendar. Recurring events are kept as a series (the recurrence rule is reduced to the supported daily/weekly/monthly/yearly subset), all-day and timed events are preserved, and re-importing the same feed skips events that were already imported. The URL path reuses the SSRF-protected fetch (10 MB / 15 s limits) used by subscriptions. (#437)
+
+## [1.4.1] - 2026-07-09
+
+### Changed
+- Localized the roles and permissions settings UI into all supported languages. The new strings shipped translated in German and English only in v1.4.0; the other 21 languages now have full translations instead of the English fallback.
+
+## [1.4.0] - 2026-07-09
+
+### Added
+- Roles and permissions: granular, server-enforced access control per family role and per member, configured under Settings → Administration → Roles and permissions. Each module can be set to No access, Read only, or Full, and each dashboard widget to Available or Blocked; widgets inherit their module's lock and can also be blocked on their own (for example, hiding the cycle widget for some members without disabling Health). Only deviations from the default (full access) are stored, so unset roles and members keep full access and existing installs are unchanged; administrators always keep full access and cannot be locked out. Blocked modules disappear from navigation and the dashboard, and a read-only module hides its create button and shows an explanatory banner. The settings page offers a role/member switch, an at-a-glance overview of a role's deviations, and per-module and per-widget access as icon controls with widgets nested under their module. (#467)
+
+## [1.3.1] - 2026-07-09
+
+### Added
+- Calendar: an opt-in `ICS_SUBSCRIPTION_ALLOW_PRIVATE_NETWORK` environment flag lets ICS calendar subscriptions use `http://` URLs and local/private-network feeds (e.g. a Sonarr, Radarr, or Home Assistant calendar in the same LAN). It lifts the built-in SSRF protection for ICS subscriptions only, and defaults to off — enable it only in controlled environments.
+
+## [1.3.0] - 2026-07-09
+
+### Added
+- Meals: a drag-and-drop recipe sidebar on the weekly planner — drag any saved recipe onto a day/slot to plan it, with title, notes, URL, and ingredients pre-filled. Slots only accept recipes whose meal-type suitability includes that slot; the existing per-slot add button remains as the keyboard/touch path. (#464)
+- Meals: a one-click "Randomize plan" action that fills the visible week's empty slots with randomly chosen suitable recipes, respecting each recipe's meal types and the household's visible meal types. (#464)
+- Recipes: per-recipe meal-type suitability (breakfast/lunch/dinner/snack, all on by default) chosen via checkboxes in the recipe editor; it gates which planner slots accept a recipe and scopes the week randomizer. (#464)
+- Shopping: bulk import ingredients from the meal plan by date range — a "From meal plan" action imports every planned meal's ingredients in the selected range (default: next 7 days), aggregating repeated ingredients and skipping already-transferred ones. (#462)
+- In-app changelog: a Help-adjacent "Changelog" action opens the release history, showing the installed version alongside the latest available release. Notes are fetched on demand from GitHub via the app's own backend and cached in memory for 30 minutes. (#463)
+
+### Fixed
+- Sidebar: fixed several desktop collapse issues — the rail now actually collapses on click, stays collapsed instead of re-expanding while the pointer rests on it, and the active-item indicator tracks the collapsed/expanded layout correctly. (#460)
+
+## [1.2.3] - 2026-07-09
+
+### Fixed
+- Holidays: school breaks and public holidays no longer show up twice in the calendar. OpenHolidays returns sub-regional deviations of a holiday (e.g. Schleswig-Holstein's separate summer/autumn breaks for the islands of Sylt, Föhr, Amrum, Helgoland and the Halligen) as extra `Exception`-tagged entries with different start/end dates, which read-side de-duplication could not collapse. These sub-regional exception variants are now dropped during sync, leaving one clean entry per holiday. Existing duplicates clear on the next sync (Settings → Holidays → Sync now).
+
+## [1.2.2] - 2026-07-09
+
+### Fixed
+- Dashboard: all-day calendar events (e.g. from Google Calendar) no longer appear one calendar day early in the dashboard's upcoming-events widget. Date-only values were parsed as UTC midnight and shifted back a day in timezones west of UTC; they are now parsed as local calendar dates, matching the full Calendar page.
+
+## [1.2.1] - 2026-07-08
+
+### Changed
+- API Tokens: the token-scope UI (permission labels, module names, read/write toggles) now ships real translations in all 21 remaining locales, reusing each locale's existing navigation module names for consistency; previously these strings fell back to English.
+
+## [1.2.0] - 2026-07-08
+
+### Added
+- API Tokens: optional per-module permission scopes. An admin can restrict a token to individual modules and access levels (`<module>:read` / `<module>:write`, where write implies read) instead of granting the creator's full access. This matters most for tokens handed to an off-device AI/MCP client — for example a token that may write the calendar but can never read the health module. Tokens created without scopes keep full role-based access, so existing tokens are unaffected.
+
+### Security
+- API Tokens: scoped tokens are enforced across both the REST API and the MCP endpoint. A scoped token can only reach modules on its allow-list — every other `/api/v1` path is denied, `tools/list` hides MCP tools the token cannot use, out-of-scope `tools/call` is refused, and the OpenAPI bridge inherits the same limits because it loops back through the REST layer with the same token.
+
+### Added
+- Kitchen (Meals): recurring meals can now be edited or deleted as a whole series. Editing or deleting a weekly meal offers a scope choice — "only this date" or "whole series". A series edit propagates the meal's content and ingredients to every occurrence; a series deletion removes the recurrence template together with all of its occurrences.
+
+## [1.0.0] - 2026-07-08
+
+A design and accessibility overhaul of three core areas — the Dashboard, the Kitchen (meals, recipes, shopping), and the Calendar — sharing one calmer visual grammar and AA-contrast throughout.
+
+### Added
+- Dashboard: a "Today" masthead where the greeting and the "Today" glance cards share one elevated band; it collapses to a slim greeting header when every domain already has a visible widget.
+- Dashboard: a "hidden widgets" tray in edit mode to bring back any widget you have hidden, making the inline editor the single place to arrange the dashboard.
+- Kitchen (Meals): a seven-column week canvas on desktop, with each day as its own column.
+- Calendar: a proper empty state with an icon and a "New event" button, plus loading skeletons while a view loads.
+
+### Changed
+- Dashboard: one shared card material (consistent elevation and rounding) so the widget grid reads as a single system instead of flat tiles beside one rich card; larger widget titles with a tighter header; the budget balance now shows at hero size on a taller default tile.
+- Dashboard: the edit-mode size picker is now a single segmented control of four preview tiles, replacing the previous dropdown-plus-preview pairing; count badges are tinted rather than fully saturated and the "All" header links stay neutral until hovered.
+- Kitchen: a shared ingredient-row component across meals and recipes; meal type shown as a colored dot with a neutral, readable label; recipe ingredient lists capped at four with a "+N" indicator; empty meal slots reduced to a single add affordance (mobile collapses empty slots to one add button per day).
+- Calendar: a refreshed, AA-contrast event color palette.
+
+### Fixed
+- Dashboard: the onboarding overlay now traps keyboard focus and restores it on close; progress bars honor reduced-motion; weather text meets AA contrast on the violet gradient; a manual weather refresh now reports failures instead of silently doing nothing; row hovers no longer dim their own text.
+- Kitchen: AA-contrast primary actions and active tabs across meals, recipes, and shopping; `aria-busy` announced on week and list switches; unified, friendly error messages; empty-state calls-to-action across all three tabs; a duplicate-listener bug on meal week changes.
+- Calendar: `aria-busy` announced while a view loads and accessible labels on event popups.
+- Dashboard: the desktop floating action button now sits in the corner instead of reserving space for a bottom nav bar that only exists on mobile, so it no longer overlaps the budget card's content.
+
+### Removed
+- Dashboard: the separate "Manage widgets" modal, folded into the inline editor together with the new restore tray.
+
+## [0.102.0] - 2026-07-08
+
+### Changed
+- Documents: each file card now shows two primary actions (view and download) plus a "more" menu for edit, archive, DMS push, and delete — replacing the previous row of up to six icon buttons. The menu is fully keyboard-navigable (arrow keys, Home/End, Escape) and the grid/list view toggle now announces its active state to screen readers.
+- Documents: bigger touch targets for folder actions and the member picker on touch devices, and the horizontal folder strip now shows a fade cue when more folders are scrolled off-screen.
+
+### Fixed
+- Documents: the file list now shows a loading skeleton while switching the status or category filter, instead of leaving the stale list in place.
+- Documents: the mobile filter panel can now be dismissed by tapping outside it or pressing Escape.
+- Documents: upload and folder dialogs now show friendly error messages instead of raw technical strings, a missing file size shows "—" instead of "0 KB", and the text-preview loader now animates.
+
+## [0.101.3] - 2026-07-08
+
+### Fixed
+- Empty "Today" cockpit cards on the dashboard are now hidden: a domain with no content (no urgent task, no upcoming event, nothing on the shopping list, no planned meal) no longer shows a placeholder card. Previously the "Today's meal" card stayed visible with a "no dinner" fallback even when nothing was planned.
+
+## [0.101.2] - 2026-07-08
+
+### Fixed
+- The dashboard greeting no longer says "Good morning" during the night: hours 0–4 now fall into the evening window, so a visit at 00:37 is greeted with "Good evening" and the matching gradient.
+
+## [0.101.1] - 2026-07-07
+
+### Changed
+- Refreshed the landing page and install guide: solid accent headings (no gradient text), fewer decorative section labels, a distinct problem section, automatic browser-language default, `yuvomi-*` preference keys (with legacy `oikos-*` fallback), and English summaries on the German legal pages.
+- Clarified the install guide's hero copy and "Web Installer" recommendation so the stated effort matches the actual steps, and pointed non-technical users to the one-click app-store installs.
+
+### Fixed
+- The landing page now renders fully without JavaScript (reveal-animated sections previously risked shipping blank).
+- The homepage and README now report the same module count (sixteen).
+- Mobile landing-page usability: 44px touch targets, a thumb-zone Install button, no horizontal overflow at small widths, and WCAG AA small-text contrast in light mode.
+
+## [0.101.0] - 2026-07-07
+
+### Added
+- **Rename and delete document folders** — custom folders in the Documents module can now be renamed or deleted from a per-folder overflow menu. Deleting a folder keeps its documents; their folder link is simply cleared (#453).
+- **Context-aware document upload** — new uploads are pre-assigned to the folder currently selected in the folder browser (still changeable in the upload dialog) (#453).
+
+### Changed
+- **Streamlined document folder controls** — the redundant folder filter dropdown was removed so the folder browser is the single place to pick a folder, and "New folder" moved into the folder browser header. The browser stays responsive across the desktop sidebar and the mobile chip rail (#453).
+
+## [0.100.0] - 2026-07-07
+
+### Added
+- **MCP endpoint now reaches the whole API** — the built-in `/mcp` Model Context Protocol endpoint gains a generic OpenAPI bridge: `list_api_operations` and `get_api_operation` discover every documented REST operation, and `call_api_operation` invokes any of them. AI agents such as Claude Desktop can now drive the full planner (not just tasks, shopping, and calendar), while every call still runs with the API token's own permissions (admin-only routes require an admin token). The optional `MCP_INTERNAL_BASE_URL` env var overrides the internal loopback base URL for non-standard bind addresses.
+- **Broader OpenAPI coverage** — the OpenAPI spec (`/openapi.json`, `/docs`) now documents previously-missing routes (Housekeeping, Modules, Budget loans & statistics, CalDAV, ICS export feed, OIDC login, document preview/folders, and the `/mcp` endpoint) and corrects several method/auth mismatches.
+
+### Changed
+- **Wider MCP token auth** — the `/mcp` endpoint now also accepts the plain `API-Key` header alongside `X-API-Key` and `Authorization: Bearer` for broader MCP-client compatibility.
+- **Safe binary passthrough** — the MCP bridge inlines binary responses (e.g. document or backup downloads) as base64 up to 5 MiB; larger downloads are rejected so they keep using the dedicated streaming route instead of buffering the whole file in memory.
+
+## [0.99.1] - 2026-07-07
+
+### Changed
+- **Dashboard grid breathes with the window width** — on desktop the widget grid now derives its column count from the actual grid width (`auto-fill`, 3–6 columns) instead of jumping between fixed 3- and 4-column steps, removing the rigid half-empty column that appeared at exactly 3 columns. Widgets also stretch to fill their row height so tiles in a row end flush, replacing the frayed bottom edges and dead gaps left by the previous content-fit behaviour.
+- **Dashboard "Today" band stands out** — the glance summary band now carries a subtle solid accent tint so it reads as a highlighted cockpit summary, clearly set apart from the calm surface below it.
+
+### Fixed
+- **Dashboard calendar names were hard to read** — the calendar label under each event used the disabled text colour; it now uses the readable tertiary text token (WCAG AA verified).
+- **Dashboard customize/edit controls were too small to tap** — the compact customize, edit, hide and reorder controls plus the customize-toolbar buttons now meet the 44px minimum touch target on touch devices, while staying slim on desktop with a mouse.
+
+## [0.99.0] - 2026-07-07
+
+### Added
+- **Multiple reminders per calendar event** — an event can now carry several reminders (e.g. 15 minutes before *and* 1 day before) instead of just one. The event dialog manages them as an add/remove list (up to 5 per event); each reminder is delivered independently via in-app badges, Web Push, and notification channels (#436).
+- **Default appointment duration** — Settings → Modules → Calendar lets you choose a default duration (15–120 minutes) that sets the end time of new events automatically from the start. Inside the event dialog the duration is remembered dynamically: adjust the end and a later change to the start re-applies your chosen length (#441).
+- **Flexible time entry** — time fields now accept compact and separator notation (`0930`, `930`, `09.30`, `9,30`, `9h30`) in addition to `09:30`, normalizing to your locale's format on blur. Applies to every time input across the app, making entry easier on keyboards where the colon is awkward (#442).
+
+### Added
+- **Settings → Modules → Health** page: admins can show or hide the Cycle tab household-wide (opt-in, on by default). When off, the tab is hidden and its route redirects to the Health overview.
+- **Settings → Modules → Rewards** page: admins can enable or disable the Rewards module and choose whether reward redemptions require parent/admin approval (on by default; when off, redemptions are granted immediately).
+
+### Fixed
+- The **Rewards** module could not be hidden or reordered in Settings → Modules → Navigation — the enable switch and drag order silently reset because the server did not recognize `rewards` as a toggleable module. Rewards is now a fully toggleable and orderable module.
+- The **Health** and **Rewards** page modules and their new settings pages are now precached by the service worker like every other module, so they are available offline and refresh reliably on each release.
+
+## [0.98.2] - 2026-07-07
+
+### Fixed
+- **German text leaked into every non-German interface** — 2,207 UI strings across all 21 non-German, non-English locales still displayed their German source text. The most visible gap was the entire new Health → Cycle tab (predictions, calendar, ring, flow/symptom/mood pickers, history, settings and its fertility disclaimer), which was completely untranslated in every language; smaller gaps affected scattered labels in Budget, Calendar, Contacts, Documents, Settings, Split Expenses, Subscriptions, Housekeeping, Reminders and the mobile onboarding help hints. All are now translated, so no module falls back to German for non-German users. German (reference) and English were already complete and are unchanged.
+
+## [0.98.1] - 2026-07-07
+
+### Fixed
+- **Papra DMS documents could not be previewed or opened, and showed 0 KB** — Papra's file endpoint always serves `application/octet-stream` (an intentional XSS defence), so the in-app viewer rejected every linked document with a 415 "Preview not supported" error even though it downloaded fine. Linking now captures the document's real MIME type and size from Papra's metadata, and the preview/download handlers fall back to the stored MIME type when the DMS returns a generic `octet-stream`, so PDFs and text files render inline again. The "Open in DMS" link was also pointing at a non-existent path (`/documents/<org>/<id>`) and 404'd; it now uses Papra's real document route (`/organizations/<org>/documents/<id>`). Existing links keep their old metadata — re-link to pick up the correct size, MIME type, and URL (#451).
+
+## [0.98.0] - 2026-07-07
+
+### Added
+- **Cycle glance on the dashboard** — an opt-in, owner-only dashboard tile surfaces the signed-in user's current cycle phase, the cycle day (as a mini progress ring), and the next period as a countdown and date. It is strictly private: unlike the family-visible widgets, cycle data is never aggregated into the shared dashboard payload — the tile fetches the user's own cycle data client-side, and only when it is enabled. Default-hidden and offered as an opt-in in Customize; hidden when the Health module is disabled (#450).
+
+### Changed
+- **Cycle calendar is legible without colour (WCAG 1.4.1)** — the month calendar now distinguishes phases with non-colour cues (solid fill for logged periods, a diagonal hatch for the fertile window, a ringed ovulation day, an outline for predicted periods) in addition to colour, and the legend mirrors each cue. Calendar day cells keep a comfortable minimum tap size on small phones.
+- **Tidier cycle overview** — the prediction hero no longer repeats the next-period countdown (it already sits in the ring), the two averages (Ø cycle / Ø period) share one tile instead of two near-identical cards, and the tab loads with a skeleton instead of a text spinner.
+
+## [0.97.0] - 2026-07-07
+
+### Added
+- **Menstrual cycle tracking in the Health module** — a new "Cycle" tab (`/health/cycle`, the sixth Health sub-tab) records period episodes (start/end + flow) and per-day logs (bleeding intensity, symptoms, mood, note), and computes calendar-method predictions of the next period, ovulation, and the fertile window. A native SVG **cycle ring** shows the current phase, cycle day, and countdown; a month calendar colour-codes logged and predicted periods, the fertile window, and ovulation; prediction stat cards, a "today" quick-capture bar, a period history, per-member prediction settings (cycle/period/luteal length, fertility toggle), and CSV export round it out. Cycle data defaults to `private` visibility and shares the module's person switcher and read-only foreign views. The fertile window carries a clear disclaimer that it is not contraception and no substitute for medical advice; cycle data is deliberately kept out of global search and the shared dashboard (#450).
+
+## [0.96.11] - 2026-07-07
+
+### Fixed
+- **Papra/Paperless DMS documents did not appear until an exact search term was typed** — the "Link from DMS" dialog required a non-empty query, and an empty query was rejected at the adapter, route, and frontend layers, so a correctly configured DMS looked empty. The dialog now lists all documents from the connected DMS on open (empty query), and clearing the search field lists everything again. Both Papra (`searchQuery` omitted) and Paperless-ngx (`query` omitted) natively return the full document list in that case (#449).
+
+## [0.96.10] - 2026-07-06
+
+### Fixed
+- **Split expenses could not be edited after adding them** — expense rows under Budget → Split were a static, non-interactive list. Each row is now a button that opens the expense dialog in edit mode (pre-filled with title, amount, payer, currency, date, split method, participants, and per-participant split values), with a delete action. The `PUT`/`DELETE /expenses/:id` routes already existed; only the frontend wiring was missing (#445).
+
+## [0.96.9] - 2026-07-06
+
+### Fixed
+- **Split balances reset after archiving a group** — the "You owe" / "You are owed" totals under Budget → Split now exclude archived groups. The dashboard balance query was missing an active-status filter, so an archived group's ledger entries kept inflating the totals, and archiving/deleting a group did not refresh the summary (#446).
+
+## [0.96.8] - 2026-07-05
+
+### Fixed
+- **Living background no longer burns the GPU** — the animated backdrop blobs (`.lg-backdrop`) now drift with a translate-only animation on their own compositor layer instead of also scaling, which forced the 90px blur to re-rasterise every frame. Idle pages drop from 25–50% continuous GPU usage to negligible compositing, while the drift effect is preserved (#443).
+
+## [0.96.7] - 2026-07-05
+
+### Changed
+- **Calmer sidebar section labels (desktop)** — the navigation group headings ("Overview", "Plan", "Home") now use sentence case instead of small tracked uppercase, so they read more clearly and match the warm family-planner tone.
+- **Collapsed sidebar reveals labels on demand (desktop)** — hovering or keyboard-focusing the collapsed icon rail now expands it to show the labels, so items stay identifiable without permanently widening the sidebar.
+- **Sidebar highlight follows keyboard focus (desktop)** — the sliding active-item indicator now previews on keyboard focus, not only on mouse hover.
+
+### Fixed
+- **Sidebar focus outline no longer clipped (desktop)** — the keyboard focus ring on navigation items and the collapse toggle now sits inside the sidebar edge instead of being cut off.
+- **Settings stays pinned to the bottom of the sidebar (desktop)** — pinning uses an explicit marker, so a custom module rendered last can no longer push Settings out of place.
+
+## [0.96.6] - 2026-07-05
+
+### Changed
+- **Clearer "More" navigation icon (mobile)** — the bottom-bar overflow tab now uses a horizontal-ellipsis glyph that reads unambiguously as "more", replacing the previous grid-of-dots icon.
+- **Larger mobile navigation touch targets** — the bottom bar and its icon buttons are taller, making one-handed taps more comfortable and reducing mis-taps.
+- **Kitchen tab announces its destination** — screen-reader and keyboard users now hear which section (Meals, Recipes, or Shopping) the Kitchen tab will open, even before it becomes active.
+
+### Fixed
+- **Navigation labels no longer clip in longer languages** — mobile bottom-bar labels wrap to two lines instead of truncating (e.g. longer German and French module names).
+- **"More" sheet respects reduced motion** — the mobile "More" sheet and its full-screen search overlay now fade in place instead of sliding up when the system "reduce motion" preference is enabled.
+
+## [0.96.5] - 2026-07-05
+
+### Fixed
+- **Italian translation** — UI strings across tasks, meals, calendar, settings, API tokens, CalDAV/CardDAV, backups, and housekeeping that were still showing English (or German) placeholders are now fully translated.
+
+## [0.96.4] - 2026-07-05
+
+### Added
+- **Time-of-day greeting on the dashboard** — the personal greeting now carries a warm gradient that shifts with the time of day (sunrise orange in the morning, deep amber at midday, violet in the evening), with solid-color fallbacks when reduced transparency or higher contrast is preferred.
+- **Auto-hiding quick-action button** — the floating "+" button on the dashboard slides out of the way as you scroll down and returns when you scroll up, so it no longer covers a widget's "All" shortcut on small screens.
+
+### Changed
+- **Per-widget error handling on the dashboard** — if a single widget's data fails to load, only that widget shows an inline error with a "Retry" button; the rest of the dashboard stays usable instead of failing as a whole.
+- **Custom widget order is preserved** — a dashboard you have re-ordered yourself is no longer re-packed automatically, while the default layout still packs tightly to avoid empty gaps on wide screens.
+- **Simpler widget sizes** — the widget size picker now offers four clear presets; layouts using older sizes are mapped to the nearest one.
+
+### Fixed
+- **Budget widget footer** — no longer shows a misleading "no budget data" message when budget data exists but no top spending category is available.
+
+## [0.96.3] - 2026-07-05
+
+### Fixed
+- **Duplicate holidays that survived a resync** — the calendar now de-duplicates holidays when reading them, so identical public or school holidays never appear twice even if leftover cache rows from a previously selected region remain from before the v0.96.1 fix. Affected users no longer need a perfect re-sync to clear old duplicates.
+
+## [0.96.2] - 2026-07-05
+
+### Fixed
+- **Paperless-ngx DMS connection failing with 406** — linking and testing a Paperless-ngx account no longer fails with an "unexpected error" / HTTP 406. The adapter now negotiates the Paperless REST API with an explicit supported `Accept` version header and transparently falls back to the unversioned default for older instances that do not know that version. No extra environment variables are required.
+
+## [0.96.1] - 2026-07-05
+
+### Fixed
+- **Duplicate holiday entries after changing region** — public and school holidays no longer appear multiple times once you switch the holiday region (e.g. from a country-wide selection to a specific state). Each holiday sync now replaces the entire cached set for that country and year, so stale entries from a previously selected scope are removed. Existing duplicates clear on the next sync (use "Sync now" in settings to trigger it immediately).
+
+## [0.96.0] - 2026-07-05
+
+### Added
+- **Rewards dashboard widget** — a family points leaderboard showing the top participants by ledger balance, the leader subtly highlighted, plus a badge for redemptions still awaiting parental approval.
+- **Health dashboard widget** — today's medication doses as a "taken / total" progress bar with the next open dose and a low-stock reorder hint. Only family-visible medications are shown, so private medications never appear on a shared dashboard.
+- **Housekeeping dashboard widget** — a compact status showing whether the helper is currently present (with the arrival time), this month's visit count, and any outstanding payment.
+- Localised in all 23 languages.
+
+### Changed
+- The three new widgets (Rewards, Health, Housekeeping) start hidden by default and are offered as opt-ins in Customize, so existing dashboards are not changed and fresh dashboards are not crowded with empty tiles.
+
+## [0.95.1] - 2026-07-05
+
+### Fixed
+- **Documents toolbar restored on tablet and desktop** — the view switcher, "Add folder" button and the status, category and folder filters (including access to archived documents) were hidden and unreachable at tablet and desktop widths; they are now always visible there.
+
+### Changed
+- **Denser Documents grid** — document cards size to their content instead of a fixed minimum height, tablets show two columns, and the folder browser collapses into a horizontal chip bar on tablet and mobile so the grid uses the full width.
+- **Cleaner document cards** — the redundant "Local" storage badge is gone (badges now appear only for external DMS/WebDAV storage) and the edit action uses a pencil icon.
+
+## [0.95.0] - 2026-07-05
+
+### Added
+- **Tall (1×2) widget size** — a new tall-and-narrow dashboard widget size. List widgets (Tasks, Calendar) now default to it, so a short "today" list keeps useful height without taking up a full two-column row. Available in the widget size picker and localised in all 23 languages.
+
+### Changed
+- **Redesigned weather widget** — an atmospheric gradient with a soft highlight and a tighter composition (temperature and icon grouped as one "now" cluster), a clearer forecast divider, and a more legible location line. White-text contrast is verified in both light and dark themes.
+- **Denser, calmer dashboard grid** — widgets no longer stretch to fill empty cells (short lists stay compact instead of becoming half-empty cards), small widgets backfill the gaps left by wide ones, and the "Today" cockpit adapts its column count to the number of cards shown.
+- **No duplicate "Today" entries** — when a module's own widget is visible on the dashboard, the matching "Today" cockpit card is now hidden, so each domain is represented once instead of twice.
+- **Refined "Today" cockpit cards** — the summary cards are de-framed into tinted zones rather than cards nested inside a card.
+
+### Fixed
+- **Weather forecast now visible on mobile** — the multi-day forecast stays in the narrow mobile weather widget instead of being hidden, so the widget shows real information rather than empty space.
+- **Task priority no longer relies on colour alone** — priority markers now also differ in size and shape (filled vs. outlined), meeting WCAG 1.4.1 for colour-blind users; the screen-reader priority label is unchanged.
+
+## [0.94.2] - 2026-07-04
+
+### Changed
+- **Faster module switching** — page modules and their stylesheets are now prefetched the instant you hover or touch a navigation item, and the main modules are warmed during idle time after the app loads. Selecting a module from the menu no longer waits on a cold load, so the transition feels immediate instead of sluggish.
+- **Instant navigation feedback** — the active navigation highlight, indicator pill, and module accent colour now update the moment you tap a menu item, rather than only after the target module has finished loading.
+
+## [0.94.1] - 2026-07-04
+
+### Changed
+- **Unified tab styling across modules** — the Budget tab bar (Budget/Subscriptions/Loans/Statistics/Split) and the Shopping list switcher now share the same pill-shaped active state (a subtle tinted highlight in each domain's own colour) used by the rest of the app's tab surfaces, so moving between modules feels like one product. Each Budget sub-domain keeps its distinct accent colour.
+- **Consistent heading sizes in Subscriptions and Housekeeping** — section and card headings in these two modules now follow the app-wide typography roles instead of module-specific font-size overrides, removing the heading size jumps that appeared when navigating between modules.
+
+## [0.94.0] - 2026-07-04
+
+### Added
+- **Keyboard navigation for tab bars** — the Rewards, Housekeeping, and Calendar (month/week/day/agenda) view switchers now support arrow keys, Home/End, roving tabindex, and full `role="tablist"` ARIA from one shared helper, so every in-page tab surface is keyboard- and screen-reader-navigable.
+
+### Changed
+- **Consistent create action across modules** — the "new" action is now a single context-aware floating button (FAB) in Health, Rewards, and Housekeeping. It follows the active tab/section and respects permissions (only your own health entries; admin-only reward and bonus actions) and hides where no create action applies. Redundant inline "add" buttons were removed so the create affordance sits in one predictable place; the `n` keyboard shortcut now works wherever a FAB is shown. Subscriptions keeps Budget's existing context-aware button.
+- **Rewards visuals aligned with the shared design** — reward empty states now use the app-wide `.empty-state` grammar, and the points progress bar animates via transform (the same convention as the Budget, Dashboard, and Tasks bars) instead of a module-specific variant.
+
+### Fixed
+- **Off-contract responsive breakpoints** — two 1px-off / non-canonical breakpoints (Tasks, Subscriptions) now follow the project's canonical breakpoint contract.
+
+## [0.93.0] - 2026-07-04
+
+### Added
+- **Rewards module ("Belohnungen")** — a new points-and-rewards system. Tasks can now carry a point value; completing a task credits its assigned members (or the person acting on a shared kiosk tablet when no one is assigned). A household reward catalog lets members redeem points for **parent-approved** rewards, with **opt-in participation per member**, manual bonus points, and a full, auditable point ledger where every balance is the sum of its transactions. Includes a per-member standings view, an in-context first-run setup checklist for parents, keyboard/screen-reader access, and animated balance plus toast feedback. All 23 UI languages and the OpenAPI spec cover the new `/api/v1/rewards` endpoints.
+
+## [0.92.3] - 2026-07-04
+
+### Added
+- **Login brand mark** — the login page now shows an app-tile mark with a home glyph above the wordmark, giving the sign-in screen a clear, warm identity instead of a plain text heading.
+
+### Changed
+- **"Forgot password" link no longer a dead end** — the link now appears only when the server can actually deliver a reset mail (SMTP configured and `BASE_URL` set); on instances without email it is hidden entirely rather than leading to a flow that sends nothing. A new `password_reset_enabled` flag on `GET /api/v1/version` drives this.
+- **Login sign-in order** — the SSO button and its "or" divider now sit between the primary "Sign in" button and the "Forgot password" link, keeping the two sign-in paths together.
+
+### Fixed
+- **Login page layout stability** — reserved space for the version line and only re-apply app-name branding when it actually changes, reducing layout shift on load; also improved the version text contrast.
+
+## [0.92.2] - 2026-07-04
+
+### Changed
+- **Clearer README on catalog naming** — the README now explains that the TrueNAS and Unraid catalog listings stay registered under the legacy `oikos` slug so existing installs upgrade seamlessly, while the app itself installs and appears as Yuvomi.
+- **README Node requirement clarified** — the web installer's Node.js 18+ requirement is now noted as host-only; the app container ships its own Node 22.
+- **README polish** — unified the "See all screenshots" links and condensed the Health module row.
+
+## [0.92.1] - 2026-07-04
+
+### Added
+- **Reveal and copy installer secret keys** — after generating the session secret or database encryption key in the setup wizard, the value is now shown and a copy button appears, with a screen-reader-announced confirmation, so the keys can be recorded before they are saved.
+
+### Changed
+- **Stronger key-loss warning in the installer** — the security-keys step now leads with a prominent warning that losing the keys makes encrypted data unrecoverable, echoed by a backup reminder on the final screen.
+- **Grouped installer advanced step** — reverse proxy, single sign-on, backups, and WebDAV are now split into "Networking" and "Integrations & backups" sections, with the security-relevant reverse-proxy choice visually emphasized.
+- **Confirmation before the installer writes config** — the irreversible "Save & Start" action now asks for a second click before writing `.env` and starting the container.
+- **Themed visibility toggles in the installer** — show/hide controls use themed icons with pressed-state semantics instead of an emoji glyph.
+
+### Fixed
+- **Correct scheme for installer redirect links** — generated Google/OIDC redirect URIs and the final "Open Yuvomi" link now use https or http based on the reverse-proxy choice instead of always using http.
+- **Installer accessibility and mobile polish** — the wizard now respects reduced-motion, enlarges touch targets to 44px, keeps the footer reachable on mobile, and aligns correctly in right-to-left languages.
+- **Safer installer input handling** — the backup cron schedule and retention count are validated, the admin step has a Back button, text fields submit on Enter, and a failed `.env` save now surfaces the actual server error.
+
+## [0.92.0] - 2026-07-04
+
+### Added
+- **Contacts bulk selection** — an opt-in "Select" toggle in the contacts toolbar turns the list into checkboxes with select-all and batch delete (with a 5-second undo); family-linked contacts are excluded since they are managed through their member profile.
+- **Contacts keyboard shortcuts** — `/` focuses the search field and `n` creates a new contact (suppressed while typing in a field or while a dialog is open).
+- **Contacts screen-reader result count** — a live region announces the number of matching contacts as you search or filter.
+
+### Changed
+- **Contact category is now a primary field** — the category selector moved out of the collapsed "advanced" section into the main add/edit form, so new contacts no longer silently default to the first category.
+- **Vendor-neutral contact map links** — a contact address now opens in OpenStreetMap instead of Google Maps.
+- **Calmer contact rows on desktop** — secondary row actions (map, export, delete) now appear on hover/focus instead of always being visible, reducing visual density.
+- **Clearer empty state for contacts** — searching or filtering with no matches now shows a distinct "no results" state with a reset action, separate from the first-run "no contacts yet" state.
+
+### Fixed
+- **Keyboard and screen-reader access to contacts** — contact rows are now focusable buttons that open on Enter/Space instead of being click-only.
+- **Contacts mobile action menu no longer clipped** — the mobile "more actions" menu uses the native popover layer, so it is no longer cut off at the bottom of the list.
+- **No more duplicate contact dialogs or deletions** — fixed stacked click handlers that could open the edit dialog or trigger deletion multiple times after searching or filtering.
+- **Steadier contact list** — the list entrance animation no longer replays on every keystroke or filter change.
+
+## [0.91.0] - 2026-07-04
+
+### Changed
+- **Calmer, more legible calendar** — event chips now use a single fill colour instead of a diagonal two-colour split for multi-person events (the people are shown as an avatar stack), and the text colour is chosen for readable contrast on every fill.
+- **Readable month view on phones** — the calendar month grid now shows compact event dots instead of chips squeezed down to a single letter; a "+N more" marker covers busy days, and the repeat icon no longer clutters the tiny cells.
+- **Consistent date entry in the calendar** — calendar event dates now use the same locale-aware date field as the task dialog and the rest of the app.
+- **Consistent reminder controls** — calendar event reminders now have the same on/off toggle as task reminders instead of a bare drop-down.
+- **Compact assignment picker** — assigning people to a task or event now uses a wrapping row of chips (tinted in the module colour) instead of a scrolling checkbox list.
+- **Tidier task list on mobile** — filter chips wrap onto a second row instead of being cut off at the screen edge, the redundant per-row category label is hidden (the section heading already carries it), and the floating add button no longer overlaps the last card.
+- **More visible task completion control** — the round complete-task control is no longer near-invisible on the dark background.
+
+### Fixed
+- **Calendar header no longer shows a stale week number** — switching from the week view to month or agenda now updates the header instead of keeping the previous "KW NN" label.
+- **Recurrence fields hide correctly** — the repeat interval and end-date fields in the task dialog are now hidden when "no repeat" is selected.
+- **Correct ISO-8601 week numbers** — the calendar week number is now accurate around year boundaries.
+
+## [0.90.0] - 2026-07-04
+
+### Added
+- **Notes now render everything the editor toolbar offers** — the sticky-note cards (and the dashboard pinboard preview) previously showed only bold and italic; any heading, list, checklist, link, code span, block quote, divider, strikethrough, or underline you added via the editor appeared as raw Markdown text on the card. Cards now render the full set: headings (`#`–`###`), ordered and unordered lists, checklists with checkboxes, block quotes, dividers, inline code, safe links, **bold**, *italic*, ~~strikethrough~~, and underline.
+- **Clear button in the notes search field** — a × control clears the current filter in one tap.
+
+### Changed
+- **Notes editor formatting toolbar wraps on small screens** — on a phone the 13 formatting buttons no longer squeeze below finger size in the note dialog; the toolbar now wraps to a second row and the buttons keep a 44px touch target on touch devices.
+- **Clearer notes surface details** — the search field no longer shows a visible label that duplicated its placeholder (the label is kept for screen readers), pinned notes carry a clearer ring, and white notes get a visible edge on the warm background.
+
+## [0.89.0] - 2026-07-04
+
+### Fixed
+- **Medication doses now show their name on mobile** — in the Health overview and Medications tab, the "Due today" rows squeezed the medication name to zero width behind the Take/Skip buttons on narrow screens, so you couldn't tell which medication a dose belonged to. The row now wraps: the name stays on its own line and the actions drop below it.
+- **Reloading the Health overview loads the app, not JSON** — refreshing or bookmarking `/health` returned the container health-check JSON instead of the app. Browsers (requesting HTML) now get the app; Docker and monitoring health checks still receive the JSON status as before.
+- **Vitals trend chart handles sparse data** — the chart no longer clusters a few readings in the middle of an empty plot: the x-axis now spans the actual data range, and periods with fewer than two readings show a clear "too few readings for a trend" hint instead of a single floating dot. Axis labels are slightly larger.
+
+### Changed
+- **Consistent adherence wording** — medication adherence now uses the same term in the Overview and the Medications tab (they previously showed two different words in most languages).
+- **Clearer mark-as-taken action (German)** — the button now reads "Einnehmen" (an action) instead of "Genommen", which is also the taken-status label.
+- **Health overview uses the full width on large screens** — the overview now flows into up to three columns instead of a fixed two-column layout that left an empty right gutter.
+- **Themed, larger Health checkboxes** — checkboxes in Health forms now use the module accent colour and a bigger, easier-to-tap size instead of the small browser default.
+
+## [0.88.2] - 2026-07-04
+
+### Fixed
+- **Health module is now fully translated in all 23 languages (Discussion #431)** — the Health module and its sub-tabs (Overview, Vitals, Medications, Lab results, Activity) still fell back to German for most labels, form fields, and messages in many languages, most visibly in Spanish. All 227 affected strings are now translated across the 18 languages that were incomplete (Arabic, Chinese, Czech, Dutch, French, Greek, Hindi, Hungarian, Italian, Japanese, Polish, Portuguese, Russian, Spanish, Swedish, Turkish, Ukrainian, Vietnamese); English, Korean, Indonesian, and Persian were already complete. Interpolation placeholders (dates, counts, names) are preserved in every language.
+
+## [0.88.1] - 2026-07-03
+
+### Fixed
+- **Overview "Today at a glance" now shows the right meal (Issue #430)** — the meal card in the overview cockpit always displayed dinner, even in the morning. It now picks the meal that matches the time of day (breakfast before noon, lunch in the afternoon, dinner in the evening), with the label and icon updating to match. If the meal for the current time slot isn't planned, it falls back to the next planned meal of the day.
+
+## [0.88.0] - 2026-07-03
+
+### Added
+- **Three new languages** — Yuvomi is now available in Korean (`ko`), Indonesian (`id`), and Persian/Farsi (`fa`), bringing the total to 23 languages. Persian renders right-to-left (RTL), like Arabic. Each language covers the full app UI as well as the web and CLI installers, and is auto-detected from the browser or shell environment.
+- **Three new currencies** — the budget module now supports the South Korean won (`KRW`), Indonesian rupiah (`IDR`), and Iranian rial (`IRR`). Matching region presets (`ko-KR`, `id-ID`, `fa-IR`) set currency, date, and time formats in one step.
+
+## [0.87.0] - 2026-07-02
+
+### Added
+- **Notes & links on shopping items (Discussion #426)** — each shopping item can now carry an optional free-text note (brand, size, instructions) and an http(s) product or store link. Both are edited in a compact per-item detail drawer opened from the pencil button, so the quick-add row stays as clean as before; a subtle inline icon marks items that have extra details. Notes are included in the global search, and links open safely in a new tab (only http/https URLs are accepted).
+
+## [0.86.0] - 2026-07-02
+
+### Changed
+- **Documents are stored more compactly (Discussion #332)** — uploaded document files and calendar attachments are now kept as raw binary (`BLOB`) inside the SQLite database instead of Base64 text. This removes the ~33 % Base64 size overhead (saving roughly 25 % of the space used by locally stored documents) and cuts CPU/RAM work on every upload and download, which is most noticeable on low-powered devices like a Raspberry Pi. Existing databases are converted automatically on first start — no manual action is required — and WebDAV/DMS-backed documents are unaffected.
+
+## [0.85.0] - 2026-07-02
+
+### Added
+- **MCP endpoint for AI agents (Discussion #429)** — Yuvomi now serves a stateless [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp` (JSON-RPC 2.0 over HTTP). AI clients such as Claude Desktop can list and create tasks, shopping items, and calendar events through natural language. It authenticates with the existing API tokens (`Authorization: Bearer <token>`), so no new environment variable, port, or setup step is required.
+
+## [0.84.0] - 2026-07-02
+
+### Added
+- **Calendar event colors now sync per event (Discussion #427)** — Google Calendar event colors are shown in Yuvomi, and per-event colors are also read from CalDAV, Apple, and ICS calendars (iCalendar `COLOR`, RFC 7986); an event without its own color still inherits its calendar's color. When a local event is pushed out to Google, its color is mapped to the nearest of Google's event colors.
+
+### Fixed
+- **CalDAV and Apple syncs no longer discard an event color you set in Yuvomi** — previously every resync overwrote it with the calendar color. A resync now only updates the color of events you haven't recolored yourself, matching how Google and ICS calendars already behaved.
+
+## [0.83.1] - 2026-07-02
+
+### Added
+- **ZAR (South African Rand)** added to the currency list — Budget subscriptions, split expenses, and household base currency now accept ZAR alongside the existing currencies.
+
+## [0.83.0] - 2026-07-01
+
+### Added
+- **New Health module** (`/health`) — a private, per-member health tracker with five tabs: Overview, Vitals, Medications, Lab results, and Activity. Every entry belongs to a family member with `private`/`family` visibility, and the whole module can be disabled like any other.
+- **Vitals** — record blood pressure (systolic/diastolic/pulse), glucose, weight, SpO₂ and temperature, with per-metric cards showing the latest value and a native SVG trend chart (week/month/year) plus a screen-reader data table.
+- **Medications** — medication list with dosage, form and active/as-needed flags, a schedule editor (times + weekday mask + dose), a "due today" list with taken/skipped logging, a 7-day adherence rate, and stock/refill warnings. Dose reminders are delivered through the existing push and notification channels.
+- **Lab results** — structured reports with multiple analytes, reference ranges, automatic low/normal/high flags, and a per-analyte trend chart with a shaded reference band.
+- **Activity** — training log (type preset or free text, duration, distance, intensity, calories) with a weekly summary and a native SVG bar chart.
+- **Overview** — today's due doses with inline take/skip, adherence rate and streak, latest-vitals cards, upcoming reminders, quick-capture shortcuts, and CSV export per area over any date range.
+- **Health entries in global search** — medications and activities are indexed and deep-link back to their tab.
+- **Medical disclaimer** in the overview and capture modals — Yuvomi is for personal record-keeping only and makes no diagnostic claims. Health data is sensitive; database encryption (`DB_ENCRYPTION_KEY`, SQLCipher) is recommended.
+
+## [0.82.0] - 2026-07-01
+
+### Added
+- **Dashboard load errors now show a clear, retryable message** — a failed load renders a distinct error state with a Retry button (with different wording for a dropped connection, an expired session, or a server problem) instead of empty widgets that looked like a calm day.
+- **Empty Shopping and Budget widgets offer a "+ Create" shortcut** into the module, so a fresh household isn't left at a dead end.
+- **Dashboard widgets can be reordered by keyboard and on touch** — arrow keys move a focused widget in edit mode, and touch devices get Up/Down buttons (mouse drag still works on desktop).
+- **Hiding every widget now shows a "re-enable via Customize" hint** instead of a blank grid.
+
+### Changed
+- **The dashboard now leads with the Today Cockpit as its single overview** — the Tasks, Calendar, Shopping, and Meals widgets start hidden because the cockpit already summarizes them, so the first screen orients instead of overwhelming. A one-time hint points to Customize, and existing saved layouts are untouched.
+- **The Budget widget was redesigned** to lead with the monthly balance, one highlighted savings rate, and a quiet income/expenses line instead of four equal-weight metric boxes.
+- **Weather is no longer the first widget** in the default layout.
+- **Larger touch targets** on dashboard list rows and the edit-mode controls for easier tapping on phones.
+- **Resetting the dashboard layout now asks for confirmation** before discarding your arrangement.
+- **The Customize dialog reorders widgets with the same up/down buttons used elsewhere** (the older drag-the-row interaction was removed) for one consistent, keyboard-friendly model.
+
+### Fixed
+- **On the smallest Budget widget size, the income and expenses line no longer truncates** both label and amount — it stacks vertically instead.
+
+## [0.81.1] - 2026-07-01
+
+### Changed
+- **Kitchen modules (Meals, Recipes, Shopping) now share one consistent visual grammar.** A single module-accent strip lives on the shared tab bar and changes color with the active tab; recipe cards are opaque like the rest of the app instead of translucent glass; ingredient, meal and shopping quantities use aligned tabular figures; and the delete-undo window is a consistent 5 seconds across all three tabs.
+- **The Meals "add" button is now available on mobile**, matching Recipes and Shopping.
+- **The Recipe list now tiles across the available width on desktop** instead of a single column of full-width cards, and the Shopping list is centered in a readable column on wide screens.
+- **Recipe card actions** (edit, duplicate, delete) are now consistent, de-emphasized icon buttons that reveal on hover/focus, with delete no longer shown as a permanently visible red button.
+- **The active shopping list tab** now uses the Shopping module accent color.
+
+### Fixed
+- **Recipe titles no longer overflow their card**, and the "open recipe link" no longer stretches the full card width with its label centered.
+- **The Recipes tab no longer shows a redundant page title** that the shared tab bar already provides.
+
+## [0.81.0] - 2026-07-01
+
+### Added
+- **Undo for marking a loan installment paid** (Budget → Loans). The one money action that *creates* a commitment now has the same 5-second undo as deletions — a stray tap can be taken back without hunting down the payment.
+
+### Changed
+- **Budget on mobile** now scrolls as a single view, so the floating add button no longer covers the last category or transaction. The module tab strip scrolls horizontally with a fade hint at the edge instead of clipping the last tab, and the active tab scrolls into view.
+- **Budget category labels** no longer truncate on tablet and desktop widths.
+- **Budget summary, loan, and loan-transaction surfaces** are now opaque for better legibility; the glass treatment is reserved for overlays.
+- **Budget statistics period** now shows localized dates instead of raw ISO dates.
+
+### Fixed
+- **Budget statistics** now show a clear error state with a retry button when data can't be loaded, instead of a misleading "no data yet" message that looked like an empty history.
+- **Budget accessibility:** category amounts carry +/− signs (not color alone), the expense-breakdown donut keeps distinct colors for more categories, loan progress is announced as a progress bar, recurring markers are labeled for screen readers, and the module tabs support full keyboard navigation (arrow keys, Home/End, roving focus).
+
+## [0.80.1] - 2026-06-30
+
+### Fixed
+- **Calendar event reminders now fire on time.** Event reminders were saved in local time while the notification scheduler compares against UTC, so they fired late by the local UTC offset and appeared not to arrive at all. Reminder times are now stored in UTC, consistent with task reminders, fixing Web Push, Gotify and ntfy delivery for calendar events. Existing event reminders fire correctly once the event is saved again.
+
+## [0.80.0] - 2026-06-30
+
+### Changed
+- **Dashboard "Today at a glance" category labels** (Task, Event, Shopping, Dinner) now carry their module's accent color instead of neutral gray, reinforcing module identity at a glance. Contrast stays above WCAG AA in both light and dark themes.
+- **New installations now default to day-month-year date format** (e.g. `30.06.2026`) instead of US month-day-year, matching the existing 24-hour time and EUR currency defaults. Existing accounts keep their chosen format, and US `MM/DD/YYYY` remains selectable under Settings → Appearance.
+
+### Fixed
+- **Duplicate required-field asterisk** removed: the title field in the task, calendar and budget dialogs no longer renders a doubled marker; a single styled asterisk is shown across all 20 languages.
+- **Dashboard meal widget** empty states no longer truncate mid-word — the dinner tile shows a concise "Nothing planned", and empty meal slots use a clearer muted placeholder.
+
+## [0.79.0] - 2026-06-30
+
+### Changed
+- **Oikos → Yuvomi migration (automatic, no user action required):** the SQLite database file (`oikos.db` → `yuvomi.db`), the session cookie, browser storage keys, service-worker caches, the API-token prefix, and internal web-component/global identifiers are renamed to Yuvomi. On the first start after updating, an existing database is migrated in place, you stay signed in (the session cookie is migrated seamlessly), and stored preferences carry over. Existing Docker / Podman / Unraid / TrueNAS installations keep receiving updates without editing any configuration — the legacy `ghcr.io/ulsklyc/oikos` image mirror is retained permanently, and a `window.oikos` alias keeps pre-rename third-party modules working.
+- **Default database path** for new installations is now `/data/yuvomi.db` across all deploy targets (Docker Compose, Podman, Portainer, Unraid, TrueNAS, Quadlet). Existing `/data/oikos.db` installs are migrated automatically on boot; custom `DB_PATH` values are left untouched.
+- **Database backups** are now written with a `yuvomi-backup-` filename prefix; previously created `oikos-backup-` files remain restorable.
+- New API tokens use the `yuvomi_` prefix; existing `oikos_` tokens remain valid.
+
+## [0.78.13] - 2026-06-30
+
+### Changed
+- **Dark mode accents restored to vivid:** reverted the one-step desaturation of dark-mode module accent colors introduced in 0.78.12 — the dark palette is lively again. The 0.78.12 dark-mode contrast fixes, the blue/teal hue separation, and the rosé Birthdays color are all retained.
+
+## [0.78.12] - 2026-06-30
+
+### Changed
+- **Module accent colors rationalized:** the four near-identical blues are now visually distinct — Documents moves to a steel-blue and Split-expenses to an azure-cyan, while Recipes and Budget (previously the same teal hue) are separated. Birthdays moves to a rosé so it no longer clashes with the red used for delete/danger actions, and the Info color is decoupled from the byte-identical Contacts accent.
+- **Calmer dark mode:** module accent colors are desaturated one step in dark mode for a quieter palette without losing contrast.
+- **Glass tint:** module-accent tint on glass surfaces raised from 4% to 6% so each module's identity registers.
+
+### Fixed
+- **Dark mode contrast:** primary button labels, info text, and the Documents and Split-expenses module accents now meet WCAG AA in dark mode (all were previously below the required contrast ratio).
+- **Design-token documentation:** corrected several inaccurate contrast ratios noted in the design tokens.
+
+## [0.78.11] - 2026-06-30
+
+### Removed
+- **Dashboard stylesheet cleanup:** removed ~510 lines of dead and self-overriding CSS from `dashboard.css` — four unreferenced component generations (`.dashboard-metric`, `.dashboard-stat`, `.dashboard-kpi`, the old `.widget-greeting`/`.greeting-chip` block), an unused `.dashboard-chip`, a now-orphaned keyframe, and the redundant "Modern Skin" layer that a later block fully reverted. No visual change; rendered output is identical.
+
+## [0.78.10] - 2026-06-30
+
+### Fixed
+- **Subscription cards:** removed the 4px colored left-border stripe; the brand color now lives solely on the brand icon tile, in line with the design system's full-border convention.
+- **Touch targets:** subscription card action buttons now meet the 40px minimum target size (were 36px), and the meal planner's "add another meal" button is raised to a full touch target on touch devices.
+- **Meal planner on touch:** the "add another meal" button, previously revealed only on hover, is now permanently visible on touch devices (`hover: none`), where it was otherwise unreachable.
+
+## [0.78.9] - 2026-06-30
+
+### Fixed
+- **Offline cache isolation on logout failure:** the read-only offline API cache is now cleared even when the logout request itself fails (offline or unreachable server). Previously the cache clear was skipped if the logout POST threw, so a subsequent user on the same device could still fall back to the previous user's cached data.
+
+## [0.78.8] - 2026-06-30
+
+### Added
+- **Read-only offline support:** the service worker now network-first-caches a whitelist of read-only `GET /api/v1/*` data paths (calendar, tasks, shopping, contacts, dashboard) in a release-keyed `oikos-api-<version>` cache, so the last-seen data stays viewable when offline. The calendar shows a subtle "Offline – as of: {time}" banner (from the cached `x-cached-at` timestamp) when served from cache. (Discussion #388)
+
+### Changed
+- **Service worker API handling:** mutations, `/auth/*`, and non-whitelisted GET requests are passed straight to the network and never cached; state-changing requests that fail offline now surface a clear "changes aren't possible while offline" message instead of a raw network error.
+
+### Security
+- **Offline cache isolation:** the offline API cache is wiped on logout and session expiry so a second user on the same device cannot see the previous user's cached data, and stale `oikos-api-*` caches from prior versions are purged on every service-worker update.
+
+## [0.78.7] - 2026-06-30
+
+### Changed
+- **Tasks → recurring tasks:** completing an overdue recurring task now schedules its next instance at the next occurrence on or after today, instead of advancing a single interval from the old (possibly still-overdue) due date. A skipped routine no longer reappears already overdue, and only one open instance ever exists. (Discussion #405)
+
+## [0.78.6] - 2026-06-30
+
+### Fixed
+- **CI test suite:** updated the installer-schema test to expect the renamed internal shell variables (`YUVOMI_TZ`, `YUVOMI_PORT`) in `install.sh`, fixing the red `test:installer-schema` check after the Oikos→Yuvomi branding rename.
+
+## [0.78.5] - 2026-06-30
+
+### Changed
+- **CalDAV/CardDAV sync:** updated the optional `tsdav` dependency to 2.3.0, keeping calendar/contact sync current and dropping the legacy `base-64` transitive package.
+- **Developer QA tooling:** updated Puppeteer to 25.2.1 for frontend audit and screenshot workflows.
+
+### Fixed
+- **Pull request automation:** the Claude Code Review workflow now skips cleanly when `CLAUDE_CODE_OAUTH_TOKEN` is unavailable, so Dependabot PRs are not marked failed because review credentials are absent.
+
+## [0.78.4] - 2026-06-30
+
+### Fixed
+- **Dashboard → Calendar deep links:** recurring events opened from the upcoming-events widget or Today Cockpit now jump to the displayed occurrence instead of the original series start date, and the popup/edit flow receives the expanded occurrence date. (PR #415)
+
+## [0.78.3] - 2026-06-29
+
+### Fixed
+- **Meals → Mobile week view:** the meal planner now shows the full week (Mon–Sun) on phones instead of a fixed three-day window, so days 4–7 are reachable again. The week is stacked vertically, scrollable, and auto-scrolls to today on open. (Closes #416)
+
+## [0.78.2] - 2026-06-29
+
+### Changed
+- **Third-party module documentation:** clarified that module API calls should use `/api.js` for built-in Yuvomi endpoints and that reverse-proxied dynamic backend services should live under a same-origin `/api/...` path to avoid stale service-worker cache responses. (Discussion #386)
+
+### Fixed
+- **Dashboard → Today Meals widget:** hidden meal types from Settings → Modules → Kitchen are no longer rendered as empty slots in the widget. (Discussion #407)
+
+## [0.78.1] - 2026-06-29
+
+### Added
+- **Meals → Weekly recurrence:** new meals can be marked as weekly repeats from the advanced meal dialog; Yuvomi materializes future occurrences on the same weekday, shows a repeat badge on recurring meals, and remembers skipped dates when a single occurrence is deleted. (Closes #412)
+
+## [0.78.0] - 2026-06-29
+
+### Added
+- **Budget → Statistics tab:** new dedicated view with weekly/monthly/yearly range buttons, a period stepper, summary cards for income/expense/balance plus comparison against the previous period, an SVG trend chart of income vs. expenses, category bars, an expense-share donut, and a CSV-export button for the active range. Translated for all 20 locales.
+- **`GET /api/v1/budget/stats`:** new endpoint backing the Statistics tab — `?range=week|month|year&anchor=YYYY-MM-DD` returns totals, prior-period comparison, per-period series, and per-category breakdown.
+
+### Changed
+- **`GET /api/v1/budget/export`:** also accepts `?from=YYYY-MM-DD&to=YYYY-MM-DD` to export an arbitrary date range; the legacy `?month=YYYY-MM` form keeps working.
+
+## [0.77.9] - 2026-06-28
+
+### Changed
+- **Dashboard → Today meals:** the meals widget now visually matches the budget overview widget style — a 2×2 card grid with borders, rounded corners, muted backgrounds, and color-accented hover states.
+
+## [0.77.8] - 2026-06-28
+
+### Changed
+- **Dashboard → Calendar deep links:** clicking an upcoming-events row or the Today Cockpit calendar card now navigates directly to the event detail popup (`/calendar?open=<id>`) instead of just opening the calendar view. The calendar automatically jumps to the event's date and shows the detail popup on the matching chip; falls back to the edit modal when the chip is not in the rendered view.
+
+## [0.77.7] - 2026-06-28
+
+### Changed
+- **Dashboard birthday widget:** avatars are now circular, matching the shape used for avatars throughout the app.
+
+## [0.77.6] - 2026-06-26
+
+### Fixed
+- **Dashboard birthday widget:** the overview now shows upcoming birthdays from all household users instead of only birthdays created by the currently signed-in user. (Fixes #406)
+
+## [0.77.5] - 2026-06-25
+
+### Fixed
+- **Weather widget: personal locations now show on the dashboard without a household weather provider:** a per-user Open-Meteo location now activates the weather proxy even when no admin household location is configured, so enabling the weather widget in the overview can render the user's own weather data.
+- **Translations: removed German placeholders from the personal weather and assignment UI:** all supported locales now translate the personal weather settings labels and the shared user multi-select "No one" copy instead of showing German fallback text.
+- **Dark mode: date-navigation arrows in Meals and Calendar are now visible on desktop:** the previous/next chevrons now use the app accent color instead of inheriting a dark/default icon color.
+
+## [0.77.4] - 2026-06-25
+
+### Added
+- **Hungarian locale**: full Hungarian (`hu`) translation added, covering all UI strings across all modules (tasks, calendar, shopping, meals, budget, notes, contacts, birthdays, recipes, documents, housekeeping, settings, and more). Hungarian is now selectable in Settings → Language. The web installer wizard and CLI installer are localized as well.
+
+## [0.77.3] - 2026-06-24
+
+### Fixed
+- **Split expenses: adding a family member as a group guest restricted their navigation to the Split page only:** when an existing user was added to an expense group with the `guest` role via the members endpoint, they were incorrectly written into the `split_expense_guest_users` table. This caused `access_scope` to be resolved as `split_guest` on their next login, hiding all navigation items except Budget/Split. The `split_expense_guest_users` table is now exclusively populated by the dedicated guest-account creation flow. A database migration removes existing incorrect entries for users who have no `guest_created` activity record. (Fixes #400)
+
+## [0.77.2] - 2026-06-23
+
+### Fixed
+- **Shopping lists: can't check/uncheck items after switching lists:** switching to another list (or renaming one) re-bound the click handler on the persistent list container without removing the previous one, so each tap on an item's checkbox fired the toggle twice and cancelled itself out — only adding items still worked. The click delegation is now bound once per container. (Fixes #398)
+
+## [0.77.1] - 2026-06-23
+
+### Fixed
+- **Missing `reminders.pushed_at` column after database rebuild:** migration 57 rebuilt the `reminders` table without carrying over the `pushed_at` column added in migration 54, causing `PushScheduler` to fail with `no such column: r.pushed_at` on every fresh install or update. A new migration restores the column. (Fixes #393)
+- **Schema-test export out of sync:** the node:sqlite-synchronized schema export used by tests had stopped at migration 61, so schema tests applying the exported migrations never picked up the restored `reminders.pushed_at` column.
+
+## [0.77.0] - 2026-06-23
+
+### Fixed
+- **Calendar export feed: events with an explicit UTC offset:** events synced from sources that store an explicit timezone offset (e.g. Google Calendar, like `+02:00`) were exported with an invalid timestamp (`...+02:00Z`), producing `NaN` date/time values in the ICS feed instead of being converted to UTC. The export now correctly distinguishes offset-qualified timestamps from naive local ones.
+
+## [0.76.0] - 2026-06-22
+
+### Added
+- **Read-only calendar export feed:** Settings → Calendar now lets any user expose their visible calendar events (own events, assigned events, and shared/own ICS subscriptions) as a `webcal://`/`https://` ICS feed for subscribing in Apple Calendar, Google Calendar, Thunderbird, and similar apps. Enabling the feed generates a secret token; "Regenerate link" rotates it (invalidating the old URL) and "Disable feed" clears it. The feed is served by a public, token-authenticated `GET /feed/calendar/:token.ics` route, rate-limited to 30 requests/minute per IP. (Discussion #387)
+
+## [0.75.2] - 2026-06-20
+
+### Changed
+- **Settings overview polish:** the desktop Settings root now shows a descriptive overview instead of duplicating the local navigation, while status summaries, breadcrumbs, and mobile module rows use calmer system-aligned states and spacing.
+
+## [0.75.1] - 2026-06-20
+
+### Added
+- **Gotify and ntfy notification channels:** admins can add household notification channels for self-hosted Gotify or ntfy servers alongside existing per-device Web Push. Reminder delivery now tracks each channel independently to avoid duplicate sends and preserve retry state.
+
+## [0.75.0] - 2026-06-19
+
+### Added
+- **Per-user weather location:** any user — not just the admin — can now set their own weather location, units, and automatic-location-updates toggle under Settings → Personal → My Weather, overriding the household default just for their own dashboard widget. A status indicator shows whether a personal location or the household default is active, and a "Use household default" action clears the override. The dashboard's automatic location updates (introduced in v0.74.7) now write to this per-user override for every user instead of being admin-only.
+
+## [0.74.8] - 2026-06-19
+
+### Fixed
+- **Missing translations for admin password reset:** the "New password" label, placeholder, and hint added to the "Edit member" dialog in v0.74.6 were only present in the German locale file, so every other language fell back to German text. All 18 non-German locales now have proper translations. (Fixes #372)
+
+## [0.74.7] - 2026-06-19
+
+### Added
+- **Automatic weather location updates:** an opt-in "Standort automatisch alle 30 Minuten aktualisieren" checkbox in Settings → Modules → Dashboard re-requests the browser's geolocation every 30 minutes while the dashboard is open, silently updating the saved coordinates (admin-only). Enabling it immediately triggers the existing one-time location request. A stale city label is cleared on each automatic update so the widget falls back to showing coordinates instead of an outdated city name after the location changes.
+
+## [0.74.6] - 2026-06-19
+
+### Added
+- **Admin password reset for family members:** the "Edit member" dialog now has an optional "Reset password" field (min. 8 characters, leave blank to keep the current password), so an admin can set a new password for a family member who forgot theirs — no SMTP/`BASE_URL` setup required, unlike the self-service "Forgot password" flow. Changing a member's password invalidates their other active sessions. (Fixes #372)
+
+## [0.74.5] - 2026-06-19
+
+### Added
+- **Calendar click-to-create time pre-fill:** clicking an empty slot in the day or week view now pre-fills the new event's start time from the clicked position (rounded to the nearest 30 minutes), with the end time set to start + 1 hour. Previously the start time was always hardcoded to 09:00.
+
+## [0.74.4] - 2026-06-18
+
+### Fixed
+- **Weather widget inset:** restored the card padding around current conditions and the forecast row, which was lost when the widget's wrapper was introduced in v0.74.3 and left its content flush against the card edges in contexts without the dashboard-specific override.
+
+## [0.74.3] - 2026-06-18
+
+### Added
+- **Brazilian public holidays:** a local fallback (9 national holidays plus computed Good Friday) now populates the calendar when OpenHolidays returns no rows for `BR`, using Portuguese labels.
+- **Custom modules navigation group:** enabled third-party modules now get their own localized "Custom modules" sidebar section instead of being grouped under Home.
+
+### Changed
+- **Weather widget sizing:** the dashboard weather widget now uses container queries instead of viewport media queries, so its layout density actually reflects its configured grid size instead of always forcing full width on larger screens.
+
+### Fixed
+- **Help label fallback:** the navigation and help-page "Help" label no longer falls back to the German string "Hilfe" in non-German locales; all locales now show the correctly translated label.
+
+## [0.74.2] - 2026-06-18
+
+### Fixed
+- **Calendar floating action button:** the keyboard focus ring now matches the active module accent color instead of always showing the global violet, and the button gets the documented top/bottom specular highlight for visual depth.
+
+## [0.74.1] - 2026-06-18
+
+### Security
+- **Closed a DNS-rebinding gap in subscription logo discovery:** the validated public address is now pinned for the actual HTTPS connection instead of letting a second, independent DNS lookup decide where the request goes.
+- **Updated nodemailer** to fix several SMTP command-injection and CRLF-injection vulnerabilities (GHSA-c7w3-x93f-qmm8, GHSA-vvjj-xcjg-gr5g, GHSA-268h-hp4c-crq3, GHSA-wqvq-jvpq-h66f, GHSA-r7g4-qg5f-qqm2).
+
+### Fixed
+- **Subscription logo HTML parsing** no longer double-unescapes encoded entities (e.g. `&amp;lt;` no longer collapses to `<`).
+
+## [0.74.0] - 2026-06-18
+
+### Changed
+- **Calmer create/edit modals across the app:** form dialogs now keep their module visible as a soft, tinted blur behind the panel instead of a full-screen takeover, and on mobile they open as a bottom sheet anchored to the lower edge.
+- **Progressive disclosure in heavy forms:** the most-used fields stay visible while secondary options collapse under a "More settings" section that auto-expands when editing an entry that already uses them. Applied to calendar events, tasks, budget entries, subscriptions, contacts, birthdays, meals, recipes, notes, and documents.
+
+## [0.73.0] - 2026-06-18
+
+### Added
+- **Subscriptions tracker under Budget:** a new tab between Budget and Loans tracks daily, weekly, monthly, and yearly services with renewal dates, pause/disable state, custom categories and payment methods, search/filter/sort controls, uploaded or securely discovered logos, brand colors, and responsive mobile cards.
+- **Subscription budgeting and analytics:** configurable monthly budget, remaining/over-budget status, yearly projection, category and payment-method breakdowns, native-currency amounts, and optional Fixer-backed conversion into a household base currency with a 12-hour server cache.
+- **Subscription reminders:** per-subscription reminder timing feeds the existing in-app reminder center.
+- **Budget-linked subscription expenses:** every active subscription maintains its next payment as a Budget expense under a localized `Subscription` category. Subscription categories are mirrored as Budget subcategories, disabling removes the pending expense, and renewal preserves the paid entry while creating the next one.
+- **Redesigned subscription editor:** grouped identity, billing, renewal, organization, and service sections replace the flat form. The logo sits beside the name, currency/category/payment method use searchable in-modal lists, and logo discovery shows an immediate preview.
+- **Compact subscription dashboard:** the Subscriptions tab now uses the Budget accent tab color, Split-style page gradient, denser subscription rows, compact summary cards, a renewal forecast area chart, category pie chart, and payment-method breakdown.
+- **Selectable subscription logo search:** logo discovery now opens a picker with site-owned candidates (declared icons, favicon, Open Graph image) so users can choose the exact logo before saving.
+
+### Security
+- **Protected external subscription integrations:** all subscription APIs require the existing authenticated session and CSRF middleware; logo discovery validates every public HTTPS redirect, blocks private/link-local addresses, reads only bounded page/search metadata, and constrains remote image size/type.
+
+### Fixed
+- **Subscription settings and logo discovery:** the base currency now uses the searchable currency picker, an unset subscription budget is shown as unlimited instead of over budget, and logo search tries page icons plus the standard favicon without failing on large page bodies.
+- **Subscription service-name logo search:** plain service names now generate likely public domain candidates and inspect those sites directly under the existing SSRF protections, and logo search failures surface in the UI while detailed diagnostics are written to server logs.
+- **Subscription modal polish:** the next payment field now uses the native date picker, the billing cycle control no longer relies on the unstable native select in the modal, and newer subscription labels are localized across all supported languages.
+
+## [0.72.0] - 2026-06-17
+
+### Added
+- **Budget category management (#357):** a "Manage categories" button in the Budget tab header opens a modal to rename, reorder, and delete budget categories and their subcategories, built on a reusable `oikos-category-manager` web component. Deletion is blocked while a category or subcategory is still referenced by entries, or when it is the last category of its type / last subcategory of its category.
+
+## [0.71.51] - 2026-06-17
+
+### Added
+- **SMTP email & self-service password reset**: administrators can configure an SMTP server under Settings → Administration → Email (or via the `EMAIL_SMTP_*` / `EMAIL_FROM_*` environment variables), with a "Test connection" button to validate the setup. Once email is configured, the login page offers a "Forgot password?" link — users request a reset by username or email and receive a time-limited (1 hour) reset link. The absolute origin for reset links is taken from the new `BASE_URL` setting.
+
+### Security
+- Password-reset links are built only from the configured `BASE_URL` and never from the request Host header (host-header / reset-poisoning protection). The forgot-password endpoint always returns a generic response to prevent account enumeration, reset endpoints are rate-limited, and tokens are single-use, hashed at rest, and expire after one hour. The configured SMTP password is never returned by the API.
+
+## [0.71.50] - 2026-06-16
+
+### Added
+- **Web Push notifications for reminders**: opt-in push notifications (Settings → Personal → Notifications) deliver due reminders as system notifications even when the app is closed. A background scheduler sends due task, event and birthday reminders via the Web Push standard (VAPID / RFC 8291); VAPID keys are generated automatically on first use, or can be pinned across redeployments via `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`. Requires HTTPS. On devices where push is enabled, the in-app reminder toast still appears while the duplicate in-page browser notification is suppressed.
+
+## [0.71.49] - 2026-06-16
+
+### Added
+- **Unified Region / Format setting**: a single Region dropdown in Appearance settings presets currency, date format and time format together for 24 supported locales (e.g. de-DE, en-US, pt-BR). Selecting "Custom" reveals the individual currency, date and time controls. The Region control is admin-only, matching the previous currency permission.
+
+### Changed
+- **Currency moved out of Budget settings**: the currency selector now lives in the unified Region / Format control in Appearance settings; the Budget settings page links there instead.
+
+## [0.71.47] - 2026-06-15
+
+### Changed
+- **Weather widget appears first on the dashboard**: the default dashboard layout now places the weather card above the tasks and calendar widgets, so it is visible at the top without scrolling. This applies to new installs and anyone who has not customised their widget order; existing custom layouts are preserved.
+
+## [0.71.46] - 2026-06-15
+
+### Fixed
+- **Editing an hourly housekeeping visit no longer fails with "daily_rate is required"**: saving changes to a visit billed by the hour (e.g. adjusting the hours worked) returned a 400 error because the update endpoint always demanded a daily rate, even though hourly visits submit minutes worked instead. The daily rate is now only required for daily-rate visits; hourly visits recompute the amount from the minutes worked.
+
+## [0.71.45] - 2026-06-15
+
+### Fixed
+- **Settings side navigation updates its language on locale switch**: changing the application language while on a Settings page left the side navigation menu and the page header in the previous language until a hard reload. The Settings shell now tracks the locale it last rendered with and performs a full re-render when it changes, so the labels update immediately like the rest of the app.
+
+## [0.71.44] - 2026-06-14
+
+### Changed
+- **Holiday data syncs at most once every 30 days**: the automatic background holiday sync no longer calls the OpenHolidays API on every sync cycle (every 15 minutes by default) — it now skips when the cache was refreshed within the last 30 days, cutting needless external requests for data that changes at most yearly. The manual "Sync now" button in Settings still forces an immediate refresh.
+
+### Fixed
+- **"Heute wichtig" calendar card shows only today's events**: the dashboard Today Cockpit's calendar card listed the next upcoming event even when it was days away; it now counts and shows only events that fall on the current day.
+- **DMS account action buttons aligned inside the card**: the Test/Remove buttons for a connected document-management account are now rendered inside the account's status card instead of spilling outside its border.
+
+## [0.71.43] - 2026-06-14
+
+### Added
+- **Visible help entry**: a "Hilfe" item now sits in the desktop sidebar and in the mobile "More" sheet, opening a help overlay. On desktop it lists the keyboard shortcuts; on touch devices (where shortcuts don't apply) it shows a short plain-language guide — how to navigate, create with the + button, search, and find settings. The `?` keyboard shortcut still opens the same overlay.
+
+## [0.71.42] - 2026-06-13
+
+### Changed
+- **Contact category icons** now use Lucide line icons (stethoscope, graduation cap, landmark, shield, wrench, …) instead of emoji, matching the line-icon style used across the rest of the app.
+- **Calendar event colour shown as a dot**: the agenda list and the dashboard calendar widget now mark an event's calendar colour with a small dot instead of a coloured bar on the card's edge, using the same vocabulary as the task list's status dots.
+- **Tasks filter row uses the module accent**: the active filter chip, the clear badge, and the filter toggle now use the Tasks green instead of the global violet, so the filter row matches the rest of the module.
+
+### Fixed
+- **Single way to add a recipe**: Recipes no longer shows a toolbar "Add recipe" button next to the floating action button; the floating action button is now the only create action, consistent with every other module.
+- **Calendar names with "&" display correctly**: external calendar names that arrived HTML-entity-encoded (e.g. an imported Google calendar shown as "Termine &amp; Verabredungen") are now stored and displayed as plain text; existing names are repaired automatically.
+
+## [0.71.41] - 2026-06-13
+
+### Changed
+- **Consistent module headers across the app**: every module now shows a same-sized page title and a shared, slot-based toolbar — the title sits left, search or date navigation in the centre, and view switchers and actions grouped on the right — so the header no longer changes size or layout when moving between Tasks, Documents, Notes, Housekeeping, Contacts, Budget, Kitchen, Calendar, and Birthdays. On phones the centre slot (search/date navigation) drops to its own row as a cohesive group.
+- **Kitchen shows a "Küche" title**: the Meals/Recipes/Shopping tab bar now carries the module title beside the tabs.
+- **Calendar view switcher matches Budget**: the active Month/Week/Day/Agenda tab now uses the module-accent fill instead of a neutral pill, giving segmented switchers one consistent active style.
+
+### Fixed
+- **Single way to add in Documents and Birthdays**: these modules previously showed both a toolbar button and a floating action button to create an item; the floating action button — in the module's own colour — is now the only one.
+- **No more duplicated search label**: the search field in Documents, Contacts, and Birthdays no longer repeats its placeholder text as a visible label above the box.
+- **No stray focus outline on settings titles**: opening a settings page no longer draws an accent box around the page title.
+
+## [0.71.40] - 2026-06-13
+
+### Fixed
+- **Week view day numbers highlight on hover again**: hovering a non-today day header in the calendar's week view now shows the intended circular highlight; it previously referenced an undefined colour token and had no effect.
+
+
+
+### Changed
+- **Dashboard "Today at a glance" is easier to scan on phones**: the important-today cards now use a compact 2×2 glance grid instead of a full-height stack, so the actionable lists below appear without scrolling; very narrow screens fall back to a single column.
+- **Dashboard glance cards read more calmly**: the task and event cards show an open-count badge and now use neutral titles with a single coloured module icon, reducing the colour load at the top of the screen.
+
+## [0.71.38] - 2026-06-13
+
+### Fixed
+- **All-day events now appear in the dashboard's upcoming events widget**: events stored with a date-only timestamp (no time component) were excluded by an off-by-one string comparison; they are now handled correctly.
+- **Birthdays set to "no notification" no longer appear as calendar events**: selecting "keine Benachrichtigung" now removes the associated calendar event so the birthday is no longer shown in upcoming events or the calendar view.
+
+## [0.71.37] - 2026-06-13
+
+### Changed
+- **Mobile controls are easier to operate**: task filters, Calendar's Today action, loan filters, and Settings breadcrumbs now use consistent touch-safe targets.
+- **Progress indicators animate without layout work**: Dashboard shopping progress and task subtask progress now use transform-based animation.
+
+### Fixed
+- **Shared dialogs and Housekeeping expose clearer semantics**: prompt and selection fields have accessible labels, and Housekeeping starts with a proper page heading.
+- **User-selected and semantic colors remain readable**: avatars choose a contrasting foreground automatically, while priority and meal labels meet WCAG AA contrast in light and dark themes.
+
+## [0.71.36] - 2026-06-13
+
+### Changed
+- **Dense mobile modules now reveal complexity progressively**: Contacts keep one primary row action with secondary actions under More, Documents collapse view and filter controls behind a bounded overflow panel, and Navigation settings use lighter sections with a sequential heading hierarchy.
+- **Mobile controls now use consistent touch-safe sizing and quieter motion**: meal actions remain visible with 48 px targets, audited profile, birthday, navigation, contact, housekeeping, and budget controls meet the same target standard, and budget bars animate with transforms instead of layout-driving widths.
+
+### Fixed
+- **Forms, housekeeping copy, and holiday chips are more accessible**: search fields retain visible labels, German housekeeping strings no longer fall back to English, worker identity spacing is restored, and custom holiday colors choose readable foreground text.
+
+## [0.71.35] - 2026-06-13
+
+### Fixed
+- **Dashboard interactions now feel proportionate and respond on the first mobile swipe**: the "Today important" values no longer overpower their heading, the initial route skips the page-slide transform, and the closed quick-action layer no longer captures gestures in the lower half of the screen.
+- **Calendar gains clearer desktop spacing and denser date navigation**: the page now keeps a consistent gutter beside the sidebar, while weekday and date sit side by side in a shorter header row.
+- **Settings open faster and mobile navigation accents stay distinct**: Settings reuse the authenticated router user instead of repeating the session request, and Dashboard and Calendar retain separate colors in light and dark themes.
+
+## [0.71.34] - 2026-06-13
+
+### Fixed
+- **PWA updates and final interface details now remain current, readable, and consistent**: release-bound service-worker caches deliver every published UI revision, the early locale bootstrap remains available offline, colored Notes choose WCAG-safe text automatically, Dashboard quick actions use native controls with one clear page heading, mobile customization keeps a 48 px touch target, and rounded Dashboard and Housekeeping cards use quieter full borders instead of heavy accent caps.
+- **Docker publishing no longer reports a failed release after images were pushed successfully**: transient GitHub Actions cache-export errors are treated as failures of an optional optimization, while image builds and registry pushes remain strict.
+
+## [0.71.33] - 2026-06-12
+
+### Fixed
+- **RTL, extreme-content, and route-error resilience are hardened across the responsive UI**: Arabic now applies RTL before first paint and re-renders the active page when languages change; mixed-script and unbroken Notes and Birthdays content stays within its layout; adapted search and overflow controls align logically; and failed page loads show a localized, focused recovery state instead of raw network errors or false empty data.
+
+## [0.71.32] - 2026-06-12
+
+### Changed
+- **Responsive module layouts now preserve readability from narrow phones through tablets**: Notes use width-aware grid columns without horizontal overflow, dense Tasks and Documents controls collapse or wrap before labels are squeezed, Kitchen tabs remain visible, Settings overview links use tablet space efficiently, dashboard note cards constrain long content, and Birthdays presents one clear mobile creation action.
+
+## [0.71.31] - 2026-06-12
+
+### Changed
+- **App-wide typography now follows one responsive semantic hierarchy**: mobile and desktop use fixed hero, page, section, card, body, secondary, caption, and micro roles instead of drifting module-specific sizes. Oversized mobile headings were reduced, readable supporting text now starts at 14px, prose and inputs stay at 16px, document and split-expense headings are consistent, and Settings leaf pages show one clear primary title.
+
+## [0.71.30] - 2026-06-12
+
+### Changed
+- **Mobile bottom navigation now uses a quieter, more precise active state**: the inset module-tinted indicator, flatter inactive icon wells, stable labels, focused keyboard ring, and icon-only press feedback improve clarity across light, dark, reduced-motion, reduced-transparency, high-contrast, and forced-color modes.
+
+## [0.71.29] - 2026-06-12
+
+### Fixed
+- **WebDAV document storage now works with local/private-network targets**: setting `DOCUMENT_STORAGE_WEBDAV_ALLOW_PRIVATE_NETWORK=true` lifts the SSRF block for Nextcloud or other WebDAV servers that resolve to RFC 1918 / loopback addresses (e.g. same Docker Compose stack, LAN domain via Caddy). The guard remains active by default; the opt-in is explicit and documented.
+
+## [0.71.28] - 2026-06-12
+
+### Fixed
+- **Relative `DB_PATH` no longer crashes with a cryptic error**: `init()` now creates the database directory before opening the connection (consistent with the existing restore path) and logs a clear warning when `DB_PATH` is relative, explaining that data will not survive container restarts and pointing to the correct absolute-path form (`/data/oikos.db`).
+
+## [0.71.27] - 2026-06-12
+
+### Fixed
+- **Website version badge synchronized**: the GitHub Pages landing page now shows the current release in both the proof bar and footer instead of the stale `v0.71.21` label.
+
+## [0.71.26] - 2026-06-12
+
+### Changed
+- **Responsive navigation personalization**: the mobile bottom bar now keeps exactly five stable destinations visible — Overview, three user-selected favorites, and More — and remains present while content scrolls. Inactive buttons use neutral surfaces while the current module alone carries its accent through a faster 200 ms sliding indicator. Settings → Modules → Navigation now separates mobile favorites from web navigation; desktop entries can only be reordered within the Overview, Plan, and Home groups, with Dashboard and Settings pinned.
+
+## [0.71.25] - 2026-06-12
+
+### Fixed
+- **Settings page no longer shifts horizontally when the scrollbar appears or disappears**: `.app-content` now declares `scrollbar-gutter: stable`, which pre-reserves the scrollbar lane at all times. Previously, toggling between long and short pages caused the entire content area to jump by the scrollbar width.
+
+## [0.71.24] - 2026-06-12
+
+### Fixed
+- **Dashboard scroll on Android no longer requires a tap before the first swipe**: interactive cards (`.today-cockpit-card`, `.dashboard-metric`) were missing `touch-action: pan-y`, causing Chrome to enter tap/scroll disambiguation mode on the first touch. A preliminary tap was needed to activate the scroll context. All dashboard interactive items now declare `touch-action: pan-y` consistently, so the first swipe scrolls immediately.
+
+## [0.71.23] - 2026-06-12
+
+### Fixed
+- **Task reminders no longer drift by the timezone offset on every save**: a task reminder was stored as UTC but read back as local time, so reopening a task in a non-UTC timezone showed the wrong offset (e.g. "1 hour before" became "Custom – 360 minutes" at UTC+5), and each save without changes added the offset again. Reminder times are now read back as UTC consistently, so the offset round-trips correctly and stays stable across repeated saves.
+
+## [0.71.22] - 2026-06-12
+
+### Changed
+- **Collapsible settings sidebar on desktop**: the settings navigation (≥1024px) used to list every domain and all its pages at once, which ran very long for admins (5 sections, 18 links). The five domain groups (Personal, Modules, Sync, Documents, Administration) are now a single-open accordion: the domain you are currently in is expanded and the others collapse to just their header, with a smooth height animation and a rotating chevron. Switching pages automatically opens the matching domain and closes the rest. Collapsed sections are removed from the keyboard tab order, the open/close motion respects reduced-motion preferences, and the accordion only activates when more than one domain is visible (single-domain members keep the flat list). The mobile drill-down navigation is unchanged.
+
+## [0.71.21] - 2026-06-12
+
+### Changed
+- **Slimmer dashboard header on mobile**: the home dashboard header used to stack three rows on phones (date, greeting, then the customize button on its own line). The customize button now sits on the greeting row, right-aligned and vertically centered, so the header takes less vertical space and "Today at a glance" appears sooner. The desktop layout and the edit-mode toolbar (which still wraps below on narrow screens) are unchanged.
+
+### Removed
+- **Dead dashboard styles and a deprecated token**: removed unused CSS for the previous dashboard layout system (hero, layout, workspace, tile, side-stack, and the `dashboard-widget-grid` class) that was left behind when the current widget grid replaced it, and dropped the deprecated `--text-md` font-size alias. Internal cleanup only, no visible change.
+
+## [0.71.20] - 2026-06-12
+
+### Changed
+- **Calmer dashboard above the fold**: the home dashboard no longer stacks three separate representations of the same four areas (Tasks, Calendar, Shopping, Meals) before any new information appears. The redundant quick-action row in the greeting header has been removed — the bottom-right action button (and the sidebar on desktop) already cover creating and navigating — so the personal greeting and the "Today at a glance" summary now lead the screen. On mobile this also removes a row of unlabeled icon-only buttons. The duplicate date that the summary repeated directly under the greeting is gone, leaving a single date. No data, widgets, or customization were changed.
+
+## [0.71.19] - 2026-06-12
+
+### Fixed
+- **No false translation prompt on non-German devices** (#353): the app shipped a hardcoded `<html lang="de">`, so Chromium-based browsers (e.g. Brave) repeatedly offered to translate the already-localized interface from German on non-German systems. The document language is now set to the resolved user locale before the page renders, so the declared language matches the displayed content.
+
+## [0.71.18] - 2026-06-12
+
+### Changed
+- **Modal size reference completed**: the `openModal({ size })` documentation now lists all four sizes (`sm`/`md`/`lg`/`xl`) with their widths, matching the CSS and the design system instead of omitting the `xl` size that the Documents module already uses.
+
+### Removed
+- **Dead loading translation keys**: two unused `loadingIndicator` strings (Recipes and Budget) were removed across all 19 locales; the shared skeleton loading state replaced them in v0.71.14–0.71.17.
+
+## [0.71.17] - 2026-06-12
+
+### Fixed
+- **Loading skeletons now appear on first navigation**: opening a page used to show a blank content area until its data finished loading, because the router only revealed a page once its `render()` (including the data fetch) had fully resolved, so any skeleton placed before that fetch never showed. The page shell and its loading skeleton now appear immediately while data loads, so every module gives feedback on slow connections instead of looking stuck.
+- **Skeleton contrast in dark mode**: skeleton placeholder lines were nearly invisible against the dark card surface. Their colour is now mixed from the surface and text colours, so they have clear, consistent contrast in both light and dark themes.
+
+### Changed
+- **Skeleton loading for the remaining list modules**: Contacts, Notes, Birthdays, Documents, Recipes, and Shared expenses now show the shared skeleton loading language while their lists load, completing the rollout so all modules use one consistent loading state.
+
+## [0.71.16] - 2026-06-12
+
+### Changed
+- **Container-query responsive layout**: component-internal grids now reflow by their own available width instead of the viewport. The notes board, meal-day slots, budget summary cards, modal two-column forms, and the dashboard "today at a glance" strip and overview header all use CSS `@container` queries. Sidebar-aware result: a narrow modal on a wide desktop, or a panel squeezed by the sidebar, collapses based on its real width rather than the window size.
+- **Canonical breakpoints**: roughly 33 ad-hoc viewport breakpoints (900/820/780/720/700/680/600/599/560/520/480/420/959/960/980/1100/1180/1200/1280px) were consolidated onto the four documented boundaries (640/768/1024/1440px), so layout transitions are consistent across modules.
+
+### Fixed
+- **Side-stripe accents removed**: the colored left-border stripes on the dashboard "today at a glance" cards and on calendar holiday chips are gone; module/holiday identity is now carried by the full border, background tint, and icon for a cleaner, more consistent look.
+
+### Removed
+- **Dead dashboard CSS**: eight unused responsive blocks for never-rendered layout-generation classes were removed.
+
+## [0.71.15] - 2026-06-12
+
+### Changed
+- **Consistent loading feedback**: a shared skeleton loading language (`public/utils/skeleton.js` → `renderSkeletonList()`) replaces the per-module "loading…" text placeholders in Budget, Meals, and Housekeeping. The skeleton classes (`.skeleton-list`/`.skeleton-card`/`.skeleton-line`) now live globally in `layout.css` instead of only in `dashboard.css`.
+- **Z-index discipline**: the two remaining magic-number z-indexes (`9999` skip link, `1000` kanban drag ghost) are mapped to new semantic tokens (`--z-skip-link`, `--z-drag`) on the documented scale.
+
+### Fixed
+- **Skeleton widths outside the dashboard**: the `.skeleton-line--short/medium/full` variants previously lived only in `dashboard.css` and silently had no effect on other pages (Tasks, Shopping), because CSS is loaded per module; they are now globally available.
+- **Skeleton and reduced motion**: the skeleton shimmer now respects `prefers-reduced-motion: reduce` (static surface instead of animation).
+
+## [0.71.14] - 2026-06-12
+
+### Changed
+- **Typography consistency**: unified font sizes, weights, line-heights, and letter-spacing across every module and sub-module (dashboard, calendar, tasks, budget, kitchen, settings, and the rest) behind a shared typographic role layer. Page titles, section headings, eyebrow labels, and card titles now render consistently on mobile and desktop. Font sizes and letter-spacing are fully token-driven, and canonical breakpoint tokens document the mobile/tablet/desktop/wide boundaries.
+
+### Fixed
+- **Label legibility**: meal-slot type labels and several uppercase section/eyebrow labels used the too-faint "disabled"/"tertiary" text colors; they now use the readable secondary text color, improving contrast and visual consistency.
+
+## [0.71.13] - 2026-06-11
+
+### Changed
+- **Docs**: updated installation guide, SPEC, and Unraid CA template to document the `OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM` opt-in variable introduced in v0.71.11.
+
+## [0.71.12] - 2026-06-11
+
+### Security
+- **OIDC account linking (revert v0.71.11)**: the relaxed `email_verified !== false` check introduced in v0.71.11 is replaced with a strict opt-in. The default is restored to `email_verified === true` required; the new `OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM=true` env var lets admins opt in explicitly for IdPs that omit the claim but only issue verified addresses.
+
+## [0.71.11] - 2026-06-11
+
+### Added
+- **`OIDC_TRUST_EMAIL_WITHOUT_VERIFIED_CLAIM`** env var (opt-in): set to `true` to allow account linking when the IdP omits the `email_verified` claim entirely. The default remains strict (`email_verified: true` required) to prevent account-takeover via unverified addresses. Only enable this for IdPs fully under your control that never issue accounts with unverified email addresses (e.g. older Authentik deployments without an explicit `email_verified` property mapping).
+
+## [0.71.10] - 2026-06-11
+
+### Fixed
+- **CI test fix**: updated `test-frontend-audit` assertion for the DMS settings page to check for both `paperless` and `papra` provider option values, replacing the old static `provider: 'paperless'` literal that no longer exists after the multi-provider select was introduced in v0.71.9.
+
+## [0.71.9] - 2026-06-11
+
+### Added
+- **Papra DMS integration**: Papra is now a second supported document management system alongside Paperless-ngx. Admins can connect a Papra instance by selecting "Papra" from the provider selector in Settings → Documents → Document management, entering the server URL, organization ID, and API token. The adapter layer handles search, link, upload, and connection test; existing Paperless-ngx connections are unaffected. DB migration v52 adds the  column and updates the CHECK / UNIQUE constraints on .
+
+## [0.71.8] - 2026-06-11
+
+### Fixed
+- **Settings nav link**: tapping "Settings" in the mobile nav bar or the overflow sheet now opens the settings overview instead of jumping directly to the last-visited settings page.
+
+## [0.71.7] - 2026-06-11
+
+### Added
+- **Recurring payment series management**: deleting or editing a recurring budget entry now asks whether to affect only the current occurrence or the entire series. "Delete entire series" removes the parent rule and all its instances; "Change all future occurrences" updates the parent rule and purges future instances so they regenerate with the new values on next visit.
+
+## [0.71.6] - 2026-06-11
+
+### Changed
+- **Consistent Settings cards**: every card across the settings pages now shares one surface style. A few cards that still rendered with a translucent "glass" background have been brought in line so all cards match.
+
+## [0.71.5] - 2026-06-11
+
+### Fixed
+- **SSO account matching**: signing in via OIDC no longer always creates a new account (e.g. `username-1`) when one with the same email already exists. An existing local account is now linked automatically when the provider reports a verified email (`email_verified: true`) and exactly one account holds that address. Unverified or ambiguous emails still get a separate account, preventing account takeover.
+
+## [0.71.4] - 2026-06-11
+
+### Changed
+- **Faster Settings navigation**: switching between settings pages now swaps only the content area instead of re-rendering the whole screen. The side menu stays put and pages change instantly — without a reload, an extra authentication round-trip, or a slide animation. Browser back/forward between settings pages is just as fast.
+- **Consistent Settings headings**: section headings are now larger than the cards they group, fixing an inverted type hierarchy where group titles appeared smaller than the content beneath them.
+
+## [0.71.3] - 2026-06-11
+
+### Changed
+- **WebDAV backup default path**: changed from `/oikos/backups/` to `/yuvomi/backups/` to reflect the app rename. Existing installations with a saved or explicitly configured path are not affected.
+
+## [0.71.2] - 2026-06-11
+
+### Fixed
+- **Settings credentials inputs**: replaced incorrect `autocomplete="new-password"` with `current-password` on external-service password fields (WebDAV document storage, DMS token), and replaced `autocomplete="username"` with `off` on external-service username fields (WebDAV backup, CalDAV, CardDAV, document storage) to prevent browsers from auto-filling app login credentials into unrelated service forms.
+
+## [0.71.1] - 2026-06-11
+
+### Fixed
+- **Calendar week and day view timeline**: hour labels on the left now respect the AM/PM time format preference. Previously the timeline always showed 24-hour labels even when AM/PM was selected in Settings.
+
+### Security
+- **Storage test endpoint**: added SSRF pre-flight check to `/storage/test` so UI-initiated connectivity tests cannot reach private, loopback, or link-local addresses.
+
+## [0.71.0] - 2026-06-11
+
+### Changed
+- **Settings reorganized into five clear areas**: Settings is now grouped into **Personal**, **Modules**, **Sync**, **Documents**, and **Administration**, each with its own focused pages instead of one long row of tabs. Members see only Personal; administrators see everything. On a wide screen a sticky side menu keeps every page one click away; on a phone you drill down from an overview into an area and into a page, with breadcrumbs and a working Back button. Each page loads on demand and remembers where you were.
+- **Synchronization is organized by what you sync** — separate **Calendar**, **Contacts**, and **Reminders** pages, each opening with a clear connection status. CalDAV and Webcal/ICS are front and center; Google and Apple/iCloud now live under a **"More providers"** section, with Apple marked as legacy and new iCloud users pointed at the standard CalDAV setup.
+- **Documents has its own area** with separate **Document storage** (local/WebDAV) and **Document management (Paperless/DMS)** pages; database-backup settings stay under Administration.
+- **Kitchen is one place in the navigation**: Meals, Recipes, and Shopping are grouped under a single **Kitchen** entry you can reorder as one item, while each still has its own page. The main navigation is grouped into **Overview**, **Plan**, and **Home**.
+- **Shopping categories are managed inside Shopping** (via a "Manage categories" action) instead of in Settings. Old Settings links and bookmarks are redirected to the right new place automatically.
+
+### Fixed
+- **Opening Settings directly now works reliably**: loading, refreshing, or bookmarking the Settings URL no longer occasionally lands on the dashboard.
+
 ## [0.70.2] - 2026-06-10
 
 ### Security

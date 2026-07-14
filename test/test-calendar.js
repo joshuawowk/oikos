@@ -294,6 +294,26 @@ test('Monatsbereich: 42 Tage für Kalenderraster', () => {
   assert(to === '2026-04-11', `Erwartet 2026-04-11, erhalten ${to}`);
 });
 
+test('Deep-Link-Datum: gültiger date-Parameter gewinnt vor Serien-Masterdatum', () => {
+  const master = { id: 7, start_datetime: '2026-01-05T09:00' };
+  assert(calendarHelpers.deepLinkTargetDate(master, '2026-06-29') === '2026-06-29',
+    'date-Parameter muss als Zielinstanz verwendet werden');
+});
+
+test('Deep-Link-Datum: ungültiger date-Parameter fällt auf Masterdatum zurück', () => {
+  const master = { id: 7, start_datetime: '2026-01-05T09:00' };
+  assert(calendarHelpers.validDateParam('not-a-date') === '', 'Ungültige Query wird verworfen');
+  assert(calendarHelpers.deepLinkTargetDate(master, 'not-a-date') === '2026-01-05',
+    'Ungültige Query darf den Kalenderbereich nicht beschädigen');
+});
+
+test('Deep-Link-Instanz: expandiertes Event mit gleichem Datum wird bevorzugt', () => {
+  const master = { id: 7, title: 'Training', start_datetime: '2026-01-05T09:00' };
+  const occurrence = { id: 7, title: 'Training', start_datetime: '2026-06-29T09:00', is_recurring_instance: 1 };
+  const resolved = calendarHelpers.findDeepLinkedOccurrence([master, occurrence], master, '2026-06-29');
+  assert(resolved === occurrence, 'Popup/Edit-Flow muss die angeklickte Instanz erhalten');
+});
+
 // --------------------------------------------------------
 // nextOccurrence: INTERVAL-Korrektheit mit BYDAY
 // --------------------------------------------------------
@@ -412,6 +432,40 @@ test('agendaSegmentKind: eintägiges Zeit-Event ist single', () => {
 test('agendaSegmentKind: Ganztags-Event ist all-day', () => {
   const ev = { start_datetime: '2026-06-14', end_datetime: '2026-06-14', all_day: 1 };
   assert(agendaSegmentKind(ev, '2026-06-14') === 'all-day', 'Ganztägig → all-day');
+});
+
+const { clickedTime, HOUR_HEIGHT } = calendarHelpers;
+
+function colAt(top) {
+  return { getBoundingClientRect: () => ({ top }) };
+}
+
+test('clickedTime: Klick auf Spaltenanfang ergibt 00:00', () => {
+  assert(clickedTime({ clientY: 0 }, colAt(0)) === '00:00', 'yOffset 0 → 00:00');
+});
+
+test('clickedTime: Klick wird auf 30 Minuten gerundet', () => {
+  const y = (14.5 / 24) * (HOUR_HEIGHT * 24);
+  assert(clickedTime({ clientY: y }, colAt(0)) === '14:30', 'Klick bei 14:30 bleibt 14:30');
+});
+
+test('clickedTime: Minuten zwischen den Rastern runden zum nächsten 30-Minuten-Schritt', () => {
+  const y = (HOUR_HEIGHT * 10) + (HOUR_HEIGHT * 20 / 60);
+  assert(clickedTime({ clientY: y }, colAt(0)) === '10:30', '10:20 rundet auf 10:30');
+});
+
+test('clickedTime: Klick oberhalb der Spalte wird auf 00:00 geklemmt', () => {
+  assert(clickedTime({ clientY: 5 }, colAt(50)) === '00:00', 'negativer yOffset → 00:00');
+});
+
+test('clickedTime: Klick am Tagesende wird auf 23:30 geklemmt', () => {
+  const y = HOUR_HEIGHT * 25;
+  assert(clickedTime({ clientY: y }, colAt(0)) === '23:30', 'yOffset über 24h → 23:30');
+});
+
+test('clickedTime: berücksichtigt die Scroll-Position der Spalte (rect.top)', () => {
+  const y = 200 + (HOUR_HEIGHT * 2);
+  assert(clickedTime({ clientY: y }, colAt(200)) === '02:00', 'rect.top wird von clientY abgezogen');
 });
 
 // --------------------------------------------------------

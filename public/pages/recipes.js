@@ -5,9 +5,12 @@
 
 import { api } from '/api.js';
 import { t } from '/i18n.js';
-import { openModal as openSharedModal, closeModal as closeSharedModal } from '/components/modal.js';
-import { DEFAULT_CATEGORY_NAME, categoryLabel } from '/utils/shopping-categories.js';
+import { openModal as openSharedModal, closeModal as closeSharedModal, advancedSection } from '/components/modal.js';
+import { DEFAULT_CATEGORY_NAME } from '/utils/shopping-categories.js';
 import { renderKitchenTabsBar } from '/utils/kitchen-tabs.js';
+import { ingredientRowHTML } from '/utils/ingredient-row.js';
+import { normalizeRecipeMealTypes, RECIPE_MEAL_TYPE_KEYS } from '/utils/recipe-meal-types.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
 
 let _container = null;
 
@@ -18,6 +21,15 @@ const state = {
 
 function mealCategories() {
   return state.categories.filter((c) => c.name !== 'Haushalt' && c.name !== 'Drogerie');
+}
+
+function mealTypeOptions() {
+  return [
+    { key: 'breakfast', label: t('meals.typeBreakfast') },
+    { key: 'lunch', label: t('meals.typeLunch') },
+    { key: 'dinner', label: t('meals.typeDinner') },
+    { key: 'snack', label: t('meals.typeSnack') },
+  ];
 }
 
 async function loadRecipes() {
@@ -40,36 +52,32 @@ export async function render(container) {
   const page = document.createElement('div');
   page.className = 'recipes-page';
 
-  const header = document.createElement('div');
-  header.className = 'recipes-header';
-
+  // sr-only Titel: die geteilte Kitchen-Tabs-Leiste labelt das Modul bereits
+  // sichtbar — konsistent mit Mahlzeiten/Einkauf. Der FAB ist die einzige
+  // Create-Affordanz (kein redundanter sichtbarer Kopf-Titel mehr).
   const title = document.createElement('h1');
-  title.className = 'recipes-header__title';
+  title.className = 'sr-only';
   title.textContent = t('recipes.title');
-
-  const addBtn = document.createElement('button');
-  addBtn.className = 'btn btn--primary';
-  addBtn.type = 'button';
-  addBtn.id = 'recipes-add';
-  addBtn.textContent = t('recipes.addRecipe');
-
-  header.append(title, addBtn);
 
   const list = document.createElement('div');
   list.className = 'recipes-list';
   list.id = 'recipes-list';
+  // Lade-Skeleton bis loadRecipes() aufgelöst ist (Router blendet den Wrapper
+  // bereits vor dem Daten-await ein).
+  list.setAttribute('aria-busy', 'true');
+  list.insertAdjacentHTML('beforeend', renderSkeletonList({ rows: 5, lines: 2 }));
 
   const fab = document.createElement('button');
   fab.className = 'page-fab';
   fab.type = 'button';
-  fab.id = 'recipes-fab';
+  fab.id = 'fab-new-recipe';
   fab.setAttribute('aria-label', t('recipes.addRecipe'));
   const fabIcon = document.createElement('i');
   fabIcon.dataset.lucide = 'plus';
   fabIcon.setAttribute('aria-hidden', 'true');
   fab.appendChild(fabIcon);
 
-  page.append(header, list, fab);
+  page.append(title, list, fab);
   container.replaceChildren(page);
   renderKitchenTabsBar(container, '/recipes');
 
@@ -78,7 +86,6 @@ export async function render(container) {
   await Promise.all([loadRecipes(), loadCategories()]);
   renderRecipeList();
 
-  addBtn.addEventListener('click', () => openRecipeModal('create'));
   fab.addEventListener('click', () => openRecipeModal('create'));
 
   list.addEventListener('click', async (e) => {
@@ -105,7 +112,7 @@ export async function render(container) {
     }
 
     if (actionBtn.dataset.action === 'add-to-meals') {
-      window.oikos?.navigate(`/meals?recipe=${recipe.id}`);
+      window.yuvomi?.navigate(`/meals?recipe=${recipe.id}`);
     }
   });
 }
@@ -113,6 +120,7 @@ export async function render(container) {
 function renderRecipeList() {
   const list = _container.querySelector('#recipes-list');
   if (!list) return;
+  list.removeAttribute('aria-busy');
 
   list.replaceChildren();
 
@@ -162,13 +170,31 @@ function renderRecipeList() {
       card.appendChild(notes);
     }
 
+    const mealTypes = normalizeRecipeMealTypes(recipe.meal_types);
+    const badges = document.createElement('div');
+    badges.className = 'recipe-card__meal-types';
+    badges.replaceChildren(...mealTypeOptions()
+      .filter((option) => mealTypes.includes(option.key))
+      .map((option) => {
+        const badge = document.createElement('span');
+        badge.className = `meal-type-badge meal-type-badge--${option.key}`;
+        badge.textContent = option.label;
+        return badge;
+      }));
+    card.appendChild(badges);
+
     if (recipe.recipe_url) {
       const link = document.createElement('a');
-      link.className = 'btn btn--ghost';
+      link.className = 'btn btn--ghost recipe-card__link';
       link.href = recipe.recipe_url;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.textContent = t('recipes.openLink');
+      // Explizites Icon macht die Zeile als externen Link erkennbar, statt wie
+      // Fließtext zu wirken (Audit F10).
+      link.insertAdjacentHTML('beforeend', '<i data-lucide="external-link" class="icon-sm" aria-hidden="true"></i>');
+      const linkLabel = document.createElement('span');
+      linkLabel.textContent = t('recipes.openLink');
+      link.appendChild(linkLabel);
       card.appendChild(link);
     }
 
@@ -176,12 +202,22 @@ function renderRecipeList() {
     if (ingredients.length) {
       const ul = document.createElement('ul');
       ul.className = 'recipe-card__ingredients';
-      for (const ing of ingredients) {
+      // Auf die ersten 4 kürzen: begrenzt die Kartenhöhe → ruhigeres Raster.
+      // Vollständige Liste bleibt über „Bearbeiten" erreichbar.
+      const MAX_INGREDIENTS = 4;
+      for (const ing of ingredients.slice(0, MAX_INGREDIENTS)) {
         const li = document.createElement('li');
         li.className = 'recipe-card__ingredient';
         const qty = ing.quantity ? `${ing.quantity} · ` : '';
         li.textContent = `${qty}${ing.name}`;
         ul.appendChild(li);
+      }
+      if (ingredients.length > MAX_INGREDIENTS) {
+        const more = document.createElement('li');
+        more.className = 'recipe-card__ingredient recipe-card__ingredient--more';
+        // Sprachneutraler Rest-Indikator (kein neuer Locale-Key nötig).
+        more.textContent = `+${ingredients.length - MAX_INGREDIENTS}`;
+        ul.appendChild(more);
       }
       card.appendChild(ul);
     }
@@ -189,94 +225,46 @@ function renderRecipeList() {
     const actions = document.createElement('div');
     actions.className = 'recipe-card__actions';
 
+    // Primäraktion sichtbar; die selteneren/gefährlicheren Aktionen als
+    // de-emphasierte Icon-Buttons — konsistent mit dem Icon-Action-Muster
+    // des Einkaufs (statt vier gleichrangiger Buttons inkl. lautem roten Delete).
     const addToMeals = document.createElement('button');
-    addToMeals.className = 'btn btn--secondary';
+    addToMeals.className = 'btn recipe-card__primary';
     addToMeals.type = 'button';
     addToMeals.dataset.action = 'add-to-meals';
     addToMeals.dataset.id = String(recipe.id);
     addToMeals.textContent = t('recipes.addToMeals');
 
-    const edit = document.createElement('button');
-    edit.className = 'btn btn--secondary';
-    edit.type = 'button';
-    edit.dataset.action = 'edit';
-    edit.dataset.id = String(recipe.id);
-    edit.textContent = t('common.edit');
+    const iconActions = document.createElement('div');
+    iconActions.className = 'row-actions recipe-card__icon-actions';
+    const secondaryActions = [
+      { action: 'edit',      icon: 'pencil',  label: t('common.edit') },
+      { action: 'duplicate', icon: 'copy',    label: t('recipes.duplicate') },
+      { action: 'delete',    icon: 'trash-2', label: t('common.delete'), danger: true },
+    ];
+    for (const a of secondaryActions) {
+      const btn = document.createElement('button');
+      btn.className = `row-action${a.danger ? ' row-action--danger' : ''}`;
+      btn.type = 'button';
+      btn.dataset.action = a.action;
+      btn.dataset.id = String(recipe.id);
+      btn.setAttribute('aria-label', a.label);
+      btn.title = a.label;
+      const ic = document.createElement('i');
+      ic.dataset.lucide = a.icon;
+      ic.className = 'icon-md';
+      ic.setAttribute('aria-hidden', 'true');
+      btn.appendChild(ic);
+      iconActions.appendChild(btn);
+    }
 
-    const del = document.createElement('button');
-    del.className = 'btn btn--danger';
-    del.type = 'button';
-    del.dataset.action = 'delete';
-    del.dataset.id = String(recipe.id);
-    del.textContent = t('common.delete');
-
-    const duplicate = document.createElement('button');
-    duplicate.className = 'btn btn--secondary';
-    duplicate.type = 'button';
-    duplicate.dataset.action = 'duplicate';
-    duplicate.dataset.id = String(recipe.id);
-    duplicate.textContent = t('recipes.duplicate');
-
-    actions.append(addToMeals, edit, duplicate, del);
+    actions.append(addToMeals, iconActions);
     card.appendChild(actions);
 
     list.appendChild(card);
   }
-}
 
-function buildIngredientRow(name, qty, category = DEFAULT_CATEGORY_NAME) {
-  const categories = mealCategories();
-  const resolvedCategory = categories.some((c) => c.name === category)
-    ? category
-    : (categories[0]?.name ?? DEFAULT_CATEGORY_NAME);
-
-  const row = document.createElement('div');
-  row.className = 'recipe-ingredient-row';
-
-  const nameInput = document.createElement('input');
-  nameInput.type = 'text';
-  nameInput.className = 'form-input recipe-ingredient-row__name';
-  nameInput.placeholder = t('meals.ingredientNamePlaceholder');
-  nameInput.value = name;
-
-  const qtyInput = document.createElement('input');
-  qtyInput.type = 'text';
-  qtyInput.className = 'form-input recipe-ingredient-row__qty';
-  qtyInput.placeholder = t('meals.ingredientQtyPlaceholder');
-  qtyInput.value = qty;
-
-  const catSelect = document.createElement('select');
-  catSelect.className = 'form-input recipe-ingredient-row__cat';
-  catSelect.setAttribute('aria-label', t('meals.ingredientCategoryLabel'));
-  if (categories.length) {
-    for (const c of categories) {
-      const opt = document.createElement('option');
-      opt.value = c.name;
-      opt.textContent = categoryLabel(c.name);
-      if (c.name === resolvedCategory) opt.selected = true;
-      catSelect.appendChild(opt);
-    }
-  } else {
-    const opt = document.createElement('option');
-    opt.value = DEFAULT_CATEGORY_NAME;
-    opt.textContent = t('meals.ingredientCategoryDefault');
-    opt.selected = true;
-    catSelect.appendChild(opt);
-  }
-
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'recipe-ingredient-row__remove';
-  removeBtn.dataset.action = 'remove-ingredient';
-  removeBtn.type = 'button';
-  removeBtn.setAttribute('aria-label', t('meals.removeIngredient'));
-  const icon = document.createElement('i');
-  icon.dataset.lucide = 'x';
-  icon.className = 'icon-sm';
-  icon.setAttribute('aria-hidden', 'true');
-  removeBtn.appendChild(icon);
-
-  row.append(nameInput, qtyInput, catSelect, removeBtn);
-  return row;
+  if (window.lucide) window.lucide.createIcons({ el: list });
 }
 
 function openRecipeModal(mode, recipe = null) {
@@ -291,18 +279,31 @@ function openRecipeModal(mode, recipe = null) {
         <input id="recipe-title" class="form-input" type="text" placeholder="${t('recipes.titlePlaceholder')}">
       </div>
       <div class="form-group">
-        <label class="form-label" for="recipe-notes">${t('recipes.notesLabel')}</label>
-        <textarea id="recipe-notes" class="form-input" rows="3" placeholder="${t('recipes.notesPlaceholder')}"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="recipe-url">${t('recipes.urlLabel')}</label>
-        <input id="recipe-url" class="form-input" type="url" placeholder="${t('recipes.urlPlaceholder')}">
+        <label class="form-label">${t('meals.mealTypeLabel')}</label>
+        <div class="recipe-meal-types" id="recipe-meal-types">
+          ${mealTypeOptions().map((option) => `
+            <label class="recipe-meal-types__option">
+              <input type="checkbox" value="${option.key}" checked>
+              <span class="meal-type-badge meal-type-badge--${option.key}">${option.label}</span>
+            </label>
+          `).join('')}
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">${t('recipes.ingredientsLabel')}</label>
         <div class="recipe-ingredient-list" id="recipe-ingredient-list"></div>
         <button class="btn btn--secondary recipe-add-ingredient" type="button" id="recipe-add-ingredient">${t('meals.addIngredient')}</button>
       </div>
+      ${advancedSection(`
+        <div class="form-group">
+          <label class="form-label" for="recipe-notes">${t('recipes.notesLabel')}</label>
+          <textarea id="recipe-notes" class="form-input" rows="3" placeholder="${t('recipes.notesPlaceholder')}"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="recipe-url">${t('recipes.urlLabel')}</label>
+          <input id="recipe-url" class="form-input" type="url" placeholder="${t('recipes.urlPlaceholder')}">
+        </div>`,
+        { open: isEdit && (!!recipe.notes || !!recipe.recipe_url) })}
       <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
         <button class="btn btn--secondary" id="recipe-cancel">${t('common.cancel')}</button>
         <button class="btn btn--primary" id="recipe-save">${isEdit ? t('common.save') : t('common.add')}</button>
@@ -312,23 +313,30 @@ function openRecipeModal(mode, recipe = null) {
       panel.querySelector('#recipe-title').value = isEdit ? recipe.title : '';
       panel.querySelector('#recipe-notes').value = isEdit && recipe.notes ? recipe.notes : '';
       panel.querySelector('#recipe-url').value = isEdit && recipe.recipe_url ? recipe.recipe_url : '';
+      const selectedMealTypes = normalizeRecipeMealTypes(isEdit ? recipe.meal_types : RECIPE_MEAL_TYPE_KEYS);
+      panel.querySelectorAll('#recipe-meal-types input[type="checkbox"]').forEach((input) => {
+        input.checked = selectedMealTypes.includes(input.value);
+      });
 
       const ingList = panel.querySelector('#recipe-ingredient-list');
       if (isEdit && recipe.ingredients?.length) {
-        for (const i of recipe.ingredients) {
-          ingList.appendChild(buildIngredientRow(i.name, i.quantity ?? '', i.category ?? DEFAULT_CATEGORY_NAME));
-        }
+        ingList.insertAdjacentHTML('beforeend', recipe.ingredients.map((i) => ingredientRowHTML({
+          name: i.name,
+          quantity: i.quantity ?? '',
+          category: i.category ?? DEFAULT_CATEGORY_NAME,
+          categories: mealCategories(),
+        })).join(''));
       }
 
       panel.querySelector('#recipe-add-ingredient')?.addEventListener('click', () => {
-        ingList.appendChild(buildIngredientRow('', '', null));
+        ingList.insertAdjacentHTML('beforeend', ingredientRowHTML({ categories: mealCategories() }));
         if (window.lucide) window.lucide.createIcons({ el: ingList });
       });
 
       ingList.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action="remove-ingredient"]');
         if (!btn) return;
-        btn.closest('.recipe-ingredient-row')?.remove();
+        btn.closest('.ingredient-row')?.remove();
       });
 
       panel.querySelector('#recipe-cancel')?.addEventListener('click', closeModal);
@@ -348,17 +356,18 @@ async function saveRecipe(panel, mode, recipe) {
   const title = panel.querySelector('#recipe-title')?.value.trim() || '';
   const notes = panel.querySelector('#recipe-notes')?.value.trim() || null;
   const recipe_url = panel.querySelector('#recipe-url')?.value.trim() || null;
+  const meal_types = [...panel.querySelectorAll('#recipe-meal-types input[type="checkbox"]:checked')].map((input) => input.value);
 
   if (!title) {
-    window.oikos?.showToast(t('recipes.titleRequired'), 'error');
+    window.yuvomi?.showToast(t('recipes.titleRequired'), 'error');
     return;
   }
 
   const ingredients = [];
-  panel.querySelectorAll('.recipe-ingredient-row').forEach((row) => {
-    const name = row.querySelector('.recipe-ingredient-row__name')?.value.trim() || '';
-    const quantity = row.querySelector('.recipe-ingredient-row__qty')?.value.trim() || null;
-    const category = row.querySelector('.recipe-ingredient-row__cat')?.value || DEFAULT_CATEGORY_NAME;
+  panel.querySelectorAll('.ingredient-row').forEach((row) => {
+    const name = row.querySelector('.ingredient-row__name')?.value.trim() || '';
+    const quantity = row.querySelector('.ingredient-row__qty')?.value.trim() || null;
+    const category = row.querySelector('.ingredient-row__cat')?.value || DEFAULT_CATEGORY_NAME;
     if (name) ingredients.push({ name, quantity, category });
   });
 
@@ -366,20 +375,20 @@ async function saveRecipe(panel, mode, recipe) {
 
   try {
     if (mode === 'create') {
-      const res = await api.post('/recipes', { title, notes, recipe_url, ingredients });
+      const res = await api.post('/recipes', { title, notes, recipe_url, meal_types, ingredients });
       state.recipes.push(res.data);
     } else {
-      const res = await api.put(`/recipes/${recipe.id}`, { title, notes, recipe_url, ingredients });
+      const res = await api.put(`/recipes/${recipe.id}`, { title, notes, recipe_url, meal_types, ingredients });
       const idx = state.recipes.findIndex((r) => r.id === recipe.id);
       if (idx >= 0) state.recipes[idx] = res.data;
     }
 
     closeModal({ force: true });
     renderRecipeList();
-    window.oikos?.showToast(mode === 'create' ? t('recipes.created') : t('recipes.updated'), 'success');
+    window.yuvomi?.showToast(mode === 'create' ? t('recipes.created') : t('recipes.updated'), 'success');
   } catch (err) {
     saveBtn.disabled = false;
-    window.oikos?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
   }
 }
 
@@ -388,7 +397,7 @@ async function removeRecipe(recipe) {
   if (itemEl) itemEl.style.display = 'none';
 
   let undone = false;
-  window.oikos?.showToast(t('recipes.deleted'), 'default', 5000, () => {
+  window.yuvomi?.showToast(t('recipes.deleted'), 'default', 5000, () => {
     undone = true;
     if (itemEl) itemEl.style.display = '';
   });
@@ -401,7 +410,7 @@ async function removeRecipe(recipe) {
       renderRecipeList();
     } catch (err) {
       if (itemEl) itemEl.style.display = '';
-      window.oikos?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
 }
@@ -421,8 +430,8 @@ async function duplicateRecipe(recipe) {
     const res = await api.post('/recipes', { title, notes, recipe_url, ingredients });
     state.recipes.push(res.data);
     renderRecipeList();
-    window.oikos?.showToast(t('recipes.duplicated'), 'success');
+    window.yuvomi?.showToast(t('recipes.duplicated'), 'success');
   } catch (err) {
-    window.oikos?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
   }
 }

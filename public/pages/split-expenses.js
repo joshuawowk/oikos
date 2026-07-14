@@ -8,6 +8,7 @@ import { openModal as openSharedModal, closeModal, confirmModal } from '/compone
 import { t, formatDate, getLocale, dateInputPlaceholder, parseDateInput, isDateInputValid } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { stagger } from '/utils/ux.js';
+import { renderSkeletonList } from '/utils/skeleton.js';
 
 let state = {
   meta: null,
@@ -72,13 +73,16 @@ export async function render(container, { user } = {}) {
               <i data-lucide="plus" aria-hidden="true"></i>
             </button>
           </div>
-          <div class="split-search">
-            <i data-lucide="search" aria-hidden="true"></i>
-            <input id="split-group-search" type="search" placeholder="${t('splitExpenses.searchGroups')}" autocomplete="off">
-          </div>
+          <label class="split-search" for="split-group-search">
+            <span class="split-search__label">${t('splitExpenses.searchGroups')}</span>
+            <span class="split-search__control">
+              <i data-lucide="search" aria-hidden="true"></i>
+              <input id="split-group-search" type="search" placeholder="${t('splitExpenses.searchGroups')}" autocomplete="off">
+            </span>
+          </label>
           <div class="split-groups" id="split-groups"></div>
         </aside>
-        <main class="split-main" id="split-main"></main>
+        <main class="split-main" id="split-main" aria-busy="true">${renderSkeletonList({ rows: 5, lines: 2 })}</main>
       </div>
       <button class="page-fab" id="split-fab" aria-label="${t('splitExpenses.addExpense')}">
         <i data-lucide="plus" class="icon-xl" aria-hidden="true"></i>
@@ -226,6 +230,7 @@ function renderGroups() {
 
 function renderMain() {
   const main = _container.querySelector('#split-main');
+  main.removeAttribute('aria-busy');
   const group = state.groups.find((g) => g.id === state.activeGroupId);
   if (!group) {
     setHtml(main, `
@@ -294,6 +299,12 @@ function renderMain() {
   const settleButton = main.querySelector('#split-settle');
   if (settleButton) settleButton.disabled = state.expenses.length === 0;
   main.querySelector('#split-invite')?.addEventListener('click', () => openMemberModal());
+  main.querySelector('#split-expense-list')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-expense-id]');
+    if (!btn) return;
+    const expense = state.expenses.find((item) => item.id === Number(btn.dataset.expenseId));
+    if (expense) openExpenseModal(expense);
+  });
   stagger(main.querySelectorAll('.split-expense, .split-debt, .split-activity-item'));
 }
 
@@ -311,14 +322,14 @@ function renderBalances() {
 function renderExpenses() {
   if (!state.expenses.length) return `<div class="split-muted">${t('splitExpenses.noExpenses')}</div>`;
   return state.expenses.map((expense) => `
-    <article class="split-expense">
+    <button type="button" class="split-expense" data-expense-id="${expense.id}" aria-label="${esc(expense.title)} — ${t('splitExpenses.editExpense')}">
       <div class="split-expense__icon"><i data-lucide="${categoryIcon(expense.category)}" aria-hidden="true"></i></div>
       <div class="split-expense__body">
         <strong>${esc(expense.title)}</strong>
         <span>${t('splitExpenses.paidBy')}: ${esc(expense.payer_name || '')} · ${formatDate(expense.expense_date)}</span>
       </div>
       <div class="split-expense__amount">${money(expense.amount, expense.currency)}</div>
-    </article>
+    </button>
   `).join('');
 }
 
@@ -358,9 +369,15 @@ async function archiveGroup(groupId) {
   });
   if (!confirmed) return;
   await api.post(`/split-expenses/groups/${groupId}/archive`, {});
+  await refreshDashboard();
   await loadGroups();
   await loadGroupData();
   renderAll();
+}
+
+async function refreshDashboard() {
+  const dash = await api.get('/split-expenses/dashboard');
+  state.dashboard = dash.data;
 }
 
 async function deleteGroup(groupId) {
@@ -370,6 +387,7 @@ async function deleteGroup(groupId) {
   });
   if (!confirmed) return;
   await api.delete(`/split-expenses/groups/${groupId}`);
+  await refreshDashboard();
   await loadGroups();
   await loadGroupData();
   renderAll();
@@ -392,20 +410,63 @@ function memberCandidateOptions(candidates = []) {
     }).join('');
 }
 
-function groupMemberCheckboxes() {
+function groupMemberCheckboxes(selectedIds = null, splitValues = {}) {
   const members = state.groupMembers.length ? state.groupMembers : state.members;
+  const selectedSet = selectedIds ? new Set(selectedIds.map(Number)) : null;
   return members.map((member) => {
     const id = member.id ?? member.user_id;
+    const checked = selectedSet ? selectedSet.has(Number(id)) : true;
+    const value = splitValues[id] ?? '';
     return `
     <div class="split-participant-row" data-participant-row="${id}">
       <label class="split-check">
-        <input type="checkbox" name="participants" value="${id}" checked>
+        <input type="checkbox" name="participants" value="${id}" ${checked ? 'checked' : ''}>
         <span>${esc(member.display_name)}</span>
       </label>
-      <input class="input split-split-value" name="split_value_${id}" inputmode="decimal" aria-label="${esc(member.display_name)} ${t('splitExpenses.splitValue')}" placeholder="">
+      <input class="input split-split-value" name="split_value_${id}" inputmode="decimal" aria-label="${esc(member.display_name)} ${t('splitExpenses.splitValue')}" placeholder="" value="${esc(value)}">
     </div>
   `;
   }).join('');
+}
+
+/**
+ * Rekonstruiert die pro-Teilnehmer Split-Eingabewerte aus einer gespeicherten
+ * Ausgabe, damit der Bearbeiten-Dialog denselben Aufteilungsmodus vorbelegt.
+ * - exact: exakte Beträge (verlustfrei)
+ * - percentage: Prozentanteile, Restbetrag auf letzten Teilnehmer (Summe = 100)
+ * - shares: ganzzahlige Anteile über den ggT der Minor-Beträge
+ * - equal: keine Werte nötig
+ */
+function deriveSplitValues(expense) {
+  const method = expense.split_method;
+  const splits = expense.splits || [];
+  const values = {};
+  if (method === 'exact') {
+    for (const split of splits) values[split.user_id] = String(split.amount);
+  } else if (method === 'percentage') {
+    const totalMinor = splits.reduce((sum, split) => sum + Math.abs(Number(split.amount_minor || 0)), 0) || 1;
+    let acc = 0;
+    splits.forEach((split, index) => {
+      if (index === splits.length - 1) {
+        values[split.user_id] = String(Number((100 - acc).toFixed(2)));
+      } else {
+        const pct = Number(((Math.abs(Number(split.amount_minor || 0)) / totalMinor) * 100).toFixed(2));
+        acc += pct;
+        values[split.user_id] = String(pct);
+      }
+    });
+  } else if (method === 'shares') {
+    const amounts = splits.map((split) => Math.abs(Number(split.amount_minor || 0)));
+    const divisor = amounts.reduce((a, b) => splitGcd(a, b), 0) || 1;
+    splits.forEach((split, index) => {
+      values[split.user_id] = String(Math.max(1, Math.round(amounts[index] / divisor)));
+    });
+  }
+  return values;
+}
+
+function splitGcd(a, b) {
+  return b === 0 ? a : splitGcd(b, a % b);
 }
 
 function updateSplitInputs(panel) {
@@ -562,32 +623,39 @@ async function openGroupModal(group = null) {
   });
 }
 
-function openExpenseModal(prefill = {}) {
+function openExpenseModal(expense = null) {
   if (!state.activeGroupId) return openGroupModal();
   const group = state.groups.find((g) => g.id === state.activeGroupId);
+  const isEdit = Boolean(expense && expense.id);
+  const method = expense?.split_method || 'equal';
+  const selectedIds = isEdit ? (expense.splits || []).map((s) => s.user_id) : null;
+  const splitValues = isEdit ? deriveSplitValues(expense) : {};
+  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  const methodOption = (value, label) => `<option value="${value}" ${value === method ? 'selected' : ''}>${label}</option>`;
   openSharedModal({
-    title: t('splitExpenses.addExpense'),
+    title: isEdit ? t('splitExpenses.editExpense') : t('splitExpenses.addExpense'),
     content: `
       <form id="split-expense-form" class="split-form">
-        <label>${t('splitExpenses.titleLabel')}<input class="input" name="title" required maxlength="200" value="${esc(prefill.title || '')}"></label>
+        <label>${t('splitExpenses.titleLabel')}<input class="input" name="title" required maxlength="200" value="${esc(expense?.title || '')}"></label>
         <div class="split-form-row">
-          <label>${t('splitExpenses.amount')}<input class="input" name="amount" inputmode="decimal" placeholder="42.50" required></label>
-          <label>${t('splitExpenses.paidBy')}<select class="input" name="payer_id">${memberOptions(state.user?.id)}</select></label>
+          <label>${t('splitExpenses.amount')}<input class="input" name="amount" inputmode="decimal" placeholder="42.50" required value="${esc(expense?.amount || '')}"></label>
+          <label>${t('splitExpenses.paidBy')}<select class="input" name="payer_id">${memberOptions(isEdit ? expense.payer_id : state.user?.id)}</select></label>
         </div>
         <div class="split-form-row">
-          <label>${t('splitExpenses.currency')}<select class="input" name="currency">${state.meta.currencies.map((c) => `<option value="${c}" ${c === group.default_currency ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
-          <label>${t('splitExpenses.date')}<input class="input" name="expense_date" type="date" value="${(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })()}"></label>
+          <label>${t('splitExpenses.currency')}<select class="input" name="currency">${state.meta.currencies.map((c) => `<option value="${c}" ${c === (isEdit ? expense.currency : group.default_currency) ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+          <label>${t('splitExpenses.date')}<yuvomi-datepicker name="expense_date" type="date" value="${esc(isEdit ? (expense.expense_date || today) : today)}"></yuvomi-datepicker></label>
         </div>
         <label>${t('splitExpenses.splitMethod')}<select class="input" name="split_method">
-          <option value="equal">${t('splitExpenses.splitEqual')}</option>
-          <option value="percentage">${t('splitExpenses.splitPercentage')}</option>
-          <option value="exact">${t('splitExpenses.splitExact')}</option>
-          <option value="shares">${t('splitExpenses.splitShares')}</option>
+          ${methodOption('equal', t('splitExpenses.splitEqual'))}
+          ${methodOption('percentage', t('splitExpenses.splitPercentage'))}
+          ${methodOption('exact', t('splitExpenses.splitExact'))}
+          ${methodOption('shares', t('splitExpenses.splitShares'))}
         </select></label>
-        <p class="form-hint" id="split-method-hint">${t('splitExpenses.splitHint.equal')}</p>
-        <fieldset class="split-participants"><legend>${t('splitExpenses.participants')}</legend>${groupMemberCheckboxes()}</fieldset>
-        <label>${t('splitExpenses.notes')}<textarea class="input" name="description" rows="3" maxlength="5000"></textarea></label>
+        <p class="form-hint" id="split-method-hint">${t(`splitExpenses.splitHint.${method}`)}</p>
+        <fieldset class="split-participants"><legend>${t('splitExpenses.participants')}</legend>${groupMemberCheckboxes(selectedIds, splitValues)}</fieldset>
+        <label>${t('splitExpenses.notes')}<textarea class="input" name="description" rows="3" maxlength="5000">${esc(expense?.description || '')}</textarea></label>
         <div class="modal-actions">
+          ${isEdit ? `<button class="btn btn--danger" type="button" id="split-delete-expense">${t('common.delete')}</button>` : ''}
           <button class="btn btn--secondary" type="button" id="split-cancel-expense">${t('common.cancel')}</button>
           <button class="btn btn--primary" type="submit" id="split-save-expense">${t('common.save')}</button>
         </div>
@@ -598,24 +666,37 @@ function openExpenseModal(prefill = {}) {
       panel.querySelector('[name="split_method"]')?.addEventListener('change', () => updateSplitInputs(panel));
       panel.querySelector('#split-expense-form')?.addEventListener('input', () => validateSplitForm(panel));
       panel.querySelectorAll('input[name="participants"]').forEach((input) => {
+        const row = input.closest('.split-participant-row');
+        const valueInput = row?.querySelector('.split-split-value');
+        if (valueInput) valueInput.disabled = !input.checked;
         input.addEventListener('change', () => {
-          const row = input.closest('.split-participant-row');
-          const valueInput = row?.querySelector('.split-split-value');
           if (valueInput) valueInput.disabled = !input.checked;
           validateSplitForm(panel);
         });
       });
       updateSplitInputs(panel);
+      panel.querySelector('#split-delete-expense')?.addEventListener('click', async () => {
+        const confirmed = await confirmModal(t('splitExpenses.deleteExpenseConfirm'), {
+          danger: true,
+          confirmLabel: t('common.delete'),
+        });
+        if (!confirmed) return;
+        await api.delete(`/split-expenses/expenses/${expense.id}`);
+        await refreshDashboard();
+        await loadGroupData();
+        renderAll();
+      });
       panel.querySelector('#split-expense-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!validateSplitForm(panel)) return;
         const form = panel.querySelector('#split-expense-form');
         const data = Object.fromEntries(new FormData(form));
         const { participants, splits } = collectSplitPayload(form);
-        await api.post(`/split-expenses/groups/${state.activeGroupId}/expenses`, { ...data, participants, splits });
+        const payload = { ...data, participants, splits };
+        if (isEdit) await api.put(`/split-expenses/expenses/${expense.id}`, payload);
+        else await api.post(`/split-expenses/groups/${state.activeGroupId}/expenses`, payload);
         closeModal({ force: true });
-        const dash = await api.get('/split-expenses/dashboard');
-        state.dashboard = dash.data;
+        await refreshDashboard();
         await loadGroupData();
         renderAll();
       });
@@ -651,8 +732,7 @@ function openSettlementModal() {
         const data = Object.fromEntries(new FormData(panel.querySelector('#split-settlement-form')));
         await api.post(`/split-expenses/groups/${state.activeGroupId}/settlements`, data);
         closeModal({ force: true });
-        const dash = await api.get('/split-expenses/dashboard');
-        state.dashboard = dash.data;
+        await refreshDashboard();
         await loadGroupData();
         renderAll();
       });
