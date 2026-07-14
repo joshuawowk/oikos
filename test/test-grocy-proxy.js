@@ -38,7 +38,10 @@ const GROCY_ORIGIN = 'http://grocy.test';
 before(async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = (url, opts) => {
-    if (String(url).startsWith(GROCY_ORIGIN) && _mockFn) return _mockFn(url, opts);
+    const reqUrl = typeof url === 'string' ? url : (url?.url || String(url));
+    let targetOrigin = '';
+    try { targetOrigin = new URL(reqUrl).origin; } catch { /* ignore */ }
+    if (targetOrigin === GROCY_ORIGIN && _mockFn) return _mockFn(url, opts);
     return origFetch(url, opts);
   };
 

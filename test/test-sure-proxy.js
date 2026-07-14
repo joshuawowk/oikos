@@ -39,7 +39,10 @@ const SURE_ORIGIN = 'http://sure.test';
 before(async () => {
   const origFetch = globalThis.fetch;
   globalThis.fetch = (url, opts) => {
-    if (String(url).startsWith(SURE_ORIGIN) && _mockFn) return _mockFn(url, opts);
+    const reqUrl = typeof url === 'string' ? url : (url?.url || String(url));
+    let targetOrigin = '';
+    try { targetOrigin = new URL(reqUrl).origin; } catch { /* ignore */ }
+    if (targetOrigin === SURE_ORIGIN && _mockFn) return _mockFn(url, opts);
     return origFetch(url, opts);
   };
 
