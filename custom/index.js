@@ -296,6 +296,25 @@ app.use('/api/v1', (req, res, next) => {
   }
 });
 app.use('/api/v1', csrfMiddleware);
+
+// When Grocy is configured as the single source of truth for Kitchen data, the
+// native dashboard widgets for today's meals and shopping lists read from the
+// (empty) native SQLite tables and would display stale or absent data.  Suppress
+// those sections in the dashboard response so they are not shown alongside
+// Grocy-backed Kitchen content.
+if (process.env.GROCY_URL) {
+  app.use('/api/v1/dashboard', (req, res, next) => {
+    const _json = res.json.bind(res);
+    res.json = (data) => {
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        data = { ...data, todayMeals: [], shoppingLists: [] };
+      }
+      return _json(data);
+    };
+    next();
+  });
+}
+
 app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/tasks', tasksRouter);
 app.use('/api/v1/shopping', shoppingRouter);

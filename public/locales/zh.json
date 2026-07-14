@@ -1888,5 +1888,19 @@
     "95": "雷阵雨",
     "96": "雷暴伴冰雹",
     "99": "强雷暴"
+  },
+  "grocyKitchen": {
+    "ariaLabel": "Kitchen",
+    "tabStock": "Stock",
+    "tabShopping": "Shopping",
+    "tabRecipes": "Recipes",
+    "tabMealPlan": "Meal Plan",
+    "tabProducts": "Products"
+  },
+  "sureFinance": {
+    "ariaLabel": "Finance",
+    "tabOverview": "Overview",
+    "tabAccounts": "Accounts",
+    "tabTransactions": "Transactions"
   }
 }

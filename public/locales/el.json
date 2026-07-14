@@ -1888,5 +1888,19 @@
     "95": "Καταιγίδα",
     "96": "Καταιγίδα με χαλάζι",
     "99": "Σφοδρή καταιγίδα"
+  },
+  "grocyKitchen": {
+    "ariaLabel": "Kitchen",
+    "tabStock": "Stock",
+    "tabShopping": "Shopping",
+    "tabRecipes": "Recipes",
+    "tabMealPlan": "Meal Plan",
+    "tabProducts": "Products"
+  },
+  "sureFinance": {
+    "ariaLabel": "Finance",
+    "tabOverview": "Overview",
+    "tabAccounts": "Accounts",
+    "tabTransactions": "Transactions"
   }
 }

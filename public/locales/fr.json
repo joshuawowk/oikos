@@ -1888,5 +1888,19 @@
     "95": "Orage",
     "96": "Orage avec grêle",
     "99": "Orage violent"
+  },
+  "grocyKitchen": {
+    "ariaLabel": "Kitchen",
+    "tabStock": "Stock",
+    "tabShopping": "Shopping",
+    "tabRecipes": "Recipes",
+    "tabMealPlan": "Meal Plan",
+    "tabProducts": "Products"
+  },
+  "sureFinance": {
+    "ariaLabel": "Finance",
+    "tabOverview": "Overview",
+    "tabAccounts": "Accounts",
+    "tabTransactions": "Transactions"
   }
 }

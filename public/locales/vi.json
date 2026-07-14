@@ -1888,5 +1888,19 @@
     "95": "Giông bão",
     "96": "Giông bão có mưa đá",
     "99": "Giông bão nghiêm trọng"
+  },
+  "grocyKitchen": {
+    "ariaLabel": "Kitchen",
+    "tabStock": "Stock",
+    "tabShopping": "Shopping",
+    "tabRecipes": "Recipes",
+    "tabMealPlan": "Meal Plan",
+    "tabProducts": "Products"
+  },
+  "sureFinance": {
+    "ariaLabel": "Finance",
+    "tabOverview": "Overview",
+    "tabAccounts": "Accounts",
+    "tabTransactions": "Transactions"
   }
 }

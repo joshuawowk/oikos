@@ -1888,5 +1888,19 @@
     "95": "तूफान",
     "96": "ओलों के साथ तूफान",
     "99": "भीषण तूफान"
+  },
+  "grocyKitchen": {
+    "ariaLabel": "Kitchen",
+    "tabStock": "Stock",
+    "tabShopping": "Shopping",
+    "tabRecipes": "Recipes",
+    "tabMealPlan": "Meal Plan",
+    "tabProducts": "Products"
+  },
+  "sureFinance": {
+    "ariaLabel": "Finance",
+    "tabOverview": "Overview",
+    "tabAccounts": "Accounts",
+    "tabTransactions": "Transactions"
   }
 }

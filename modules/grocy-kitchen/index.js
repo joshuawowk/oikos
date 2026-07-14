@@ -16,6 +16,7 @@
 
 import { api } from '/api.js';
 import { esc } from '/utils/html.js';
+import { t } from '/i18n.js';
 import { renderSubTabs } from '/utils/sub-tabs.js';
 import { openModal, closeModal, confirmModal, promptModal } from '/components/modal.js';
 
@@ -54,14 +55,19 @@ function optionList(items, valueKey, labelFn, selectedId) {
 }
 
 // ── Module state ────────────────────────────────────────────────────────────────
-const TABS = [
-  { id: 'stock', label: 'Stock', icon: 'package' },
-  { id: 'shopping', label: 'Shopping', icon: 'shopping-cart' },
-  { id: 'recipes', label: 'Recipes', icon: 'book-text' },
-  { id: 'mealplan', label: 'Meal Plan', icon: 'utensils' },
-  { id: 'products', label: 'Products', icon: 'boxes' },
+const TABS = () => [
+  { id: 'stock',    label: t('grocyKitchen.tabStock'),    icon: 'package'       },
+  { id: 'shopping', label: t('grocyKitchen.tabShopping'), icon: 'shopping-cart' },
+  { id: 'recipes',  label: t('grocyKitchen.tabRecipes'),  icon: 'book-text'     },
+  { id: 'mealplan', label: t('grocyKitchen.tabMealPlan'), icon: 'utensils'      },
+  { id: 'products', label: t('grocyKitchen.tabProducts'), icon: 'boxes'         },
 ];
 const TAB_KEY = 'oikos-grocy-kitchen-tab';
+
+// Render-generation counter: incremented each time renderActive() is called so
+// that a slow async render that resolves after a newer one has started will be
+// discarded rather than overwriting the current tab's content.
+let _renderGen = 0;
 
 const state = {
   root: null,
@@ -127,15 +133,16 @@ export async function render(container) {
   // Initial tab from ?tab= (set by the Kitchen redirect) or last-used.
   const wanted = new URLSearchParams(location.search).get('tab');
   const stored = (() => { try { return localStorage.getItem(TAB_KEY); } catch { return null; } })();
-  state.active = TABS.some((t) => t.id === wanted) ? wanted
-    : (TABS.some((t) => t.id === stored) ? stored : 'stock');
+  const tabs = TABS();
+  state.active = tabs.some((tb) => tb.id === wanted) ? wanted
+    : (tabs.some((tb) => tb.id === stored) ? stored : 'stock');
 
   renderSubTabs(wrap, {
-    tabs: TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon })),
+    tabs: tabs.map((tb) => ({ id: tb.id, label: tb.label, icon: tb.icon })),
     activeId: state.active,
     storageKey: TAB_KEY,
     extraClass: 'kitchen-tabs-bar',
-    ariaLabel: 'Kitchen',
+    ariaLabel: t('grocyKitchen.ariaLabel'),
     insertPosition: 'afterbegin',
     onChange: (id) => { state.active = id; renderActive(); },
   });
@@ -161,14 +168,16 @@ function setPanel(html) {
 function setBusy() { setPanel('<div class="gk-loading">Loading…</div>'); }
 
 async function renderActive() {
+  const gen = ++_renderGen;
   setBusy();
   try {
-    if (state.active === 'stock') return await renderStock();
-    if (state.active === 'shopping') return await renderShopping();
-    if (state.active === 'recipes') return await renderRecipes();
-    if (state.active === 'mealplan') return await renderMealPlan();
-    if (state.active === 'products') return await renderProducts();
+    if (state.active === 'stock') return await renderStock(gen);
+    if (state.active === 'shopping') return await renderShopping(gen);
+    if (state.active === 'recipes') return await renderRecipes(gen);
+    if (state.active === 'mealplan') return await renderMealPlan(gen);
+    if (state.active === 'products') return await renderProducts(gen);
   } catch (err) {
+    if (gen !== _renderGen) return; // stale render after concurrent tab switch
     if (err?.status === 503) return renderNotice('Grocy not configured', 'Set GROCY_URL and GROCY_API_KEY, then restart Oikos.');
     setPanel(`<div class="gk-scroll"><div class="empty-state"><div class="empty-state__title">Something went wrong</div><div class="empty-state__description">${esc(err?.message || err)}</div></div></div>`);
   }
@@ -193,8 +202,9 @@ function stockBadges(row) {
   return out.join(' ');
 }
 
-async function renderStock() {
+async function renderStock(gen) {
   const rows = await g.get('/stock');
+  if (gen !== _renderGen) return; // discard stale result from a superseded tab switch
   const sorted = [...(rows || [])].sort((a, b) => (a.product?.name || '').localeCompare(b.product?.name || ''));
   const filter = (state._stockFilter || '').toLowerCase();
   const visible = filter ? sorted.filter((r) => (r.product?.name || '').toLowerCase().includes(filter)) : sorted;
@@ -218,7 +228,9 @@ async function renderStock() {
   }
 
   // Group by location for a tidy, native-looking category layout.
-  const groups = {};
+  // Use a null-prototype object so user-controlled location names like
+  // __proto__ or constructor cannot collide with inherited properties.
+  const groups = Object.create(null);
   for (const r of visible) {
     const locName = (r.product && state.locById[String(r.product.location_id)]?.name) || 'Unsorted';
     (groups[locName] = groups[locName] || []).push(r);
@@ -241,10 +253,10 @@ function stockRow(r) {
   const unit = quName(p.qu_id_stock, r.amount);
   return `
     <div class="shopping-item" data-id="${esc(r.product_id)}">
-      <div class="item-body" data-act="manage" data-id="${esc(r.product_id)}">
+      <button class="item-body" type="button" data-act="manage" data-id="${esc(r.product_id)}" aria-label="Manage ${esc(name)}">
         <div class="item-name">${esc(name)}</div>
         <div class="item-quantity"><span>${fmtAmount(r.amount)}${unit ? ' ' + esc(unit) : ''}</span>${stockBadges(r) ? ' ' + stockBadges(r) : ''}</div>
-      </div>
+      </button>
       <div class="gk-row__actions">
         <button class="btn btn--ghost btn--icon" type="button" data-act="consume" data-id="${esc(r.product_id)}" aria-label="Consume one">
           <i data-lucide="minus" class="icon-md" aria-hidden="true"></i>
@@ -293,7 +305,7 @@ function openStockManage(productId) {
   const p = state.prodById[String(productId)] || {};
   const locOpts = optionList(state.locations, 'id', (l) => l.name, p.location_id);
   openModal({
-    title: esc(p.name || 'Manage stock'),
+    title: p.name || 'Manage stock',
     size: 'md',
     content: `
       <div class="gk-form-grid">
@@ -386,8 +398,9 @@ function openPurchaseModal() {
 /* ════════════════════════════════════════════════════════════════════════════════
  *  SHOPPING
  * ════════════════════════════════════════════════════════════════════════════════ */
-async function renderShopping() {
+async function renderShopping(gen) {
   state.lists = await g.get('/shopping-lists') || [];
+  if (gen !== _renderGen) return; // discard stale result
   if (!state.lists.length) {
     setPanel(`<div class="gk-scroll"><div class="empty-state">
       <div class="empty-state__title">No shopping lists</div>
@@ -399,8 +412,9 @@ async function renderShopping() {
   }
   if (!state.lists.some((l) => l.id === state.shoppingActiveList)) state.shoppingActiveList = state.lists[0].id;
   const items = await g.get(`/shopping-list?list=${encodeURIComponent(state.shoppingActiveList)}`) || [];
+  if (gen !== _renderGen) return; // discard stale result
 
-  const tabs = state.lists.map((l) => {
+  const listTabs = state.lists.map((l) => {
     const open = items && l.id === state.shoppingActiveList ? items.filter((i) => !num(i.done)).length : null;
     return `<button class="list-tab ${l.id === state.shoppingActiveList ? 'list-tab--active' : ''}" type="button" data-act="switch-list" data-id="${esc(l.id)}">
       ${esc(l.name)}${open ? `<span class="list-tab__count">${open}</span>` : ''}</button>`;
@@ -410,7 +424,9 @@ async function renderShopping() {
   const checkedCount = items.filter((i) => num(i.done)).length;
 
   // Group items by product group (Grocy's grouping), with a stable "Other" bucket.
-  const groups = {};
+  // Use a null-prototype object so user-controlled group names like __proto__ or
+  // constructor cannot collide with inherited properties and crash the Shopping tab.
+  const groups = Object.create(null);
   for (const it of items) {
     const grp = (it.product_id && state.prodById[String(it.product_id)]?.product_group_id
       && state.groupById[String(state.prodById[String(it.product_id)].product_group_id)]?.name) || 'Other';
@@ -426,11 +442,11 @@ async function renderShopping() {
 
   setPanel(`
     <div class="list-tabs-bar" id="gk-list-tabs">
-      ${tabs}
+      ${listTabs}
       <button class="list-tab__new" type="button" data-act="new-list" aria-label="New list"><i data-lucide="plus" class="icon-md" aria-hidden="true"></i></button>
     </div>
     <div class="list-header">
-      <span class="list-header__name" data-act="rename-list" role="button" tabindex="0">${esc(activeList?.name || '')}<i data-lucide="pencil" class="icon-sm" aria-hidden="true" style="color:var(--color-text-disabled)"></i></span>
+      <span class="list-header__name" data-act="rename-list" role="button" tabindex="0" aria-label="Rename list: ${esc(activeList?.name || '')}">${esc(activeList?.name || '')}<i data-lucide="pencil" class="icon-sm" aria-hidden="true" style="color:var(--color-text-disabled)"></i></span>
       <div class="list-header__actions">
         <button class="btn btn--ghost" type="button" data-act="add-missing" style="font-size:var(--text-sm);color:var(--color-text-secondary)"><i data-lucide="sparkles" class="icon-md" aria-hidden="true"></i> Below min</button>
         ${checkedCount ? `<button class="btn btn--ghost" type="button" data-act="clear-done" style="font-size:var(--text-sm);color:var(--color-text-secondary)"><i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i> Clear done</button>` : ''}
@@ -478,8 +494,9 @@ function wireShopping() {
     if (b.dataset.act === 'new-list') shoppingNewList();
   });
 
-  // Header actions
-  state.panel.querySelector('.list-header')?.addEventListener('click', async (e) => {
+  // Header actions — click handler for all [data-act] elements in the header
+  const header = state.panel.querySelector('.list-header');
+  header?.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'rename-list') {
@@ -499,6 +516,12 @@ function wireShopping() {
       try { await g.del(`/shopping-lists/${state.shoppingActiveList}`); state.shoppingActiveList = null; renderShopping(); }
       catch (err) { toast(err?.data?.error || err?.message || 'Delete failed', 'danger'); }
     }
+  });
+
+  // Keyboard activation for the list rename element (role="button", tabindex="0")
+  // so Enter and Space behave the same as a click, matching native button conventions.
+  header?.querySelector('[data-act="rename-list"]')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); }
   });
 
   // Item actions
@@ -575,10 +598,11 @@ async function shoppingNewList() {
 /* ════════════════════════════════════════════════════════════════════════════════
  *  RECIPES
  * ════════════════════════════════════════════════════════════════════════════════ */
-async function renderRecipes() {
+async function renderRecipes(gen) {
   const [allRecipes, fulfillment, positions] = await Promise.all([
     g.get('/recipes'), g.get('/recipes/fulfillment').catch(() => []), g.get('/recipe-positions').catch(() => []),
   ]);
+  if (gen !== _renderGen) return; // discard stale result
   const recipes = (allRecipes || []).filter((r) => !r.type || r.type === 'normal');
   const fByRecipe = Object.fromEntries((fulfillment || []).map((f) => [String(f.recipe_id), f]));
   const posByRecipe = {};
@@ -591,7 +615,7 @@ async function renderRecipes() {
   if (!recipes.length) {
     setPanel(head + `<div class="gk-scroll"><div class="empty-state">
       <div class="empty-state__title">No recipes yet</div>
-      <div class="empty-state__description">Create stock-aware recipes; Oikos will tell you what you can cook and what’s missing.</div>
+      <div class="empty-state__description">Create stock-aware recipes; Oikos will tell you what you can cook and what's missing.</div>
       <button class="btn btn--primary empty-state__cta" id="gk-recipe-empty"><i data-lucide="plus" class="icon-md" aria-hidden="true"></i> Add recipe</button>
     </div></div>`);
     state.panel.querySelector('#gk-recipe-add')?.addEventListener('click', () => openRecipeModal('create'));
@@ -609,7 +633,10 @@ async function renderRecipes() {
     const pos = posByRecipe[String(r.id)] || [];
     const ing = pos.slice(0, 8).map((p) => {
       const prod = state.prodById[String(p.product_id)];
-      const label = `${fmtAmount(p.amount)} ${quName(p.qu_id, p.amount)} · ${prod ? esc(prod.name) : '#' + p.product_id}`;
+      const unit = quName(p.qu_id, p.amount);
+      // Escape every user-controlled fragment; quName() returns Grocy master-data
+      // that is not trusted HTML and must be escaped before interpolation.
+      const label = `${fmtAmount(p.amount)}${unit ? ' ' + esc(unit) : ''} · ${prod ? esc(prod.name) : '#' + esc(String(p.product_id))}`;
       return `<li class="recipe-card__ingredient">${label}</li>`;
     }).join('');
     const notes = stripHtml(r.description);
@@ -716,15 +743,35 @@ async function saveRecipe(panel, mode, recipe, saveBtn) {
     } else {
       recipeId = recipe.id;
       await g.put(`/recipes/${recipeId}`, { name, base_servings, description });
-      // Reconcile ingredients: clear then re-add (simple + reliable for a home app).
+      // Reconcile ingredients without a destructive clear: compare the existing
+      // positions against the desired list and only delete what is removed, add
+      // what is new, and update what changed.  This prevents an interruption
+      // (network error, timeout) from leaving the recipe permanently empty.
       const existing = await g.get(`/recipe-positions?recipe=${recipeId}`).catch(() => []);
-      for (const p of existing) await g.del(`/recipe-positions/${p.id}`);
+      const toDelete = existing.filter((p) => !rows.some((r) => num(r.product_id) === num(p.product_id)));
+      const toAdd    = rows.filter((r) => !existing.some((p) => num(p.product_id) === num(r.product_id)));
+      const toUpdate = rows.filter((r) => {
+        const ex = existing.find((p) => num(p.product_id) === num(r.product_id));
+        return ex && (num(ex.amount) !== r.amount || num(ex.qu_id) !== num(r.qu_id));
+      });
+      await Promise.all([
+        ...toDelete.map((p) => g.del(`/recipe-positions/${p.id}`)),
+        ...toAdd.map((ing) => g.post('/recipe-positions', { recipe_id: recipeId, product_id: num(ing.product_id), amount: ing.amount, qu_id: num(ing.qu_id) })),
+        ...toUpdate.map((ing) => {
+          const ex = existing.find((p) => num(p.product_id) === num(ing.product_id));
+          return g.put(`/recipe-positions/${ex.id}`, { recipe_id: recipeId, product_id: num(ing.product_id), amount: ing.amount, qu_id: num(ing.qu_id) });
+        }),
+      ]);
+      closeModal({ force: true });
+      toast('Recipe updated', 'success');
+      renderRecipes();
+      return;
     }
     for (const ing of rows) {
       await g.post('/recipe-positions', { recipe_id: recipeId, product_id: num(ing.product_id), amount: ing.amount, qu_id: num(ing.qu_id) });
     }
     closeModal({ force: true });
-    toast(mode === 'create' ? 'Recipe created' : 'Recipe updated', 'success');
+    toast('Recipe created', 'success');
     renderRecipes();
   } catch (err) { saveBtn.disabled = false; toast(err?.data?.error || err?.message || 'Could not save', 'danger'); }
 }
@@ -732,8 +779,9 @@ async function saveRecipe(panel, mode, recipe, saveBtn) {
 /* ════════════════════════════════════════════════════════════════════════════════
  *  MEAL PLAN
  * ════════════════════════════════════════════════════════════════════════════════ */
-async function renderMealPlan() {
+async function renderMealPlan(gen) {
   const [entries, allRecipes] = await Promise.all([g.get('/meal-plan'), g.get('/recipes')]);
+  if (gen !== _renderGen) return; // discard stale result
   const recipeById = Object.fromEntries((allRecipes || []).map((r) => [String(r.id), r]));
   state._mealRecipes = (allRecipes || []).filter((r) => !r.type || r.type === 'normal');
 
@@ -751,12 +799,15 @@ async function renderMealPlan() {
       let title = e.note || '';
       if (e.type === 'recipe') title = recipeById[String(e.recipe_id)]?.name || `Recipe #${e.recipe_id}`;
       else if (e.type === 'product') title = state.prodById[String(e.product_id)]?.name || `Product #${e.product_id}`;
+      const metaUnit = quName(e.product_qu_id, e.product_amount);
       const meta = e.type === 'recipe' && num(e.recipe_servings) ? `${fmtAmount(e.recipe_servings)} servings`
-        : e.type === 'product' && num(e.product_amount) ? `${fmtAmount(e.product_amount)} ${quName(e.product_qu_id, e.product_amount)}` : (e.type || '');
-      return `<div class="meal-card" data-act="del-meal" data-id="${esc(e.id)}" title="Remove">
+        : e.type === 'product' && num(e.product_amount) ? `${fmtAmount(e.product_amount)}${metaUnit ? ' ' + esc(metaUnit) : ''}` : (e.type || '');
+      // Use a real button so keyboard and assistive-technology users can activate
+      // the remove action via Enter/Space rather than relying on mouse click only.
+      return `<button class="meal-card" type="button" data-act="del-meal" data-id="${esc(e.id)}" aria-label="Remove: ${esc(title)}">
         <div class="meal-card__title">${esc(title)}</div>
         ${meta ? `<div class="meal-card__meta"><span class="meal-card__ingredients-count">${esc(meta)}</span></div>` : ''}
-      </div>`;
+      </button>`;
     }).join('');
     return `
       <div class="day-column">
@@ -866,8 +917,9 @@ const PRODUCT_SECTIONS = [
   { id: 'groups', label: 'Groups' },
 ];
 
-async function renderProducts() {
+async function renderProducts(gen) {
   await loadMasterData(true);
+  if (gen !== _renderGen) return; // discard stale result
   const seg = PRODUCT_SECTIONS.map((s) => `<button class="gk-seg__btn ${s.id === state.productsSection ? 'gk-seg__btn--active' : ''}" type="button" data-seg="${s.id}">${esc(s.label)}</button>`).join('');
   const addLabel = { products: 'Add product', locations: 'Add location', units: 'Add unit', groups: 'Add group' }[state.productsSection];
 

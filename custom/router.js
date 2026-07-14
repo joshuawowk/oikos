@@ -296,10 +296,15 @@ function createFocusTrap(container) {
  * @param {boolean} pushState - false beim initialen Load und popstate
  */
 async function navigate(path, userOrPushState = true, pushState = true) {
-  // Grocy Kitchen integration: redirect legacy kitchen routes to the module route.
-  // Done before the isNavigating latch so the recursive call proceeds normally.
+  // Grocy Kitchen integration: redirect legacy kitchen routes to the module route,
+  // but only while the grocy-kitchen module is loaded and enabled. If the module is
+  // disabled or has not yet been fetched, fall through to the native route so
+  // Kitchen navigation remains usable.
   const _gkBase = String(path).split('?')[0];
-  if (Object.prototype.hasOwnProperty.call(GROCY_KITCHEN_REDIRECT, _gkBase)) {
+  const _gkModuleEnabled = _thirdPartyModules.some(
+    (m) => m.id === 'grocy-kitchen' && m.enabled && m.status === 'enabled',
+  );
+  if (_gkModuleEnabled && Object.prototype.hasOwnProperty.call(GROCY_KITCHEN_REDIRECT, _gkBase)) {
     const _gkTarget = `${GROCY_KITCHEN_ROUTE}?tab=${GROCY_KITCHEN_REDIRECT[_gkBase]}`;
     // Ensure the URL carries the sub-tab even on hard loads (initial nav passes
     // pushState=false), so the module opens the requested tab. replaceState keeps history clean.
@@ -1290,7 +1295,15 @@ function initSearch(container) {
 function renderSearchResults(container, data, onClose) {
   container.replaceChildren();
   const { tasks = [], events = [], notes = [], contacts = [], items = [] } = data;
-  const total = tasks.length + events.length + notes.length + contacts.length + items.length;
+  // When grocy-kitchen is active it owns Shopping; the native shopping_items route
+  // still returns results but they navigate through /shopping which redirects to
+  // the Grocy module without restoring `list`/`highlight`.  Suppress them so
+  // users are not presented with a search result that opens the wrong view.
+  const grocyKitchenEnabled = _thirdPartyModules.some(
+    (m) => m.id === 'grocy-kitchen' && m.enabled && m.status === 'enabled',
+  );
+  const shoppingItems = grocyKitchenEnabled ? [] : items;
+  const total = tasks.length + events.length + notes.length + contacts.length + shoppingItems.length;
 
   if (total === 0) {
     const empty = document.createElement('p');
@@ -1300,15 +1313,15 @@ function renderSearchResults(container, data, onClose) {
     return;
   }
 
-  function makeSection(labelKey, items, routeFn) {
-    if (!items.length) return;
+  function makeSection(labelKey, sectionItems, routeFn) {
+    if (!sectionItems.length) return;
     const section = document.createElement('div');
     section.className = 'search-section';
     const heading = document.createElement('h3');
     heading.className = 'search-section__heading';
     heading.textContent = t(labelKey);
     section.appendChild(heading);
-    items.forEach((item) => {
+    sectionItems.forEach((item) => {
       const btn = document.createElement('button');
       btn.className = 'search-result';
       const title = document.createElement('span');
@@ -1324,11 +1337,11 @@ function renderSearchResults(container, data, onClose) {
     container.appendChild(section);
   }
 
-  makeSection('nav.tasks',    tasks,    (i) => `/tasks?open=${i.id}`);
-  makeSection('nav.calendar', events,   (i) => `/calendar?open=${i.id}`);
-  makeSection('nav.notes',    notes,    (i) => `/notes?open=${i.id}`);
-  makeSection('nav.contacts', contacts, (i) => `/contacts?open=${i.id}`);
-  makeSection('nav.shopping', items,    (i) => `/shopping?list=${i.list_id}&highlight=${i.id}`);
+  makeSection('nav.tasks',    tasks,         (i) => `/tasks?open=${i.id}`);
+  makeSection('nav.calendar', events,        (i) => `/calendar?open=${i.id}`);
+  makeSection('nav.notes',    notes,         (i) => `/notes?open=${i.id}`);
+  makeSection('nav.contacts', contacts,      (i) => `/contacts?open=${i.id}`);
+  makeSection('nav.shopping', shoppingItems, (i) => `/shopping?list=${i.list_id}&highlight=${i.id}`);
 }
 
 function navItems() {

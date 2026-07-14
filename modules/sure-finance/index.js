@@ -16,6 +16,7 @@
 
 import { api } from '/api.js';
 import { esc } from '/utils/html.js';
+import { t } from '/i18n.js';
 import { renderSubTabs } from '/utils/sub-tabs.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
 
@@ -55,12 +56,16 @@ function typeLabel(t) { return ACCOUNT_TYPE_LABELS[t] || (t ? t.replace(/_/g, ' 
 function typeIcon(t) { return ACCOUNT_TYPE_ICONS[t] || 'wallet'; }
 
 // ── Tabs / state ────────────────────────────────────────────────────────────────
-const TABS = [
-  { id: 'overview', label: 'Overview', icon: 'layout-dashboard' },
-  { id: 'accounts', label: 'Accounts', icon: 'landmark' },
-  { id: 'transactions', label: 'Transactions', icon: 'arrow-left-right' },
+const TABS = () => [
+  { id: 'overview',      label: t('sureFinance.tabOverview'),      icon: 'layout-dashboard' },
+  { id: 'accounts',      label: t('sureFinance.tabAccounts'),      icon: 'landmark'         },
+  { id: 'transactions',  label: t('sureFinance.tabTransactions'),  icon: 'arrow-left-right' },
 ];
 const TAB_KEY = 'oikos-sure-finance-tab';
+
+// Render-generation counter: prevents a slow async render that resolves after a
+// newer tab has been selected from overwriting the newer tab's content.
+let _renderGen = 0;
 
 const state = {
   root: null, panel: null, active: 'overview',
@@ -108,15 +113,16 @@ export async function render(container) {
 
   const wanted = new URLSearchParams(location.search).get('tab');
   const stored = (() => { try { return localStorage.getItem(TAB_KEY); } catch { return null; } })();
-  state.active = TABS.some((t) => t.id === wanted) ? wanted
-    : (TABS.some((t) => t.id === stored) ? stored : 'overview');
+  const tabs = TABS();
+  state.active = tabs.some((tb) => tb.id === wanted) ? wanted
+    : (tabs.some((tb) => tb.id === stored) ? stored : 'overview');
 
   renderSubTabs(wrap, {
-    tabs: TABS.map((t) => ({ id: t.id, label: t.label, icon: t.icon })),
+    tabs: tabs.map((tb) => ({ id: tb.id, label: tb.label, icon: tb.icon })),
     activeId: state.active,
     storageKey: TAB_KEY,
     extraClass: 'sure-tabs-bar',
-    ariaLabel: 'Finance',
+    ariaLabel: t('sureFinance.ariaLabel'),
     insertPosition: 'afterbegin',
     onChange: (id) => { state.active = id; renderActive(); },
   });
@@ -136,20 +142,23 @@ function renderNotice(title, text) {
 }
 
 async function renderActive() {
+  const gen = ++_renderGen;
   state.panel.replaceChildren();
   state.panel.insertAdjacentHTML('beforeend', '<div class="sf-loading">Loading…</div>');
   try {
-    if (state.active === 'overview') await renderOverview();
-    else if (state.active === 'accounts') await renderAccounts();
-    else await renderTransactions();
+    if (state.active === 'overview') await renderOverview(gen);
+    else if (state.active === 'accounts') await renderAccounts(gen);
+    else await renderTransactions(gen);
   } catch (err) {
+    if (gen !== _renderGen) return; // stale render after concurrent tab switch
     renderNotice('Something went wrong', String(err?.message || err));
   }
 }
 
 // ── Overview ────────────────────────────────────────────────────────────────────
-async function renderOverview() {
+async function renderOverview(gen) {
   const [bs] = await Promise.all([s.get('/balance-sheet'), loadMasterData(true)]);
+  if (gen !== _renderGen) return; // discard stale result
   const p = state.panel;
   p.replaceChildren();
 
@@ -214,8 +223,9 @@ async function renderOverview() {
 }
 
 // ── Accounts ────────────────────────────────────────────────────────────────────
-async function renderAccounts() {
+async function renderAccounts(gen) {
   await loadMasterData(true);
+  if (gen !== _renderGen) return; // discard stale result
   const p = state.panel;
   p.replaceChildren();
   if (!state.accounts.length) {
@@ -252,9 +262,10 @@ async function loadTransactions() {
   state.txn.totalPages = Number(pag.total_pages ?? pag.pages ?? 1) || 1;
 }
 
-async function renderTransactions() {
+async function renderTransactions(gen) {
   await loadMasterData();
   await loadTransactions();
+  if (gen !== _renderGen) return; // discard stale result
   const p = state.panel;
   p.replaceChildren();
 
@@ -276,12 +287,18 @@ async function renderTransactions() {
 
   const searchEl = p.querySelector('#sf-txn-search');
   let debounce;
+  // Use a sequence counter to discard out-of-order search responses: if a slow
+  // request completes after a newer one, its result is ignored.
+  let _searchSeq = 0;
   searchEl.addEventListener('input', () => {
     clearTimeout(debounce);
+    const seq = ++_searchSeq;
     debounce = setTimeout(async () => {
       state.txn.search = searchEl.value.trim();
       state.txn.page = 1;
-      await loadTransactions(); renderTxnList();
+      await loadTransactions();
+      if (_searchSeq !== seq) return; // stale response, discard
+      renderTxnList();
     }, 350);
   });
   p.querySelector('#sf-txn-acct').addEventListener('change', async (e) => {
