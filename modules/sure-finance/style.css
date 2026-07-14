@@ -1,0 +1,240 @@
+/**
+ * Oikos/Yuvomi module: sure-finance — styles
+ *
+ * Goal: be visually indistinguishable from native Oikos pages. Reuses Oikos's own
+ * design tokens (tokens.css, layout.css, glass.css, sub-tabs.css are always loaded)
+ * and mirrors native page structure. Only finance-specific bits (stat cards,
+ * account rows, transaction rows) add new classes, all built from the same tokens.
+ */
+
+/* ── Page shell (mirrors grocy-kitchen / native pages) ───────────────────────── */
+.sf-finance {
+  --module-accent: #059669;
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--safe-area-inset-top) - var(--nav-bottom-height) - var(--safe-area-inset-bottom));
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  overflow: hidden;
+}
+@media (min-width: 1024px) { .sf-finance { height: 100dvh; } }
+
+.sf-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  padding: var(--space-4);
+}
+
+.sf-loading {
+  margin: auto;
+  padding: var(--space-12);
+  text-align: center;
+  color: var(--color-text-disabled);
+  font-size: var(--text-sm);
+}
+
+.sf-muted { color: var(--color-text-secondary); font-size: var(--text-sm); }
+.sf-mono { font-variant-numeric: tabular-nums; }
+.sf-right { text-align: right; }
+
+/* ── Notice (not configured / unreachable) ───────────────────────────────────── */
+.sf-notice {
+  margin: auto;
+  max-width: 420px;
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-secondary);
+}
+.sf-notice i, .sf-notice svg { width: 40px; height: 40px; margin-bottom: var(--space-3); color: var(--module-accent); }
+.sf-notice h3 { color: var(--color-text); margin-bottom: var(--space-2); }
+.sf-notice p { font-size: var(--text-sm); }
+
+/* ── Overview stat cards ─────────────────────────────────────────────────────── */
+.sf-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+@media (max-width: 700px) { .sf-cards { grid-template-columns: 1fr; } }
+
+.sf-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-top: 3px solid var(--module-accent);
+}
+.sf-card--asset { border-top-color: var(--color-success, #34C759); }
+.sf-card--liability { border-top-color: var(--color-danger, #FF3B30); }
+.sf-card__label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+.sf-card__value {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────────── */
+.sf-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+.sf-toolbar--txn { justify-content: flex-start; }
+.sf-toolbar--txn .sf-search { flex: 1 1 220px; max-width: 360px; }
+.sf-toolbar--txn .sf-acct-filter { flex: 0 1 220px; }
+.sf-toolbar--txn #sf-txn-add { margin-left: auto; }
+
+/* ── Section titles + account rows (Overview) ────────────────────────────────── */
+.sf-section-title {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  margin: var(--space-4) 0 var(--space-2);
+}
+.sf-acct-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.sf-acct-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.sf-acct-row:last-child { border-bottom: none; }
+.sf-acct-row__icon {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--module-accent) 14%, transparent);
+  color: var(--module-accent);
+  flex-shrink: 0;
+}
+.sf-acct-row__icon i, .sf-acct-row__icon svg { width: 18px; height: 18px; }
+.sf-acct-row__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sf-acct-row__name { font-weight: 600; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-acct-row__type { font-size: var(--text-xs); color: var(--color-text-secondary); }
+.sf-acct-row__balance { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-text); }
+
+/* ── Accounts table ──────────────────────────────────────────────────────────── */
+.sf-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: auto;
+}
+.sf-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.sf-table th, .sf-table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.sf-table th {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-secondary, transparent);
+}
+.sf-table tr:last-child td { border-bottom: none; }
+.sf-cell-icon { display: inline-flex; vertical-align: middle; margin-right: var(--space-2); color: var(--module-accent); }
+.sf-cell-icon i, .sf-cell-icon svg { width: 16px; height: 16px; }
+
+.sf-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.sf-badge--asset { background: color-mix(in srgb, var(--color-success, #34C759) 16%, transparent); color: var(--color-success, #34C759); }
+.sf-badge--liability { background: color-mix(in srgb, var(--color-danger, #FF3B30) 16%, transparent); color: var(--color-danger, #FF3B30); }
+
+/* ── Transactions ────────────────────────────────────────────────────────────── */
+.sf-txn-list { display: flex; flex-direction: column; }
+.sf-date-head {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  margin: var(--space-4) 0 var(--space-2);
+}
+.sf-txn-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  margin-bottom: var(--space-2);
+}
+.sf-txn-row__icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-full);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sf-txn-row__icon i, .sf-txn-row__icon svg { width: 16px; height: 16px; }
+.sf-txn-row__icon.is-expense { background: color-mix(in srgb, var(--color-danger, #FF3B30) 14%, transparent); color: var(--color-danger, #FF3B30); }
+.sf-txn-row__icon.is-income { background: color-mix(in srgb, var(--color-success, #34C759) 14%, transparent); color: var(--color-success, #34C759); }
+.sf-txn-row__icon.is-transfer { background: color-mix(in srgb, var(--module-accent) 14%, transparent); color: var(--module-accent); }
+.sf-txn-row__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sf-txn-row__name { font-weight: 500; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-txn-row__meta { font-size: var(--text-xs); color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-txn-row__amount { font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.sf-txn-row__amount.is-expense { color: var(--color-text); }
+.sf-txn-row__amount.is-income { color: var(--color-success, #34C759); }
+.sf-txn-row__actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
+.sf-txn-row__actions .btn--icon { opacity: 0.55; }
+.sf-txn-row:hover .btn--icon { opacity: 1; }
+
+.sf-empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-disabled);
+  font-size: var(--text-sm);
+}
+
+/* ── Pager ───────────────────────────────────────────────────────────────────── */
+.sf-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+}
+
+/* ── Modal form ──────────────────────────────────────────────────────────────── */
+.sf-form .form-group { margin-bottom: var(--space-3); }
+.sf-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-3);
+}
+@media (max-width: 600px) { .sf-form-row { grid-template-columns: 1fr; } }

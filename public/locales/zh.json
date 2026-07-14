@@ -3176,5 +3176,19 @@
         "nextMonth": "下个月",
         "today": "今天",
         "clear": "清除"
+    },
+    "grocyKitchen": {
+        "ariaLabel": "Kitchen",
+        "tabStock": "Stock",
+        "tabShopping": "Shopping",
+        "tabRecipes": "Recipes",
+        "tabMealPlan": "Meal Plan",
+        "tabProducts": "Products"
+    },
+    "sureFinance": {
+        "ariaLabel": "Finance",
+        "tabOverview": "Overview",
+        "tabAccounts": "Accounts",
+        "tabTransactions": "Transactions"
     }
 }

@@ -1,0 +1,16 @@
+{
+  "id": "grocy-kitchen",
+  "name": "Kitchen",
+  "version": "2.0.0",
+  "description": "Grocy-backed Kitchen — Stock, Shopping, Recipes, Meal Plan and Products, the single source of truth shared with grocy-android. Requires the /api/v1/grocy proxy.",
+  "entry": "index.js",
+  "style": "style.css",
+  "icon": "utensils",
+  "accent": "#C2410C",
+  "menu": {
+    "show": false,
+    "label": "Kitchen",
+    "icon": "utensils",
+    "order": 24
+  }
+}
