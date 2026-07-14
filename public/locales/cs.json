@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Barva",
         "accountColorDefault": "Výchozí barva",
         "accountArchivedToast": "Účet archivován",
-        "accountRestoredToast": "Účet obnoven"
+        "accountRestoredToast": "Účet obnoven",
+        "scopeLabel": "Zobrazení",
+        "scopeMine": "Můj rozpočet",
+        "scopeHousehold": "Domácnost",
+        "householdBadge": "Domácnost",
+        "sharedToggleLabel": "Sdílet s domácností",
+        "sharedToggleHint": "Sdílené položky vidí celá domácnost; soukromé jen ty."
     },
     "settings": {
         "pageHealthModule": "Zdraví",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Výchozí připomenutí",
         "calendarDefaultRemindersHint": "Nové události tato připomenutí získají automaticky.",
         "calendarDefaultRemindersMax": "Nejvýše {{count}} výchozích připomenutí.",
-        "calendarDefaultsSaved": "Výchozí hodnoty uloženy"
+        "calendarDefaultsSaved": "Výchozí hodnoty uloženy",
+        "budgetModeTitle": "Režim rozpočtu",
+        "budgetModeHint": "Osobní rozpočty umožňují každému členovi mít soukromé položky a sdílet jen to, co patří celé domácnosti.",
+        "budgetModePersonalLabel": "Zapnout osobní rozpočty se sdílenými položkami",
+        "budgetModeSaved": "Režim rozpočtu uložen"
     },
     "login": {
         "tagline": "Vítejte zpět ve svém rodinném plánovači.",

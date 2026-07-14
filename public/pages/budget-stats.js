@@ -23,10 +23,16 @@ export async function renderStats(panel, ctx) {
 
 function fmtAmount(v) { return view.ctx.formatAmount(v); }
 
+// Ansichts-Scope (#476/#505): im personal-Modus folgen Statistik und Export dem
+// Mein/Haushalt-Umschalter, sonst ignoriert der Server den Parameter.
+function scopeQuery() {
+  return view.ctx?.budgetMode === 'personal' ? `&scope=${view.ctx.scope}` : '';
+}
+
 async function loadStats() {
   const body = view.root.querySelector('#budget-stats-body');
   try {
-    const res = await api.get(`/budget/stats?range=${view.range}&anchor=${view.anchor}`);
+    const res = await api.get(`/budget/stats?range=${view.range}&anchor=${view.anchor}${scopeQuery()}`);
     view.data = res.data;
     view.error = false;
   } catch (err) {
@@ -222,7 +228,7 @@ function renderExport() {
   const { from, to } = view.data;
   host.replaceChildren();
   host.insertAdjacentHTML('beforeend', `
-    <a class="btn btn--secondary" href="/api/v1/budget/export?from=${from}&to=${to}">
+    <a class="btn btn--secondary" href="/api/v1/budget/export?from=${from}&to=${to}${scopeQuery()}">
       <i data-lucide="download" class="icon-md" aria-hidden="true"></i> ${t('budget.statsExport')}
     </a>`);
   if (window.lucide) lucide.createIcons({ el: host });

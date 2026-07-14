@@ -1011,7 +1011,13 @@
         "accountColorLabel": "रंग",
         "accountColorDefault": "डिफ़ॉल्ट रंग",
         "accountArchivedToast": "खाता संग्रहीत किया गया",
-        "accountRestoredToast": "खाता पुनर्स्थापित किया गया"
+        "accountRestoredToast": "खाता पुनर्स्थापित किया गया",
+        "scopeLabel": "दृश्य",
+        "scopeMine": "मेरा बजट",
+        "scopeHousehold": "परिवार",
+        "householdBadge": "परिवार",
+        "sharedToggleLabel": "परिवार के साथ साझा करें",
+        "sharedToggleHint": "साझा प्रविष्टियाँ पूरे परिवार को दिखती हैं; निजी केवल आपको."
     },
     "settings": {
         "pageHealthModule": "स्वास्थ्य",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "डिफ़ॉल्ट रिमाइंडर",
         "calendarDefaultRemindersHint": "नए इवेंट को ये रिमाइंडर स्वतः मिल जाते हैं।",
         "calendarDefaultRemindersMax": "अधिकतम {{count}} डिफ़ॉल्ट रिमाइंडर।",
-        "calendarDefaultsSaved": "डिफ़ॉल्ट सहेजे गए"
+        "calendarDefaultsSaved": "डिफ़ॉल्ट सहेजे गए",
+        "budgetModeTitle": "बजट मोड",
+        "budgetModeHint": "व्यक्तिगत बजट में हर सदस्य अपनी निजी प्रविष्टियाँ रख सकता है और केवल वही साझा करता है जो पूरे परिवार से संबंधित हो.",
+        "budgetModePersonalLabel": "साझा प्रविष्टियों के साथ व्यक्तिगत बजट सक्षम करें",
+        "budgetModeSaved": "बजट मोड सहेजा गया"
     },
     "login": {
         "tagline": "अपने पारिवारिक प्लानर में फिर से आपका स्वागत है।",

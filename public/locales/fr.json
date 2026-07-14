@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Couleur",
         "accountColorDefault": "Couleur par défaut",
         "accountArchivedToast": "Compte archivé",
-        "accountRestoredToast": "Compte restauré"
+        "accountRestoredToast": "Compte restauré",
+        "scopeLabel": "Vue",
+        "scopeMine": "Mon budget",
+        "scopeHousehold": "Foyer",
+        "householdBadge": "Foyer",
+        "sharedToggleLabel": "Partager avec le foyer",
+        "sharedToggleHint": "Les entrées partagées sont visibles par tout le foyer ; les privées seulement par vous."
     },
     "settings": {
         "pageHealthModule": "Santé",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Rappels par défaut",
         "calendarDefaultRemindersHint": "Les nouveaux événements reçoivent automatiquement ces rappels.",
         "calendarDefaultRemindersMax": "Au maximum {{count}} rappels par défaut.",
-        "calendarDefaultsSaved": "Valeurs par défaut enregistrées"
+        "calendarDefaultsSaved": "Valeurs par défaut enregistrées",
+        "budgetModeTitle": "Mode budget",
+        "budgetModeHint": "Les budgets personnels permettent à chaque membre de garder des entrées privées et de ne partager que ce qui concerne tout le foyer.",
+        "budgetModePersonalLabel": "Activer les budgets personnels avec entrées partagées",
+        "budgetModeSaved": "Mode budget enregistré"
     },
     "login": {
         "tagline": "Bon retour sur votre planificateur familial.",

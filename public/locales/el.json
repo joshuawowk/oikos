@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Χρώμα",
         "accountColorDefault": "Προεπιλεγμένο χρώμα",
         "accountArchivedToast": "Ο λογαριασμός αρχειοθετήθηκε",
-        "accountRestoredToast": "Ο λογαριασμός επαναφέρθηκε"
+        "accountRestoredToast": "Ο λογαριασμός επαναφέρθηκε",
+        "scopeLabel": "Προβολή",
+        "scopeMine": "Ο προϋπολογισμός μου",
+        "scopeHousehold": "Νοικοκυριό",
+        "householdBadge": "Νοικοκυριό",
+        "sharedToggleLabel": "Κοινή χρήση με το νοικοκυριό",
+        "sharedToggleHint": "Οι κοινές εγγραφές είναι ορατές σε όλο το νοικοκυριό· οι ιδιωτικές μόνο σε εσένα."
     },
     "settings": {
         "pageHealthModule": "Υγεία",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Προεπιλεγμένες υπενθυμίσεις",
         "calendarDefaultRemindersHint": "Τα νέα συμβάντα λαμβάνουν αυτόματα αυτές τις υπενθυμίσεις.",
         "calendarDefaultRemindersMax": "Το πολύ {{count}} προεπιλεγμένες υπενθυμίσεις.",
-        "calendarDefaultsSaved": "Οι προεπιλογές αποθηκεύτηκαν"
+        "calendarDefaultsSaved": "Οι προεπιλογές αποθηκεύτηκαν",
+        "budgetModeTitle": "Λειτουργία προϋπολογισμού",
+        "budgetModeHint": "Οι προσωπικοί προϋπολογισμοί επιτρέπουν σε κάθε μέλος να κρατά ιδιωτικές εγγραφές και να μοιράζεται μόνο ό,τι αφορά όλο το νοικοκυριό.",
+        "budgetModePersonalLabel": "Ενεργοποίηση προσωπικών προϋπολογισμών με κοινές εγγραφές",
+        "budgetModeSaved": "Η λειτουργία προϋπολογισμού αποθηκεύτηκε"
     },
     "login": {
         "tagline": "Καλώς ήρθατε ξανά στον οικογενειακό σας οργανωτή.",

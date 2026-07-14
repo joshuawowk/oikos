@@ -10,6 +10,7 @@ import * as db from '../db.js';
 import { hydrateBirthday } from '../services/birthdays.js';
 import { getUpcomingEvents } from '../services/calendar-events.js';
 import { visibilityWhere } from '../services/visibility.js';
+import { resolveBudgetMode } from '../services/budget-visibility.js';
 
 const log = createLogger('Dashboard');
 
@@ -203,6 +204,11 @@ router.get('/', (req, res) => {
   try {
     const from = `${currentMonth}-01`;
     const to = `${currentMonth}-31`;
+    // Persönlich/geteilt (#476/#505): im personal-Modus zeigt das Dashboard-Widget
+    // das eigene Budget (owner_id = me), sonst das gesamte Haushaltsbudget.
+    const ownerClause = resolveBudgetMode(d) === 'personal' ? ' AND owner_id = ?' : '';
+    const ownerParams = ownerClause ? [userId] : [];
+
     const totals = d.prepare(`
       SELECT
         SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS income,
@@ -210,17 +216,17 @@ router.get('/', (req, res) => {
         SUM(amount) AS balance,
         COUNT(*) AS entry_count
       FROM budget_entries
-      WHERE date BETWEEN ? AND ?
-    `).get(from, to);
+      WHERE date BETWEEN ? AND ?${ownerClause}
+    `).get(from, to, ...ownerParams);
 
     const topExpense = d.prepare(`
       SELECT category, SUM(amount) AS amount
       FROM budget_entries
-      WHERE amount < 0 AND date BETWEEN ? AND ?
+      WHERE amount < 0 AND date BETWEEN ? AND ?${ownerClause}
       GROUP BY category
       ORDER BY ABS(SUM(amount)) DESC
       LIMIT 1
-    `).get(from, to);
+    `).get(from, to, ...ownerParams);
 
     // Monats-Sparziel (Budgetplan #468): eigener Guard, damit ältere/Minimal-DBs
     // ohne budget_plans-Tabelle die Budget-Aggregation nicht scheitern lassen.

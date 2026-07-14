@@ -415,8 +415,8 @@ test('module-specific settings leaves only reference their owned preferences and
       ],
     },
     '../public/settings/pages/modules-budget.js': {
-      endpoints: [],
-      preferences: [],
+      endpoints: ['/preferences'],
+      preferences: ['budget_mode'],
     },
     '../public/settings/pages/modules-housekeeping.js': {
       endpoints: ['/preferences'],
@@ -499,11 +499,14 @@ test('module-specific settings leaves preserve their required controls and behav
 
   const budget = read('../public/settings/pages/modules-budget.js');
   // Currency moved to the unified Region/Format control in personal-appearance;
-  // the budget leaf is now a pointer card with no own form controls or API calls.
+  // the budget leaf keeps a pointer card to it. Since #476/#505 it also owns the
+  // admin-only household budget-mode toggle (personal vs. shared budgets).
   assert.doesNotMatch(budget, /id="currency-select"/);
-  assert.doesNotMatch(budget, /\bapi\./);
   assert.match(budget, /\/settings\/personal\/appearance/);
-  assert.equal([...budget.matchAll(/<(?:input|select|textarea)\b/g)].length, 0);
+  assert.match(budget, /id="budget-mode-personal"/);
+  assert.match(budget, /budget_mode: modeToggle\.checked \? 'personal' : 'shared'/);
+  // Only the budget-mode toggle is a form control; it is admin-gated in markup.
+  assert.equal([...budget.matchAll(/<(?:input|select|textarea)\b/g)].length, 1);
 
   const housekeeping = read('../public/settings/pages/modules-housekeeping.js');
   assert.match(housekeeping, /id="housekeeping-payment-tasks"/);

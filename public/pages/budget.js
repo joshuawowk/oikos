@@ -162,6 +162,8 @@ let state = {
   loanFilterId: null,
   loanStatusFilter: 'active',
   currency:    'EUR',
+  budgetMode:  'shared',      // 'shared' (Altverhalten) | 'personal' (#476/#505)
+  scope:       'mine',        // Ansichts-Filter im personal-Modus: 'mine' | 'household'
   meta:        { expenseCategories: [], incomeCategories: [], expenseSubcategories: {} },
 };
 let _container = null;
@@ -200,11 +202,13 @@ async function loadMonth(month) {
   const prevMonth = addMonths(month, -1);
   // Konto-Drilldown: Transaktionsliste optional auf ein Konto filtern.
   const accountQuery = state.accountFilterId ? `&account_id=${state.accountFilterId}` : '';
+  // Ansichts-Scope (#476/#505): nur im personal-Modus relevant; sonst ignoriert der Server ihn.
+  const scopeQuery = state.budgetMode === 'personal' ? `&scope=${state.scope}` : '';
   try {
     const [entriesRes, summaryRes, prevSummaryRes, loansRes] = await Promise.all([
-      api.get(`/budget?month=${month}${accountQuery}`),
-      api.get(`/budget/summary?month=${month}`),
-      api.get(`/budget/summary?month=${prevMonth}`),
+      api.get(`/budget?month=${month}${accountQuery}${scopeQuery}`),
+      api.get(`/budget/summary?month=${month}${scopeQuery}`),
+      api.get(`/budget/summary?month=${prevMonth}${scopeQuery}`),
       api.get('/budget/loans'),
     ]);
     state.month       = month;
@@ -270,6 +274,7 @@ export async function render(container, { user }) {
         loadBudgetMeta(),
       ]);
       state.currency = prefsRes.data?.currency ?? 'EUR';
+      state.budgetMode = prefsRes.data?.budget_mode === 'personal' ? 'personal' : 'shared';
     } catch (_) { /* Fallback auf EUR */ }
   }
 
@@ -287,6 +292,13 @@ export async function render(container, { user }) {
             <i data-lucide="chevron-right" aria-hidden="true"></i>
           </button>
         </div>
+        ${state.budgetMode === 'personal' ? `
+        <div class="budget-scope" role="tablist" aria-label="${t('budget.scopeLabel')}">
+          ${[['mine', t('budget.scopeMine')], ['household', t('budget.scopeHousehold')]].map(([id, label]) => {
+            const on = id === state.scope;
+            return `<button class="sub-tab${on ? ' sub-tab--active' : ''}" type="button" role="tab" data-scope="${id}" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}"><span class="sub-tab__label">${label}</span></button>`;
+          }).join('')}
+        </div>` : ''}
         <div class="page-toolbar__actions">
           <div class="budget-tabs" role="tablist" aria-label="${t('budget.tabsLabel')}">
             ${[
@@ -355,6 +367,22 @@ function wireNav() {
     await loadMonth(m);
     renderBody();
     updateLabel();
+  });
+  // Ansichts-Scope (Mein Budget / Haushalt) — nur im personal-Modus vorhanden.
+  _container.querySelector('.budget-scope')?.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-scope]');
+    if (!btn) return;
+    const next = btn.dataset.scope;
+    if (next === state.scope) return;
+    state.scope = next;
+    _container.querySelectorAll('.budget-scope [data-scope]').forEach((b) => {
+      const on = b.dataset.scope === next;
+      b.classList.toggle('sub-tab--active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    });
+    await loadMonth(state.month);
+    renderBody();
   });
   const addHandler = () => {
     if (state.activeTab === 'split-expenses') {
@@ -431,6 +459,7 @@ function renderBody() {
     setHtml(body, '<div class="budget-tab-panel budget-tab-panel--reports" id="budget-reports-panel"></div>');
     renderStats(body.querySelector('#budget-reports-panel'), {
       user: _user, currency: state.currency,
+      budgetMode: state.budgetMode, scope: state.scope,
       formatAmount, categoryLabel, esc,
     }).catch((err) => console.error('[Budget] stats render error:', err));
     return;
@@ -531,7 +560,7 @@ function renderBody() {
           <i data-lucide="tags" class="icon-md" aria-hidden="true"></i>
         </button>
         ${state.entries.length ? `
-        <a href="/api/v1/budget/export?month=${state.month}" class="btn btn--secondary budget-csv-export">
+        <a href="/api/v1/budget/export?month=${state.month}${state.budgetMode === 'personal' ? `&scope=${state.scope}` : ''}" class="btn btn--secondary budget-csv-export">
           <i data-lucide="download" class="icon-sm" aria-hidden="true"></i>CSV
         </a>` : ''}
         </div>
@@ -668,12 +697,16 @@ function renderEntries() {
     const acctMeta = acctName
       ? ` · <span class="budget-entry__account"><i data-lucide="wallet" class="icon-xs" aria-hidden="true"></i>${esc(acctName)}</span>`
       : '';
+    // Im personal-Modus geteilte Einträge klar als Haushalts-Topf kennzeichnen (#476/#505).
+    const sharedBadge = (state.budgetMode === 'personal' && e.visibility === 'shared')
+      ? ` <span class="budget-badge budget-badge--shared">${esc(t('budget.householdBadge'))}</span>`
+      : '';
 
     return `
       <div class="budget-entry" data-id="${e.id}">
         <div class="budget-entry__indicator ${indClass}"></div>
         <div class="budget-entry__body">
-          <div class="budget-entry__title">${esc(e.title)}</div>
+          <div class="budget-entry__title">${esc(e.title)}${sharedBadge}</div>
           <div class="budget-entry__meta">${date} · ${esc(categoryMeta)}${acctMeta}${recurTag}</div>
         </div>
         <div class="budget-entry__amount ${amtClass}">${sign}${formatAmount(e.amount)}</div>
@@ -1358,6 +1391,16 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
              value="${isEdit ? entry.date : today}"></yuvomi-datepicker>
     </div>
 
+    ${state.budgetMode === 'personal' ? `
+    <div class="form-group js-entry-field">
+      <label class="toggle">
+        <input type="checkbox" id="bm-shared" ${isEdit && entry.visibility === 'shared' ? 'checked' : ''}>
+        <span class="toggle__track"></span>
+        <span>${t('budget.sharedToggleLabel')}</span>
+      </label>
+      <p class="form-hint">${t('budget.sharedToggleHint')}</p>
+    </div>` : ''}
+
     <div class="js-entry-field">
       ${advancedSection(`
         ${accountField}
@@ -1587,6 +1630,9 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
         try {
           const body = { title, amount, category, subcategory, date, is_recurring: recurring, recurrence_interval: interval, recurrence_virtual: virtual };
           if (accountId !== undefined) body.account_id = accountId;
+          // Sichtbarkeit nur im personal-Modus mitsenden (#476/#505).
+          const sharedEl = panel.querySelector('#bm-shared');
+          if (sharedEl) body.visibility = sharedEl.checked ? 'shared' : 'private';
           if (mode === 'create') {
             const res = await api.post('/budget', body);
             state.entries.unshift(res.data);

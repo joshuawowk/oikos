@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Kleur",
         "accountColorDefault": "Standaardkleur",
         "accountArchivedToast": "Rekening gearchiveerd",
-        "accountRestoredToast": "Rekening hersteld"
+        "accountRestoredToast": "Rekening hersteld",
+        "scopeLabel": "Weergave",
+        "scopeMine": "Mijn budget",
+        "scopeHousehold": "Huishouden",
+        "householdBadge": "Huishouden",
+        "sharedToggleLabel": "Delen met het huishouden",
+        "sharedToggleHint": "Gedeelde items zijn voor het hele huishouden zichtbaar; privé-items alleen voor jou."
     },
     "settings": {
         "pageHealthModule": "Gezondheid",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Standaardherinneringen",
         "calendarDefaultRemindersHint": "Nieuwe afspraken krijgen deze herinneringen automatisch.",
         "calendarDefaultRemindersMax": "Maximaal {{count}} standaardherinneringen.",
-        "calendarDefaultsSaved": "Standaardwaarden opgeslagen"
+        "calendarDefaultsSaved": "Standaardwaarden opgeslagen",
+        "budgetModeTitle": "Budgetmodus",
+        "budgetModeHint": "Met persoonlijke budgetten houdt elk lid privé-items en deelt alleen wat bij het hele huishouden hoort.",
+        "budgetModePersonalLabel": "Persoonlijke budgetten met gedeelde items inschakelen",
+        "budgetModeSaved": "Budgetmodus opgeslagen"
     },
     "login": {
         "tagline": "Welkom terug bij je gezinsplanner.",

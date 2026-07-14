@@ -1018,7 +1018,13 @@
         "accountColorLabel": "Farbe",
         "accountColorDefault": "Standardfarbe",
         "accountArchivedToast": "Konto archiviert",
-        "accountRestoredToast": "Konto wiederhergestellt"
+        "accountRestoredToast": "Konto wiederhergestellt",
+        "scopeLabel": "Ansicht",
+        "scopeMine": "Mein Budget",
+        "scopeHousehold": "Haushalt",
+        "householdBadge": "Haushalt",
+        "sharedToggleLabel": "Mit dem Haushalt teilen",
+        "sharedToggleHint": "Geteilte Einträge sehen alle im Haushalt; private nur du."
     },
     "settings": {
         "pageHealthModule": "Gesundheit",
@@ -1775,7 +1781,11 @@
         "calendarDefaultRemindersLabel": "Standard-Erinnerungen",
         "calendarDefaultRemindersHint": "Neue Termine erhalten diese Erinnerungen automatisch.",
         "calendarDefaultRemindersMax": "Höchstens {{count}} Standard-Erinnerungen.",
-        "calendarDefaultsSaved": "Standardwerte gespeichert"
+        "calendarDefaultsSaved": "Standardwerte gespeichert",
+        "budgetModeTitle": "Budget-Modus",
+        "budgetModeHint": "Persönliche Budgets: Jedes Mitglied hat eigene private Einträge und teilt nur, was den ganzen Haushalt betrifft.",
+        "budgetModePersonalLabel": "Persönliche Budgets mit geteilten Einträgen aktivieren",
+        "budgetModeSaved": "Budget-Modus gespeichert"
     },
     "login": {
         "tagline": "Willkommen zurück bei eurem Familienplaner.",

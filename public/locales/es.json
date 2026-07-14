@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Color",
         "accountColorDefault": "Color predeterminado",
         "accountArchivedToast": "Cuenta archivada",
-        "accountRestoredToast": "Cuenta restaurada"
+        "accountRestoredToast": "Cuenta restaurada",
+        "scopeLabel": "Vista",
+        "scopeMine": "Mi presupuesto",
+        "scopeHousehold": "Hogar",
+        "householdBadge": "Hogar",
+        "sharedToggleLabel": "Compartir con el hogar",
+        "sharedToggleHint": "Las entradas compartidas las ve todo el hogar; las privadas solo tú."
     },
     "settings": {
         "pageHealthModule": "Salud",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Recordatorios predeterminados",
         "calendarDefaultRemindersHint": "Los nuevos eventos reciben estos recordatorios automáticamente.",
         "calendarDefaultRemindersMax": "Como máximo {{count}} recordatorios predeterminados.",
-        "calendarDefaultsSaved": "Valores predeterminados guardados"
+        "calendarDefaultsSaved": "Valores predeterminados guardados",
+        "budgetModeTitle": "Modo de presupuesto",
+        "budgetModeHint": "Los presupuestos personales permiten a cada miembro tener entradas privadas y compartir solo lo que pertenece a todo el hogar.",
+        "budgetModePersonalLabel": "Activar presupuestos personales con entradas compartidas",
+        "budgetModeSaved": "Modo de presupuesto guardado"
     },
     "login": {
         "tagline": "Bienvenido de nuevo a tu planificador familiar.",

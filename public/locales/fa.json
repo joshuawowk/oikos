@@ -1018,7 +1018,13 @@
         "accountColorLabel": "رنگ",
         "accountColorDefault": "رنگ پیش‌فرض",
         "accountArchivedToast": "حساب بایگانی شد",
-        "accountRestoredToast": "حساب بازیابی شد"
+        "accountRestoredToast": "حساب بازیابی شد",
+        "scopeLabel": "نما",
+        "scopeMine": "بودجه من",
+        "scopeHousehold": "خانوار",
+        "householdBadge": "خانوار",
+        "sharedToggleLabel": "اشتراک با خانوار",
+        "sharedToggleHint": "موارد مشترک را همه اعضای خانوار می‌بینند؛ موارد خصوصی فقط شما."
     },
     "settings": {
         "pageHealthModule": "سلامت",
@@ -1775,7 +1781,11 @@
         "calendarDefaultRemindersLabel": "یادآوری‌های پیش‌فرض",
         "calendarDefaultRemindersHint": "رویدادهای جدید این یادآوری‌ها را به‌طور خودکار دریافت می‌کنند.",
         "calendarDefaultRemindersMax": "حداکثر {{count}} یادآوری پیش‌فرض.",
-        "calendarDefaultsSaved": "مقادیر پیش‌فرض ذخیره شد"
+        "calendarDefaultsSaved": "مقادیر پیش‌فرض ذخیره شد",
+        "budgetModeTitle": "حالت بودجه",
+        "budgetModeHint": "بودجه‌های شخصی به هر عضو اجازه می‌دهد موارد خصوصی داشته باشد و فقط آنچه را که به کل خانوار مربوط است به اشتراک بگذارد.",
+        "budgetModePersonalLabel": "فعال‌سازی بودجه‌های شخصی با موارد مشترک",
+        "budgetModeSaved": "حالت بودجه ذخیره شد"
     },
     "login": {
         "tagline": "دوباره به برنامه‌ریز خانوادگی‌تان خوش آمدید.",

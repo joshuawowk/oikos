@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Färg",
         "accountColorDefault": "Standardfärg",
         "accountArchivedToast": "Konto arkiverat",
-        "accountRestoredToast": "Konto återställt"
+        "accountRestoredToast": "Konto återställt",
+        "scopeLabel": "Vy",
+        "scopeMine": "Min budget",
+        "scopeHousehold": "Hushåll",
+        "householdBadge": "Hushåll",
+        "sharedToggleLabel": "Dela med hushållet",
+        "sharedToggleHint": "Delade poster syns för hela hushållet; privata bara för dig."
     },
     "settings": {
         "pageHealthModule": "Hälsa",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Standardpåminnelser",
         "calendarDefaultRemindersHint": "Nya händelser får dessa påminnelser automatiskt.",
         "calendarDefaultRemindersMax": "Högst {{count}} standardpåminnelser.",
-        "calendarDefaultsSaved": "Standardvärden sparade"
+        "calendarDefaultsSaved": "Standardvärden sparade",
+        "budgetModeTitle": "Budgetläge",
+        "budgetModeHint": "Personliga budgetar låter varje medlem ha privata poster och dela bara det som hör till hela hushållet.",
+        "budgetModePersonalLabel": "Aktivera personliga budgetar med delade poster",
+        "budgetModeSaved": "Budgetläge sparat"
     },
     "login": {
         "tagline": "Välkommen tillbaka till din familjeplanerare.",

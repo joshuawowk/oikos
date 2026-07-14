@@ -1011,7 +1011,13 @@
         "accountColorLabel": "اللون",
         "accountColorDefault": "اللون الافتراضي",
         "accountArchivedToast": "تمت أرشفة الحساب",
-        "accountRestoredToast": "تمت استعادة الحساب"
+        "accountRestoredToast": "تمت استعادة الحساب",
+        "scopeLabel": "العرض",
+        "scopeMine": "ميزانيتي",
+        "scopeHousehold": "الأسرة",
+        "householdBadge": "الأسرة",
+        "sharedToggleLabel": "المشاركة مع الأسرة",
+        "sharedToggleHint": "الإدخالات المشتركة يراها كل أفراد الأسرة؛ والخاصة أنت فقط."
     },
     "settings": {
         "pageHealthModule": "الصحة",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "التذكيرات الافتراضية",
         "calendarDefaultRemindersHint": "تحصل الأحداث الجديدة على هذه التذكيرات تلقائيًا.",
         "calendarDefaultRemindersMax": "بحد أقصى {{count}} تذكيرات افتراضية.",
-        "calendarDefaultsSaved": "تم حفظ الإعدادات الافتراضية"
+        "calendarDefaultsSaved": "تم حفظ الإعدادات الافتراضية",
+        "budgetModeTitle": "وضع الميزانية",
+        "budgetModeHint": "تتيح الميزانيات الشخصية لكل فرد الاحتفاظ بإدخالات خاصة ومشاركة ما يخص الأسرة بأكملها فقط.",
+        "budgetModePersonalLabel": "تفعيل الميزانيات الشخصية مع الإدخالات المشتركة",
+        "budgetModeSaved": "تم حفظ وضع الميزانية"
     },
     "login": {
         "tagline": "مرحبًا بعودتك إلى منظّم عائلتك.",

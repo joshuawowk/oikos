@@ -13,6 +13,7 @@ import {
 } from '../services/subscriptions.js';
 import { getRates } from '../services/subscription-rates.js';
 import { findLogoOptions } from '../services/subscription-logo.js';
+import { normalizeBudgetVisibility, budgetVisibilityWhere, canEditEntry, resolveBudgetMode } from '../services/budget-visibility.js';
 
 const log = createLogger('Subscriptions');
 const router = express.Router();
@@ -20,6 +21,17 @@ const URL_RE = /^https?:\/\/[^\s]+$/i;
 
 function actorId(req) {
   return req.authUserId || req.session.userId;
+}
+
+// Persönlich/geteilt (#476/#505): Abonnements folgen dem Haushalts-Budget-Modus.
+function budgetMode() {
+  return resolveBudgetMode(db.get());
+}
+
+/** Schreib-Berechtigung im personal-Modus (kein Admin-Bypass); shared-Modus offen. */
+function mayEditSub(req, row) {
+  if (budgetMode() !== 'personal') return true;
+  return canEditEntry(row, { id: actorId(req) });
 }
 
 function settings() {
@@ -87,24 +99,35 @@ async function syncBudgetExpense(subscription, { preserveCurrent = false } = {})
   const subcategory = subscription.budget_subcategory_key || '';
   let entryId = preserveCurrent ? null : subscription.budget_entry_id;
   if (entryId) {
+    // Eigentümer + Sichtbarkeit mitziehen (#476/#505): ohne das bliebe der
+    // verknüpfte Ausgaben-Eintrag beim Umschalten des Abos (shared↔private) auf
+    // seinem alten Wert und entkoppelte sich vom Abo (privates Abo → geteilter
+    // Eintrag im Haushalts-Topf). Symmetrisch zur INSERT-Branch unten.
     const updated = database.prepare(`
       UPDATE budget_entries
-      SET title = ?, amount = ?, category = 'subscriptions', subcategory = ?, date = ?
+      SET title = ?, amount = ?, category = 'subscriptions', subcategory = ?, date = ?,
+          owner_id = ?, visibility = ?
       WHERE id = ?
-    `).run(budgetEntryTitle(subscription), -amount, subcategory, subscription.next_payment_date, entryId);
+    `).run(
+      budgetEntryTitle(subscription), -amount, subcategory, subscription.next_payment_date,
+      subscription.owner_id ?? subscription.created_by, subscription.visibility || 'shared', entryId,
+    );
     if (!updated.changes) entryId = null;
   }
   if (!entryId) {
+    // Verknüpfter Ausgaben-Eintrag erbt Eigentümer + Sichtbarkeit des Abos (#476/#505).
     entryId = database.prepare(`
       INSERT INTO budget_entries
-        (title, amount, category, subcategory, date, is_recurring, created_by)
-      VALUES (?, ?, 'subscriptions', ?, ?, 0, ?)
+        (title, amount, category, subcategory, date, is_recurring, created_by, owner_id, visibility)
+      VALUES (?, ?, 'subscriptions', ?, ?, 0, ?, ?, ?)
     `).run(
       budgetEntryTitle(subscription),
       -amount,
       subcategory,
       subscription.next_payment_date,
       subscription.created_by,
+      subscription.owner_id ?? subscription.created_by,
+      subscription.visibility || 'shared',
     ).lastInsertRowid;
     database.prepare('UPDATE budget_subscriptions SET budget_entry_id = ? WHERE id = ?').run(entryId, subscription.id);
   }
@@ -337,6 +360,11 @@ router.get('/', async (req, res) => {
       const query = `%${String(req.query.q).slice(0, 100)}%`;
       params.push(query, query, query);
     }
+    // Sichtbarkeit (#476/#505): im personal-Modus nur geteilte + eigene Abos.
+    if (budgetMode() === 'personal') {
+      clauses.push(budgetVisibilityWhere('s', '?', { mode: 'personal' }));
+      params.push(actorId(req));
+    }
     const rows = db.get().prepare(`
       SELECT s.*, c.name AS category_name, c.color AS category_color,
              c.budget_subcategory_key,
@@ -386,18 +414,23 @@ router.post('/', async (req, res) => {
   try {
     const validated = validatePayload(req.body);
     if (validated.errors.length) return res.status(400).json({ error: validated.errors.join(' '), code: 400 });
+    const me = actorId(req);
+    const visibility = normalizeBudgetVisibility(
+      req.body.visibility,
+      budgetMode() === 'personal' ? 'private' : 'shared'
+    );
     const result = db.get().prepare(`
       INSERT INTO budget_subscriptions
         (name, description, amount, currency, billing_cycle, cycle_interval, next_payment_date,
          category_id, payment_method_id, reminder_days, enabled, website_url, logo_data,
-         brand_color, notes, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         brand_color, notes, created_by, owner_id, visibility)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       req.body.name.trim(), req.body.description?.trim() || null, Number(req.body.amount), validated.currency,
       req.body.billing_cycle, validated.cycleInterval, req.body.next_payment_date,
       req.body.category_id || null, req.body.payment_method_id || null, validated.reminderDays,
       req.body.enabled === false ? 0 : 1, req.body.website_url?.trim() || null, req.body.logo_data || null,
-      req.body.brand_color || null, req.body.notes?.trim() || null, actorId(req),
+      req.body.brand_color || null, req.body.notes?.trim() || null, me, me, visibility,
     );
     let row = loadSubscription(result.lastInsertRowid);
     row = await syncBudgetExpense(row);
@@ -414,14 +447,19 @@ router.put('/:id', async (req, res) => {
     const id = Number(req.params.id);
     const current = loadSubscription(id);
     if (!current) return res.status(404).json({ error: 'Subscription not found.', code: 404 });
+    if (!mayEditSub(req, current)) return res.status(403).json({ error: 'You cannot modify this subscription.', code: 403 });
     const validated = validatePayload(req.body, { partial: true });
     if (validated.errors.length) return res.status(400).json({ error: validated.errors.join(' '), code: 400 });
     const value = (key, fallback) => req.body[key] === undefined ? fallback : req.body[key];
+    // Sichtbarkeit umschaltbar; owner_id bleibt fix (#476/#505).
+    const nextVisibility = req.body.visibility !== undefined
+      ? normalizeBudgetVisibility(req.body.visibility)
+      : current.visibility;
     db.get().prepare(`
       UPDATE budget_subscriptions SET
         name = ?, description = ?, amount = ?, currency = ?, billing_cycle = ?, cycle_interval = ?,
         next_payment_date = ?, category_id = ?, payment_method_id = ?, reminder_days = ?, enabled = ?,
-        website_url = ?, logo_data = ?, brand_color = ?, notes = ?
+        website_url = ?, logo_data = ?, brand_color = ?, notes = ?, visibility = ?
       WHERE id = ?
     `).run(
       value('name', current.name)?.trim(), value('description', current.description)?.trim() || null,
@@ -431,7 +469,7 @@ router.put('/:id', async (req, res) => {
       value('payment_method_id', current.payment_method_id) || null,
       validated.reminderDays ?? current.reminder_days, value('enabled', Boolean(current.enabled)) ? 1 : 0,
       value('website_url', current.website_url)?.trim() || null, value('logo_data', current.logo_data) || null,
-      value('brand_color', current.brand_color) || null, value('notes', current.notes)?.trim() || null, id,
+      value('brand_color', current.brand_color) || null, value('notes', current.notes)?.trim() || null, nextVisibility, id,
     );
     let row = loadSubscription(id);
     row = await syncBudgetExpense(row);
@@ -463,7 +501,9 @@ router.post('/:id/renew', async (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const id = Number(req.params.id);
-    if (!loadSubscription(id)) return res.status(404).json({ error: 'Subscription not found.', code: 404 });
+    const existing = loadSubscription(id);
+    if (!existing) return res.status(404).json({ error: 'Subscription not found.', code: 404 });
+    if (!mayEditSub(req, existing)) return res.status(403).json({ error: 'You cannot modify this subscription.', code: 403 });
     db.get().transaction(() => {
       const subscription = loadSubscription(id);
       db.get().prepare("DELETE FROM reminders WHERE entity_type = 'subscription' AND entity_id = ?").run(id);

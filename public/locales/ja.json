@@ -1011,7 +1011,13 @@
         "accountColorLabel": "色",
         "accountColorDefault": "既定の色",
         "accountArchivedToast": "口座をアーカイブしました",
-        "accountRestoredToast": "口座を元に戻しました"
+        "accountRestoredToast": "口座を元に戻しました",
+        "scopeLabel": "表示",
+        "scopeMine": "マイ予算",
+        "scopeHousehold": "世帯",
+        "householdBadge": "世帯",
+        "sharedToggleLabel": "世帯で共有",
+        "sharedToggleHint": "共有した項目は世帯全員に表示され、非公開の項目は自分だけに表示されます。"
     },
     "settings": {
         "pageHealthModule": "健康",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "既定のリマインダー",
         "calendarDefaultRemindersHint": "新しい予定にこれらのリマインダーが自動で設定されます。",
         "calendarDefaultRemindersMax": "既定のリマインダーは最大 {{count}} 件です。",
-        "calendarDefaultsSaved": "既定値を保存しました"
+        "calendarDefaultsSaved": "既定値を保存しました",
+        "budgetModeTitle": "予算モード",
+        "budgetModeHint": "個人予算では、各メンバーが非公開の項目を持ち、世帯全体に関わるものだけを共有できます。",
+        "budgetModePersonalLabel": "共有項目付きの個人予算を有効にする",
+        "budgetModeSaved": "予算モードを保存しました"
     },
     "login": {
         "tagline": "家族のプランナーへおかえりなさい。",

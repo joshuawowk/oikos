@@ -102,6 +102,35 @@
 
 .budget-tabs::-webkit-scrollbar { display: none; }
 
+/* Ansichts-Scope-Umschalter (Mein Budget / Haushalt), nur im personal-Modus
+ * (#476/#505). Nutzt dieselbe geteilte .sub-tab-Pillen-Grammatik wie die
+ * Budget-Tabs; der Aktiv-Zustand folgt automatisch dem Modul-Akzent. */
+.budget-scope {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* „Haushalt"-Badge an geteilten Einträgen im personal-Modus. Dezente Pille im
+ * Modul-Akzent auf getöntem Grund. Die Textfarbe mischt den Akzent mit der
+ * Vordergrundfarbe (in Light dunkler, in Dark heller) — so bleibt der Kontrast
+ * theme-übergreifend ≥4.5:1 (reiner Akzent ergab in Light nur ~4.1:1). Kein
+ * hardcodierter Wert. */
+.budget-badge--shared {
+  display: inline-block;
+  vertical-align: middle;
+  margin-inline-start: var(--space-1);
+  padding: var(--space-px) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--module-accent) 72%, var(--color-text-primary));
+  background: color-mix(in srgb, var(--module-accent) 14%, transparent);
+  white-space: nowrap;
+}
+
 /* Scroll-Affordance: JS setzt has-fade-start/-end nur, wenn auf der jeweiligen
  * Seite weitere Tabs verborgen sind → Rand wird ausgeblendet als „mehr hier"-
  * Hinweis. Ohne Klasse (Desktop, alle Tabs sichtbar) keine Maske. */

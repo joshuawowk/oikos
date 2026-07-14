@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Cor",
         "accountColorDefault": "Cor predefinida",
         "accountArchivedToast": "Conta arquivada",
-        "accountRestoredToast": "Conta restaurada"
+        "accountRestoredToast": "Conta restaurada",
+        "scopeLabel": "Vista",
+        "scopeMine": "O meu orçamento",
+        "scopeHousehold": "Agregado",
+        "householdBadge": "Agregado",
+        "sharedToggleLabel": "Partilhar com o agregado",
+        "sharedToggleHint": "As entradas partilhadas são visíveis a todo o agregado; as privadas apenas a ti."
     },
     "settings": {
         "pageHealthModule": "Saúde",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Lembretes padrão",
         "calendarDefaultRemindersHint": "Novos eventos recebem estes lembretes automaticamente.",
         "calendarDefaultRemindersMax": "No máximo {{count}} lembretes padrão.",
-        "calendarDefaultsSaved": "Padrões salvos"
+        "calendarDefaultsSaved": "Padrões salvos",
+        "budgetModeTitle": "Modo de orçamento",
+        "budgetModeHint": "Os orçamentos pessoais permitem a cada membro manter entradas privadas e partilhar apenas o que pertence a todo o agregado.",
+        "budgetModePersonalLabel": "Ativar orçamentos pessoais com entradas partilhadas",
+        "budgetModeSaved": "Modo de orçamento guardado"
     },
     "login": {
         "tagline": "Bem-vindo de volta ao teu planeador familiar.",

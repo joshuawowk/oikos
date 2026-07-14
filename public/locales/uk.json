@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Колір",
         "accountColorDefault": "Колір за замовчуванням",
         "accountArchivedToast": "Рахунок архівовано",
-        "accountRestoredToast": "Рахунок відновлено"
+        "accountRestoredToast": "Рахунок відновлено",
+        "scopeLabel": "Вигляд",
+        "scopeMine": "Мій бюджет",
+        "scopeHousehold": "Дім",
+        "householdBadge": "Дім",
+        "sharedToggleLabel": "Поділитися з домом",
+        "sharedToggleHint": "Спільні записи бачать усі в домі; приватні — лише ви."
     },
     "settings": {
         "pageHealthModule": "Здоровʼя",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Нагадування за замовчуванням",
         "calendarDefaultRemindersHint": "Нові події автоматично отримують ці нагадування.",
         "calendarDefaultRemindersMax": "Не більше {{count}} нагадувань за замовчуванням.",
-        "calendarDefaultsSaved": "Значення за замовчуванням збережено"
+        "calendarDefaultsSaved": "Значення за замовчуванням збережено",
+        "budgetModeTitle": "Режим бюджету",
+        "budgetModeHint": "Персональні бюджети дозволяють кожному вести приватні записи й ділитися лише тим, що стосується всієї родини.",
+        "budgetModePersonalLabel": "Увімкнути персональні бюджети зі спільними записами",
+        "budgetModeSaved": "Режим бюджету збережено"
     },
     "login": {
         "tagline": "З поверненням до вашого сімейного планувальника.",

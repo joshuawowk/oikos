@@ -1018,7 +1018,13 @@
         "accountColorLabel": "Kolor",
         "accountColorDefault": "Kolor domyślny",
         "accountArchivedToast": "Konto zarchiwizowane",
-        "accountRestoredToast": "Konto przywrócone"
+        "accountRestoredToast": "Konto przywrócone",
+        "scopeLabel": "Widok",
+        "scopeMine": "Mój budżet",
+        "scopeHousehold": "Gospodarstwo",
+        "householdBadge": "Gospodarstwo",
+        "sharedToggleLabel": "Udostępnij gospodarstwu",
+        "sharedToggleHint": "Wspólne wpisy widzą wszyscy w gospodarstwie; prywatne tylko Ty."
     },
     "settings": {
         "pageHealthModule": "Zdrowie",
@@ -1775,7 +1781,11 @@
         "calendarDefaultRemindersLabel": "Domyślne przypomnienia",
         "calendarDefaultRemindersHint": "Nowe wydarzenia automatycznie otrzymują te przypomnienia.",
         "calendarDefaultRemindersMax": "Maksymalnie {{count}} domyślnych przypomnień.",
-        "calendarDefaultsSaved": "Zapisano ustawienia domyślne"
+        "calendarDefaultsSaved": "Zapisano ustawienia domyślne",
+        "budgetModeTitle": "Tryb budżetu",
+        "budgetModeHint": "Budżety osobiste pozwalają każdemu członkowi zachować prywatne wpisy i udostępniać tylko to, co dotyczy całego gospodarstwa.",
+        "budgetModePersonalLabel": "Włącz budżety osobiste ze wspólnymi wpisami",
+        "budgetModeSaved": "Zapisano tryb budżetu"
     },
     "login": {
         "tagline": "Witaj ponownie w swoim planerze rodzinnym.",

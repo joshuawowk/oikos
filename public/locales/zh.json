@@ -1011,7 +1011,13 @@
         "accountColorLabel": "颜色",
         "accountColorDefault": "默认颜色",
         "accountArchivedToast": "账户已归档",
-        "accountRestoredToast": "账户已恢复"
+        "accountRestoredToast": "账户已恢复",
+        "scopeLabel": "视图",
+        "scopeMine": "我的预算",
+        "scopeHousehold": "家庭",
+        "householdBadge": "家庭",
+        "sharedToggleLabel": "与家庭共享",
+        "sharedToggleHint": "共享条目家庭成员都可见，私有条目仅自己可见。"
     },
     "settings": {
         "pageHealthModule": "健康",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "默认提醒",
         "calendarDefaultRemindersHint": "新事件将自动获得这些提醒。",
         "calendarDefaultRemindersMax": "最多 {{count}} 个默认提醒。",
-        "calendarDefaultsSaved": "已保存默认值"
+        "calendarDefaultsSaved": "已保存默认值",
+        "budgetModeTitle": "预算模式",
+        "budgetModeHint": "个人预算让每位成员保留私有条目，仅共享与整个家庭相关的内容。",
+        "budgetModePersonalLabel": "启用带共享条目的个人预算",
+        "budgetModeSaved": "已保存预算模式"
     },
     "login": {
         "tagline": "欢迎回到您的家庭计划工具。",

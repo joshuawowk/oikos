@@ -149,7 +149,9 @@ const MIGRATIONS_SQL = {
       recurrence_full_amount REAL,
       created_by      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-      updated_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      updated_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      owner_id        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      visibility      TEXT    NOT NULL DEFAULT 'shared' CHECK (visibility IN ('private', 'shared'))
     );
     CREATE TABLE IF NOT EXISTS budget_categories (
       key        TEXT PRIMARY KEY,
@@ -178,7 +180,9 @@ const MIGRATIONS_SQL = {
                                 CHECK(status IN ('active', 'paid')),
       created_by        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-      updated_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+      updated_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+      owner_id          INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      visibility        TEXT    NOT NULL DEFAULT 'shared' CHECK (visibility IN ('private', 'shared'))
     );
     CREATE TABLE IF NOT EXISTS budget_loan_payments (
       id                 INTEGER PRIMARY KEY AUTOINCREMENT,

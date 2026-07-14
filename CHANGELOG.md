@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-07-14
+
+### Added
+- Budget: optional personal budget mode (Discussions #476/#505). An admin can switch the household from a single shared budget into personal budgets in Settings → Modules → Budget. Every entry, loan and subscription then has a fixed owner (its creator) and a visibility of private or shared. In personal mode the Budget page gains a "My budget / Household" view switcher, the entry modal gains a "Share with the household" toggle (new entries default to private), and shared rows carry a "Household" badge. Visibility is enforced server-side on every read path (entry list, summary, statistics, CSV export, account balances, loans, subscriptions, and the dashboard widget) with no admin bypass, so a private entry stays hidden even from an admin. The default shared mode keeps the previous behaviour and is fully backward compatible.
+
 ## [1.22.2] - 2026-07-14
 
 ### Fixed

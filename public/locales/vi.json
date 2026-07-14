@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Màu",
         "accountColorDefault": "Màu mặc định",
         "accountArchivedToast": "Đã lưu trữ tài khoản",
-        "accountRestoredToast": "Đã khôi phục tài khoản"
+        "accountRestoredToast": "Đã khôi phục tài khoản",
+        "scopeLabel": "Chế độ xem",
+        "scopeMine": "Ngân sách của tôi",
+        "scopeHousehold": "Hộ gia đình",
+        "householdBadge": "Hộ gia đình",
+        "sharedToggleLabel": "Chia sẻ với hộ gia đình",
+        "sharedToggleHint": "Mục chia sẻ mọi người trong nhà đều thấy; mục riêng tư chỉ mình bạn."
     },
     "settings": {
         "pageHealthModule": "Sức khỏe",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Nhắc nhở mặc định",
         "calendarDefaultRemindersHint": "Sự kiện mới tự động nhận các nhắc nhở này.",
         "calendarDefaultRemindersMax": "Tối đa {{count}} nhắc nhở mặc định.",
-        "calendarDefaultsSaved": "Đã lưu mặc định"
+        "calendarDefaultsSaved": "Đã lưu mặc định",
+        "budgetModeTitle": "Chế độ ngân sách",
+        "budgetModeHint": "Ngân sách cá nhân cho phép mỗi thành viên giữ các mục riêng tư và chỉ chia sẻ những gì thuộc về cả hộ gia đình.",
+        "budgetModePersonalLabel": "Bật ngân sách cá nhân với mục chia sẻ",
+        "budgetModeSaved": "Đã lưu chế độ ngân sách"
     },
     "login": {
         "tagline": "Chào mừng bạn trở lại trình lập kế hoạch gia đình.",

@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Color",
         "accountColorDefault": "Default color",
         "accountArchivedToast": "Account archived",
-        "accountRestoredToast": "Account restored"
+        "accountRestoredToast": "Account restored",
+        "scopeLabel": "View",
+        "scopeMine": "My budget",
+        "scopeHousehold": "Household",
+        "householdBadge": "Household",
+        "sharedToggleLabel": "Share with the household",
+        "sharedToggleHint": "Shared entries are visible to everyone in the household; private ones only to you."
     },
     "settings": {
         "pageHealthModule": "Health",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Default reminders",
         "calendarDefaultRemindersHint": "New events automatically get these reminders.",
         "calendarDefaultRemindersMax": "At most {{count}} default reminders.",
-        "calendarDefaultsSaved": "Defaults saved"
+        "calendarDefaultsSaved": "Defaults saved",
+        "budgetModeTitle": "Budget mode",
+        "budgetModeHint": "Personal budgets let each member keep private entries and share only what belongs to the whole household.",
+        "budgetModePersonalLabel": "Enable personal budgets with shared entries",
+        "budgetModeSaved": "Budget mode saved"
     },
     "login": {
         "tagline": "Welcome back to your family planner.",

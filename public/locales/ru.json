@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Цвет",
         "accountColorDefault": "Цвет по умолчанию",
         "accountArchivedToast": "Счёт архивирован",
-        "accountRestoredToast": "Счёт восстановлен"
+        "accountRestoredToast": "Счёт восстановлен",
+        "scopeLabel": "Вид",
+        "scopeMine": "Мой бюджет",
+        "scopeHousehold": "Семья",
+        "householdBadge": "Семья",
+        "sharedToggleLabel": "Поделиться с семьёй",
+        "sharedToggleHint": "Общие записи видят все в семье; личные — только вы."
     },
     "settings": {
         "pageHealthModule": "Здоровье",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Напоминания по умолчанию",
         "calendarDefaultRemindersHint": "Новые события автоматически получают эти напоминания.",
         "calendarDefaultRemindersMax": "Не более {{count}} напоминаний по умолчанию.",
-        "calendarDefaultsSaved": "Значения по умолчанию сохранены"
+        "calendarDefaultsSaved": "Значения по умолчанию сохранены",
+        "budgetModeTitle": "Режим бюджета",
+        "budgetModeHint": "Персональные бюджеты позволяют каждому вести личные записи и делиться только тем, что касается всей семьи.",
+        "budgetModePersonalLabel": "Включить персональные бюджеты с общими записями",
+        "budgetModeSaved": "Режим бюджета сохранён"
     },
     "login": {
         "tagline": "С возвращением в ваш семейный планировщик.",

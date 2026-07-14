@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Szín",
         "accountColorDefault": "Alapértelmezett szín",
         "accountArchivedToast": "Számla archiválva",
-        "accountRestoredToast": "Számla visszaállítva"
+        "accountRestoredToast": "Számla visszaállítva",
+        "scopeLabel": "Nézet",
+        "scopeMine": "Saját költségvetés",
+        "scopeHousehold": "Háztartás",
+        "householdBadge": "Háztartás",
+        "sharedToggleLabel": "Megosztás a háztartással",
+        "sharedToggleHint": "A megosztott tételeket az egész háztartás látja; a privátokat csak te."
     },
     "settings": {
         "pageHealthModule": "Egészség",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Alapértelmezett emlékeztetők",
         "calendarDefaultRemindersHint": "Az új események automatikusan megkapják ezeket az emlékeztetőket.",
         "calendarDefaultRemindersMax": "Legfeljebb {{count}} alapértelmezett emlékeztető.",
-        "calendarDefaultsSaved": "Alapértékek mentve"
+        "calendarDefaultsSaved": "Alapértékek mentve",
+        "budgetModeTitle": "Költségvetési mód",
+        "budgetModeHint": "A személyes költségvetéssel minden tag megtarthatja saját privát tételeit, és csak azt osztja meg, ami az egész háztartást érinti.",
+        "budgetModePersonalLabel": "Személyes költségvetés megosztott tételekkel",
+        "budgetModeSaved": "Költségvetési mód mentve"
     },
     "login": {
         "tagline": "Üdv újra a családi tervezőben.",

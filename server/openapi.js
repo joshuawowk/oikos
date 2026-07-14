@@ -953,8 +953,18 @@ function buildPaths() {
       delete: op({ summary: 'Delete loan repayment', tag: 'Budget', params: [idParam(), idParam('paymentId', 'Loan payment ID')], stateChanging: true }),
     },
     '/api/v1/budget': {
-      get: op({ summary: 'List budget entries', tag: 'Budget' }),
-      post: op({ summary: 'Create budget entry', tag: 'Budget', stateChanging: true, requestBody: jsonBody(null) }),
+      get: op({
+        summary: 'List budget entries',
+        tag: 'Budget',
+        params: [{
+          name: 'scope',
+          in: 'query',
+          required: false,
+          description: "View filter when the household runs in personal budget mode (preference `budget_mode=personal`): `mine` shows entries you own, `household` shows the shared pot. Ignored in shared mode. Entries also carry `owner_id` and `visibility` (`private`|`shared`); private entries are only visible to their owner (no admin bypass).",
+          schema: { type: 'string', enum: ['mine', 'household'], default: 'mine' },
+        }],
+      }),
+      post: op({ summary: 'Create budget entry (optional `visibility`: private|shared; owner is the creator)', tag: 'Budget', stateChanging: true, requestBody: jsonBody(null) }),
     },
     '/api/v1/budget/{id}': {
       put: op({ summary: 'Update budget entry', tag: 'Budget', params: [idParam()], stateChanging: true, requestBody: jsonBody(null) }),

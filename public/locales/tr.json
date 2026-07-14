@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Renk",
         "accountColorDefault": "Varsayılan renk",
         "accountArchivedToast": "Hesap arşivlendi",
-        "accountRestoredToast": "Hesap geri yüklendi"
+        "accountRestoredToast": "Hesap geri yüklendi",
+        "scopeLabel": "Görünüm",
+        "scopeMine": "Bütçem",
+        "scopeHousehold": "Ev halkı",
+        "householdBadge": "Ev halkı",
+        "sharedToggleLabel": "Ev halkıyla paylaş",
+        "sharedToggleHint": "Paylaşılan kayıtları tüm ev halkı görür; özel olanları yalnızca sen."
     },
     "settings": {
         "pageHealthModule": "Sağlık",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Varsayılan hatırlatıcılar",
         "calendarDefaultRemindersHint": "Yeni etkinlikler bu hatırlatıcıları otomatik alır.",
         "calendarDefaultRemindersMax": "En fazla {{count}} varsayılan hatırlatıcı.",
-        "calendarDefaultsSaved": "Varsayılanlar kaydedildi"
+        "calendarDefaultsSaved": "Varsayılanlar kaydedildi",
+        "budgetModeTitle": "Bütçe modu",
+        "budgetModeHint": "Kişisel bütçeler her üyenin özel kayıtlar tutmasını ve yalnızca tüm ev halkını ilgilendireni paylaşmasını sağlar.",
+        "budgetModePersonalLabel": "Paylaşılan kayıtlarla kişisel bütçeleri etkinleştir",
+        "budgetModeSaved": "Bütçe modu kaydedildi"
     },
     "login": {
         "tagline": "Aile planlayıcına tekrar hoş geldin.",

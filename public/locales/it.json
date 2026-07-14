@@ -1011,7 +1011,13 @@
         "accountColorLabel": "Colore",
         "accountColorDefault": "Colore predefinito",
         "accountArchivedToast": "Conto archiviato",
-        "accountRestoredToast": "Conto ripristinato"
+        "accountRestoredToast": "Conto ripristinato",
+        "scopeLabel": "Vista",
+        "scopeMine": "Il mio budget",
+        "scopeHousehold": "Famiglia",
+        "householdBadge": "Famiglia",
+        "sharedToggleLabel": "Condividi con la famiglia",
+        "sharedToggleHint": "Le voci condivise sono visibili a tutta la famiglia; quelle private solo a te."
     },
     "settings": {
         "pageHealthModule": "Salute",
@@ -1768,7 +1774,11 @@
         "calendarDefaultRemindersLabel": "Promemoria predefiniti",
         "calendarDefaultRemindersHint": "I nuovi eventi ricevono automaticamente questi promemoria.",
         "calendarDefaultRemindersMax": "Al massimo {{count}} promemoria predefiniti.",
-        "calendarDefaultsSaved": "Valori predefiniti salvati"
+        "calendarDefaultsSaved": "Valori predefiniti salvati",
+        "budgetModeTitle": "Modalità budget",
+        "budgetModeHint": "I budget personali permettono a ogni membro di tenere voci private e condividere solo ciò che riguarda tutta la famiglia.",
+        "budgetModePersonalLabel": "Attiva i budget personali con voci condivise",
+        "budgetModeSaved": "Modalità budget salvata"
     },
     "login": {
         "tagline": "Bentornato nel tuo pianificatore familiare.",

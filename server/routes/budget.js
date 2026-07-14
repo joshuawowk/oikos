@@ -10,8 +10,53 @@ import { readFileSync } from 'node:fs';
 import path from 'path';
 import * as db from '../db.js';
 import { str, oneOf, date as validateDate, month as validateMonth, num, rrule, color as validateColor, collectErrors, MAX_TITLE, MAX_SHORT, MONTH_RE } from '../middleware/validate.js';
+import { normalizeBudgetVisibility, budgetVisibilityWhere, budgetScopeWhere, canEditEntry, resolveBudgetMode } from '../services/budget-visibility.js';
 
 const log = createLogger('Budget');
+
+// --------------------------------------------------------
+// Persönlich/geteilt (#476/#505): Haushalts-Modus + Sichtbarkeits-Enforcement.
+// Im 'shared'-Modus (Default/Altverhalten) ist alles ungefiltert; erst der
+// 'personal'-Modus filtert nach Sichtbarkeit (private/shared) und Ansichts-Scope.
+// --------------------------------------------------------
+
+/** Liest den Haushalts-Budget-Modus aus sync_config (geteilter Helfer). */
+function getBudgetMode() {
+  return resolveBudgetMode(db.get());
+}
+
+/** Betrachtende User-ID (Session oder Token-Auth). requireAuth setzt authUserId immer. */
+function viewerId(req) {
+  return req.authUserId || req.session.userId;
+}
+
+/**
+ * Baut das Sichtbarkeits-/Scope-WHERE-Fragment (positionale ?-Binds) für einen
+ * Lesepfad. Im shared-Modus leer. `scoped:true` fügt den Mein/Haushalt-Filter
+ * hinzu (nur für die Eintragsliste/Aggregation sinnvoll; Loans/Subs nutzen
+ * scoped:false und folgen nur der Sichtbarkeit).
+ *
+ * @returns {{ clause: string, params: number[] }}  clause beginnt mit ' AND ' oder ''
+ */
+function budgetFilter(req, alias, { scoped = true } = {}) {
+  const mode = getBudgetMode();
+  if (mode !== 'personal') return { clause: '', params: [] };
+  const me = viewerId(req);
+  let clause = ` AND ${budgetVisibilityWhere(alias, '?', { mode })}`;
+  const params = [me];
+  if (scoped) {
+    const scope = req.query.scope === 'household' ? 'household' : 'mine';
+    clause += ` AND ${budgetScopeWhere(scope, alias, '?')}`;
+    if (scope === 'mine') params.push(me); // household-Fragment hat keinen Bind
+  }
+  return { clause, params };
+}
+
+/** Prüft Schreib-Berechtigung im personal-Modus; im shared-Modus immer erlaubt. */
+function mayEdit(req, row) {
+  if (getBudgetMode() !== 'personal') return true;
+  return canEditEntry(row, { id: viewerId(req) });
+}
 
 const router  = express.Router();
 const LOCALE_CACHE = new Map();
@@ -179,11 +224,15 @@ function generateRecurringInstances(database, month) {
     const instanceDay = Math.min(origDay, lastDay);
     const instanceDate = `${month}-${String(instanceDay).padStart(2, '0')}`;
 
+    // Materialisierte Instanz erbt Eigentümer + Sichtbarkeit des Serien-Originals
+    // (#476/#505). Ohne das würde jede Instanz owner_id=NULL + visibility='shared'
+    // (Spalten-Default) bekommen: eine private Serie würde im Haushalt sichtbar und
+    // für die Eigentümer:in in scope=mine unsichtbar.
     database.prepare(`
       INSERT INTO budget_entries
-        (title, amount, category, subcategory, date, is_recurring, recurrence_parent_id, created_by)
-      VALUES (?, ?, ?, ?, ?, 0, ?, ?)
-    `).run(orig.title, orig.amount, orig.category, orig.subcategory || '', instanceDate, orig.id, orig.created_by);
+        (title, amount, category, subcategory, date, is_recurring, recurrence_parent_id, created_by, owner_id, visibility)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+    `).run(orig.title, orig.amount, orig.category, orig.subcategory || '', instanceDate, orig.id, orig.created_by, orig.owner_id, orig.visibility || 'shared');
   }
 }
 
@@ -448,23 +497,27 @@ function validateAccountRef(raw) {
  * projected_balance = Startsaldo + Summe aller zugeordneter Einträge (inkl. künftiger)
  * @param {boolean} includeArchived
  */
-function listAccounts(includeArchived = false) {
+function listAccounts(includeArchived = false, filter = { clause: '', params: [] }) {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  // Sichtbarkeits-Filter (#476/#505): im personal-Modus dürfen fremde private
+  // Einträge weder Saldo noch entry_count beeinflussen, sonst verrät ein geteiltes
+  // Konto Betrag/Existenz privater Fremd-Einträge. Im shared-Modus ist f leer.
+  const f = filter && filter.clause ? filter : { clause: '', params: [] };
   const rows = db.get().prepare(`
     SELECT a.*,
            a.starting_balance + COALESCE((
              SELECT SUM(e.amount) FROM budget_entries e
-             WHERE e.account_id = a.id AND e.date <= ?
+             WHERE e.account_id = a.id AND e.date <= ?${f.clause}
            ), 0) AS current_balance,
            a.starting_balance + COALESCE((
              SELECT SUM(e.amount) FROM budget_entries e
-             WHERE e.account_id = a.id
+             WHERE e.account_id = a.id${f.clause}
            ), 0) AS projected_balance,
-           (SELECT COUNT(*) FROM budget_entries e WHERE e.account_id = a.id) AS entry_count
+           (SELECT COUNT(*) FROM budget_entries e WHERE e.account_id = a.id${f.clause}) AS entry_count
     FROM budget_accounts a
     WHERE ? = 1 OR a.archived = 0
     ORDER BY a.sort_order ASC, a.name COLLATE NOCASE ASC
-  `).all(today, includeArchived ? 1 : 0);
+  `).all(today, ...f.params, ...f.params, ...f.params, includeArchived ? 1 : 0);
   return rows.map((a) => ({
     ...a,
     starting_balance:  cents(a.starting_balance),
@@ -499,14 +552,18 @@ router.get('/summary', (req, res) => {
     const from = `${month}-01`;
     const to   = `${month}-31`;
 
+    // Sichtbarkeit/Scope (#476/#505): dieselbe Filterung wie die Eintragsliste,
+    // damit Summen private Fremd-Einträge nicht mit einrechnen.
+    const filter = budgetFilter(req, 'budget_entries');
+
     const totals = db.get().prepare(`
       SELECT
         SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS income,
         SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS expenses,
         SUM(amount) AS balance
       FROM budget_entries
-      WHERE date BETWEEN ? AND ?
-    `).get(from, to);
+      WHERE date BETWEEN ? AND ?${filter.clause}
+    `).get(from, to, ...filter.params);
 
     const byCategory = db.get().prepare(`
       SELECT category,
@@ -514,10 +571,10 @@ router.get('/summary', (req, res) => {
              SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS expenses,
              SUM(amount) AS total
       FROM budget_entries
-      WHERE date BETWEEN ? AND ?
+      WHERE date BETWEEN ? AND ?${filter.clause}
       GROUP BY category
       ORDER BY ABS(SUM(amount)) DESC
-    `).all(from, to);
+    `).all(from, to, ...filter.params);
 
     res.json({
       data: {
@@ -690,13 +747,14 @@ router.get('/export', (req, res) => {
     const filename = (DATE_RE.test(req.query.from || '') && DATE_RE.test(req.query.to || ''))
       ? `budget-${from}_${to}.csv`
       : `budget-${req.query.month || thisMonthLocalKey()}.csv`;
+    const filter = budgetFilter(req, 'b');
     const entries = db.get().prepare(`
       SELECT b.*, u.display_name AS creator_name
       FROM budget_entries b
       LEFT JOIN users u ON u.id = b.created_by
-      WHERE b.date BETWEEN ? AND ?
+      WHERE b.date BETWEEN ? AND ?${filter.clause}
       ORDER BY b.date ASC
-    `).all(from, to);
+    `).all(from, to, ...filter.params);
 
     const header = 'Date,Title,Amount,Category,Subcategory,Recurring,Created by\n';
     const csvSafe = (val) => {
@@ -793,14 +851,17 @@ router.get('/categories/:categoryKey/subcategories', (req, res) => {
 
 router.get('/loans', (req, res) => {
   try {
+    // Sichtbarkeit (#476/#505): Loans folgen dem Modus, ohne Mein/Haushalt-Scope.
+    const filter = budgetFilter(req, 'l', { scoped: false });
     const loans = db.get().prepare(`
       SELECT l.*, u.display_name AS creator_name
       FROM budget_loans l
       LEFT JOIN users u ON u.id = l.created_by
+      WHERE 1=1${filter.clause}
       ORDER BY CASE l.status WHEN 'active' THEN 0 ELSE 1 END,
                l.start_month ASC,
                l.created_at DESC
-    `).all().map(loanSummaryRow);
+    `).all(...filter.params).map(loanSummaryRow);
     const active = loans.filter((loan) => loan.status === 'active');
     const totals = loans.reduce((acc, loan) => {
       acc.total_amount += loan.total_amount;
@@ -845,9 +906,14 @@ router.post('/loans', (req, res) => {
     if (!vStartMonth.value) errors.push('Start month is required.');
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
 
+    const me = req.authUserId || req.session.userId;
+    const visibility = normalizeBudgetVisibility(
+      req.body.visibility,
+      getBudgetMode() === 'personal' ? 'private' : 'shared'
+    );
     const result = db.get().prepare(`
-      INSERT INTO budget_loans (title, borrower, total_amount, installment_count, start_month, notes, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO budget_loans (title, borrower, total_amount, installment_count, start_month, notes, created_by, owner_id, visibility)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       vTitle.value,
       vBorrower.value,
@@ -855,7 +921,7 @@ router.post('/loans', (req, res) => {
       installmentCount,
       vStartMonth.value,
       vNotes.value,
-      req.authUserId || req.session.userId
+      me, me, visibility
     );
 
     res.status(201).json({ data: loadLoan(result.lastInsertRowid) });
@@ -870,6 +936,7 @@ router.put('/loans/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
     const loan = db.get().prepare('SELECT * FROM budget_loans WHERE id = ?').get(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found.', code: 404 });
+    if (!mayEdit(req, loan)) return res.status(403).json({ error: 'You cannot modify this loan.', code: 403 });
 
     const checks = [];
     if (req.body.title !== undefined) checks.push(str(req.body.title, 'Title', { max: MAX_TITLE }));
@@ -920,6 +987,8 @@ router.post('/loans/:id/payments', (req, res) => {
     const id = parseInt(req.params.id, 10);
     const loan = loadLoan(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found.', code: 404 });
+    const loanRow = db.get().prepare('SELECT owner_id, visibility, created_by FROM budget_loans WHERE id = ?').get(id);
+    if (!mayEdit(req, loanRow)) return res.status(403).json({ error: 'You cannot modify this loan.', code: 403 });
     if (loan.remaining_installments <= 0) return res.status(409).json({ error: 'Loan is already paid.', code: 409 });
 
     const installmentNumber = req.body.installment_number === undefined
@@ -947,15 +1016,19 @@ router.post('/loans/:id/payments', (req, res) => {
 
     const paymentAmount = cents(vAmount.value);
     const tx = db.get().transaction(() => {
+      // Repayment-Eintrag erbt Eigentümer + Sichtbarkeit des Loans (#476/#505),
+      // damit er im Budget derselben Person/desselben Topfs erscheint.
       const budgetResult = db.get().prepare(`
-        INSERT INTO budget_entries (title, amount, category, subcategory, date, is_recurring, created_by)
-        VALUES (?, ?, ?, '', ?, 0, ?)
+        INSERT INTO budget_entries (title, amount, category, subcategory, date, is_recurring, created_by, owner_id, visibility)
+        VALUES (?, ?, ?, '', ?, 0, ?, ?, ?)
       `).run(
         `Loan repayment: ${loan.borrower}`,
         paymentAmount,
         'Geschenke & Transfers',
         vDate.value,
-        req.authUserId || req.session.userId
+        req.authUserId || req.session.userId,
+        loanRow.owner_id,
+        loanRow.visibility || 'shared'
       );
       const paymentResult = db.get().prepare(`
         INSERT INTO budget_loan_payments
@@ -986,6 +1059,8 @@ router.delete('/loans/:id/payments/:paymentId', (req, res) => {
       SELECT * FROM budget_loan_payments WHERE id = ? AND loan_id = ?
     `).get(paymentId, id);
     if (!payment) return res.status(404).json({ error: 'Payment not found.', code: 404 });
+    const loanRow = db.get().prepare('SELECT owner_id, visibility, created_by FROM budget_loans WHERE id = ?').get(id);
+    if (!mayEdit(req, loanRow)) return res.status(403).json({ error: 'You cannot modify this loan.', code: 403 });
 
     const tx = db.get().transaction(() => {
       db.get().prepare('DELETE FROM budget_loan_payments WHERE id = ?').run(paymentId);
@@ -1007,6 +1082,7 @@ router.delete('/loans/:id', (req, res) => {
     const id = parseInt(req.params.id, 10);
     const loan = db.get().prepare('SELECT * FROM budget_loans WHERE id = ?').get(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found.', code: 404 });
+    if (!mayEdit(req, loan)) return res.status(403).json({ error: 'You cannot modify this loan.', code: 403 });
 
     const payments = db.get().prepare('SELECT budget_entry_id FROM budget_loan_payments WHERE loan_id = ?').all(id);
     const tx = db.get().transaction(() => {
@@ -1225,7 +1301,7 @@ router.patch('/categories/:key/subcategories/reorder', (req, res) => {
 router.get('/accounts', (req, res) => {
   try {
     const includeArchived = req.query.include_archived === '1' || req.query.include_archived === 'true';
-    const accounts = listAccounts(includeArchived);
+    const accounts = listAccounts(includeArchived, budgetFilter(req, 'e', { scoped: false }));
     const netWorth = cents(accounts
       .filter((a) => !a.archived)
       .reduce((sum, a) => sum + a.current_balance, 0));
@@ -1263,7 +1339,7 @@ router.post('/accounts', (req, res) => {
       req.authUserId || req.session.userId
     );
 
-    const account = listAccounts(true).find((a) => a.id === Number(result.lastInsertRowid));
+    const account = listAccounts(true, budgetFilter(req, 'e', { scoped: false })).find((a) => a.id === Number(result.lastInsertRowid));
     res.status(201).json({ data: account });
   } catch (err) {
     log.error('', err);
@@ -1314,7 +1390,7 @@ router.put('/accounts/:id', (req, res) => {
       currency, color, archived, id
     );
 
-    const account = listAccounts(true).find((a) => a.id === id);
+    const account = listAccounts(true, budgetFilter(req, 'e', { scoped: false })).find((a) => a.id === id);
     res.json({ data: account });
   } catch (err) {
     log.error('', err);
@@ -1395,6 +1471,12 @@ router.get('/', (req, res) => {
       }
     }
 
+    // Sichtbarkeit/Scope (#476/#505). In der Loan-Drilldown-Ansicht kein
+    // Mein/Haushalt-Scope, nur Sichtbarkeit.
+    const filter = budgetFilter(req, 'b', { scoped: !loanId });
+    sql += filter.clause;
+    params.push(...filter.params);
+
     sql += ' ORDER BY b.date DESC, b.created_at DESC';
 
     const entries = db.get().prepare(sql).all(...params);
@@ -1438,16 +1520,25 @@ router.post('/', (req, res) => {
     const storeAmount = isVirtual ? effectiveMonthly(vAmount.value, interval) : vAmount.value;
     const fullAmount  = isVirtual ? cents(vAmount.value) : null;
 
+    // Eigentümerschaft (fix = Ersteller:in) + Sichtbarkeit (#476/#505).
+    // Default-Sichtbarkeit hängt vom Haushalts-Modus ab: personal → private.
+    const me = req.authUserId || req.session.userId;
+    const visibility = normalizeBudgetVisibility(
+      req.body.visibility,
+      getBudgetMode() === 'personal' ? 'private' : 'shared'
+    );
+
     const result = db.get().prepare(`
       INSERT INTO budget_entries
         (title, amount, category, subcategory, date, is_recurring, recurrence_rule,
-         recurrence_interval, recurrence_virtual, recurrence_full_amount, account_id, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         recurrence_interval, recurrence_virtual, recurrence_full_amount, account_id, created_by,
+         owner_id, visibility)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       vTitle.value, storeAmount, vCat.value || fallbackCategory, subcategory, vDate.value,
       isRecurring, vRrule.value,
       interval, isVirtual, fullAmount, accountRef.value,
-      req.authUserId || req.session.userId
+      me, me, visibility
     );
 
     const entry = entryWithLoanMeta(result.lastInsertRowid);
@@ -1471,6 +1562,7 @@ router.put('/:id/series', (req, res) => {
     const id    = parseInt(req.params.id, 10);
     const entry = db.get().prepare('SELECT * FROM budget_entries WHERE id = ?').get(id);
     if (!entry) return res.status(404).json({ error: 'Entry not found', code: 404 });
+    if (!mayEdit(req, entry)) return res.status(403).json({ error: 'You cannot modify this entry.', code: 403 });
 
     const parentId = entry.recurrence_parent_id ?? (entry.is_recurring ? entry.id : null);
     if (!parentId) return res.status(400).json({ error: 'Not a recurring entry.', code: 400 });
@@ -1507,6 +1599,14 @@ router.put('/:id/series', (req, res) => {
     const storeAmount    = finalVirtual ? effectiveMonthly(finalFull, finalInterval) : finalAmount;
     const finalRrule     = recurrence_rule !== undefined ? (recurrence_rule || null) : parent.recurrence_rule;
 
+    // Sichtbarkeit ist eine Serien-Eigenschaft (#476/#505): eine Änderung wirkt auf
+    // Parent UND alle bereits materialisierten Instanzen, sonst blieben Alt-Instanzen
+    // auf dem alten Wert (privat→geteilt = Leak). Künftige Instanzen werden gelöscht
+    // und erben den neuen Wert bei der Neu-Generierung (generateRecurringInstances).
+    const nextVisibility = req.body.visibility !== undefined
+      ? normalizeBudgetVisibility(req.body.visibility)
+      : null;
+
     const currentMonthStart = new Date().toISOString().slice(0, 7) + '-01';
 
     db.get().transaction(() => {
@@ -1520,15 +1620,22 @@ router.put('/:id/series', (req, res) => {
           recurrence_rule        = ?,
           recurrence_interval    = ?,
           recurrence_virtual     = ?,
-          recurrence_full_amount = ?
+          recurrence_full_amount = ?,
+          visibility             = COALESCE(?, visibility)
         WHERE id = ?
       `).run(finalTitle, storeAmount, finalCategory, finalSubcat,
              finalRecurring, finalRrule, finalInterval, finalVirtual, finalFull,
-             parentId);
+             nextVisibility, parentId);
 
       db.get().prepare(`
         DELETE FROM budget_entries WHERE recurrence_parent_id = ? AND date >= ?
       `).run(parentId, currentMonthStart);
+
+      if (nextVisibility) {
+        db.get().prepare(`
+          UPDATE budget_entries SET visibility = ? WHERE recurrence_parent_id = ?
+        `).run(nextVisibility, parentId);
+      }
     })();
 
     const updated = entryWithLoanMeta(parentId);
@@ -1549,6 +1656,7 @@ router.delete('/:id/series', (req, res) => {
     const id    = parseInt(req.params.id, 10);
     const entry = db.get().prepare('SELECT * FROM budget_entries WHERE id = ?').get(id);
     if (!entry) return res.status(404).json({ error: 'Entry not found', code: 404 });
+    if (!mayEdit(req, entry)) return res.status(403).json({ error: 'You cannot modify this entry.', code: 403 });
 
     const parentId = entry.recurrence_parent_id ?? (entry.is_recurring ? entry.id : null);
     if (!parentId) return res.status(400).json({ error: 'Not a recurring entry.', code: 400 });
@@ -1576,6 +1684,7 @@ router.put('/:id', (req, res) => {
     const id    = parseInt(req.params.id, 10);
     const entry = db.get().prepare('SELECT * FROM budget_entries WHERE id = ?').get(id);
     if (!entry) return res.status(404).json({ error: 'Entry not found', code: 404 });
+    if (!mayEdit(req, entry)) return res.status(403).json({ error: 'You cannot modify this entry.', code: 403 });
 
     const checks = [];
     if (req.body.title    !== undefined) checks.push(str(req.body.title,    'Titel',  { max: MAX_TITLE, required: false }));
@@ -1637,6 +1746,11 @@ router.put('/:id', (req, res) => {
     const nextAmount = finalVirtual ? effectiveMonthly(configuredFull, finalInterval) : cents(configuredFull);
     const nextFull   = finalVirtual ? cents(configuredFull) : null;
 
+    // Sichtbarkeit umschaltbar (privat/geteilt); owner_id bleibt fix (#476/#505).
+    const nextVisibility = req.body.visibility !== undefined
+      ? normalizeBudgetVisibility(req.body.visibility)
+      : null;
+
     const tx = db.get().transaction(() => {
       db.get().prepare(`
         UPDATE budget_entries
@@ -1650,6 +1764,7 @@ router.put('/:id', (req, res) => {
             recurrence_interval    = ?,
             recurrence_virtual     = ?,
             recurrence_full_amount = ?,
+            visibility             = COALESCE(?, visibility),
             account_id             = CASE WHEN ? = 1 THEN ? ELSE account_id END
         WHERE id = ?
       `).run(
@@ -1663,6 +1778,7 @@ router.put('/:id', (req, res) => {
         finalInterval,
         finalVirtual,
         nextFull,
+        nextVisibility,
         accountProvided ? 1 : 0,
         accountValue,
         id
@@ -1703,6 +1819,7 @@ router.delete('/:id', (req, res) => {
     const id    = parseInt(req.params.id, 10);
     const entry = db.get().prepare('SELECT * FROM budget_entries WHERE id = ?').get(id);
     if (!entry) return res.status(404).json({ error: 'Entry not found', code: 404 });
+    if (!mayEdit(req, entry)) return res.status(403).json({ error: 'You cannot modify this entry.', code: 403 });
 
     const linkedPayment = db.get().prepare(`
       SELECT * FROM budget_loan_payments WHERE budget_entry_id = ?
@@ -1736,33 +1853,34 @@ router.delete('/:id', (req, res) => {
  * Aggregiert Budget-Daten für den Statistik-Tab.
  * @param {object} database  better-sqlite3/node:sqlite-Instanz mit .prepare()
  */
-export function computeStats(database, { range, anchor }) {
+export function computeStats(database, { range, anchor }, filter = { clause: '', params: [] }) {
   const r = computeStatsRange(range, anchor);
+  const f = filter && filter.clause ? filter : { clause: '', params: [] };
 
   const totalsRow = database.prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS income,
       COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) AS expenses,
       COALESCE(SUM(amount), 0) AS balance
-    FROM budget_entries WHERE date BETWEEN ? AND ?
-  `).get(r.from, r.to);
+    FROM budget_entries WHERE date BETWEEN ? AND ?${f.clause}
+  `).get(r.from, r.to, ...f.params);
 
   const prevRow = database.prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS income,
       COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) AS expenses,
       COALESCE(SUM(amount), 0) AS balance
-    FROM budget_entries WHERE date BETWEEN ? AND ?
-  `).get(r.prevFrom, r.prevTo);
+    FROM budget_entries WHERE date BETWEEN ? AND ?${f.clause}
+  `).get(r.prevFrom, r.prevTo, ...f.params);
 
   const byCategory = database.prepare(`
     SELECT category,
            COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS income,
            COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) AS expenses,
            COALESCE(SUM(amount), 0) AS total
-    FROM budget_entries WHERE date BETWEEN ? AND ?
+    FROM budget_entries WHERE date BETWEEN ? AND ?${f.clause}
     GROUP BY category ORDER BY ABS(SUM(amount)) DESC
-  `).all(r.from, r.to);
+  `).all(r.from, r.to, ...f.params);
 
   // Bucket-Schlüssel: bei 'day' das volle Datum, bei 'month' die ersten 7 Zeichen.
   const keyExpr = r.granularity === 'month' ? "substr(date, 1, 7)" : "date";
@@ -1771,9 +1889,9 @@ export function computeStats(database, { range, anchor }) {
            COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS income,
            COALESCE(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END), 0) AS expenses,
            COALESCE(SUM(amount), 0) AS balance
-    FROM budget_entries WHERE date BETWEEN ? AND ?
+    FROM budget_entries WHERE date BETWEEN ? AND ?${f.clause}
     GROUP BY period
-  `).all(r.from, r.to);
+  `).all(r.from, r.to, ...f.params);
 
   const byPeriod = new Map(rawSeries.map((row) => [row.period, row]));
   const series = r.bucketKeys.map((period) =>
@@ -1814,7 +1932,7 @@ export function statsHandler(req, res) {
     if (!DATE_RE.test(anchor))
       return res.status(400).json({ error: 'anchor muss YYYY-MM-DD sein', code: 400 });
 
-    res.json({ data: computeStats(db.get(), { range, anchor }) });
+    res.json({ data: computeStats(db.get(), { range, anchor }, budgetFilter(req, 'budget_entries')) });
   } catch (err) {
     log.error('', err);
     res.status(500).json({ error: 'Internal error', code: 500 });

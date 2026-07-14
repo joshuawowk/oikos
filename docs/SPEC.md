@@ -532,11 +532,15 @@ Index: CREATE INDEX idx_carddav_addressbook_account ON carddav_addressbook_selec
 | recurrence_parent_id | INTEGER | FK → Budget Entries (generated instance points to original) |
 | account_id | INTEGER | FK → Budget Accounts, nullable (ON DELETE SET NULL); NULL = not assigned to an account |
 | created_by | INTEGER | FK → Users, NOT NULL |
+| owner_id | INTEGER | FK → Users, nullable (ON DELETE SET NULL) — the entry's owner, fixed to the creator on insert (migration v88) |
+| visibility | TEXT | NOT NULL DEFAULT `shared` — `private` \| `shared` (migration v88) |
 
-Recurring entries generate one instance per month on demand. Non-virtual series post the full amount only on due months (every `monthsPerInterval(interval)` months); **virtual** series store the smoothed monthly share on the original and post it every month, so a 1,200/year bill shows as 100/month in the summary, balance and CSV export.
+Recurring entries generate one instance per month on demand. Non-virtual series post the full amount only on due months (every `monthsPerInterval(interval)` months); **virtual** series store the smoothed monthly share on the original and post it every month, so a 1,200/year bill shows as 100/month in the summary, balance and CSV export. A generated instance inherits its owner and visibility from the series original.
+
+**Personal vs. shared budgets (migration v88):** every budget entry (and loan and subscription) carries an immutable `owner_id` (= the creator) and a `visibility` of `shared` (all members) or `private` (owner only). A household-wide **budget mode** setting (`budget_mode` in `sync_config`, `shared` by default, admin-gated) decides whether visibility is enforced at all: in `shared` mode everyone sees everything (the prior, fully backward-compatible behaviour); in `personal` mode the Budget page gains a **My budget / Household** view switcher — *My budget* shows what you own, *Household* shows the shared pot (`visibility = 'shared'`). Enforcement is **server-side on every read path** (entry list, summary, statistics, CSV export, accounts balances, loans, subscriptions, dashboard widget) with **no admin bypass** — a private entry stays hidden even from an admin. Write access to an object requires ownership (owner or creator), also with no admin bypass. New entries default to `private` in personal mode and `shared` in shared mode. This is the lean variant of the split-budget request (#476/#505): a shared entry is one whole row with a "Household" badge, without materialised per-person split rows.
 
 ### Budget Accounts
-Separate accounts (checking, savings, cash, credit card, investment, other) shown in Budget → Accounts. Each account carries a starting balance; its **current balance** is `starting_balance + Σ assigned entries dated up to today`, and the **projected balance** additionally includes future-dated entries. The Accounts tab shows every account with its current balance plus the household **net worth** (sum of the active accounts' current balances). Entries optionally reference an account (`budget_entries.account_id`); the assignment is set from the entry modal. Deleting an account keeps its entries — their `account_id` is cleared. Account assignment is optional; existing entries stay unassigned.
+Separate accounts (checking, savings, cash, credit card, investment, other) shown in Budget → Accounts. Each account carries a starting balance; its **current balance** is `starting_balance + Σ assigned entries dated up to today`, and the **projected balance** additionally includes future-dated entries. The Accounts tab shows every account with its current balance plus the household **net worth** (sum of the active accounts' current balances). Entries optionally reference an account (`budget_entries.account_id`); the assignment is set from the entry modal. Deleting an account keeps its entries — their `account_id` is cleared. Account assignment is optional; existing entries stay unassigned. Accounts themselves have no owner or visibility, but in personal budget mode the computed balances and entry counts only include entries the viewer may see, so a private entry never leaks its amount through a shared account's balance.
 
 | Column | Type | Constraint |
 |--------|------|-----------|
@@ -602,6 +606,8 @@ Recurring service and payment records shown in Budget → Subscriptions.
 | brand_color | TEXT | Optional HEX color |
 | budget_entry_id | INTEGER | Linked pending Budget expense (SET NULL on delete) |
 | created_by | INTEGER | FK → Users (CASCADE delete), NOT NULL |
+| owner_id | INTEGER | FK → Users, nullable (ON DELETE SET NULL) — owner, fixed to creator (migration v88) |
+| visibility | TEXT | NOT NULL DEFAULT `shared` — `private` \| `shared` (migration v88); the linked Budget expense inherits both |
 
 Supporting tables store customizable/sortable categories and payment methods, the single household subscription budget/base-currency setting, and cached exchange rates. Subscription categories are mirrored under the Budget `Subscription` category, and active renewals use the matching Budget subcategory automatically. Database backup and restore include all subscription data.
 
@@ -842,6 +848,8 @@ Instalment-based loans with per-payment tracking. Active loans show remaining ba
 | notes | TEXT | nullable |
 | status | TEXT | 'active' (default) or 'paid' |
 | created_by | INTEGER | FK → Users (CASCADE delete), NOT NULL |
+| owner_id | INTEGER | FK → Users, nullable (ON DELETE SET NULL) — owner, fixed to creator (migration v88) |
+| visibility | TEXT | NOT NULL DEFAULT `shared` — `private` \| `shared` (migration v88) |
 
 ### Budget Loan Payments
 Individual payment records for a budget loan. Each installment number is unique per loan.
@@ -1535,6 +1543,7 @@ User management and app configuration. Logged-in users only.
 - Categories: DB-backed with stable English slug keys; 8 predefined expense categories, 5 income categories; users can add custom categories inline from the entry modal
 - Subcategories: 35 predefined subcategories across expense categories; users can add custom subcategories inline; displayed alongside category in each entry's metadata line
 - Recurring entries
+- **Personal vs. shared budgets (#476/#505):** an admin can switch the household into *personal budget mode* (Settings → Modules → Budget). Each entry, loan and subscription then carries an owner (the creator) and a visibility (`private`/`shared`); the entry modal gains a "Share with the household" toggle (default private), shared rows show a "Household" badge, and a **My budget / Household** view switcher appears in the toolbar. Enforcement is server-side on every read path with no admin bypass; see the [Budget Entries](#budget-entries) data model for the full rule. In the default shared mode nothing changes.
 - Monthly comparison (current vs. previous month)
 - CSV export includes a subcategory column and English column headers; the same endpoint accepts an arbitrary date range via `?from=YYYY-MM-DD&to=YYYY-MM-DD` (used by the Statistics tab's export button) in addition to the legacy `?month=YYYY-MM`
 - **Category bar chart accessibility:** the chart exposes a concise `.sr-only` summary (number of categories, largest category and its share) for assistive technologies (v0.55.0)
