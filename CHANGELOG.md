@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.24.2] - 2026-07-16
+
+### Added
+- Chilean Peso (CLP) is now a selectable currency everywhere a currency can be chosen: the household base currency, budget subscriptions, and split expenses (#510). As a zero-decimal currency it is formatted without cents. A Chile (es-CL) region preset was added alongside it, so picking the region sets CLP, day/month/year dates, and 24-hour time in one step.
+
 ## [1.24.1] - 2026-07-16
 
 ### Fixed

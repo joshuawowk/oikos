@@ -20,6 +20,7 @@ export const REGION_PRESETS = {
   'en-CA': { currency: 'CAD', date_format: 'ymd', time_format: '12h' },
   'en-AU': { currency: 'AUD', date_format: 'dmy_slash', time_format: '12h' },
   'es-ES': { currency: 'EUR', date_format: 'dmy_slash', time_format: '24h' },
+  'es-CL': { currency: 'CLP', date_format: 'dmy_slash', time_format: '24h' },
   'fr-FR': { currency: 'EUR', date_format: 'dmy_slash', time_format: '24h' },
   'it-IT': { currency: 'EUR', date_format: 'dmy_slash', time_format: '24h' },
   'sv-SE': { currency: 'SEK', date_format: 'ymd', time_format: '24h' },
