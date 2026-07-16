@@ -2078,6 +2078,7 @@
         "emptySecondary": "フォルダを追加",
         "linkFromDms": "DMS からリンク",
         "dmsSearchPlaceholder": "DMS を検索 …",
+        "dmsAsnHint": "ヒント: 数字または「asn:123」を入力すると、アーカイブシリアル番号（ASN）で1件の文書を正確に見つけられます。",
         "dmsNoResults": "DMS に一致するものがありません。",
         "dmsLinkBtn": "リンク",
         "dmsLinked": "DMS から",

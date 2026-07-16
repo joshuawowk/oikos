@@ -2078,6 +2078,7 @@
         "emptySecondary": "إضافة مجلد",
         "linkFromDms": "ربط من DMS",
         "dmsSearchPlaceholder": "البحث في DMS …",
+        "dmsAsnHint": "نصيحة: أدخل رقمًا أو «asn:123» للعثور على مستند واحد بالضبط عبر رقمه التسلسلي في الأرشيف (ASN).",
         "dmsNoResults": "لا توجد نتائج في DMS.",
         "dmsLinkBtn": "ربط",
         "dmsLinked": "من DMS",

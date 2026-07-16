@@ -2091,6 +2091,7 @@
         "emptySecondary": "Dodaj folder",
         "linkFromDms": "Połącz z DMS",
         "dmsSearchPlaceholder": "Szukaj w DMS …",
+        "dmsAsnHint": "Wskazówka: wpisz liczbę lub „asn:123”, aby znaleźć dokładnie jeden dokument po archiwalnym numerze seryjnym (ASN).",
         "dmsNoResults": "Brak wyników w DMS.",
         "dmsLinkBtn": "Połącz",
         "dmsLinked": "Z DMS",

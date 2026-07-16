@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-07-16
+
+### Added
+- Linking a Paperless-ngx document can now target it directly by its Archive Serial Number (ASN) (#511). In the DMS link dialog, a search term that is a bare number (e.g. `123456`) or carries an `asn:` prefix (e.g. `asn:123`) is resolved as an exact ASN lookup against Paperless instead of a full-text search, so a number stamped on a physical document maps straight to the single matching entry rather than a noisy title/content result set. A hint below the search field explains this, shown only for Paperless accounts (Papra has no ASN concept).
+
+### Fixed
+- The DMS link dialog's help text and "no results" messages rendered as unstyled black default text instead of the muted hint style, because the shared `.form-hint` style was only loaded on the Settings page. The muted styling is now scoped to the Documents page as well.
+
 ## [1.25.1] - 2026-07-16
 
 ### Changed

@@ -6,7 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import test, { beforeEach, afterEach } from 'node:test';
-import { PaperlessAdapter } from '../server/services/dms/paperless.js';
+import { PaperlessAdapter, parseAsnQuery } from '../server/services/dms/paperless.js';
 import { getAdapter } from '../server/services/dms/index.js';
 
 const account = { provider: 'paperless', base_url: 'https://dms.example.com/', api_token: 'tok123' };
@@ -59,6 +59,37 @@ test('search: leerer Query listet alle Dokumente (ohne query-Param)', async () =
 
   assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?page_size=20');
   assert.equal(results.length, 1);
+});
+
+test('parseAsnQuery: erkennt Präfix, reine Zahl und lehnt Text ab (#511)', () => {
+  assert.equal(parseAsnQuery('asn:123'), 123);
+  assert.equal(parseAsnQuery('ASN 456'), 456);
+  assert.equal(parseAsnQuery('asn#789'), 789);
+  assert.equal(parseAsnQuery('  42 '), 42);
+  assert.equal(parseAsnQuery('Stromrechnung'), null);
+  assert.equal(parseAsnQuery('asn:'), null);
+  assert.equal(parseAsnQuery('2026 Vertrag'), null);
+  assert.equal(parseAsnQuery(''), null);
+});
+
+test('search: reine Zahl filtert per archive_serial_number statt Volltext (#511)', async () => {
+  mockFetch(() => jsonResponse({
+    count: 1,
+    results: [{ id: 7, title: 'Rechnung', original_file_name: 'r.pdf', created: null }],
+  }));
+  const adapter = new PaperlessAdapter(account);
+  const results = await adapter.search('123456', { limit: 20 });
+
+  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?page_size=20&archive_serial_number=123456');
+  assert.equal(results.length, 1);
+});
+
+test('search: asn:-Präfix filtert per archive_serial_number (#511)', async () => {
+  mockFetch(() => jsonResponse({ count: 0, results: [] }));
+  const adapter = new PaperlessAdapter(account);
+  await adapter.search('asn:42', { limit: 20 });
+
+  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/?page_size=20&archive_serial_number=42');
 });
 
 test('search: HTTP-Fehler wirft mit Statuscode', async () => {

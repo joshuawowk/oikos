@@ -2091,6 +2091,7 @@
         "emptySecondary": "افزودن پوشه",
         "linkFromDms": "پیوند از DMS",
         "dmsSearchPlaceholder": "جستجو در DMS …",
+        "dmsAsnHint": "نکته: یک عدد یا «asn:123» وارد کنید تا دقیقاً یک سند بر اساس شماره سریال بایگانی (ASN) پیدا شود.",
         "dmsNoResults": "نتیجه‌ای در DMS نیست.",
         "dmsLinkBtn": "پیوند",
         "dmsLinked": "از DMS",

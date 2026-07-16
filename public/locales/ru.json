@@ -2078,6 +2078,7 @@
         "emptySecondary": "Добавить папку",
         "linkFromDms": "Привязать из DMS",
         "dmsSearchPlaceholder": "Поиск в DMS …",
+        "dmsAsnHint": "Совет: введите число или «asn:123», чтобы найти ровно один документ по архивному серийному номеру (ASN).",
         "dmsNoResults": "Нет совпадений в DMS.",
         "dmsLinkBtn": "Привязать",
         "dmsLinked": "Из DMS",

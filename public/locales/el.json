@@ -2078,6 +2078,7 @@
         "emptySecondary": "Προσθήκη φακέλου",
         "linkFromDms": "Σύνδεση από DMS",
         "dmsSearchPlaceholder": "Αναζήτηση στο DMS …",
+        "dmsAsnHint": "Συμβουλή: πληκτρολογήστε έναν αριθμό ή «asn:123» για να βρείτε ακριβώς ένα έγγραφο βάσει του σειριακού αριθμού αρχείου (ASN).",
         "dmsNoResults": "Δεν βρέθηκαν αποτελέσματα στο DMS.",
         "dmsLinkBtn": "Σύνδεση",
         "dmsLinked": "Από DMS",

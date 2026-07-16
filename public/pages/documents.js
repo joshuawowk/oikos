@@ -963,6 +963,14 @@ function openDmsLinkModal() {
 
       let selectedAccountId = state.dmsAccounts[0].id;
 
+      // ASN-Hinweis ist Paperless-spezifisch (Discussion #511): nur einblenden,
+      // wenn das aktive Konto ein Paperless-ngx ist (Papra kennt keine ASN).
+      const providerOf = (id) => state.dmsAccounts.find((a) => String(a.id) === String(id))?.provider;
+      const hint = document.createElement('p');
+      hint.className = 'form-hint dms-search-hint';
+      hint.textContent = t('documents.dmsAsnHint');
+      const syncHint = () => { hint.hidden = providerOf(selectedAccountId) !== 'paperless'; };
+
       // Account selector — only render when multiple accounts exist
       if (state.dmsAccounts.length > 1) {
         const accountLabel = document.createElement('label');
@@ -982,6 +990,7 @@ function openDmsLinkModal() {
 
         accountSelect.addEventListener('change', () => {
           selectedAccountId = accountSelect.value;
+          syncHint();
           // Re-run listing for the new account (empty query lists all documents).
           runDmsSearch(input.value.trim());
         });
@@ -999,7 +1008,8 @@ function openDmsLinkModal() {
       results.id = 'dms-results';
       results.className = 'dms-results';
 
-      root.append(input, results);
+      root.append(input, hint, results);
+      syncHint();
 
       const runDmsSearch = async (q) => {
         results.replaceChildren();

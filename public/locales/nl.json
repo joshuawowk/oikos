@@ -2091,6 +2091,7 @@
         "emptySecondary": "Map toevoegen",
         "linkFromDms": "Koppelen vanuit DMS",
         "dmsSearchPlaceholder": "Zoeken in DMS …",
+        "dmsAsnHint": "Tip: voer een getal of “asn:123” in om precies één document te vinden via het archiefserienummer (ASN).",
         "dmsNoResults": "Geen overeenkomsten in het DMS.",
         "dmsLinkBtn": "Koppelen",
         "dmsLinked": "Vanuit DMS",

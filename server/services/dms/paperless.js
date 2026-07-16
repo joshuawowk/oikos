@@ -13,6 +13,19 @@ const REQUEST_TIMEOUT_MS = 8000;
 // ältere Instanzen ohne diese Version weiterhin funktionieren.
 const API_VERSION = 9;
 
+// Erkennt ASN-Suchen (Discussion #511): die Archiv-Seriennummer ist in Paperless
+// der eindeutige, oft aufs Papier gestempelte Ordnungsschlüssel. Ein expliziter
+// Präfix (`asn:123`, `asn 123`, `asn#123`) ODER eine reine Zahl wird als ASN
+// interpretiert und exakt gefiltert, statt per Volltext zu raten. Gibt die
+// numerische ASN zurück oder null, wenn es keine ASN-Suche ist.
+export function parseAsnQuery(query) {
+  const q = String(query || '').trim();
+  const prefixed = /^asn[:#\s]\s*(\d+)$/i.exec(q);
+  if (prefixed) return Number(prefixed[1]);
+  if (/^\d+$/.test(q)) return Number(q);
+  return null;
+}
+
 export class PaperlessAdapter {
   constructor(account) {
     this.provider = 'paperless';
@@ -63,7 +76,14 @@ export class PaperlessAdapter {
     // Leerer Query listet alle Dokumente (Paperless: /api/documents/ ohne query
     // liefert die volle Liste) — ermöglicht Durchblättern statt exaktes Raten.
     const params = new URLSearchParams({ page_size: String(limit) });
-    if (q) params.set('query', q);
+    const asn = parseAsnQuery(q);
+    if (asn !== null) {
+      // Exakter ASN-Filter statt Volltext: trifft genau das eine Dokument mit
+      // dieser Archiv-Seriennummer (Discussion #511).
+      params.set('archive_serial_number', String(asn));
+    } else if (q) {
+      params.set('query', q);
+    }
     const res = await this.#request(`/api/documents/?${params.toString()}`);
     const body = await res.json();
     return (body.results || []).map((r) => ({

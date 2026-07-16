@@ -2078,6 +2078,7 @@
         "emptySecondary": "Aggiungi cartella",
         "linkFromDms": "Collega da DMS",
         "dmsSearchPlaceholder": "Cerca nel DMS …",
+        "dmsAsnHint": "Suggerimento: inserisci un numero o «asn:123» per trovare esattamente un documento tramite il suo numero di serie d’archivio (ASN).",
         "dmsNoResults": "Nessuna corrispondenza nel DMS.",
         "dmsLinkBtn": "Collega",
         "dmsLinked": "Da DMS",

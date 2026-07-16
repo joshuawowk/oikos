@@ -2091,6 +2091,7 @@
         "emptySecondary": "Add folder",
         "linkFromDms": "Link from DMS",
         "dmsSearchPlaceholder": "Search the DMS …",
+        "dmsAsnHint": "Tip: enter a number or “asn:123” to match exactly one document by its archive serial number (ASN).",
         "dmsNoResults": "No matches in the DMS.",
         "dmsLinkBtn": "Link",
         "dmsLinked": "From DMS",

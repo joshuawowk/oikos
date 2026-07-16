@@ -2091,6 +2091,7 @@
         "emptySecondary": "Ordner hinzufügen",
         "linkFromDms": "Aus DMS verlinken",
         "dmsSearchPlaceholder": "Im DMS suchen …",
+        "dmsAsnHint": "Tipp: Zahl oder „asn:123“ eingeben, um per Archiv-Seriennummer (ASN) genau ein Dokument zu finden.",
         "dmsNoResults": "Keine Treffer im DMS.",
         "dmsLinkBtn": "Verlinken",
         "dmsLinked": "Aus DMS",

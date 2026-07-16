@@ -2257,6 +2257,7 @@
         "emptySecondary": "Přidat složku",
         "linkFromDms": "Propojit z DMS",
         "dmsSearchPlaceholder": "Hledat v DMS …",
+        "dmsAsnHint": "Tip: zadejte číslo nebo „asn:123“ pro nalezení právě jednoho dokumentu podle archivního sériového čísla (ASN).",
         "dmsNoResults": "V DMS nebyly nalezeny žádné výsledky.",
         "dmsLinkBtn": "Propojit",
         "dmsLinked": "Z DMS",

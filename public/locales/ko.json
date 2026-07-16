@@ -2091,6 +2091,7 @@
         "emptySecondary": "폴더 추가",
         "linkFromDms": "DMS에서 연결",
         "dmsSearchPlaceholder": "DMS에서 검색 …",
+        "dmsAsnHint": "팁: 숫자나 「asn:123」을 입력하면 아카이브 일련번호(ASN)로 정확히 하나의 문서를 찾을 수 있습니다.",
         "dmsNoResults": "DMS에 결과 없음.",
         "dmsLinkBtn": "연결",
         "dmsLinked": "DMS에서",

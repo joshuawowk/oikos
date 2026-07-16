@@ -2078,6 +2078,7 @@
         "emptySecondary": "फ़ोल्डर जोड़ें",
         "linkFromDms": "DMS से लिंक करें",
         "dmsSearchPlaceholder": "DMS में खोजें …",
+        "dmsAsnHint": "सुझाव: संग्रह क्रम संख्या (ASN) द्वारा ठीक एक दस्तावेज़ खोजने के लिए कोई संख्या या «asn:123» दर्ज करें।",
         "dmsNoResults": "DMS में कोई परिणाम नहीं।",
         "dmsLinkBtn": "लिंक करें",
         "dmsLinked": "DMS से",

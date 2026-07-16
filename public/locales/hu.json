@@ -2091,6 +2091,7 @@
         "emptySecondary": "Mappa hozzáadása",
         "linkFromDms": "Link a DMS-ből",
         "dmsSearchPlaceholder": "Keresés a DMS-ben …",
+        "dmsAsnHint": "Tipp: írjon be egy számot vagy „asn:123” értéket, hogy pontosan egy dokumentumot találjon az archív sorszám (ASN) alapján.",
         "dmsNoResults": "Nincs találat a DMS-ben.",
         "dmsLinkBtn": "Link",
         "dmsLinked": "A DMS-ből",
