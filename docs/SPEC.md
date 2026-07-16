@@ -1455,6 +1455,7 @@ Responsive grid with colored sticky notes. Phones use one readable column; wider
 - Pin → appears at top + on dashboard
 - Creator shown (profile photo if set, else coloured avatar with initials)
 - Markdown rendering: the card renders the full set the editor toolbar offers — headings (`#`–`###`), ordered/unordered lists, checklists (`- [ ]` / `- [x]`), blockquotes, dividers, inline code, links (safe schemes only), **bold**, *italic*, ~~strikethrough~~, and underline. Shared renderer (`renderMarkdownLight`), so the dashboard pinboard preview shows the same formatting
+- Reader mode (v1.25.0): opening an existing note shows a rendered Markdown reader by default; a Read/Edit toggle (segmented control) switches to the editor and back within the same modal. New notes open directly in the editor. Both panes stay mounted, so the toggle never discards unsaved input and the reader reflects live edits. The footer (Cancel/Save) is hidden in read mode
 - Full-text search: client-side filter bar, filters instantly by title + content, with a clear (×) control
 
 ### Contacts (`/contacts`)

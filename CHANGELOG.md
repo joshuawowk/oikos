@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-07-16
+
+### Added
+- Notes now open in a rendered Markdown reader by default instead of jumping straight into the editor (#507). Opening an existing note shows the formatted content; a segmented Read/Edit toggle switches to the editor and back within the same modal, and new notes still open directly in the editor. Both views stay mounted, so switching never discards unsaved input and the reader always reflects the latest edits. This makes longer notes comfortable to read, keeps Markdown formatting useful day to day, and reduces the chance of accidental edits on mobile. The editor footer (Cancel/Save) is hidden while reading.
+
 ## [1.24.2] - 2026-07-16
 
 ### Added

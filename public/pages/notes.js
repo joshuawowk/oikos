@@ -336,11 +336,41 @@ function applyFormat(textarea, format) {
 // Modal
 // --------------------------------------------------------
 
+// Gerenderte Markdown-Leseansicht (Reader-Modus, Discussion #507). Nutzt den
+// gemeinsamen renderMarkdownLight-Renderer; der Titel wird esc-sicher eingebettet.
+function renderNoteReadHtml(title, content) {
+  const body = (content || '').trim()
+    ? renderMarkdownLight(content)
+    : `<p class="note-read__empty">${t('notes.readEmpty')}</p>`;
+  return `${title ? `<div class="note-read__title">${esc(title)}</div>` : ''}<div class="note-read__body">${body}</div>`;
+}
+
 function openNoteModal({ mode, note = null }) {
-  const isEdit    = mode === 'edit';
-  const selColor  = isEdit ? note.color : NOTE_COLORS[0];
+  const isEdit      = mode === 'edit';
+  const selColor    = isEdit ? note.color : NOTE_COLORS[0];
+  // Bestehende Notizen öffnen im Lese-Modus (#507); neue direkt im Editor.
+  const initialView = isEdit ? 'read' : 'edit';
 
   const content = `
+    <div class="note-modal" data-view="${initialView}">
+      <div class="note-mode-switch" role="group" aria-label="${t('notes.modeSwitchLabel')}">
+        <button type="button" class="note-mode-btn" data-view="read"
+                aria-pressed="${initialView === 'read' ? 'true' : 'false'}">
+          <i data-lucide="book-open" style="width:14px;height:14px;" aria-hidden="true"></i>
+          ${t('notes.modeRead')}
+        </button>
+        <button type="button" class="note-mode-btn" data-view="edit"
+                aria-pressed="${initialView === 'edit' ? 'true' : 'false'}">
+          <i data-lucide="pencil" style="width:14px;height:14px;" aria-hidden="true"></i>
+          ${t('notes.modeEdit')}
+        </button>
+      </div>
+
+      <div class="note-read-view" data-pane="read"${initialView === 'read' ? '' : ' hidden'}>
+        ${isEdit ? renderNoteReadHtml(note.title, note.content) : ''}
+      </div>
+
+      <div class="note-edit-view" data-pane="edit"${initialView === 'edit' ? '' : ' hidden'}>
     <div class="form-group">
       <label class="form-label" for="note-title">${t('notes.titleLabel')}</label>
       <input type="text" class="form-input" id="note-title"
@@ -415,17 +445,51 @@ function openNoteModal({ mode, note = null }) {
         </label>
       </div>`,
       { open: isEdit && (!!note.pinned || (!!note.color && note.color !== NOTE_COLORS[0])) })}
+      </div>
 
-    <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
-      <button class="btn btn--secondary" id="note-modal-cancel">${t('common.cancel')}</button>
-      <button class="btn btn--primary" id="note-modal-save">${isEdit ? t('common.save') : t('common.create')}</button>
+      <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
+        <button class="btn btn--secondary" id="note-modal-cancel">${t('common.cancel')}</button>
+        <button class="btn btn--primary" id="note-modal-save">${isEdit ? t('common.save') : t('common.create')}</button>
+      </div>
     </div>`;
 
   openSharedModal({
-    title: isEdit ? t('notes.editNote') : t('notes.newNote'),
+    title: isEdit ? t('notes.viewNote') : t('notes.newNote'),
     content,
     size: 'md',
     onSave(panel) {
+      // Reader/Editor-Umschalter (#507): beide Panes bleiben im DOM, damit
+      // Dirty-Check und Feld-Verdrahtung intakt bleiben und der Toggle nichts
+      // verwirft. Die Leseansicht wird bei jedem Wechsel aus den Live-Feldern
+      // neu gerendert, spiegelt also ungespeicherte Änderungen.
+      const noteModal   = panel.querySelector('.note-modal');
+      const readPane    = panel.querySelector('[data-pane="read"]');
+      const editPane    = panel.querySelector('[data-pane="edit"]');
+      const modalFooter = panel.querySelector('.modal-panel__footer');
+      const viewTitle   = panel.querySelector('#note-title');
+      const viewContent = panel.querySelector('#note-content');
+      function setView(view) {
+        noteModal.dataset.view = view;
+        readPane.hidden = view !== 'read';
+        editPane.hidden = view !== 'edit';
+        // Footer (Abbrechen/Speichern) ist nur im Editor sinnvoll; im Lese-Modus
+        // schließt das Header-X bzw. Swipe-down (Bottom Sheet). style.display statt
+        // [hidden], da .modal-panel__footer { display:flex } das Attribut schlägt.
+        modalFooter.style.display = view === 'read' ? 'none' : '';
+        panel.querySelectorAll('.note-mode-btn').forEach((b) =>
+          b.setAttribute('aria-pressed', b.dataset.view === view ? 'true' : 'false'));
+        if (view === 'read') {
+          readPane.replaceChildren();
+          readPane.insertAdjacentHTML('beforeend', renderNoteReadHtml(viewTitle.value.trim(), viewContent.value));
+        } else {
+          setTimeout(() => viewContent.focus(), 30);
+        }
+      }
+      // Initialen Footer-Zustand an die Startansicht angleichen.
+      modalFooter.style.display = initialView === 'read' ? 'none' : '';
+      panel.querySelectorAll('.note-mode-btn').forEach((b) =>
+        b.addEventListener('click', () => setView(b.dataset.view)));
+
       // Farb-Swatch: Auswahl + ARIA + Keyboard (Roving Tabindex)
       function selectSwatch(target) {
         panel.querySelectorAll('.note-color-swatch').forEach((s) => {
