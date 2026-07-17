@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.2] - 2026-07-17
+
+### Changed
+- Replaced the `node-fetch` dependency with a small built-in HTTP client. Outbound requests (ICS calendar subscriptions, subscription logo lookup and WebDAV document storage) behave the same as before, including transparent gzip/deflate/br response decompression; no configuration change is required.
+
+### Security
+- Consolidated the SSRF (server-side request forgery) protection shared by ICS subscriptions, subscription logo lookup and WebDAV document storage into a single hardened check. It now blocks a broader set of non-public destinations (carrier-grade NAT, benchmarking and reserved ranges, and additional IPv6 special-use prefixes) and closes a gap where the logo lookup did not recognise IPv4-mapped IPv6 addresses.
+
 ## [1.27.1] - 2026-07-17
 
 ### Fixed
