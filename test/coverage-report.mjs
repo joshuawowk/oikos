@@ -26,11 +26,10 @@
  * Ohne --prefix werden server/ und public/ berücksichtigt.
  */
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ROOT_URL = pathToFileURL(ROOT + '/').href;
 
 function parseArgs(argv) {
   const args = { covDir: null, prefixes: [], json: null, top: 60, full: false };
@@ -97,7 +96,7 @@ function uncoveredRangesOf(script) {
 // Schnitt der uncovered-Mengen über mehrere Script-Instanzen (byte covered,
 // sobald EIN Prozess es ausführte). Rückgabe: sortierte, gemergte Intervalle
 // der Bytes, die in ALLEN Instanzen uncovered sind.
-function intersectUncovered(scripts, byteLen) {
+function intersectUncovered(scripts) {
   // Beginne mit "alles uncovered" der ersten Instanz, schneide iterativ.
   let acc = null;
   for (const s of scripts) {
@@ -149,22 +148,6 @@ function functionCoverage(scripts) {
   return { total, hit };
 }
 
-function lineStartsOf(src) {
-  const starts = [0];
-  for (let i = 0; i < src.length; i++) if (src[i] === '\n') starts.push(i + 1);
-  return starts;
-}
-
-function offsetToLine(starts, off) {
-  // binäre Suche: größter Index mit starts[idx] <= off
-  let lo = 0, hi = starts.length - 1, ans = 0;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (starts[mid] <= off) { ans = mid; lo = mid + 1; } else hi = mid - 1;
-  }
-  return ans; // 0-basiert
-}
-
 // true, wenn Zeile nur Whitespace / Klammern / Kommentar-Rahmen ist (nicht
 // als ausführbar gewertet). Bewusst grob, konservativ Richtung "nicht relevant".
 function isNonExecutableLine(line) {
@@ -175,14 +158,6 @@ function isNonExecutableLine(line) {
   if (t.startsWith('*') || t.startsWith('/*') || t.startsWith('*/')) return true;
   if (t === 'try {' || t === '} else {' || t === 'else {') return true;
   return false;
-}
-
-function firstNonWsOffset(src, lineStart, lineEnd) {
-  for (let i = lineStart; i < lineEnd; i++) {
-    const c = src[i];
-    if (c !== ' ' && c !== '\t' && c !== '\r' && c !== '\n') return i;
-  }
-  return -1;
 }
 
 // Ist Offset in einer der (sortierten) uncovered-Intervalle?
@@ -201,12 +176,11 @@ function inIntervals(intervals, off) {
 function lineCoverage(rel, scripts) {
   let src;
   try { src = readFileSync(join(ROOT, rel), 'utf8'); } catch { return null; }
-  const byteLen = Buffer.byteLength(src, 'utf8');
   // V8-Offsets sind Byte-Offsets in UTF-8; unsere String-Indizes sind UTF-16.
   // Für ASCII-lastigen Code stimmen sie überein. Um korrekt zu sein, arbeiten
   // wir auf einem Buffer und mappen über Byte-Offsets.
   const buf = Buffer.from(src, 'utf8');
-  const uncovered = intersectUncovered(scripts, byteLen);
+  const uncovered = intersectUncovered(scripts);
   // Zeilenstarts in BYTE-Offsets
   const starts = [0];
   for (let i = 0; i < buf.length; i++) if (buf[i] === 0x0a) starts.push(i + 1);
