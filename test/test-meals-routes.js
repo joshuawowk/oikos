@@ -114,14 +114,20 @@ test('POST /: Erfolg persistiert Mahlzeit + Zutaten, created_by gesetzt', async 
   assert.equal(row.created_by, U);
 });
 
+// Synthetisches Zukunftsdatum: die Materialisierung greift nur für Vorlagen mit
+// start_date <= Wochenende. Ein Datum weit in der Zukunft entkoppelt diesen Test
+// von der Systemuhr - der spätere „GET / ohne Woche"-Aufruf (aktuelle Woche) kann
+// diese Vorlage nie versehentlich vor-materialisieren.
+const RECUR_BASE = '2040-06-04';
+
 test('POST / mit repeat_weekly: Template + Sofort-Instanz mit recurrence_template_id', async () => {
-  const r = await createMeal({ date: '2026-06-15', title: 'Wochen-Pasta', repeat_weekly: true });
+  const r = await createMeal({ date: RECUR_BASE, title: 'Wochen-Pasta', repeat_weekly: true });
   assert.equal(r.status, 201);
   const meal = r.body.data;
   assert.ok(meal.recurrence_template_id, 'Instanz trägt Template-Bezug');
   const tpl = db.prepare('SELECT * FROM meal_recurrence_templates WHERE id = ?').get(meal.recurrence_template_id);
   assert.equal(tpl.title, 'Wochen-Pasta');
-  assert.equal(tpl.weekday, mealWeekday('2026-06-15'));
+  assert.equal(tpl.weekday, mealWeekday(RECUR_BASE));
 });
 
 // --------------------------------------------------------------------------
@@ -149,8 +155,8 @@ test('GET /?week: nur Meals der Woche, sortiert nach meal_type (breakfast<lunch<
 });
 
 test('GET /?week: materialisiert wiederkehrende Meals in Folgewoche', async () => {
-  // Template aus 2026-06-15 (siehe repeat_weekly-Test) → Instanz eine Woche später
-  const next = addDays('2026-06-15', 7);
+  // Template aus RECUR_BASE (siehe repeat_weekly-Test) → Instanz eine Woche später
+  const next = addDays(RECUR_BASE, 7);
   const before = db.prepare('SELECT COUNT(*) c FROM meals WHERE date = ?').get(next).c;
   assert.equal(before, 0, 'noch keine Instanz vor GET');
   const r = await call('GET', `/?week=${next}`);
