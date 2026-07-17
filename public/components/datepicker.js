@@ -47,14 +47,18 @@ function todayIso() {
 // Wochentagskürzel (Montag-first) und Monats-/Jahres-Label rein aus Intl —
 // keine eigenen Locale-Strings für Kalenderbeschriftung nötig.
 function weekdayLabels(locale) {
-  const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+  // timeZone:'UTC', weil die Tage per Date.UTC() gebaut werden — ohne das würde
+  // Intl westlich von UTC auf den Vortag zurückrutschen und die Kürzel verschieben.
+  const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
   // 2024-01-01 war ein Montag → 7 aufeinanderfolgende Tage ab Montag.
   return Array.from({ length: 7 }, (_, i) =>
     fmt.format(new Date(Date.UTC(2024, 0, 1 + i))));
 }
 
 function monthLabel(locale, year, month) {
-  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' })
+  // timeZone:'UTC' passend zur Date.UTC()-Konstruktion: sonst zeigt das Label
+  // westlich von UTC den Vormonat (UTC-Mitternacht des 1. fällt lokal auf den 30./31.).
+  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
     .format(new Date(Date.UTC(year, month, 1)));
 }
 

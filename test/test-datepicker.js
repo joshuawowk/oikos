@@ -65,6 +65,17 @@ test('Touch bevorzugt das DOM-Popover; natives OS-Sheet nur ohne Popover-API', (
 test('Kalenderraster ist Montag-first', () => {
   assert(/Montag\s*=\s*0/.test(comp) || /getDay\(\)\s*-\s*1/.test(comp), 'Montag-first-Offset nötig');
 });
+test('Regression #515: UTC-gebaute Label-Daten werden auch in UTC formatiert', () => {
+  // monthLabel/weekdayLabels bauen ihre Daten via Date.UTC(); ohne timeZone:'UTC'
+  // im Formatter rutscht Intl westlich von UTC auf den Vortag/Vormonat zurück
+  // (Bug: „Juli" wurde als „Juni" angezeigt, Wochentagskürzel verschoben).
+  const utcFormatters = comp.match(/new Intl\.DateTimeFormat\([^)]*\)/g) || [];
+  const monthOrWeekday = utcFormatters.filter((f) => /month|weekday/.test(f));
+  assert(monthOrWeekday.length >= 2, 'Monats- und Wochentags-Formatter erwartet');
+  monthOrWeekday.forEach((f) => {
+    assert(/timeZone:\s*'UTC'/.test(f), `Label-Formatter braucht timeZone:'UTC': ${f}`);
+  });
+});
 test('Wochentags-/Monatsnamen kommen aus Intl (keine eigenen Locale-Keys)', () => {
   assert(/Intl\.DateTimeFormat/.test(comp), 'Intl muss für Labels genutzt werden');
 });

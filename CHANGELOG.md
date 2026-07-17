@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.1] - 2026-07-17
+
+### Fixed
+- The date picker popover in the calendar (and everywhere else) showed the wrong month name and misaligned weekday headers for users in time zones west of UTC: the month label read one month behind (e.g. "June" in July) and the weekday row started on the wrong day, while the day cells and the selected date stayed correct. The calendar and weekday labels are now formatted in UTC to match how their dates are constructed (#515).
+
 ## [1.27.0] - 2026-07-17
 
 ### Added
