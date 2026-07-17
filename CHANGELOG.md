@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.4] - 2026-07-17
+
+### Changed
+- Internal code organisation: the large budget routes file was split into per-domain modules (entries, categories, loans, accounts, plans, statistics) behind a thin orchestrator. This is a refactor only; every budget endpoint, request and response is unchanged, and no configuration or upgrade steps are required.
+
 ## [1.27.3] - 2026-07-17
 
 ### Changed
