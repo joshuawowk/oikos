@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-07-18
+
+### Added
+- vCard import now handles files that contain multiple contacts (previously only the first contact was imported) and reads each contact's birthday. Nothing is created silently: a selection dialog lists the parsed contacts with checkboxes so you choose exactly who to import, entries whose name already exists are pre-unchecked and flagged as likely duplicates, and cards without a name are reported as skipped. Imported birthdays become available in the Birthdays module, and when a birthday is present the result offers a one-click shortcut straight into the Birthdays "Import from contacts" dialog.
+
+### Changed
+- Contact import now reports its result in a single toast (imported / with birthday / failed) instead of up to four stacked toasts, with correct singular/plural wording across all 23 languages. Failed creations name the reason and offer a one-click retry of only the failures.
+- Exported contact vCards now include the birthday (BDAY) when the contact has one, so an export/import round-trip preserves it.
+
 ## [1.29.0] - 2026-07-18
 
 ### Added
