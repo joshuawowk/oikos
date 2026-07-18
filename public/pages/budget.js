@@ -9,7 +9,7 @@ import { api } from '/api.js';
 import { openModal as openSharedModal, closeModal, confirmModal, advancedSection } from '/components/modal.js';
 import { stagger, vibrate } from '/utils/ux.js';
 import { wireTablist } from '/utils/tablist.js';
-import { t, formatDate, getLocale } from '/i18n.js';
+import { t, formatDate, getLocale, getNumberFormat } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 import { render as renderSplitExpenses } from '/pages/split-expenses.js';
@@ -175,7 +175,7 @@ let _tablist = null;   // wireTablist-Handle: erlaubt programmatische Tab-Wechse
 // --------------------------------------------------------
 
 function formatAmount(n) {
-  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency: state.currency }).format(n);
+  return getNumberFormat({ style: 'currency', currency: state.currency }).format(n);
 }
 
 function formatMonthLabel(ym) {

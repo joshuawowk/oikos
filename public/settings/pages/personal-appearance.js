@@ -14,6 +14,7 @@ import {
   detectRegion,
   resolveRegion,
   regionLabel,
+  numberLocaleFor,
 } from '/settings/region-presets.js';
 
 const DATE_FORMATS = [
@@ -155,15 +156,18 @@ function renderPage(container, preferences, isAdmin) {
       <h2 class="settings-section__title">${t('settings.regionTitle')}</h2>
       ${isAdmin ? `
       <div class="settings-card">
-        <p class="form-hint">${t('settings.regionHint')}</p>
+        <p class="form-hint" id="region-hint">${t('settings.regionHint')}</p>
         <div class="form-group">
           <label class="form-label" for="region-select">${t('settings.regionLabel')}</label>
-          <select class="form-input" id="region-select" aria-describedby="region-error">
+          <select class="form-input" id="region-select" aria-describedby="region-hint region-error">
             ${regionOptions(activeRegion)}
           </select>
         </div>
         <div id="region-error" class="form-error" role="alert" hidden></div>
-      </div>` : ''}
+      </div>` : `
+      <div class="settings-card">
+        <p class="form-hint">${t('settings.regionAdminOnly')}</p>
+      </div>`}
       <div class="settings-card" id="custom-formats"${customHidden ? ' hidden' : ''}>
         ${isAdmin ? `
         <div class="form-group">
@@ -207,6 +211,28 @@ function applyTheme(value) {
   } else {
     document.documentElement.removeAttribute('data-theme');
   }
+}
+
+// Spiegelt die aktive Region als Formatier-Locale für Zahlen/Währung in den
+// localStorage (getFormatLocale() in i18n.js liest ihn). Leert den Schlüssel bei
+// "Benutzerdefiniert", damit die Zahlenformatierung auf die UI-Sprache zurückfällt.
+function applyNumberLocale({ region, currency, date_format, time_format }) {
+  const numberLocale = numberLocaleFor({ region, currency, date_format, time_format });
+  if (numberLocale) {
+    safeStorageSet('yuvomi-number-locale', numberLocale);
+  } else {
+    safeStorageRemove('yuvomi-number-locale');
+  }
+}
+
+// Liest den aktuellen Format-Zustand aus den vier Selects der Seite.
+function readFormatState(container) {
+  return {
+    region: container.querySelector('#region-select')?.value,
+    currency: container.querySelector('#currency-select')?.value,
+    date_format: container.querySelector('#date-format-select')?.value,
+    time_format: container.querySelector('#time-format-select')?.value,
+  };
 }
 
 // Hält den Region-Dropdown mit den drei Einzel-Selects synchron (Preset oder
@@ -284,6 +310,12 @@ function bindEvents(container, user) {
       if (timeSelect) timeSelect.value = preset.time_format;
       safeStorageSet('yuvomi-date-format', preset.date_format);
       safeStorageSet('yuvomi-time-format', preset.time_format);
+      applyNumberLocale({
+        region: regionSelect.value,
+        currency: preset.currency,
+        date_format: preset.date_format,
+        time_format: preset.time_format,
+      });
       window.dispatchEvent(new CustomEvent('date-format-changed', {
         detail: { dateFormat: preset.date_format },
       }));
@@ -313,6 +345,7 @@ function bindEvents(container, user) {
       );
       persistedCurrency = currencySelect.value;
       syncRegionSelect(container);
+      applyNumberLocale(readFormatState(container));
       window.yuvomi?.showToast(t('settings.currencySaved'), 'success');
     } catch (error) {
       showError(errorElement, error.message);
@@ -331,6 +364,7 @@ function bindEvents(container, user) {
         detail: { dateFormat: dateFormatSelect.value },
       }));
       syncRegionSelect(container);
+      applyNumberLocale(readFormatState(container));
       window.yuvomi?.showToast(t('settings.dateFormatSavedToast'), 'success');
     } catch (error) {
       showError(errorElement, error.message);
@@ -351,6 +385,7 @@ function bindEvents(container, user) {
         detail: { timeFormat: timeFormatSelect.value },
       }));
       syncRegionSelect(container);
+      applyNumberLocale(readFormatState(container));
       window.yuvomi?.showToast(t('settings.timeFormatSavedToast'), 'success');
     } catch (error) {
       showError(errorElement, error.message);
@@ -372,6 +407,7 @@ export async function render(container, { user }) {
 
     safeStorageSet('yuvomi-date-format', preferences.date_format);
     safeStorageSet('yuvomi-time-format', preferences.time_format);
+    applyNumberLocale(preferences);
     const isAdmin = user?.role === 'admin';
     renderPage(container, preferences, isAdmin);
     if (isAdmin) {

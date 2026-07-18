@@ -8,6 +8,7 @@ import { closeModal, confirmModal, openModal, advancedSection } from '/component
 import {
   formatDate,
   getLocale,
+  getNumberFormat,
   isDateInputValid,
   parseDateInput,
   t,
@@ -50,7 +51,7 @@ function setHtml(element, html) {
 
 function money(amount, currency = state.summary?.base_currency || state.settings.base_currency) {
   const value = Number(amount || 0);
-  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).format(value);
+  return getNumberFormat({ style: 'currency', currency }).format(value);
 }
 
 function categoryLabel(category) {

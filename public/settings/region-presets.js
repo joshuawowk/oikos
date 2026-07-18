@@ -82,6 +82,16 @@ export function resolveRegion({ region, currency, date_format, time_format } = {
   return detectRegion({ currency, date_format, time_format });
 }
 
+// Liefert den BCP-47-Locale-Tag für die Zahlen-/Währungsformatierung
+// (z. B. "de-CH" → Tausender-Apostroph + Punkt-Dezimaltrenner: 123'456.78).
+// Leerer String, wenn keine passende Region vorliegt (dann formatiert die App
+// über die UI-Sprache). Die Region-Codes sind selbst gültige BCP-47-Tags, daher
+// eignen sie sich direkt als Intl-Locale.
+export function numberLocaleFor(prefs = {}) {
+  const region = resolveRegion(prefs);
+  return REGION_CODES.includes(region) ? region : '';
+}
+
 // Lokalisierter Anzeigename eines Regions-Codes (z. B. "de-DE" → "Deutsch (Deutschland)").
 // Fällt auf den Code zurück, wenn Intl.DisplayNames nicht verfügbar ist.
 export function regionLabel(code, locale) {

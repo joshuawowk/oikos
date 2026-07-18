@@ -125,7 +125,12 @@ test('GET /export: CSV mit BOM, Header und Zeilen (month-Range)', async () => {
   assert.equal(r.text.charCodeAt(0), 0xFEFF, 'BOM (U+FEFF) vorangestellt');
   assert.match(r.text, /Date,Title,Amount,Category,Subcategory,Recurring,Created by/);
   assert.match(r.text, /"Kaffee"/);
-  assert.match(r.text, /-4,50/, 'Betrag mit Dezimalkomma');
+  // Punkt-Dezimal ohne Tausendertrennung (#521): in einem komma-getrennten CSV
+  // wäre ein Komma-Dezimaltrenner ein zweites Feldtrennzeichen und würde die
+  // Betragsspalte zerreißen. Die Datenzeile muss exakt 7 Felder behalten.
+  assert.match(r.text, /-4\.50/, 'Betrag mit Dezimalpunkt');
+  const dataLine = r.text.replace(/^﻿/, '').trim().split('\n')[1];
+  assert.equal(dataLine.split(',').length, 7, 'Betrag erzeugt kein zusätzliches CSV-Feld');
 });
 
 test('GET /export: schützt vor CSV-Formel-Injection (führendes =)', async () => {

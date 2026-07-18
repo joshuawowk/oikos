@@ -117,7 +117,11 @@ router.get('/export', (req, res) => {
       [
         e.date,
         csvSafe(e.title),
-        e.amount.toFixed(2).replace('.', ','),
+        // Punkt-Dezimal ohne Tausendertrennung: in einem komma-getrennten CSV
+        // wäre ein Komma-Dezimaltrenner ein zweites Feldtrennzeichen (Spalte
+        // zerreißt). Punkt-Dezimal ist maschinenlesbar, überall parsebar und
+        // deckt sich mit der region-abhängigen Anzeige für Punkt-Locales (#521).
+        e.amount.toFixed(2),
         e.category,
         e.subcategory || '',
         e.is_recurring ? 'Yes' : 'No',

@@ -11,6 +11,7 @@ import { initI18n, getLocale, t } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { init as initReminders, stop as stopReminders } from '/reminders.js';
 import { initPush, stopPush } from '/push.js';
+import { numberLocaleFor } from '/settings/region-presets.js';
 import { isKitchenRoute, getLastKitchenRoute } from '/utils/kitchen-tabs.js';
 import { getLastHealthRoute, HEALTH_ROUTES } from '/utils/health-tabs.js';
 import { activityType } from '/utils/health-activity.js';
@@ -633,6 +634,19 @@ async function syncPreferencesOnce() {
     const timeFormat = res?.data?.time_format;
     if (timeFormat) {
       localStorage.setItem('yuvomi-time-format', timeFormat);
+    }
+    // Region als Formatier-Locale für Zahlen/Währung spiegeln (z. B. de-CH →
+    // 123'456.78). getFormatLocale() in i18n.js liest diesen Wert.
+    const numberLocale = numberLocaleFor({
+      region: res?.data?.region,
+      currency: res?.data?.currency,
+      date_format: res?.data?.date_format,
+      time_format: res?.data?.time_format,
+    });
+    if (numberLocale) {
+      localStorage.setItem('yuvomi-number-locale', numberLocale);
+    } else {
+      localStorage.removeItem('yuvomi-number-locale');
     }
     if (res?.data?.app_name) {
       setAppName(res.data.app_name);

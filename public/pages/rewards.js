@@ -7,7 +7,7 @@
  */
 
 import { api } from '/api.js';
-import { t, formatDate, getLocale } from '/i18n.js';
+import { t, formatDate, getLocale, getNumberFormat } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
 import { createPageFab, setPageFabAction } from '/utils/fab.js';
@@ -71,7 +71,7 @@ function isAdmin() {
 }
 
 function fmtPoints(n) {
-  return new Intl.NumberFormat(getLocale()).format(Number(n || 0));
+  return getNumberFormat().format(Number(n || 0));
 }
 
 function pointsLabel(n) {

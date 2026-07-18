@@ -6,7 +6,7 @@
 
 import { api } from '/api.js';
 import { canSeeWidget } from '/permissions.js';
-import { t, formatDate, formatTime, getLocale } from '/i18n.js';
+import { t, formatDate, formatTime, getLocale, getNumberFormat } from '/i18n.js';
 import { getReadableTextColor, AVATAR_FALLBACK_COLOR } from '/utils/color.js';
 import { esc, fmtLocation, renderMarkdownLight } from '/utils/html.js';
 import { toLocalDateKey, parseLocalDateKey } from '/utils/date.js';
@@ -497,7 +497,7 @@ function budgetCategoryLabel(category) {
 }
 
 function formatCurrency(amount, currency = 'EUR') {
-  return new Intl.NumberFormat(getLocale(), {
+  return getNumberFormat({
     style: 'currency',
     currency,
     maximumFractionDigits: Math.abs(amount) >= 1000 ? 0 : 2,
@@ -505,7 +505,7 @@ function formatCurrency(amount, currency = 'EUR') {
 }
 
 function formatPoints(value) {
-  return new Intl.NumberFormat(getLocale()).format(Number(value) || 0);
+  return getNumberFormat().format(Number(value) || 0);
 }
 
 function widgetHeader(icon, title, count, linkHref, linkLabel) {

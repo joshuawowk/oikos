@@ -5,7 +5,7 @@
  */
 
 import { api } from '/api.js';
-import { t, formatDate, formatTime, getLocale } from '/i18n.js';
+import { t, formatDate, formatTime, getLocale, getNumberFormat } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
@@ -42,7 +42,7 @@ let state = {
 };
 
 function money(value) {
-  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency: state.currency }).format(Number(value || 0));
+  return getNumberFormat({ style: 'currency', currency: state.currency }).format(Number(value || 0));
 }
 
 function initials(name = '') {
@@ -916,7 +916,7 @@ function openVisitEditModal(visit, content, { onDone } = {}) {
       const mins = Math.max(0, Number(minutesInput.value) || 0);
       const rounded = Math.round(mins / 15) * 15;
       const amount = (rounded / 60) * (Number(visit.hourly_rate) || 0);
-      const fmt = new Intl.NumberFormat(getLocale(), { style: 'currency', currency: state.currency || 'EUR' });
+      const fmt = getNumberFormat({ style: 'currency', currency: state.currency || 'EUR' });
       computedOutput.textContent = fmt.format(amount);
     }
     minutesInput?.addEventListener('input', updateComputed);

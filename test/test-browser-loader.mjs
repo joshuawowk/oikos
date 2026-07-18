@@ -33,6 +33,8 @@ const STUBS = {
     export const initI18n = async () => {};
     export const setLocale = async () => {};
     export const getLocale = () => 'de';
+    export const getFormatLocale = () => 'de';
+    export const getNumberFormat = (options = {}) => new Intl.NumberFormat('de', options);
     export const getSupportedLocales = () => ['de', 'en'];
     export const formatDate = (d) => String(d);
     export const formatTime = (d) => String(d);

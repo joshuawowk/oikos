@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-07-18
+
+### Added
+- Number and currency formatting now follows your selected Region, not just the display language (#521). Picking "Deutsch (Schweiz)" (or any region) under Settings > Personal > Appearance now formats amounts with that region's grouping and decimal separators, for example the Swiss `123'456.78` instead of `123.456,78`, across Budget, Subscriptions, Split Expenses, Housekeeping, Rewards, Health and the Dashboard. This is independent of the interface language, so a German-language household can still display Swiss-formatted numbers. Previously formatting was tied to the two-letter language code and there was no way to reach the Swiss (or any region-specific) number format.
+
+### Changed
+- The Region setting's hint now states that it also controls the number format and shows a Swiss example, so the feature above is discoverable at the point of decision (all 23 languages). The hint is now announced to screen readers together with the selector, and non-admin members see a short "only administrators can change region and format" note instead of an empty heading.
+- Number formatters are now cached per region and options instead of being rebuilt for every displayed value, reducing redundant work on money-heavy screens.
+
+### Fixed
+- Budget CSV export no longer risks splitting the amount into two columns. The amount was formatted with a comma decimal separator inside a comma-delimited file, which could break the column in spreadsheet imports; it now uses a dot decimal without thousands grouping, which is unambiguous and matches the region-aware on-screen format for dot-decimal locales (#521).
+
 ## [1.28.0] - 2026-07-18
 
 ### Added

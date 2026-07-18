@@ -5,7 +5,7 @@
 
 import { api } from '/api.js';
 import { openModal as openSharedModal, closeModal, confirmModal } from '/components/modal.js';
-import { t, formatDate, getLocale, dateInputPlaceholder, parseDateInput, isDateInputValid } from '/i18n.js';
+import { t, formatDate, getLocale, getNumberFormat, dateInputPlaceholder, parseDateInput, isDateInputValid } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { stagger } from '/utils/ux.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
@@ -35,7 +35,7 @@ function setHtml(element, html) {
 function money(amount, currency) {
   const n = Number(amount || 0);
   if (!Number.isFinite(n)) return `${amount} ${currency}`;
-  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency }).format(n);
+  return getNumberFormat({ style: 'currency', currency }).format(n);
 }
 
 function groupIcon(type) {

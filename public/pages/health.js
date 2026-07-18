@@ -12,7 +12,7 @@
  */
 
 import { api } from '/api.js';
-import { t, formatDate, formatTime, getLocale } from '/i18n.js';
+import { t, formatDate, formatTime, getLocale, getNumberFormat } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { toLocalDateKey, parseLocalDateKey, addLocalDays } from '/utils/date.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
@@ -944,12 +944,12 @@ async function reloadAfterSave(savedType) {
 
 function fmtNum(value, opts) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return '–';
-  return new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1, ...opts }).format(Number(value));
+  return getNumberFormat({ maximumFractionDigits: 1, ...opts }).format(Number(value));
 }
 
 function fmtDelta(value) {
   if (value === null || value === undefined) return '';
-  return new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1, signDisplay: 'exceptZero' }).format(value);
+  return getNumberFormat({ maximumFractionDigits: 1, signDisplay: 'exceptZero' }).format(value);
 }
 
 // ========================================================
