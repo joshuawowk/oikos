@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.15] - 2026-07-18
+
+### Changed
+- Internal quality hardening: split the oversized health route module (`server/routes/health.js`, ~1280 lines) into a thin orchestrator plus focused per-tab cluster routers under `server/routes/health/` (shared helpers, vitals, medications, labs, activities, CSV export, cycle). The mount point, all 41 route paths, request validation and response shapes are byte-identical, proven by the unchanged green health test suites plus a new structure guard that pins the full route table and cluster disjointness. This is a pure code reorganisation; no data model, API contract, configuration or upgrade steps change.
+
 ## [1.27.14] - 2026-07-18
 
 ### Changed
