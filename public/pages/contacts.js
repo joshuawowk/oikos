@@ -11,6 +11,7 @@ import { t } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
+import { parseVCards } from '/utils/vcard.js';
 import '/components/category-manager.js';
 
 // --------------------------------------------------------
@@ -237,19 +238,53 @@ export async function render(container, { user }) {
     if (e.target.closest('[data-action="select-delete"]')) { deleteSelected(); return; }
   });
 
-  // vCard-Import
+  // vCard-Import (unterstützt Dateien mit mehreren Kontakten inkl. Geburtstag)
   _container.querySelector('#contacts-import-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = '';
+    // Kategorie-Auflösung schließt state.categories + catLabel ein (Util bleibt DOM-frei).
+    const resolveCategory = (rawCategories) => {
+      const lower = String(rawCategories || '').toLowerCase();
+      if (!lower) return null;
+      const matched = state.categories.find((c) =>
+        lower.includes(c.key.toLowerCase()) || lower.includes(catLabel(c.key).toLowerCase()));
+      return matched?.key || null;
+    };
     try {
       const text    = await file.text();
-      const contact = parseVCard(text);
-      if (!contact.name) { window.yuvomi?.showToast(t('contacts.vcardNoName'), 'warning'); return; }
-      const res = await api.post('/contacts', contact);
-      state.contacts.push(res.data);
+      const parsed  = parseVCards(text, { resolveCategory, fallbackCategory: FALLBACK_CATEGORY });
+      const named   = parsed.filter((c) => c.name);
+      const skipped = parsed.length - named.length;
+      if (named.length === 0) { window.yuvomi?.showToast(t('contacts.vcardNoName'), 'warning'); return; }
+
+      let imported = 0;
+      let failed   = 0;
+      let withBirthday = 0;
+      let lastName = null;
+      for (const contact of named) {
+        try {
+          const res = await api.post('/contacts', contact);
+          state.contacts.push(res.data);
+          imported++;
+          if (res.data.birthday) withBirthday++;
+          lastName = res.data.name;
+        } catch {
+          failed++;
+        }
+      }
       renderList();
-      window.yuvomi?.showToast(t('contacts.importedToast', { name: res.data.name }), 'success');
+
+      if (imported === 1 && skipped === 0 && failed === 0) {
+        window.yuvomi?.showToast(t('contacts.importedToast', { name: lastName }), 'success');
+      } else if (imported > 0) {
+        window.yuvomi?.showToast(t('contacts.importedMultipleToast', { count: imported }), 'success');
+      }
+      if (withBirthday > 0) {
+        window.yuvomi?.showToast(t('contacts.importBirthdaysHint', { count: withBirthday }), 'info');
+      }
+      if (skipped > 0) window.yuvomi?.showToast(t('contacts.importSkippedToast', { count: skipped }), 'warning');
+      if (failed > 0)  window.yuvomi?.showToast(t('contacts.importFailedToast', { count: failed }), 'danger');
     } catch (err) {
       window.yuvomi?.showToast(t('contacts.importError', { error: err.message }), 'danger');
     }
@@ -760,45 +795,4 @@ async function deleteContact(id) {
       window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
-}
-
-
-/**
- * Minimaler vCard 3.0/4.0 Parser.
- * Gibt { name, phone, email, address, notes, category } zurück.
- */
-function parseVCard(text) {
-  const unescapeVCard = (s) => String(s || '')
-    .replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
-
-  // Zeilenfortsetzungen entfalten (RFC 6350 §3.2)
-  const unfolded = text.replace(/\r?\n[ \t]/g, '');
-
-  const get = (prop) => {
-    const re = new RegExp(`^${prop}(?:;[^:]*)?:(.*)$`, 'im');
-    const m  = re.exec(unfolded);
-    return m ? unescapeVCard(m[1].trim()) : null;
-  };
-
-  const name    = get('FN') || get('N')?.split(';')[0] || null;
-  const phone   = get('TEL') || null;
-  const email   = get('EMAIL') || null;
-
-  // ADR: ;;street;city;region;postal;country
-  const adrRaw  = get('ADR');
-  let address   = null;
-  if (adrRaw) {
-    const parts = adrRaw.split(';').map((p) => p.trim()).filter(Boolean);
-    address = parts.join(', ') || null;
-  }
-
-  const notes    = get('NOTE') || null;
-  const catRaw   = (get('CATEGORIES') || '').toLowerCase();
-  const matched  = catRaw
-    ? state.categories.find((c) =>
-        catRaw.includes(c.key.toLowerCase()) || catRaw.includes(catLabel(c.key).toLowerCase()))
-    : null;
-  const category = matched?.key || FALLBACK_CATEGORY;
-
-  return { name, phone, email, address, notes, category };
 }
