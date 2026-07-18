@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.16] - 2026-07-18
+
+### Changed
+- Internal quality hardening: split the oversized calendar route module (`server/routes/calendar.js`, ~1515 lines) into a thin orchestrator plus focused cluster routers under `server/routes/calendar/` (shared helpers, read/list/search, Google sync, Apple sync, ICS subscriptions and import, export feed and holidays, event CRUD, CalDAV events and reminders). The mount point, all 45 route paths, their registration order (specific paths stay ahead of the `/:id` catch-all), request validation and response shapes are byte-identical, proven by the unchanged green calendar test suites plus a new structure guard that pins the full route table, cluster disjointness, the catch-all ordering and the re-exported test surface. This is a pure code reorganisation; no data model, API contract, configuration or upgrade steps change.
+
 ## [1.27.15] - 2026-07-18
 
 ### Changed
