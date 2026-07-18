@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.17] - 2026-07-18
+
+### Fixed
+- CalDAV inbound sync no longer freezes the whole app while a calendar is being synced (#519). The per-object parse-and-upsert loop ran entirely synchronously, blocking Node's single-threaded event loop - and therefore every navigation and API request - for the full duration of the sync (1-2 minutes for a sizeable calendar). The loop now yields to the event loop in batches, so requests keep being served while a sync runs, and its SQL statements are prepared once instead of re-prepared per event, shortening the work window. No data model, API contract or configuration changes.
+
 ## [1.27.16] - 2026-07-18
 
 ### Changed

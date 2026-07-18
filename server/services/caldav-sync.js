@@ -383,7 +383,13 @@ function updateCalendarSelection(accountId, calendarUrl, enabled) {
 // Sync
 // --------------------------------------------------------
 
-async function sync() {
+// Beim Inbound-Sync werden Kalenderobjekte synchron geparst und in die (synchrone)
+// node:sqlite-DB geschrieben. Damit ein großer Kalender den Event-Loop nicht für die
+// gesamte Dauer blockiert (App friert beim Navigieren ein, #519), wird nach je
+// YIELD_EVERY verarbeiteten Objekten kurz an den Event-Loop zurückgegeben.
+const YIELD_EVERY = 50;
+
+async function sync({ createClient } = {}) {
   const accounts = getAllAccounts();
 
   if (accounts.length === 0) {
@@ -391,21 +397,50 @@ async function sync() {
     return { success: true, syncedAccounts: 0, syncedEvents: 0 };
   }
 
+  // Client-Factory injizierbar (Tests), Default = echter tsdav-Client.
+  const makeClient = createClient || (async (account) => {
+    const { createDAVClient } = await import('tsdav');
+    return createDAVClient({
+      serverUrl:          account.caldav_url,
+      credentials:        { username: account.username, password: account.password },
+      authMethod:         'Basic',
+      defaultAccountType: 'caldav',
+    });
+  });
+
   let totalSyncedEvents = 0;
   let successfulAccounts = 0;
+
+  // Hot-Path-Statements einmal vorbereiten statt pro Event neu (#519): das spart bei
+  // großen Kalendern spürbar Zeit und verkürzt damit das synchrone Verarbeitungsfenster.
+  const conn = db.get();
+  const selExistingEvent = conn.prepare(
+    `SELECT id FROM calendar_events WHERE external_calendar_id = ? AND external_source = 'caldav'`
+  );
+  const updEvent = conn.prepare(`
+    UPDATE calendar_events
+    SET title = ?, description = ?, start_datetime = ?, end_datetime = ?,
+        all_day = ?, location = ?, recurrence_rule = ?,
+        color = CASE WHEN user_modified = 0 THEN ? ELSE color END,
+        calendar_ref_id = ?
+    WHERE id = ?
+  `);
+  const insEvent = conn.prepare(`
+    INSERT INTO calendar_events
+      (title, description, start_datetime, end_datetime, all_day,
+       location, color, external_calendar_id, external_source, recurrence_rule, calendar_ref_id, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'caldav', ?, ?, ?)
+  `);
+  // Besitzer (created_by-Fallback) einmal auflösen — konstant über den ganzen Sync.
+  const ownerRow = conn.prepare('SELECT id FROM users ORDER BY id ASC LIMIT 1').get();
+  const createdBy = ownerRow ? ownerRow.id : 1;
 
   for (const account of accounts) {
     try {
       log.info(`Syncing CalDAV account ${account.id} ("${account.name}")...`);
 
-      // Create tsdav client
-      const { createDAVClient } = await import('tsdav');
-      const client = await createDAVClient({
-        serverUrl:          account.caldav_url,
-        credentials:        { username: account.username, password: account.password },
-        authMethod:         'Basic',
-        defaultAccountType: 'caldav',
-      });
+      // Create tsdav client (oder injizierte Test-Factory)
+      const client = await makeClient(account);
 
       // Get enabled calendars for this account
       const enabledCalendars = db.get().prepare(`
@@ -424,6 +459,7 @@ async function sync() {
 
       // Inbound sync: CalDAV → Yuvomi
       let accountEventCount = 0;
+      let processedObjects = 0; // Zähler für den Event-Loop-Yield (#519)
 
       // Für die Löschphase: pro erfolgreich abgerufenem Kalender die gesehenen UIDs.
       // Kalender, deren Fetch fehlschlägt, landen hier nicht und werden nie geprunt.
@@ -473,35 +509,18 @@ async function sync() {
               // Event-Eigenfarbe (RFC 7986) hat Vorrang, sonst Kalenderfarbe.
               const evColor = ev.color || selCal.calendar_color;
 
-              const existing = db.get().prepare(
-                `SELECT id FROM calendar_events WHERE external_calendar_id = ? AND external_source = 'caldav'`
-              ).get(ev.uid);
+              const existing = selExistingEvent.get(ev.uid);
 
               if (existing) {
                 // Update: color nur überschreiben, solange der Nutzer nicht lokal
                 // umgefärbt hat (user_modified = 0); Titel/Zeit bleiben remote-geführt.
-                db.get().prepare(`
-                  UPDATE calendar_events
-                  SET title = ?, description = ?, start_datetime = ?, end_datetime = ?,
-                      all_day = ?, location = ?, recurrence_rule = ?,
-                      color = CASE WHEN user_modified = 0 THEN ? ELSE color END,
-                      calendar_ref_id = ?
-                  WHERE id = ?
-                `).run(
+                updEvent.run(
                   ev.summary, ev.description, ev.dtstart, ev.dtend,
                   ev.allDay ? 1 : 0, ev.location, ev.rrule, evColor, calRefId, existing.id
                 );
               } else {
                 // Insert
-                const owner = db.get().prepare('SELECT id FROM users ORDER BY id ASC LIMIT 1').get();
-                const createdBy = owner ? owner.id : 1;
-
-                const inserted = db.get().prepare(`
-                  INSERT INTO calendar_events
-                    (title, description, start_datetime, end_datetime, all_day,
-                     location, color, external_calendar_id, external_source, recurrence_rule, calendar_ref_id, created_by)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'caldav', ?, ?, ?)
-                `).run(
+                const inserted = insEvent.run(
                   ev.summary, ev.description, ev.dtstart, ev.dtend,
                   ev.allDay ? 1 : 0, ev.location, evColor, ev.uid, ev.rrule, calRefId, createdBy
                 );
@@ -513,6 +532,12 @@ async function sync() {
             } catch (err) {
               log.error(`Failed to upsert event UID ${ev.uid}:`, err.message);
             }
+          }
+
+          // Nach je YIELD_EVERY Objekten dem Event-Loop Luft geben, damit ein großer
+          // Kalender die App während des Syncs nicht einfriert (#519).
+          if (++processedObjects % YIELD_EVERY === 0) {
+            await new Promise((resolve) => setImmediate(resolve));
           }
         }
       }

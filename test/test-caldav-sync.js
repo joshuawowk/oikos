@@ -7,8 +7,9 @@ import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
-import { toICSDatetime } from '../server/services/caldav-sync.js';
+import { toICSDatetime, sync } from '../server/services/caldav-sync.js';
 import { pruneDeletedEvents } from '../server/services/calendar-prune.js';
+import { _setTestDatabase, _resetTestDatabase } from '../server/db.js';
 
 const TEST_DB = ':memory:';
 
@@ -380,5 +381,125 @@ describe('toICSDatetime (#246)', () => {
   it('returns empty string for null/undefined', () => {
     assert.strictEqual(toICSDatetime(null), '');
     assert.strictEqual(toICSDatetime(''), '');
+  });
+});
+
+// --------------------------------------------------------
+// #519: Inbound-Sync darf den Event-Loop nicht für die gesamte Dauer blockieren.
+// node:sqlite ist synchron; ohne periodischen Yield friert die App beim Navigieren
+// ein, solange ein großer Kalender verarbeitet wird. Der Sync wird per injizierter
+// Client-Factory getrieben (kein echter tsdav-/Netzwerkzugriff).
+// --------------------------------------------------------
+describe('CalDAV sync yields to the event loop (#519)', () => {
+  const CALENDAR_URL = 'https://dav.example/cal-1/';
+
+  function buildDb() {
+    const d = new DatabaseSync(':memory:');
+    d.exec(`
+      CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, display_name TEXT);
+      INSERT INTO users (display_name) VALUES ('Owner');
+
+      CREATE TABLE caldav_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT, caldav_url TEXT, username TEXT, password TEXT, last_sync TEXT
+      );
+      CREATE TABLE caldav_calendar_selection (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER, calendar_url TEXT, calendar_name TEXT,
+        calendar_color TEXT, enabled INTEGER NOT NULL DEFAULT 1
+      );
+      CREATE TABLE external_calendars (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL, external_id TEXT NOT NULL, name TEXT, color TEXT,
+        default_assignee_user_id INTEGER,
+        UNIQUE(source, external_id)
+      );
+      CREATE TABLE calendar_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL, description TEXT,
+        start_datetime TEXT, end_datetime TEXT, all_day INTEGER NOT NULL DEFAULT 0,
+        location TEXT, color TEXT, recurrence_rule TEXT,
+        external_calendar_id TEXT, external_source TEXT,
+        calendar_ref_id INTEGER, created_by INTEGER,
+        user_modified INTEGER NOT NULL DEFAULT 0, assigned_to INTEGER,
+        target_caldav_account_id INTEGER, target_caldav_calendar_url TEXT
+      );
+      CREATE TABLE event_assignments (
+        event_id INTEGER, user_id INTEGER, UNIQUE(event_id, user_id)
+      );
+
+      INSERT INTO caldav_accounts (name, caldav_url, username, password)
+        VALUES ('Radicale', 'https://dav.example/', 'u', 'p');
+      INSERT INTO caldav_calendar_selection
+        (account_id, calendar_url, calendar_name, calendar_color, enabled)
+        VALUES (1, '${CALENDAR_URL}', 'Cal 1', '#4A90E2', 1);
+    `);
+    return d;
+  }
+
+  // Liefert eine Client-Factory, deren Kalender `objectCount` VEVENT-Objekte enthält.
+  function fakeClientFactory(objectCount) {
+    const objects = Array.from({ length: objectCount }, (_, i) => ({
+      data: [
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT',
+        `UID:evt-${i}@test`, `SUMMARY:Event ${i}`,
+        'DTSTART:20260101T100000Z', 'DTEND:20260101T110000Z',
+        'END:VEVENT', 'END:VCALENDAR',
+      ].join('\r\n'),
+    }));
+    return async () => ({
+      fetchCalendars:       async () => [{ url: CALENDAR_URL, displayName: 'Cal 1' }],
+      fetchCalendarObjects: async () => objects,
+      createCalendarObject: async () => ({}),
+    });
+  }
+
+  // Zählt Makrotask-Durchläufe des Event-Loops. Ohne Yield liefe die komplette
+  // Inbound-Verarbeitung in EINEM Makrotask, sodass dieser Zähler währenddessen
+  // nie an die Reihe käme.
+  function startTicker() {
+    const state = { ticks: 0, running: true };
+    const tick = () => { if (state.running) { state.ticks += 1; setImmediate(tick); } };
+    setImmediate(tick);
+    return state;
+  }
+
+  it('interleaves event-loop turns while processing a large calendar', async () => {
+    const d = buildDb();
+    _setTestDatabase(d);
+    try {
+      const ticker = startTicker();
+      const OBJECTS = 150; // 3 Batches à YIELD_EVERY=50 → mindestens 2 Yields
+      const result = await sync({ createClient: fakeClientFactory(OBJECTS) });
+      ticker.running = false;
+
+      assert.strictEqual(result.syncedEvents, OBJECTS, 'alle Objekte upserted');
+      const count = d.prepare('SELECT COUNT(*) AS n FROM calendar_events').get().n;
+      assert.strictEqual(count, OBJECTS, 'alle Events in der DB');
+      assert.ok(
+        ticker.ticks >= 2,
+        `Event-Loop muss während des Syncs mehrfach dran sein (ticks=${ticker.ticks})`
+      );
+    } finally {
+      _resetTestDatabase();
+      d.close();
+    }
+  });
+
+  it('completes a small calendar within a single loop turn (no needless yields)', async () => {
+    const d = buildDb();
+    _setTestDatabase(d);
+    try {
+      const ticker = startTicker();
+      await sync({ createClient: fakeClientFactory(10) }); // < YIELD_EVERY
+      ticker.running = false;
+
+      assert.strictEqual(ticker.ticks, 0, 'kleiner Sync yieldet nicht (kein Overhead)');
+      const count = d.prepare('SELECT COUNT(*) AS n FROM calendar_events').get().n;
+      assert.strictEqual(count, 10, 'alle Events in der DB');
+    } finally {
+      _resetTestDatabase();
+      d.close();
+    }
   });
 });
