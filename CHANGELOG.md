@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.9] - 2026-07-18
+
+### Changed
+- Internal quality hardening: added end-to-end test coverage for the previously untested third-party module registry (manifest validation, path-traversal protection, error fallback for broken manifests, admin visibility filter, enable/disable persistence, asset delivery) and for the budget entry route layer (monthly summary, CSV export with formula-injection protection, filters, virtual budgeting, loan-repayment coupling, recurring-series visibility propagation and skip marking). This is tests only; no user-facing behaviour, configuration or upgrade steps change.
+
 ## [1.27.8] - 2026-07-18
 
 ### Changed
