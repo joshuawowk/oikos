@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.11] - 2026-07-18
+
+### Changed
+- Internal quality hardening: added end-to-end test coverage for two previously undertested route layers. Reminders (the due-reminder feed with its task/event/subscription title joins and birthday-sync side effect, the create/read/update validation paths, dismissing a reminder, and deleting one or all reminders of an entity, all with per-user isolation and no admin bypass). Household preferences (the field-by-field settings update with per-field validation and admin-only gates for module toggles, health, rewards, weather and holiday configuration, the per-user weather override object, the holiday configuration block with its cascade cleanup, the holiday lookup routes, and the defensive fallbacks when stored settings are corrupt). This is tests only; no user-facing behaviour, configuration or upgrade steps change.
+
 ## [1.27.10] - 2026-07-18
 
 ### Fixed
