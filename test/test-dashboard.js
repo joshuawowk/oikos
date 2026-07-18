@@ -558,6 +558,53 @@ test('Dashboard-Endpoint: Gesundheit zählt heute fällige familiensichtbare Dos
     INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, active) VALUES (?, '09:00', NULL, 1)
   `).run(privMed);
 
+  // Lokaler Tagesschlüssel wie im Handler (lokales Kalenderdatum), damit die
+  // medication_logs-Zuordnung (substr(scheduled_at,1,10)) auch westlich von UTC greift.
+  const localKey = toLocalDateKey(new Date());
+
+  // Zusätzlicher familiensichtbarer Med mit gesetzter days_mask=127 (jeder Wochentag) →
+  // deckt den Nicht-NULL-Maskenzweig ab und ist mit 07:00 die früheste offene Dosis.
+  const dailyMed = routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility) VALUES (?, 'Tagesmed', 1, 'family')
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare(`
+    INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, active) VALUES (?, '07:00', 127, 1)
+  `).run(dailyMed);
+  // Plan startet erst in ferner Zukunft → heute nicht fällig (start_date-Zweig).
+  const futureMed = routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility) VALUES (?, 'Zukunftsmed', 1, 'family')
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare(`
+    INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, start_date, active) VALUES (?, '06:00', NULL, '2099-12-31', 1)
+  `).run(futureMed);
+  // Plan bereits abgelaufen → heute nicht fällig (end_date-Zweig).
+  const endedMed = routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility) VALUES (?, 'Abgelaufenmed', 1, 'family')
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare(`
+    INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, end_date, active) VALUES (?, '06:30', NULL, '2000-01-01', 1)
+  `).run(endedMed);
+  // Fällig + heute bereits genommen → zählt als dosesTaken, nicht als nextDose.
+  const takenMed = routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility) VALUES (?, 'Genommenmed', 1, 'family')
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare(`
+    INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, active) VALUES (?, '10:00', NULL, 1)
+  `).run(takenMed);
+  routeDb.prepare(`
+    INSERT INTO medication_logs (medication_id, scheduled_at, status) VALUES (?, ?, 'taken')
+  `).run(takenMed, `${localKey}T10:00:00`);
+  // Fällig + heute ausgelassen → zählt als dosesSkipped.
+  const skippedMed = routeDb.prepare(`
+    INSERT INTO medications (user_id, name, active, visibility) VALUES (?, 'Ausgelassenmed', 1, 'family')
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare(`
+    INSERT INTO medication_schedules (medication_id, time_of_day, days_mask, active) VALUES (?, '11:00', NULL, 1)
+  `).run(skippedMed);
+  routeDb.prepare(`
+    INSERT INTO medication_logs (medication_id, scheduled_at, status) VALUES (?, ?, 'skipped')
+  `).run(skippedMed, `${localKey}T11:00:00`);
+
   const app = express();
   app.use((req, _res, next) => { req.authUserId = owner; req.session = { userId: owner }; next(); });
   app.use('/', dashboardRouter);
@@ -566,9 +613,12 @@ test('Dashboard-Endpoint: Gesundheit zählt heute fällige familiensichtbare Dos
   try {
     const body = await (await fetch(`http://127.0.0.1:${server.address().port}/`)).json();
     nodeAssert.equal(body.health.hasMeds, true);
-    nodeAssert.equal(body.health.dosesTotal, 1, 'nur die familiensichtbare Dosis zählt (privat ausgeschlossen)');
-    nodeAssert.equal(body.health.dosesTaken, 0);
-    nodeAssert.equal(body.health.nextDose.name, 'Vitamin D');
+    // Fällig heute: Vitamin D (08:00), Tagesmed (07:00), Genommenmed (10:00), Ausgelassenmed (11:00).
+    // Zukunfts-/Abgelaufen-Plan zählen nicht; privater Med ist ausgeschlossen.
+    nodeAssert.equal(body.health.dosesTotal, 4, 'vier familiensichtbare, heute fällige Dosen (privat/zukunft/abgelaufen ausgeschlossen)');
+    nodeAssert.equal(body.health.dosesTaken, 1, 'die geloggte Einnahme zählt als genommen');
+    nodeAssert.equal(body.health.dosesSkipped, 1, 'die geloggte Auslassung zählt als ausgelassen');
+    nodeAssert.equal(body.health.nextDose.name, 'Tagesmed', 'früheste offene Dosis (07:00) ist die nächste');
     nodeAssert.equal(body.health.lowStockCount, 1, 'niedriger Bestand wird gezählt');
   } finally {
     await new Promise((resolve) => server.close(resolve));
@@ -620,6 +670,96 @@ test('Dashboard-Endpoint: Haushaltshilfe meldet Anwesenheit, Monatsbesuche und o
   } finally {
     await new Promise((resolve) => server.close(resolve));
     routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-hk-%'").run();
+  }
+});
+
+test('Dashboard-Endpoint: dringende Aufgaben, anstehende Termine, Einkaufslisten und Sparziel', async () => {
+  const { get } = await import('../server/db.js');
+  const { default: dashboardRouter } = await import('../server/routes/dashboard.js');
+  const routeDb = get();
+
+  routeDb.prepare("DELETE FROM budget_plans WHERE category = '__savings__'").run();
+  routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-widgets-%'").run();
+  const owner = routeDb.prepare(`
+    INSERT INTO users (username, display_name, password_hash, avatar_color, role)
+    VALUES ('dashboard-widgets-owner', 'Widget Owner', 'x', '#007AFF', 'admin')
+  `).run().lastInsertRowid;
+
+  // Offene, dringende Aufgabe mit Zuweisung → deckt die urgentTasks-Map + addAssignedUsers.
+  const taskId = routeDb.prepare(`
+    INSERT INTO tasks (title, priority, status, due_date, visibility, created_by, assigned_to)
+    VALUES ('Widget Urgent', 'urgent', 'open', ?, 'all', ?, ?)
+  `).run(today, owner, owner).lastInsertRowid;
+  routeDb.prepare('INSERT INTO task_assignments (task_id, user_id) VALUES (?, ?)').run(taskId, owner);
+
+  // Anstehender Termin mit Zuweisung → deckt die upcomingEvents-Map (assigned_users).
+  const eventId = routeDb.prepare(`
+    INSERT INTO calendar_events (title, start_datetime, visibility, created_by, assigned_to)
+    VALUES ('Widget Termin', ?, 'all', ?, ?)
+  `).run(`${in72h}T09:00:00`, owner, owner).lastInsertRowid;
+  routeDb.prepare('INSERT INTO event_assignments (event_id, user_id) VALUES (?, ?)').run(eventId, owner);
+
+  // Einkaufsliste mit offenen Artikeln → deckt die innere Items-Schleife.
+  const listId = routeDb.prepare(`
+    INSERT INTO shopping_lists (name, created_by) VALUES ('Widget Einkauf', ?)
+  `).run(owner).lastInsertRowid;
+  routeDb.prepare('INSERT INTO shopping_items (list_id, name, is_checked) VALUES (?, ?, 0)').run(listId, 'Milch');
+  routeDb.prepare('INSERT INTO shopping_items (list_id, name, is_checked) VALUES (?, ?, 0)').run(listId, 'Brot');
+  routeDb.prepare('INSERT INTO shopping_items (list_id, name, is_checked) VALUES (?, ?, 1)').run(listId, 'Butter (erledigt)');
+
+  // Monats-Sparziel (Budgetplan) → deckt den savingsGoal-Zweig.
+  routeDb.prepare("INSERT INTO budget_plans (category, amount) VALUES ('__savings__', 500)").run();
+
+  const app = express();
+  app.use((req, _res, next) => { req.authUserId = owner; req.session = { userId: owner }; next(); });
+  app.use('/', dashboardRouter);
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const body = await (await fetch(`http://127.0.0.1:${server.address().port}/`)).json();
+
+    const urgent = body.urgentTasks.find((t) => t.title === 'Widget Urgent');
+    nodeAssert.ok(urgent, 'dringende Aufgabe erscheint im Widget');
+    nodeAssert.ok(Array.isArray(urgent.assigned_users), 'assigned_users ist ein Array (addAssignedUsers lief)');
+    nodeAssert.equal(urgent.assigned_users.length, 1, 'die eine Zuweisung ist enthalten');
+    nodeAssert.equal(urgent.assigned_users_json, undefined, 'das rohe JSON-Feld wird entfernt');
+
+    const upcoming = body.upcomingEvents.find((e) => e.title === 'Widget Termin');
+    nodeAssert.ok(upcoming, 'anstehender Termin erscheint im Widget');
+    nodeAssert.ok(Array.isArray(upcoming.assigned_users), 'assigned_users am Termin ist ein Array');
+
+    const list = body.shoppingLists.find((l) => l.name === 'Widget Einkauf');
+    nodeAssert.ok(list, 'Einkaufsliste mit offenen Artikeln erscheint');
+    nodeAssert.equal(list.open_count, 2, 'nur die zwei offenen Artikel zählen');
+    nodeAssert.equal(list.items.length, 2, 'die innere Items-Liste enthält nur offene Artikel');
+    nodeAssert.ok(list.items.every((i) => i.is_checked === 0), 'kein erledigter Artikel in der Items-Liste');
+
+    nodeAssert.equal(body.budget.savingsGoal, 500, 'Sparziel wird aus dem Budgetplan gelesen');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    routeDb.prepare("DELETE FROM budget_plans WHERE category = '__savings__'").run();
+    routeDb.prepare("DELETE FROM users WHERE username LIKE 'dashboard-widgets-%'").run();
+  }
+});
+
+test('Dashboard-Endpoint: fehlender Auth-Kontext führt zu 500 (kritischer Fehlerpfad)', async () => {
+  const { default: dashboardRouter } = await import('../server/routes/dashboard.js');
+
+  const app = express();
+  // Middleware setzt weder authUserId noch session → der Handler wirft beim Lesen von
+  // req.session.userId und der äußere try/catch liefert die 500-Antwort.
+  app.use((req, _res, next) => { next(); });
+  app.use('/', dashboardRouter);
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/`);
+    nodeAssert.equal(response.status, 500);
+    const body = await response.json();
+    nodeAssert.equal(body.code, 500);
+    nodeAssert.equal(body.error, 'Dashboard could not be loaded.');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 });
 
