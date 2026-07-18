@@ -281,7 +281,7 @@ export async function render(container, { user }) {
         window.yuvomi?.showToast(t('contacts.importedMultipleToast', { count: imported }), 'success');
       }
       if (withBirthday > 0) {
-        window.yuvomi?.showToast(t('contacts.importBirthdaysHint', { count: withBirthday }), 'info');
+        window.yuvomi?.showToast(t('contacts.importBirthdaysHint', { count: withBirthday }), 'default');
       }
       if (skipped > 0) window.yuvomi?.showToast(t('contacts.importSkippedToast', { count: skipped }), 'warning');
       if (failed > 0)  window.yuvomi?.showToast(t('contacts.importFailedToast', { count: failed }), 'danger');
