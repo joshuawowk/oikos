@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.8] - 2026-07-18
+
+### Changed
+- Internal quality hardening: added end-to-end test coverage for the previously untested database backup and restore route layer (admin-only access gates, status, manual backup trigger, database download, restore validation and size limits, a full backup-restore round-trip, and WebDAV backup configuration). This is tests only; no user-facing behaviour, configuration or upgrade steps change.
+
 ## [1.27.7] - 2026-07-18
 
 ### Changed
