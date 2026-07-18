@@ -16,6 +16,7 @@ import { refresh as refreshReminders } from '/reminders.js';
 import { parseRemindAtAsUtc } from '/utils/reminder-offset.js';
 import { renderUserMultiSelect, getSelectedUserIds, bindUserMultiSelect, renderAvatarStack } from '/components/user-multi-select.js';
 import { wireTablist } from '/utils/tablist.js';
+import { localizeBirthdayEvent } from '/utils/birthday-event.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 
 // --------------------------------------------------------
@@ -846,7 +847,7 @@ async function loadRange(from, to) {
       }),
       api.get(`/calendar/holidays?from=${from}&to=${to}`).catch(() => ({ data: [] })),
     ]);
-    state.events   = evRes.data;
+    state.events   = (evRes.data ?? []).map(localizeBirthdayEvent);
     state.tasks    = filterTasksForCalendar(taskRes.data ?? []);
     state.holidays = holRes.data ?? [];
     // Offline-Stand: wenn der Browser offline ist, kamen die Daten aus dem
@@ -930,7 +931,7 @@ export async function render(container, { user }) {
     try {
       const eventRes = await api.get(`/calendar/${openId}`);
       if (eventRes?.data) {
-        initialEvent = eventRes.data;
+        initialEvent = localizeBirthdayEvent(eventRes.data);
         state.cursor = deepLinkTargetDate(initialEvent, dateParam);
       } else {
         console.warn('[Calendar] Deep-link event not found:', openId);
@@ -1823,7 +1824,7 @@ async function runCalendarSearch(raw) {
     const res = await api.get(`/calendar/search?q=${encodeURIComponent(q)}`);
     // Verworfen, wenn die Suche zwischenzeitlich geschlossen oder weitergetippt wurde.
     if (!searchActive || searchQuery !== q) return;
-    searchResults = res.data ?? [];
+    searchResults = (res.data ?? []).map(localizeBirthdayEvent);
     searchTotal = Number.isFinite(res.total) ? res.total : searchResults.length;
     renderCalendarSearchState(searchResults.length ? 'results' : 'empty');
   } catch (err) {

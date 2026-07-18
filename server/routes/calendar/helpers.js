@@ -177,10 +177,15 @@ export function setEventAssignments(d, eventId, userIds) {
 export function serializeEvent(event) {
   if (!event) return event;
   const assigned_users = event.assigned_users_json ? JSON.parse(event.assigned_users_json) : [];
-  const { assigned_users_json, ...rest } = event;
+  // birthday_name/birthday_date stammen aus dem LEFT JOIN auf birthdays und sind
+  // nur bei Geburtstags-Terminen gesetzt. Nicht-Geburtstage behalten so ihre
+  // bisherige Objektform; der Client lokalisiert Titel/Beschreibung anhand von
+  // birthday_name (Issue #524).
+  const { assigned_users_json, birthday_name, birthday_date, ...rest } = event;
   const documentId = event.attachment_document_id ?? null;
   return {
     ...rest,
+    ...(birthday_name ? { birthday_name, birthday_date: birthday_date ?? null } : {}),
     assigned_users,
     attachment_document_id: documentId,
     attachment_data: documentId ? null : attachmentDataUrl(event),

@@ -11,6 +11,7 @@ import { getReadableTextColor, AVATAR_FALLBACK_COLOR } from '/utils/color.js';
 import { esc, fmtLocation, renderMarkdownLight } from '/utils/html.js';
 import { toLocalDateKey, parseLocalDateKey } from '/utils/date.js';
 import { predictCycle, PHASE } from '/utils/health-cycle.js';
+import { localizeBirthdayEvent } from '/utils/birthday-event.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
 import { renderAvatarStack } from '/components/user-multi-select.js';
 
@@ -1785,6 +1786,12 @@ export async function render(container, { user }) {
       api.get('/preferences').catch(() => ({ data: {} })),
     ]);
     data         = dashRes;
+    // Geburtstags-Termine tragen serverseitig einen sprachneutralen Titel
+    // („Birthday: <Name>"); anhand von birthday_name in die aktive Sprache
+    // übersetzen (Issue #524).
+    if (Array.isArray(data?.upcomingEvents)) {
+      data.upcomingEvents = data.upcomingEvents.map(localizeBirthdayEvent);
+    }
     weather      = weatherRes.data ?? null;
     weatherAutoLocate = Boolean(prefsRes.data?.weather_user?.auto_locate ?? prefsRes.data?.weather_auto_locate);
     widgetConfig = normalizeDashboardConfig(prefsRes.data?.dashboard_widgets ?? DEFAULT_WIDGET_CONFIG);

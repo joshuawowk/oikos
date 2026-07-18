@@ -44,11 +44,14 @@ router.get('/:id', (req, res) => {
              u_assigned.display_name AS assigned_name,
              u_assigned.avatar_color AS assigned_color,
              u_created.display_name  AS creator_name,
+             bd.name       AS birthday_name,
+             bd.birth_date AS birthday_date,
              ${ASSIGNED_USERS_SQL},
              (SELECT hws.id FROM housekeeping_work_sessions hws WHERE hws.calendar_event_id = e.id LIMIT 1) AS housekeeping_visit_id
       FROM calendar_events e
       LEFT JOIN users u_assigned ON u_assigned.id = e.assigned_to
       LEFT JOIN users u_created  ON u_created.id  = e.created_by
+      LEFT JOIN birthdays bd ON bd.calendar_event_id = e.id
       WHERE e.id = ?
         AND ${visibilityWhere('e', 'event_assignments', 'event_id')}
     `).get(id, getUserId(req), getUserId(req));

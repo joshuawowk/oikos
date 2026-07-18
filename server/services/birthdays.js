@@ -61,6 +61,10 @@ function birthdayReminderAt(birthDate, offsetMin = 0, from = new Date()) {
   return new Date(baseTime - (offsetMin || 0) * 60000).toISOString();
 }
 
+// Titel/Beschreibung werden bewusst sprachneutral (englisch) in der DB abgelegt:
+// die Anzeigesprache ist nur clientseitig bekannt. Der Kalender-Read liefert bei
+// Geburtstags-Terminen birthday_name/birthday_date mit; das Frontend lokalisiert
+// Titel und Beschreibung über birthdays.calendarEventTitle/-Description (Issue #524).
 function eventTitle(name) {
   return `Birthday: ${name}`;
 }
