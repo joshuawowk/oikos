@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.13] - 2026-07-18
+
+### Changed
+- Internal quality hardening: added end-to-end test coverage for two previously undertested route layers. Dashboard (the data-populated widget branches that the existing tests never exercised: urgent tasks with assignments, upcoming events with assignments, shopping lists with open items, the monthly savings-goal budget field, and the medication-schedule branches covering non-null day masks, future and expired schedule windows, taken/skipped dose logs and next-dose selection, plus the critical error path). Contacts (multi-value phone/email/address fields on create and update with replacement semantics, list filtering by category and query, the vCard 3.0 export with character escaping, the address-field validation branches, and the 404/403 paths including the family-member deletion guard). This is tests only; no user-facing behaviour, configuration or upgrade steps change.
+
 ## [1.27.12] - 2026-07-18
 
 ### Changed
