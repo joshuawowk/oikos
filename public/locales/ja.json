@@ -740,6 +740,7 @@
         "importExistsBadge": "既に存在",
         "importSkippedNote": "名前なし {{count}} 件はスキップされます。",
         "importImporting": "インポート中…",
+        "importRetry": "再試行",
         "vcardNoName": "vCard に名前が含まれていません。",
         "catDoctor": "医師",
         "catSchool": "学校・保育園",

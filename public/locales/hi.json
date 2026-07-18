@@ -740,6 +740,7 @@
         "importExistsBadge": "पहले से मौजूद",
         "importSkippedNote": "बिना नाम वाले {{count}} छोड़ दिए जाएंगे।",
         "importImporting": "आयात हो रहा है…",
+        "importRetry": "पुनः प्रयास करें",
         "vcardNoName": "vCard में कोई नाम नहीं।",
         "catDoctor": "डॉक्टर",
         "catSchool": "स्कूल/किंडरगार्टन",

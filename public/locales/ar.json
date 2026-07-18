@@ -740,6 +740,7 @@
         "importExistsBadge": "موجود بالفعل",
         "importSkippedNote": "سيتم تخطي {{count}} بدون اسم.",
         "importImporting": "جارٍ الاستيراد…",
+        "importRetry": "إعادة المحاولة",
         "vcardNoName": "لا يحتوي vCard على اسم.",
         "catDoctor": "طبيب",
         "catSchool": "مدرسة/روضة",

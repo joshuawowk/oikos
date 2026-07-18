@@ -740,6 +740,7 @@
         "importExistsBadge": "zaten var",
         "importSkippedNote": "Adı olmayan {{count}} kişi atlanacak.",
         "importImporting": "İçe aktarılıyor…",
+        "importRetry": "Yeniden dene",
         "vcardNoName": "vCard'da ad yok.",
         "catDoctor": "Doktor",
         "catSchool": "Okul/Kreş",

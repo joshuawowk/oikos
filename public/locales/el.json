@@ -740,6 +740,7 @@
         "importExistsBadge": "υπάρχει ήδη",
         "importSkippedNote": "{{count}} χωρίς όνομα θα παραλειφθούν.",
         "importImporting": "Εισαγωγή…",
+        "importRetry": "Επανάληψη",
         "vcardNoName": "Η vCard δεν περιέχει όνομα.",
         "catDoctor": "Γιατρός",
         "catSchool": "Σχολείο/Παιδικός σταθμός",

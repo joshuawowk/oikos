@@ -748,6 +748,7 @@
         "importExistsBadge": "już istnieje",
         "importSkippedNote": "Bez nazwy zostaną pominięte: {{count}}.",
         "importImporting": "Importowanie…",
+        "importRetry": "Ponów",
         "vcardNoName": "vCard nie zawiera nazwy.",
         "catDoctor": "Lekarz",
         "catSchool": "Szkoła/Przedszkole",

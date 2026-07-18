@@ -748,6 +748,7 @@
         "importExistsBadge": "이미 있음",
         "importSkippedNote": "이름 없는 {{count}}개는 건너뜁니다.",
         "importImporting": "가져오는 중…",
+        "importRetry": "다시 시도",
         "vcardNoName": "vCard에 이름이 없습니다.",
         "catDoctor": "의사",
         "catSchool": "학교/어린이집",

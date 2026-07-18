@@ -232,6 +232,15 @@ function bindEvents() {
   _container.querySelector('#fab-new-birthday').addEventListener('click', () => openBirthdayModal({ mode: 'create' }));
   _container.querySelector('#birthdays-import-btn')?.addEventListener('click', () => openImportModal());
 
+  // Deep-Link aus dem Kontakt-Import („Zu Geburtstagen"): Kandidaten-Modal direkt
+  // öffnen, statt den Nutzer den Import-Button selbst suchen zu lassen.
+  try {
+    if (sessionStorage.getItem('yuvomi:birthdays:autoImport')) {
+      sessionStorage.removeItem('yuvomi:birthdays:autoImport');
+      openImportModal();
+    }
+  } catch { /* sessionStorage evtl. nicht verfügbar */ }
+
   wirePageSearch(_container, {
     id: 'birthdays-search',
     delay: 0,

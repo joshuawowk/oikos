@@ -748,6 +748,7 @@
         "importExistsBadge": "از قبل موجود است",
         "importSkippedNote": "{{count}} بدون نام نادیده گرفته می‌شود.",
         "importImporting": "در حال وارد کردن…",
+        "importRetry": "تلاش دوباره",
         "vcardNoName": "vCard حاوی نام نیست.",
         "catDoctor": "پزشک",
         "catSchool": "مدرسه/مهدکودک",

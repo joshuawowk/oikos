@@ -740,6 +740,7 @@
         "importExistsBadge": "уже существует",
         "importSkippedNote": "Без имени будут пропущены: {{count}}.",
         "importImporting": "Импорт…",
+        "importRetry": "Повторить",
         "vcardNoName": "В vCard нет имени.",
         "catDoctor": "Врач",
         "catSchool": "Школа/Детсад",

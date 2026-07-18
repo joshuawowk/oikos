@@ -740,6 +740,7 @@
         "importExistsBadge": "már létezik",
         "importSkippedNote": "{{count}} név nélküli kimarad.",
         "importImporting": "Importálás…",
+        "importRetry": "Újra",
         "vcardNoName": "A vCard nem tartalmaz nevet.",
         "catDoctor": "Orvos",
         "catSchool": "Iskola/Gyermekgondozás",

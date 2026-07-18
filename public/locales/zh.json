@@ -740,6 +740,7 @@
         "importExistsBadge": "已存在",
         "importSkippedNote": "{{count}} 个无姓名将被跳过。",
         "importImporting": "正在导入…",
+        "importRetry": "重试",
         "vcardNoName": "vCard 不含姓名。",
         "catDoctor": "医生",
         "catSchool": "学校/幼儿园",

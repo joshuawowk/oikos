@@ -868,15 +868,23 @@ function openImportSelectionModal(named, skipped) {
   });
 }
 
+/** Springt ins Geburtstagsmodul und öffnet dort direkt das Kandidaten-Modal. */
+function openBirthdayImport() {
+  try { sessionStorage.setItem('yuvomi:birthdays:autoImport', '1'); } catch { /* egal */ }
+  window.yuvomi?.navigate('/birthdays');
+}
+
 /**
  * Legt die ausgewählten Kontakte an und meldet das Ergebnis als einen
- * zusammengesetzten Toast (mit optionalem Sprung ins Geburtstagsmodul).
+ * zusammengesetzten Toast. Fehlgeschlagene Anlagen können per Toast-Aktion
+ * gezielt erneut versucht werden; sonst führt die Aktion ins Geburtstagsmodul.
  */
 async function importParsedContacts(list) {
   let imported = 0;
-  let failed   = 0;
   let withBirthday = 0;
   let lastName = null;
+  let lastError = null;
+  const failedList = [];
   for (const contact of list) {
     try {
       const res = await api.post('/contacts', contact);
@@ -884,25 +892,31 @@ async function importParsedContacts(list) {
       imported++;
       if (res.data.birthday) withBirthday++;
       lastName = res.data.name;
-    } catch {
-      failed++;
+    } catch (err) {
+      failedList.push(contact);
+      lastError = err;
     }
   }
   renderList();
+  const failed = failedList.length;
 
   // Detail-Segmente im agreement-freien „phrase: n"-Muster (korrekt bei jeder Anzahl).
   const details = [];
   if (withBirthday > 0) details.push(t('contacts.importDetailBirthday', { count: withBirthday }));
   if (failed > 0)       details.push(t('contacts.importDetailFailed',   { count: failed }));
 
-  const action = withBirthday > 0
-    ? { label: t('contacts.importOpenBirthdays'), onClick: () => window.yuvomi?.navigate('/birthdays') }
-    : null;
+  // Nur ein Aktions-Slot: Fehler-Recovery (Retry der Fehlgeschlagenen) hat Vorrang
+  // vor dem Geburtstags-Sprung.
+  const action = failed > 0
+    ? { label: t('contacts.importRetry'), onClick: () => importParsedContacts(failedList) }
+    : (withBirthday > 0 ? { label: t('contacts.importOpenBirthdays'), onClick: openBirthdayImport } : null);
 
   let message;
   let type;
   if (imported === 0) {
-    message = details.join(' · ') || t('contacts.importError', { error: '' });
+    // Alles fehlgeschlagen: konkrete Ursache nennen (Recovery), Retry via Aktion.
+    const reason = window.yuvomi?.friendlyError?.(lastError) || lastError?.message || '';
+    message = t('contacts.importError', { error: reason });
     type = 'danger';
   } else if (imported === 1 && details.length === 0) {
     // Persönlicher Einzel-Import: Name statt Zähler (Prinzip „persönlich").

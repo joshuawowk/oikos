@@ -740,6 +740,7 @@
         "importExistsBadge": "finns redan",
         "importSkippedNote": "{{count}} utan namn hoppas över.",
         "importImporting": "Importerar…",
+        "importRetry": "Försök igen",
         "vcardNoName": "vCard innehåller inget namn.",
         "catDoctor": "Läkare",
         "catSchool": "Skola/Barnomsorg",

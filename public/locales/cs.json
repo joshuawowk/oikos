@@ -740,6 +740,7 @@
         "importExistsBadge": "již existuje",
         "importSkippedNote": "Bez jména budou přeskočeny: {{count}}.",
         "importImporting": "Importuji…",
+        "importRetry": "Zkusit znovu",
         "vcardNoName": "vCard neobsahuje jméno.",
         "catDoctor": "Lékař",
         "catSchool": "Škola/Školka",

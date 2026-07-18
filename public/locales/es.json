@@ -740,6 +740,7 @@
         "importExistsBadge": "ya existe",
         "importSkippedNote": "{{count}} sin nombre se omitirán.",
         "importImporting": "Importando…",
+        "importRetry": "Reintentar",
         "vcardNoName": "La vCard no contiene nombre.",
         "catDoctor": "Médico",
         "catSchool": "Escuela/Guardería",
