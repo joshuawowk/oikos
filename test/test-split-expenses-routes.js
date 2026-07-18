@@ -264,6 +264,282 @@ test('Gast darf keine Gruppe anlegen -> 403', async () => {
   assert.equal(r.status, 403);
 });
 
+// --------------------------------------------------------------------------
+// Metadaten + Gast-Varianten (uniqueUsername, syncGuestArtifacts-Birthday)
+// --------------------------------------------------------------------------
+test('GET /meta liefert Enum-Listen + Default-Währung', async () => {
+  const r = await call('GET', '/meta', { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.ok(Array.isArray(r.body.data.currencies) && r.body.data.currencies.includes('EUR'));
+  assert.ok(r.body.data.split_methods.includes('equal'));
+  assert.ok(r.body.data.frequencies.includes('monthly'));
+  assert.equal(typeof r.body.data.default_currency, 'string');
+});
+
+test('Gast-Anlage mit explizitem Username + Geburtsdatum legt Kontakt + Geburtstag an', async () => {
+  const r = await call('POST', `/groups/${GUEST_GROUP}/guests`, {
+    actor: { id: OWNER, role: 'member' },
+    body: { display_name: 'Gast Greta', password: 'supersecret', username: 'greta.custom', birth_date: '1985-03-03' },
+  });
+  assert.equal(r.status, 201);
+  assert.equal(r.body.data.username, 'greta.custom');
+  const newId = r.body.data.id;
+  // syncGuestArtifacts: Kontakt- und Geburtstags-Artefakt am neuen Nutzer.
+  const contact = db.prepare('SELECT * FROM contacts WHERE family_user_id = ?').get(newId);
+  assert.ok(contact, 'Kontakt-Artefakt angelegt');
+  const bday = db.prepare('SELECT * FROM birthdays WHERE family_user_id = ?').get(newId);
+  assert.ok(bday, 'Geburtstags-Artefakt angelegt');
+  assert.equal(bday.birth_date, '1985-03-03');
+});
+
+test('Gast-Anlage mit bereits vergebenem Username -> 409', async () => {
+  const r = await call('POST', `/groups/${GUEST_GROUP}/guests`, {
+    actor: { id: OWNER, role: 'member' },
+    body: { display_name: 'Kollision', password: 'supersecret', username: 'greta.custom' },
+  });
+  assert.equal(r.status, 409);
+});
+
+// --------------------------------------------------------------------------
+// Betriebsgruppe OPS: Liste, Filter, Kommentare, Aktivität, Suche, Dashboard
+// --------------------------------------------------------------------------
+let OPS, OPS_E1;
+test('setup OPS: Gruppe mit Owner + Manager + Mitglied + zwei Ausgaben', async () => {
+  const g = await call('POST', '/groups', { actor: { id: OWNER, role: 'member' }, body: { name: 'Ops-Kasse', type: 'general', default_currency: 'EUR' } });
+  OPS = g.body.data.id;
+  await call('POST', `/groups/${OPS}/members`, { actor: { id: OWNER, role: 'member' }, body: { user_id: MGR, role: 'admin' } });
+  await call('POST', `/groups/${OPS}/members`, { actor: { id: OWNER, role: 'member' }, body: { user_id: MEM, role: 'guest' } });
+
+  const e1 = await call('POST', `/groups/${OPS}/expenses`, {
+    actor: { id: OWNER, role: 'member' },
+    body: { title: 'Supermarkt', description: 'Wocheneinkauf', amount: '30.00', currency: 'EUR', split_method: 'equal', category: 'groceries', payer_id: OWNER, participants: [OWNER, MGR, MEM], expense_date: '2026-05-10' },
+  });
+  assert.equal(e1.status, 201);
+  OPS_E1 = e1.body.data.id;
+
+  // Ausgabe mit Fremdwährung (converted_amount) + Beleg-Anhang.
+  const doc = db.prepare(`
+    INSERT INTO family_documents (name, original_name, mime_type, file_size, content_data, created_by)
+    VALUES ('Beleg', 'beleg.pdf', 'application/pdf', 10, x'255044', ?)
+  `).run(OWNER).lastInsertRowid;
+  const e2 = await call('POST', `/groups/${OPS}/expenses`, {
+    actor: { id: OWNER, role: 'member' },
+    body: { title: 'Hotel', amount: '110.00', currency: 'USD', converted_amount: '100.00', converted_currency: 'EUR', split_method: 'equal', category: 'travel', payer_id: MGR, participants: [OWNER, MGR], attachment_document_ids: [doc], expense_date: '2026-05-11' },
+  });
+  assert.equal(e2.status, 201);
+  assert.equal(e2.body.data.attachments.length, 1, 'Beleg-Anhang serialisiert');
+  assert.equal(e2.body.data.currency, 'USD');
+  assert.equal(e2.body.data.converted_currency, 'EUR');
+});
+
+test('GET /groups/:id/expenses listet Ausgaben mit Pagination + Splits', async () => {
+  const r = await call('GET', `/groups/${OPS}/expenses`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.data.length, 2);
+  assert.equal(r.body.pagination.has_more, false);
+  const supermarkt = r.body.data.find((e) => e.title === 'Supermarkt');
+  assert.equal(supermarkt.splits.length, 3, 'Splits per Batch geladen');
+});
+
+test('GET /groups/:id/expenses: q-Filter grenzt auf Titel/Beschreibung ein', async () => {
+  const r = await call('GET', `/groups/${OPS}/expenses?q=Hotel`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.data.length, 1);
+  assert.equal(r.body.data[0].title, 'Hotel');
+});
+
+test('GET /groups/:id/expenses: category-Filter + limit/offset-Pagination', async () => {
+  const cat = await call('GET', `/groups/${OPS}/expenses?category=groceries`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(cat.body.data.length, 1);
+  assert.equal(cat.body.data[0].category, 'groceries');
+  const paged = await call('GET', `/groups/${OPS}/expenses?limit=1&offset=0`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(paged.body.data.length, 1);
+  assert.equal(paged.body.pagination.has_more, true, 'weitere Seite vorhanden');
+  const rec = await call('GET', `/groups/${OPS}/expenses?recurring=1`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(rec.body.data.length, 0, 'keine Ausgabe hat eine Wiederholungsregel');
+});
+
+test('member-candidates: Owner 200, Gast 403, Aussenstehender 404', async () => {
+  const ok = await call('GET', `/groups/${OPS}/member-candidates`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(ok.status, 200);
+  assert.ok(Array.isArray(ok.body.data));
+  const guest = await call('GET', `/groups/${GUEST_GROUP}/member-candidates`, { actor: { id: GUEST_ID, role: 'member' } });
+  assert.equal(guest.status, 403);
+  const outsider = await call('GET', `/groups/${OPS}/member-candidates`, { actor: { id: OUTSIDER, role: 'member' } });
+  assert.equal(outsider.status, 404);
+});
+
+test('POST /expenses/:id/comments: Erfolg + leerer Kommentar 400', async () => {
+  const ok = await call('POST', `/expenses/${OPS_E1}/comments`, { actor: { id: MEM, role: 'member' }, body: { comment: 'Passt so.' } });
+  assert.equal(ok.status, 201);
+  assert.equal(ok.body.data.comment, 'Passt so.');
+  const bad = await call('POST', `/expenses/${OPS_E1}/comments`, { actor: { id: OWNER, role: 'member' }, body: { comment: '' } });
+  assert.equal(bad.status, 400);
+});
+
+test('loadExpense: System-Admin ohne Mitgliedschaft darf kommentieren (bewusster Bypass)', async () => {
+  const r = await call('POST', `/expenses/${OPS_E1}/comments`, { actor: { id: ADMIN, role: 'admin' }, body: { comment: 'Admin-Notiz' } });
+  assert.equal(r.status, 201);
+});
+
+test('GET /groups/:id/activity liefert Aktivitäts-Log mit geparster Metadata', async () => {
+  const r = await call('GET', `/groups/${OPS}/activity`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.data.length >= 3, 'Gruppen-/Mitglieder-/Ausgaben-Ereignisse');
+  const created = r.body.data.find((a) => a.type === 'expense_created');
+  assert.ok(created.metadata && typeof created.metadata === 'object', 'Metadata als Objekt geparst');
+});
+
+test('GET /search findet Gruppe, Ausgabe und Person', async () => {
+  const r = await call('GET', `/search?q=Supermarkt`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.data.expenses.length, 1);
+  assert.equal(r.body.data.expenses[0].title, 'Supermarkt');
+  const grp = await call('GET', `/search?q=Ops-Kasse`, { actor: { id: OWNER, role: 'member' } });
+  assert.ok(grp.body.data.groups.some((g) => g.id === OPS));
+  const ppl = await call('GET', `/search?q=MGR`, { actor: { id: OWNER, role: 'member' } });
+  assert.ok(ppl.body.data.people.some((p) => p.id === MGR));
+});
+
+test('GET /search: Gast bleibt auf eigene Gruppe eingeschränkt', async () => {
+  const r = await call('GET', `/search?q=`, { actor: { id: GUEST_ID, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.data.groups.every((g) => g.id === GUEST_GROUP), 'nur eigene Gruppe sichtbar');
+});
+
+test('GET /dashboard aggregiert Salden, Gruppen und jüngste Ausgaben', async () => {
+  const r = await call('GET', '/dashboard', { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.ok(Array.isArray(r.body.data.total_owed));
+  assert.ok(Array.isArray(r.body.data.total_owing));
+  assert.ok(Array.isArray(r.body.data.groups));
+  assert.ok(r.body.data.recent_expenses.some((e) => e.title === 'Supermarkt'));
+});
+
+// --------------------------------------------------------------------------
+// Wiederkehrende Ausgaben (recurring): CRUD + Pause-Autorisierung
+// --------------------------------------------------------------------------
+let OPS_REC;
+test('GET /dashboard: Gast bleibt auf eigene Gruppe eingeschränkt', async () => {
+  const r = await call('GET', '/dashboard', { actor: { id: GUEST_ID, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.data.groups.every((g) => g.id === GUEST_GROUP), 'nur eigene Gruppe im Gast-Dashboard');
+});
+
+test('GET /groups/:id/recurring ist zunächst leer', async () => {
+  const r = await call('GET', `/groups/${OPS}/recurring`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.data.length, 0);
+});
+
+test('POST /groups/:id/recurring: Anlage + ungültige Frequenz 400', async () => {
+  const bad = await call('POST', `/groups/${OPS}/recurring`, {
+    actor: { id: OWNER, role: 'member' },
+    body: { title: 'Miete', amount: '900.00', currency: 'EUR', frequency: 'daily', next_run_date: '2026-06-01', payer_id: OWNER, participants: [OWNER, MGR] },
+  });
+  assert.equal(bad.status, 400);
+  const ok = await call('POST', `/groups/${OPS}/recurring`, {
+    actor: { id: OWNER, role: 'member' },
+    body: { title: 'Miete', amount: '900.00', currency: 'EUR', frequency: 'monthly', next_run_date: '2026-06-01', payer_id: OWNER, participants: [OWNER, MGR] },
+  });
+  assert.equal(ok.status, 201);
+  assert.equal(ok.body.data.frequency, 'monthly');
+  OPS_REC = ok.body.data.id;
+  const list = await call('GET', `/groups/${OPS}/recurring`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(list.body.data.length, 1);
+});
+
+test('POST /recurring/:id/pause: Toggle pausiert und reaktiviert', async () => {
+  const paused = await call('POST', `/recurring/${OPS_REC}/pause`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(paused.status, 200);
+  assert.ok(paused.body.data.paused_at, 'pausiert');
+  const resumed = await call('POST', `/recurring/${OPS_REC}/pause`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(resumed.status, 200);
+  assert.equal(resumed.body.data.paused_at, null, 'reaktiviert');
+});
+
+test('POST /recurring/:id/pause: unbekannte ID -> 404', async () => {
+  const r = await call('POST', '/recurring/999999/pause', { actor: { id: OWNER, role: 'member' } });
+  assert.equal(r.status, 404);
+});
+
+test('POST /recurring/:id/pause: Nicht-Ersteller ohne Manage-Recht -> 403', async () => {
+  const r = await call('POST', `/recurring/${OPS_REC}/pause`, { actor: { id: MEM, role: 'member' } });
+  assert.equal(r.status, 403);
+});
+
+// --------------------------------------------------------------------------
+// Mitglied via Kontakt (userFromContact) inkl. eindeutiger Username-Vergabe
+// --------------------------------------------------------------------------
+test('POST members via contact_id: neuer Nutzer, Kontakt verknüpft, Username eindeutig', async () => {
+  // Kontaktname kollidiert bewusst mit bestehendem Username 'owner'.
+  const contactId = db.prepare(`INSERT INTO contacts (name, category) VALUES ('owner', 'Sonstiges')`).run().lastInsertRowid;
+  const r = await call('POST', `/groups/${OPS}/members`, { actor: { id: OWNER, role: 'member' }, body: { contact_id: contactId, role: 'guest' } });
+  assert.equal(r.status, 201);
+  const created = db.prepare('SELECT username FROM users WHERE id = ?').get(r.body.data.user_id);
+  assert.equal(created.username, 'owner.2', 'Kollision mit bestehendem Username aufgelöst');
+  const linked = db.prepare('SELECT family_user_id FROM contacts WHERE id = ?').get(contactId);
+  assert.equal(linked.family_user_id, r.body.data.user_id, 'Kontakt mit neuem Nutzer verknüpft');
+});
+
+test('POST members via contact_id: bereits verknüpfter Kontakt nutzt bestehenden Nutzer', async () => {
+  const contactId = db.prepare(`INSERT INTO contacts (name, category, family_user_id) VALUES ('Verknuepft', 'Sonstiges', ?)`).run(OUTSIDER).lastInsertRowid;
+  const before = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
+  const r = await call('POST', `/groups/${OPS}/members`, { actor: { id: OWNER, role: 'member' }, body: { contact_id: contactId, role: 'guest' } });
+  assert.equal(r.status, 201);
+  assert.equal(r.body.data.user_id, OUTSIDER, 'bestehender Nutzer aus Kontakt übernommen');
+  const after = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
+  assert.equal(after, before, 'kein neuer Nutzer angelegt');
+});
+
+test('POST members via contact_id mit Geburtstag: erzeugt Nutzer + Geburtstags-Artefakt', async () => {
+  const contactId = db.prepare(`INSERT INTO contacts (name, category, phone, birthday) VALUES ('Bday Kontakt', 'Sonstiges', '0170', '1992-07-07')`).run().lastInsertRowid;
+  const r = await call('POST', `/groups/${OPS}/members`, { actor: { id: OWNER, role: 'member' }, body: { contact_id: contactId, role: 'guest' } });
+  assert.equal(r.status, 201);
+  const bday = db.prepare('SELECT birth_date FROM birthdays WHERE family_user_id = ?').get(r.body.data.user_id);
+  assert.ok(bday, 'Geburtstag aus Kontakt übernommen');
+  assert.equal(bday.birth_date, '1992-07-07');
+});
+
+test('POST members: user_id noch contact_id -> 400', async () => {
+  const r = await call('POST', `/groups/${OPS}/members`, { actor: { id: OWNER, role: 'member' }, body: { role: 'guest' } });
+  assert.equal(r.status, 400);
+});
+
+// --------------------------------------------------------------------------
+// Mitglied entfernen, Archivieren, leere Gruppe löschen
+// --------------------------------------------------------------------------
+test('DELETE member: erfolgreiche Entfernung + unbekanntes Mitglied 404', async () => {
+  const g = await call('POST', '/groups', { actor: { id: OWNER, role: 'member' }, body: { name: 'Remove-Test' } });
+  const rg = g.body.data.id;
+  await call('POST', `/groups/${rg}/members`, { actor: { id: OWNER, role: 'member' }, body: { user_id: OUTSIDER, role: 'guest' } });
+  const del = await call('DELETE', `/groups/${rg}/members/${OUTSIDER}`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(del.status, 200);
+  assert.equal(db.prepare('SELECT 1 FROM expense_group_members WHERE group_id = ? AND user_id = ?').get(rg, OUTSIDER), undefined);
+  const missing = await call('DELETE', `/groups/${rg}/members/${OUTSIDER}`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(missing.status, 404);
+});
+
+test('POST /groups/:id/archive: Mitglied 403, Owner 200 -> Gruppe archiviert', async () => {
+  const g = await call('POST', '/groups', { actor: { id: OWNER, role: 'member' }, body: { name: 'Archiv-Test' } });
+  const ag = g.body.data.id;
+  await call('POST', `/groups/${ag}/members`, { actor: { id: OWNER, role: 'member' }, body: { user_id: MEM, role: 'guest' } });
+  const denied = await call('POST', `/groups/${ag}/archive`, { actor: { id: MEM, role: 'member' } });
+  assert.equal(denied.status, 403);
+  const ok = await call('POST', `/groups/${ag}/archive`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(ok.status, 200);
+  const archived = await call('GET', '/groups?status=archived', { actor: { id: OWNER, role: 'member' } });
+  assert.ok(archived.body.data.some((x) => x.id === ag));
+});
+
+test('DELETE /groups/:id: Gruppe ohne Finanzhistorie wird gelöscht', async () => {
+  const g = await call('POST', '/groups', { actor: { id: OWNER, role: 'member' }, body: { name: 'Leer-Test' } });
+  const eg = g.body.data.id;
+  const del = await call('DELETE', `/groups/${eg}`, { actor: { id: OWNER, role: 'member' } });
+  assert.equal(del.status, 200);
+  assert.equal(db.prepare('SELECT 1 FROM expense_groups WHERE id = ?').get(eg), undefined);
+});
+
 test('teardown: Server schließen', async () => {
   await new Promise((r) => server.close(r));
 });
