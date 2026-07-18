@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.27.10] - 2026-07-18
+
+### Fixed
+- Editing or deleting another member's calendar subscription (iCal feed) as a non-owner now correctly returns HTTP 403 instead of 500. The action was already rejected and no data was touched; only the reported status code was wrong.
+
+### Changed
+- Internal quality hardening: added end-to-end test coverage for the previously untested route layers of the calendar (date-range listing with assignee/source filters and visibility enforcement, recurring-series expansion, full-text search, admin-only sync gates, ICS subscriptions, one-time ICS import, the export feed, holidays, single-event CRUD, reset and single-occurrence exceptions), the family members endpoint (housekeeping-worker exclusion, case-insensitive sorting, contact and birthday joins), and the rewards module (admin gates, redemption authorisation, the parent-approval flow, decision idempotency, and point reservation/reversal integrity). Apart from the status-code fix above this is tests only; no data model, configuration or upgrade steps change.
+
 ## [1.27.9] - 2026-07-18
 
 ### Changed
