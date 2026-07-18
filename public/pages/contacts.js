@@ -275,16 +275,37 @@ export async function render(container, { user }) {
       }
       renderList();
 
-      if (imported === 1 && skipped === 0 && failed === 0) {
-        window.yuvomi?.showToast(t('contacts.importedToast', { name: lastName }), 'success');
-      } else if (imported > 0) {
-        window.yuvomi?.showToast(t('contacts.importedMultipleToast', { count: imported }), 'success');
+      // Ein einziger zusammengesetzter Ergebnis-Toast (statt bis zu vier):
+      // vermeidet 3-Toast-Cap-Eviction und konkurrierende aria-live-Ansagen.
+      // Detail-Segmente im agreement-freien „phrase: n"-Muster (korrekt bei jeder Anzahl).
+      const details = [];
+      if (withBirthday > 0) details.push(t('contacts.importDetailBirthday', { count: withBirthday }));
+      if (skipped > 0)      details.push(t('contacts.importDetailSkipped',  { count: skipped }));
+      if (failed > 0)       details.push(t('contacts.importDetailFailed',   { count: failed }));
+
+      // Aktionspfad zum Geburtstagsmodul, wenn Geburtstage dabei sind (#518-Übernahme).
+      const action = withBirthday > 0
+        ? { label: t('contacts.importOpenBirthdays'), onClick: () => window.yuvomi?.navigate('/birthdays') }
+        : null;
+
+      let message;
+      let type;
+      if (imported === 0) {
+        // named.length > 0, aber keine Anlage gelang → ausschließlich Fehler.
+        message = details.join(' · ');
+        type = 'danger';
+      } else if (imported === 1 && details.length === 0) {
+        // Persönlicher Einzel-Import: Name statt Zähler (Prinzip „persönlich").
+        message = t('contacts.importedToast', { name: lastName });
+        type = 'success';
+      } else {
+        const base = imported === 1
+          ? t('contacts.importedCountToastSingular', { count: imported })
+          : t('contacts.importedCountToast', { count: imported });
+        message = [base, ...details].join(' · ');
+        type = failed > 0 ? 'warning' : 'success';
       }
-      if (withBirthday > 0) {
-        window.yuvomi?.showToast(t('contacts.importBirthdaysHint', { count: withBirthday }), 'default');
-      }
-      if (skipped > 0) window.yuvomi?.showToast(t('contacts.importSkippedToast', { count: skipped }), 'warning');
-      if (failed > 0)  window.yuvomi?.showToast(t('contacts.importFailedToast', { count: failed }), 'danger');
+      window.yuvomi?.showToast(message, type, action ? 6000 : 3000, action);
     } catch (err) {
       window.yuvomi?.showToast(t('contacts.importError', { error: err.message }), 'danger');
     }

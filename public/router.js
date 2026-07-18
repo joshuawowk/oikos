@@ -2546,8 +2546,14 @@ function showToast(message, type = 'default', duration = 3000, onUndo = null) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  // Long Loop: Success-Toasts nach TOAST_SUCCESS_MAX Aufrufen unterdrücken
-  if (type === 'success' && typeof onUndo !== 'function') {
+  // Aktions-Button: Legacy-Undo (Funktion) oder benannte Aktion ({ label, onClick }).
+  const action = typeof onUndo === 'function'
+    ? { label: t('common.undo'), onClick: onUndo }
+    : (onUndo && typeof onUndo.onClick === 'function' ? onUndo : null);
+
+  // Long Loop: Success-Toasts nach TOAST_SUCCESS_MAX Aufrufen unterdrücken.
+  // Aktions-Toasts (Undo oder benannte Aktion) sind wichtig → nie unterdrücken.
+  if (type === 'success' && !action) {
     const successCount = parseInt(localStorage.getItem(TOAST_SUCCESS_KEY) ?? '0', 10) + 1;
     localStorage.setItem(TOAST_SUCCESS_KEY, String(successCount));
     if (successCount > TOAST_SUCCESS_MAX) return;
@@ -2567,16 +2573,16 @@ function showToast(message, type = 'default', duration = 3000, onUndo = null) {
   span.textContent = message;
   toast.appendChild(span);
 
-  if (typeof onUndo === 'function') {
-    const undoBtn = document.createElement('button');
-    undoBtn.className = 'toast__undo';
-    undoBtn.textContent = t('common.undo');
-    undoBtn.addEventListener('click', () => {
+  if (action) {
+    const actionBtn = document.createElement('button');
+    actionBtn.className = 'toast__undo';
+    actionBtn.textContent = action.label;
+    actionBtn.addEventListener('click', () => {
       clearTimeout(dismissTimer);
       toast.remove();
-      onUndo();
+      action.onClick();
     });
-    toast.appendChild(undoBtn);
+    toast.appendChild(actionBtn);
   }
 
   container.appendChild(toast);
