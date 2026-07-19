@@ -829,11 +829,18 @@
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.settings-avatar-button:hover,
+.settings-avatar-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glass-shadow-md);
+}
+
+/* Tastatur-Fokus braucht einen echten Ring (Audit F-10) — der frühere
+ * Schatten+Lift allein war als Fokus-Indikator nicht verlässlich sichtbar. */
 .settings-avatar-button:focus-visible {
   transform: translateY(-1px);
   box-shadow: var(--glass-shadow-md);
-  outline: none;
+  outline: 2px solid var(--active-module-accent, var(--color-accent));
+  outline-offset: 2px;
 }
 
 .settings-avatar-actions {

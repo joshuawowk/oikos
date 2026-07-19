@@ -251,8 +251,8 @@
 
 .quick-add__input:focus {
   outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  border-color: var(--module-accent, var(--color-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--color-accent)) 20%, transparent);
 }
 
 .quick-add__qty {
@@ -271,9 +271,12 @@
   height: var(--target-base);
 }
 
+/* Sichtbarer Fokus-Ring wie beim Namensfeld (Audit F-10): der reine
+ * 1.5px-Border-Farbwechsel war als Fokus-Indikator zu schwach. */
 .quick-add__qty:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--module-accent, var(--color-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--color-accent)) 20%, transparent);
 }
 
 .quick-add__cat {
@@ -292,7 +295,8 @@
 
 .quick-add__cat:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--module-accent, var(--color-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--color-accent)) 20%, transparent);
 }
 
 @media (min-width: 1024px) {
