@@ -21,6 +21,7 @@
         "reload": "Ricarica",
         "errorOccurred": "Si è verificato un errore.",
         "unexpectedError": "Si è verificato un errore imprevisto.",
+        "errorDetails": "Dettagli tecnici",
         "errorGeneric": "Si è verificato un errore.",
         "updateAvailable": "Aggiornamento disponibile - ricarica la pagina per ottenere l'ultima versione.",
         "titleRequired": "Il titolo è obbligatorio",

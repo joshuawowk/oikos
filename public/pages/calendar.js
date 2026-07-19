@@ -8,7 +8,7 @@ import { api } from '/api.js';
 import { renderRRuleFields, bindRRuleEvents, getRRuleValues } from '/rrule-ui.js';
 import { openModal as openSharedModal, closeModal, advancedSection } from '/components/modal.js';
 import { stagger } from '/utils/ux.js';
-import { t, formatDate as formatPreferredDate, formatTime, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput } from '/i18n.js';
+import { t, formatDate as formatPreferredDate, formatTime, timeSuffix, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput } from '/i18n.js';
 import { esc, fmtLocation } from '/utils/html.js';
 import { shiftEndDateKey, isEndBeforeStart, weekStartIndex, weekdayOrder } from '/utils/date.js';
 import { truncateRuleBefore, shiftSeriesStart, shiftEndForStart } from '/utils/recurrence-scope.js';
@@ -531,7 +531,7 @@ function formatDateTime(datetimeStr) {
   const date    = localDate(datetimeStr);
   const hasTime = datetimeStr.length > 10;
   const time    = hasTime ? formatTime(datetimeStr) : '';
-  return time ? `${formatDate(date)} ${time} ${t('calendar.timeSuffix')}`.trimEnd() : formatDate(date);
+  return time ? `${formatDate(date)} ${time} ${timeSuffix()}`.trimEnd() : formatDate(date);
 }
 
 function eventIconName(icon) {
@@ -2013,7 +2013,7 @@ function renderAgendaEvent(ev, dayStr) {
       break;
     default: // single
       timeStr = formatTime(ev.start_datetime)
-        + (ev.end_datetime ? ` – ${formatTime(ev.end_datetime)} ${t('calendar.timeSuffix')}`.trimEnd() : ` ${t('calendar.timeSuffix')}`.trimEnd());
+        + (ev.end_datetime ? ` – ${formatTime(ev.end_datetime)} ${timeSuffix()}`.trimEnd() : ` ${timeSuffix()}`.trimEnd());
   }
 
   const displayBg     = resolveEventBackground(ev);
@@ -2066,7 +2066,7 @@ function showEventPopup(ev, anchor) {
   const timeStr = ev.all_day
     ? t('calendar.allDay')
     : formatDateTime(ev.start_datetime)
-      + (ev.end_datetime ? ` – ${formatTime(ev.end_datetime)}${t('calendar.timeSuffix') ? ' ' + t('calendar.timeSuffix') : ''}`.trim() : '');
+      + (ev.end_datetime ? ` – ${formatTime(ev.end_datetime)} ${timeSuffix()}`.trimEnd() : '');
 
   const displayBg     = resolveEventBackground(ev);
   const displayColor  = resolveEventColor(ev);

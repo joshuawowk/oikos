@@ -21,6 +21,7 @@
         "reload": "फिर से लोड करें",
         "errorOccurred": "कुछ गलत हो गया।",
         "unexpectedError": "एक अप्रत्याशित त्रुटि हुई।",
+        "errorDetails": "तकनीकी विवरण",
         "errorGeneric": "एक त्रुटि हुई।",
         "updateAvailable": "अपडेट उपलब्ध है - नवीनतम संस्करण के लिए पृष्ठ पुनः लोड करें।",
         "titleRequired": "शीर्षक आवश्यक है",

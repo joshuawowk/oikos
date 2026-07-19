@@ -21,6 +21,7 @@
         "reload": "새로고침",
         "errorOccurred": "문제가 발생했습니다.",
         "unexpectedError": "예기치 못한 오류가 발생했습니다.",
+        "errorDetails": "기술 세부 정보",
         "errorGeneric": "오류가 발생했습니다.",
         "updateAvailable": "업데이트가 있습니다 - 새로고침 중..",
         "titleRequired": "제목은 필수입니다",

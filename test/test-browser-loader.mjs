@@ -38,6 +38,8 @@ const STUBS = {
     export const getSupportedLocales = () => ['de', 'en'];
     export const formatDate = (d) => String(d);
     export const formatTime = (d) => String(d);
+    export const getTimeFormat = () => '24h';
+    export const timeSuffix = () => '';
     export const dateInputPlaceholder = () => 'YYYY-MM-DD';
     export const formatDateInput = (d) => String(d ?? '');
     export const parseDateInput = (d) => String(d ?? '');

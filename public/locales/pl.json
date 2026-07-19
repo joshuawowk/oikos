@@ -21,6 +21,7 @@
         "reload": "Odśwież",
         "errorOccurred": "Coś poszło nie tak.",
         "unexpectedError": "Wystąpił nieoczekiwany błąd.",
+        "errorDetails": "Szczegóły techniczne",
         "errorGeneric": "Wystąpił błąd.",
         "updateAvailable": "Dostępna aktualizacja – ponowne ładowanie…",
         "titleRequired": "Tytuł jest wymagany",

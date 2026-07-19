@@ -21,6 +21,7 @@
         "reload": "بارگذاری مجدد",
         "errorOccurred": "مشکلی پیش آمد.",
         "unexpectedError": "خطای غیرمنتظره‌ای رخ داد.",
+        "errorDetails": "جزئیات فنی",
         "errorGeneric": "خطایی رخ داد.",
         "updateAvailable": "به‌روزرسانی موجود است - در حال بارگذاری مجدد..",
         "titleRequired": "عنوان الزامی است",

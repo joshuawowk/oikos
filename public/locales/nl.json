@@ -21,6 +21,7 @@
         "reload": "Herladen",
         "errorOccurred": "Er is iets misgegaan.",
         "unexpectedError": "Er is een onverwachte fout opgetreden.",
+        "errorDetails": "Technische details",
         "errorGeneric": "Er is een fout opgetreden.",
         "updateAvailable": "Update beschikbaar – herlaad de pagina voor de nieuwste versie.",
         "titleRequired": "Titel is verplicht",

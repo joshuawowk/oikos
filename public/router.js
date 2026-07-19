@@ -1014,7 +1014,12 @@ async function renderPage(route, previousPath = null) {
     if (route.thirdPartyModule?.id) {
       await disableFailedThirdPartyModule(route.thirdPartyModule.id);
     }
-    renderError(app, err);
+    // Fehler NUR in den Inhaltsbereich rendern. #app enthält auch die App-Shell
+    // (Sidebar, Bottom-Nav, Suche); ein replaceChildren() darauf löscht die
+    // gesamte Navigation und die Fehlerkarte dehnt sich über die Nav-Spalte -
+    // die Seite ist dann nur noch per Reload verlassbar. Erst wenn noch keine
+    // Shell steht (Auth-Seiten, früher Fehler), ist #app der richtige Ort.
+    renderError(document.getElementById('main-content') ?? app, err);
   }
 }
 
@@ -2491,8 +2496,38 @@ function renderError(container, err) {
   btn.textContent = t('common.reload');
   btn.addEventListener('click', () => location.reload());
   state.append(title, desc, btn);
+
+  // „Ein unerwarteter Fehler ist aufgetreten" sagt niemandem, was kaputt ist -
+  // die einzige verwertbare Information (Name, Meldung, Stack) lag bisher nur in
+  // der Browserkonsole. Zugeklappt beigelegt stört sie das Layout nicht, ist
+  // aber ohne DevTools erreichbar und kopierbar.
+  const detailText = errorDetails(err);
+  if (detailText) {
+    const details = document.createElement('details');
+    details.className = 'empty-state__details';
+    const summary = document.createElement('summary');
+    summary.textContent = t('common.errorDetails');
+    const pre = document.createElement('pre');
+    pre.textContent = detailText;
+    details.append(summary, pre);
+    state.append(details);
+  }
+
   container.replaceChildren(state);
   state.focus({ preventScroll: true });
+}
+
+/**
+ * Technische Fehlerbeschreibung für die aufklappbaren Details. Bewusst roh
+ * (nicht übersetzt): der Text ist zum Weitergeben in einem Bugreport da.
+ */
+function errorDetails(err) {
+  if (!err) return '';
+  const head = [err.name, err.message].filter(Boolean).join(': ');
+  const stack = typeof err.stack === 'string' ? err.stack.trim() : '';
+  // Manche Engines wiederholen "Name: Message" als erste Stack-Zeile.
+  if (stack) return stack.startsWith(head) ? stack : `${head}\n${stack}`;
+  return head || String(err);
 }
 
 // --------------------------------------------------------

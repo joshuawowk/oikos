@@ -21,6 +21,7 @@
         "reload": "Muat ulang",
         "errorOccurred": "Terjadi kesalahan.",
         "unexpectedError": "Terjadi kesalahan yang tidak terduga.",
+        "errorDetails": "Detail teknis",
         "errorGeneric": "Terjadi kesalahan.",
         "updateAvailable": "Pembaruan tersedia - memuat ulang..",
         "titleRequired": "Judul wajib diisi",

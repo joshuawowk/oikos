@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.34.1] - 2026-07-19
+
+### Fixed
+- A failing page no longer takes the navigation down with it. When a module threw during rendering, the error card replaced the entire app container - including the sidebar and the bottom navigation - so the message spread across the navigation column and the only way out was a reload. The error is now rendered into the content area alone; the navigation stays usable and the failing page can simply be left.
+- The error card names the actual failure. "An unexpected error occurred" was all a user got, while the only usable information (error type, message, stack) sat in the browser console. A collapsed "Technical details" section now carries it, readable and copyable without opening developer tools.
+- The time suffix is no longer appended to 12-hour times. Calendar and Overview rendered "3:00 PM Uhr", mixing both notations; the suffix belongs to the 24-hour form only. A shared `timeSuffix()` helper now returns an empty string when the 12-hour clock is selected, and both pages use it instead of reading the translation key directly.
+- `public/i18n.js` contained a raw NUL byte as a cache-key separator, which made git treat the file as binary and rendered every diff on it unreadable. It is now written as an escape sequence; behavior is unchanged.
+
 ## [1.34.0] - 2026-07-19
 
 ### Fixed

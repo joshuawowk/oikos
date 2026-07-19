@@ -21,6 +21,7 @@
         "reload": "Tải lại",
         "errorOccurred": "Đã xảy ra lỗi.",
         "unexpectedError": "Đã xảy ra lỗi không mong muốn.",
+        "errorDetails": "Chi tiết kỹ thuật",
         "errorGeneric": "Đã xảy ra lỗi.",
         "updateAvailable": "Có bản cập nhật - tải lại trang để nhận phiên bản mới nhất.",
         "titleRequired": "Tiêu đề là bắt buộc",

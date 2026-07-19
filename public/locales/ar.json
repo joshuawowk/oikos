@@ -21,6 +21,7 @@
         "reload": "إعادة التحميل",
         "errorOccurred": "حدث خطأ ما.",
         "unexpectedError": "حدث خطأ غير متوقع.",
+        "errorDetails": "التفاصيل التقنية",
         "errorGeneric": "حدث خطأ.",
         "updateAvailable": "يوجد تحديث - أعد تحميل الصفحة للحصول على أحدث إصدار.",
         "titleRequired": "العنوان مطلوب",

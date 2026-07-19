@@ -21,6 +21,7 @@
         "reload": "Újratöltés",
         "errorOccurred": "Hiba történt.",
         "unexpectedError": "Váratlan hiba történt.",
+        "errorDetails": "Technikai részletek",
         "errorGeneric": "Hiba történt.",
         "updateAvailable": "Frissítés elérhető - frissítse az oldalt a legújabb verzióhoz.",
         "titleRequired": "A cím megadása kötelező",

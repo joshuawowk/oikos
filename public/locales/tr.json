@@ -21,6 +21,7 @@
         "reload": "Yenile",
         "errorOccurred": "Bir şeyler ters gitti.",
         "unexpectedError": "Beklenmeyen bir hata oluştu.",
+        "errorDetails": "Teknik ayrıntılar",
         "errorGeneric": "Bir hata oluştu.",
         "updateAvailable": "Güncelleme mevcut - en son sürümü almak için sayfayı yenileyin.",
         "titleRequired": "Başlık zorunludur",

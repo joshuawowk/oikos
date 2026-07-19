@@ -21,6 +21,7 @@
         "reload": "Recarregar",
         "errorOccurred": "Algo deu errado.",
         "unexpectedError": "Ocorreu um erro inesperado.",
+        "errorDetails": "Detalhes técnicos",
         "errorGeneric": "Ocorreu um erro.",
         "updateAvailable": "Atualização disponível - recarregue a página para obter a versão mais recente.",
         "titleRequired": "Título é obrigatório",

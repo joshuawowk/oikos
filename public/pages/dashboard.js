@@ -6,7 +6,7 @@
 
 import { api } from '/api.js';
 import { canSeeWidget } from '/permissions.js';
-import { t, formatDate, formatTime, getLocale, getNumberFormat } from '/i18n.js';
+import { t, formatDate, formatTime, timeSuffix, getLocale, getNumberFormat } from '/i18n.js';
 import { getReadableTextColor, AVATAR_FALLBACK_COLOR } from '/utils/color.js';
 import { esc, fmtLocation, renderMarkdownLight } from '/utils/html.js';
 import { toLocalDateKey, parseLocalDateKey } from '/utils/date.js';
@@ -415,7 +415,7 @@ function formatDateTime(isoString) {
   const d = new Date(isoString);
   const dateStr = relativeDateLabel(d);
   const timeStr = formatTime(d);
-  const suffix = t('calendar.timeSuffix');
+  const suffix = timeSuffix();
   return `${dateStr}, ${timeStr}${suffix ? ' ' + suffix : ''}`.trim();
 }
 
@@ -672,7 +672,7 @@ function renderUpcomingEvents(events) {
   const items = events.map((e) => {
     const d = eventStartDate(e) ?? new Date(e.start_datetime);
     const isToday = d.toDateString() === today;
-    const _suffix = t('calendar.timeSuffix');
+    const _suffix = timeSuffix();
     const timeStr = e.all_day ? t('dashboard.allDay') : `${formatTime(d)}${_suffix ? ' ' + _suffix : ''}`.trim();
     return `
       <div class="event-item" data-route="${esc(calendarEventRoute(e))}" role="button" tabindex="0">

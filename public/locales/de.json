@@ -21,6 +21,7 @@
         "reload": "Neu laden",
         "errorOccurred": "Etwas ist schiefgelaufen.",
         "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten.",
+        "errorDetails": "Technische Details",
         "errorGeneric": "Ein Fehler ist aufgetreten.",
         "updateAvailable": "Update verfügbar - lade neu..",
         "titleRequired": "Titel ist erforderlich",
