@@ -253,6 +253,30 @@ export function formatDate(date) {
   return formatDateParts(date);
 }
 
+/**
+ * Kompaktes Datum ohne Jahr (z. B. Spaltenköpfe im Wochenboard, Audit F-04):
+ * folgt der Datumsformat-Präferenz in Reihenfolge und Trennzeichen, lässt nur
+ * das Jahr weg — der umgebende Kontext (Wochen-Label) trägt es bereits.
+ */
+export function formatDayMonth(date) {
+  if (date == null) return '';
+  const useUtc = isDateOnlyString(date);
+  const d = useUtc ? new Date(`${date}T00:00:00Z`) : (date instanceof Date ? date : new Date(date));
+  if (isNaN(d.getTime())) return '';
+  const month = String((useUtc ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
+  const day = String(useUtc ? d.getUTCDate() : d.getDate()).padStart(2, '0');
+  switch (getDateFormatPreference()) {
+    case 'dmy': return `${day}.${month}.`;
+    case 'mdy_dot': return `${month}.${day}.`;
+    case 'dmy_dot': return `${day}.${month}.`;
+    case 'dmy_slash': return `${day}/${month}`;
+    case 'ymd': return `${month}-${day}`;
+    case 'ymd_dot': return `${month}.${day}.`;
+    case 'ymd_slash': return `${month}/${day}`;
+    default: return `${month}/${day}`;
+  }
+}
+
 export function dateInputPlaceholder() {
   switch (getDateFormatPreference()) {
     case 'dmy': return 'DD.MM.YYYY';

@@ -37,6 +37,7 @@ const STUBS = {
     export const getNumberFormat = (options = {}) => new Intl.NumberFormat('de', options);
     export const getSupportedLocales = () => ['de', 'en'];
     export const formatDate = (d) => String(d);
+    export const formatDayMonth = (d) => String(d);
     export const formatTime = (d) => String(d);
     export const getTimeFormat = () => '24h';
     export const timeSuffix = () => '';

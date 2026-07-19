@@ -269,6 +269,17 @@
   flex-shrink: 0;
 }
 
+/* Label-Text ellipsiert in schmalen Board-Spalten mit Absicht, statt hart zu
+ * clippen ("MITTAGES") — der Farb-Dot bleibt als Typ-Anker immer sichtbar
+ * (Audit F-04). Eigener Span, weil text-overflow nicht auf anonyme
+ * Flex-Textknoten wirkt. */
+.meal-slot__type-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .meal-slot[data-type="breakfast"] .meal-slot__type-label { --meal-type-dot: var(--meal-breakfast); }
 .meal-slot[data-type="lunch"]     .meal-slot__type-label { --meal-type-dot: var(--meal-lunch); }
 .meal-slot[data-type="dinner"]    .meal-slot__type-label { --meal-type-dot: var(--meal-dinner); }
@@ -632,7 +643,9 @@
 @media (min-width: 1024px) {
   .meals-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    /* 1024-1439px: Rezept-Sidebar schmaler (272px), damit die 7 Tagesspalten
+     * lesbare Breite behalten (Audit F-04); ab 1440px wieder volle 320px. */
+    grid-template-columns: minmax(0, 1fr) 272px;
     gap: var(--space-4);
     padding: 0 var(--space-4) var(--space-8);
   }
@@ -718,6 +731,40 @@
   }
 
   .day-header {
-    padding: var(--space-3) var(--space-2) var(--space-2);
+    /* Schmale Board-Spalten (Audit F-04): enges Padding, Name+Datum dürfen
+     * nicht kollidieren — Name ellipsiert, Kompakt-Datum (ohne Jahr) bleibt. */
+    padding: var(--space-3) var(--space-1) var(--space-2);
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  .day-header__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .day-header__date {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Karten-Titel in schmalen Board-Spalten: zwei Zeilen statt Einzeiler-
+   * Ellipse nach ~5 Zeichen ("Tomat…") — Wiedererkennung vor Kompaktheit. */
+  .meal-card__title-text {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    hyphens: auto;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (min-width: 1440px) {
+  .meals-layout {
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
 }

@@ -7,7 +7,7 @@
 import { api } from '/api.js';
 import { openModal as openSharedModal, closeModal as closeSharedModal, selectModal, confirmModal, advancedSection } from '/components/modal.js';
 import { stagger } from '/utils/ux.js';
-import { t, formatDate, formatDateInput, parseDateInput, isDateInputValid } from '/i18n.js';
+import { t, formatDate, formatDayMonth, formatDateInput, parseDateInput, isDateInputValid } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 import { DEFAULT_CATEGORY_NAME } from '/utils/shopping-categories.js';
@@ -74,7 +74,9 @@ function isToday(dateStr) {
 }
 
 function formatDayDate(dateStr) {
-  return formatDate(dateStr);
+  // Ohne Jahr (Audit F-04): das Wochen-Label in der Nav trägt das Jahr; in den
+  // 7 Board-Spalten kollidierte das volle Datum mit dem Wochentagsnamen.
+  return formatDayMonth(dateStr);
 }
 
 function mealCategories() {
@@ -379,7 +381,7 @@ function renderSlot(date, type, mealsForDay) {
   if (!meals.length) {
     return `
       <div class="meal-slot meal-slot--empty" data-date="${date}" data-type="${type.key}">
-        <div class="meal-slot__type-label">${type.label}</div>
+        <div class="meal-slot__type-label"><span class="meal-slot__type-text">${type.label}</span></div>
         <button
           class="meal-slot__add-btn"
           data-action="add-meal"
@@ -437,7 +439,7 @@ function renderSlot(date, type, mealsForDay) {
 
   return `
     <div class="meal-slot meal-slot--has-meal" data-date="${date}" data-type="${type.key}">
-      <div class="meal-slot__type-label">${type.label}</div>
+      <div class="meal-slot__type-label"><span class="meal-slot__type-text">${type.label}</span></div>
       ${cardsHTML}
       <button
         class="meal-slot__add-more-btn"
