@@ -1443,9 +1443,10 @@ Skeleton loading instead of spinners (the skeleton mirrors the default-visible w
 - Checked items shown with strikethrough + moved to bottom
 - "Clear list" = remove checked items only
 - Autocomplete from previous entries (local)
-- **Category management lives in Shopping** (no longer in Settings): a "Manage categories" action opens the `oikos-shopping-category-manager` component (also reachable directly via `/shopping?manage=categories`) for add, rename, reorder, and delete, preserving the API's last-category-deletion guard. The legacy Settings → Shopping tab redirects here.
+- **Category management lives in Shopping** (no longer in Settings): a "Manage categories" action opens the shared `oikos-category-manager` modal (also reachable directly via `/shopping?manage=categories`) for add, rename, reorder, and delete - the same component as Tasks, Contacts and Budget, resolving default category names through their localization and preserving the API's last-category-deletion guard. The legacy Settings → Shopping tab redirects here.
 - Mobile quick-add form uses a resilient grid: item name spans the row, quantity/category/add controls remain touch-safe at 390px width, and autocomplete stays anchored to the input.
 - Mobile swipe: left = check/uncheck, right = delete; × delete button hidden on mobile (swipe takes over)
+- **Deletion friction follows severity:** removing single items (or the checked ones) is undo-based (5-second toast), while deleting a whole list - which cascades to all its items - asks for confirmation first, mirroring the Budget convention for cascading deletions.
 
 ### Meal Plan (`/meals`)
 
