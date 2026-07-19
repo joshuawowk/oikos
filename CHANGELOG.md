@@ -7,7 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.36.0] - 2026-07-19
+## [1.37.0] - 2026-07-19
+
+### Added
+- The trend chart in Budget → Statistics gives up its values. It drew two coloured lines without a single readable number; it now labels its scale maximum and the period bounds, and every data point can be selected to show its income and expenses — by pointer, by touch and by keyboard. The whole curve is one tab stop: arrow keys walk the points, Home and End jump to the ends, and each point carries its values in its accessible name, so the readout does not depend on hovering.
+- Budget → Subscriptions can clear its filters. Four filters and a search could be combined, with no way back other than resetting each control; a "Reset filters" button now appears whenever something is narrowing the list. A list filtered down to nothing says so and offers the reset, instead of showing the "no subscriptions yet" state with its "add subscription" button.
+
+### Changed
+- Every Budget tab now declares whether the month is its frame of reference. Month navigation appears as a whole or not at all — previously the Loans tab hid the arrows but kept the month label and the "current month" button, which did nothing there.
+- The floating action button creates what belongs to the tab in view: an entry, an account, a budget, a subscription, a loan or a shared expense. On Loans it opened the entry dialog rather than the loan dialog, and on Statistics — a tab with nothing to create — it offered to add an entry.
+- A new entry is dated in the month being viewed. Paging back to March and adding an entry filed it under today, so it disappeared from the list at the moment it was created. In the current month the date still defaults to today.
+- Deleting a monthly budget or savings goal is undo-based like every other deletion in the module, instead of asking for confirmation first. Within Budget, a confirmation dialog is now reserved for deletions that cascade, such as accounts.
+- The expense donut uses its own data-series palette instead of borrowing the accent colours of Shopping and Meals, and draws at most seven slices, aggregating the rest into "Other". Beyond eight categories it previously reused colours, so two slices could look identical. The palette carries at least 3:1 contrast against the page background in both light and dark themes.
+- Account colours are chosen by name — "Teal", "Blue", "Violet" — where screen readers previously read out the hex code. The swatches come from theme tokens, so they lighten in dark mode.
+- Budget filters no longer outlive a visit to the module. The account drill-down and the loan status filter stayed active after navigating away and back, the latter without any visible sign.
+- Statistics and Plan show a loading skeleton instead of an empty area while their data arrives, matching the Budget tab.
+
+### Fixed
+- The range switcher in Budget → Statistics can be operated with a keyboard. It was marked up as a tablist whose buttons were not tabs, so assistive technology announced an empty tablist and the arrow keys did nothing. The same applies to the My budget / Household switcher, whose single tab stop had no arrow-key navigation — a keyboard trap in which only one of the two options was reachable.
+- The trend chart and the donut carry a text summary for screen readers, as the category chart on the Budget tab already did. Both were purely visual: their accessible name was the chart title and nothing else.
+- The loan status filters and the per-loan filter button report their state through `aria-pressed` instead of colour alone.
+- `hidden` is honoured on shared controls. The floating action button and `.btn` elements set `display` at the same specificity as the browser's own rule for hidden elements, so an element hidden by a page stayed on screen. The same trap had already been patched separately in Documents, Contacts and Budget; the guard now sits once for all shared controls.
+- The "all categories already budgeted" notice in Budget → Plan is styled again. It requested an `'info'` toast, a variant that does not exist — the same defect class as the eight modules corrected in 1.36.0, of which this call was the last survivor.
+- Loan repayments no longer fall back to an English title and a German category name in all 23 languages.
+- The month-comparison line under the summary cards is fully translated and uses icons rather than the ▲ and ▼ text characters, which fall outside the icon family and vary in width between fonts.
+- Opening an account statement keeps the keyboard focus in the page instead of dropping it to the top, and the inline "new category" dialog traps focus, closes on Escape and on a click outside, and returns focus to the control that opened it.
 
 ### Added
 - Tasks has a search field in the module head. It filters the list and the Kanban board instantly by title and description, on top of the existing status, priority and person filters. Tasks was the only list-heavy module without one. A search without hits names the query instead of claiming the module is empty and offering a "create task" button.

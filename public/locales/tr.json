@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Ev halkı",
         "householdBadge": "Ev halkı",
         "sharedToggleLabel": "Ev halkıyla paylaş",
-        "sharedToggleHint": "Paylaşılan kayıtları tüm ev halkı görür; özel olanları yalnızca sen."
+        "sharedToggleHint": "Paylaşılan kayıtları tüm ev halkı görür; özel olanları yalnızca sen.",
+        "colorTeal": "Turkuaz",
+        "colorBlue": "Mavi",
+        "colorViolet": "Mor",
+        "colorMagenta": "Macenta",
+        "colorOrange": "Turuncu",
+        "colorGreen": "Yeşil",
+        "colorOcher": "Koyu sarı",
+        "statsRangeLabel": "Dönem",
+        "statsOtherCategories": "Diğer",
+        "trendDelta": "{{month}} ayına göre {{amount}}",
+        "statsTrendSummary": "{{periods}} dönemlik seyir · Gelir {{income}} · Gider {{expenses}} · Zirve {{peak}}",
+        "statsDonutSummary": "{{count}} dilim · En büyüğü: {{top}} (%{{pct}}) · Toplam {{total}}",
+        "statsPointsLabel": "Eğri değerleri",
+        "statsPointLabel": "{{period}}: gelir {{income}}, gider {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Sağlık",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Desteklenen logo bulunamadı.",
         "logoSearchError": "Logolar yüklenemedi.",
         "logoSourceWebsite": "Web sitesinden",
-        "useLogo": "Bu logoyu kullan"
+        "useLogo": "Bu logoyu kullan",
+        "resetFilters": "Filtreleri sıfırla",
+        "noMatchesTitle": "Sonuç yok",
+        "noMatchesDescription": "Etkin filtrelere uyan abonelik yok.",
+        "filterLabelCategory": "Kategori",
+        "filterLabelMethod": "Ödeme yöntemi",
+        "filterLabelStatus": "Durum",
+        "filterLabelSort": "Sıralama"
     },
     "health": {
         "tabs": {

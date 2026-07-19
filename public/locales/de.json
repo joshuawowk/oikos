@@ -1060,7 +1060,21 @@
         "scopeHousehold": "Haushalt",
         "householdBadge": "Haushalt",
         "sharedToggleLabel": "Mit dem Haushalt teilen",
-        "sharedToggleHint": "Geteilte Einträge sehen alle im Haushalt; private nur du."
+        "sharedToggleHint": "Geteilte Einträge sehen alle im Haushalt; private nur du.",
+        "colorTeal": "Türkis",
+        "colorBlue": "Blau",
+        "colorViolet": "Violett",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Orange",
+        "colorGreen": "Grün",
+        "colorOcher": "Ocker",
+        "statsRangeLabel": "Zeitraum",
+        "statsOtherCategories": "Sonstige",
+        "trendDelta": "{{amount}} ggü. {{month}}",
+        "statsTrendSummary": "Verlauf über {{periods}} Zeitabschnitte · Einnahmen {{income}} · Ausgaben {{expenses}} · Höchstwert {{peak}}",
+        "statsDonutSummary": "{{count}} Segmente · Größtes: {{top}} ({{pct}} %) · Gesamt {{total}}",
+        "statsPointsLabel": "Werte der Trendkurve",
+        "statsPointLabel": "{{period}}: Einnahmen {{income}}, Ausgaben {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Gesundheit",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Keine unterstützten Logos gefunden.",
         "logoSearchError": "Logos konnten nicht geladen werden.",
         "logoSourceWebsite": "Von der Website",
-        "useLogo": "Dieses Logo verwenden"
+        "useLogo": "Dieses Logo verwenden",
+        "resetFilters": "Filter zurücksetzen",
+        "noMatchesTitle": "Keine Treffer",
+        "noMatchesDescription": "Kein Abonnement passt zu den aktiven Filtern.",
+        "filterLabelCategory": "Kategorie",
+        "filterLabelMethod": "Zahlungsart",
+        "filterLabelStatus": "Status",
+        "filterLabelSort": "Sortierung"
     },
     "health": {
         "tabs": {

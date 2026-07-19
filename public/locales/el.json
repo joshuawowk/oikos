@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Νοικοκυριό",
         "householdBadge": "Νοικοκυριό",
         "sharedToggleLabel": "Κοινή χρήση με το νοικοκυριό",
-        "sharedToggleHint": "Οι κοινές εγγραφές είναι ορατές σε όλο το νοικοκυριό· οι ιδιωτικές μόνο σε εσένα."
+        "sharedToggleHint": "Οι κοινές εγγραφές είναι ορατές σε όλο το νοικοκυριό· οι ιδιωτικές μόνο σε εσένα.",
+        "colorTeal": "Πετρόλ",
+        "colorBlue": "Μπλε",
+        "colorViolet": "Βιολετί",
+        "colorMagenta": "Ματζέντα",
+        "colorOrange": "Πορτοκαλί",
+        "colorGreen": "Πράσινο",
+        "colorOcher": "Ώχρα",
+        "statsRangeLabel": "Περίοδος",
+        "statsOtherCategories": "Λοιπά",
+        "trendDelta": "{{amount}} έναντι {{month}}",
+        "statsTrendSummary": "Εξέλιξη σε {{periods}} περιόδους · Έσοδα {{income}} · Έξοδα {{expenses}} · Μέγιστο {{peak}}",
+        "statsDonutSummary": "{{count}} τμήματα · Μεγαλύτερο: {{top}} ({{pct}} %) · Σύνολο {{total}}",
+        "statsPointsLabel": "Τιμές της καμπύλης",
+        "statsPointLabel": "{{period}}: έσοδα {{income}}, έξοδα {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Υγεία",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Δεν βρέθηκαν υποστηριζόμενα λογότυπα.",
         "logoSearchError": "Δεν ήταν δυνατή η φόρτωση λογότυπων.",
         "logoSourceWebsite": "Από τον ιστότοπο",
-        "useLogo": "Χρήση αυτού του λογότυπου"
+        "useLogo": "Χρήση αυτού του λογότυπου",
+        "resetFilters": "Καθαρισμός φίλτρων",
+        "noMatchesTitle": "Κανένα αποτέλεσμα",
+        "noMatchesDescription": "Καμία συνδρομή δεν ταιριάζει με τα ενεργά φίλτρα.",
+        "filterLabelCategory": "Κατηγορία",
+        "filterLabelMethod": "Τρόπος πληρωμής",
+        "filterLabelStatus": "Κατάσταση",
+        "filterLabelSort": "Ταξινόμηση"
     },
     "health": {
         "tabs": {

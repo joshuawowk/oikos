@@ -1053,7 +1053,21 @@
         "scopeHousehold": "परिवार",
         "householdBadge": "परिवार",
         "sharedToggleLabel": "परिवार के साथ साझा करें",
-        "sharedToggleHint": "साझा प्रविष्टियाँ पूरे परिवार को दिखती हैं; निजी केवल आपको."
+        "sharedToggleHint": "साझा प्रविष्टियाँ पूरे परिवार को दिखती हैं; निजी केवल आपको.",
+        "colorTeal": "फ़िरोज़ी",
+        "colorBlue": "नीला",
+        "colorViolet": "बैंगनी",
+        "colorMagenta": "मैजेंटा",
+        "colorOrange": "नारंगी",
+        "colorGreen": "हरा",
+        "colorOcher": "गेरुआ",
+        "statsRangeLabel": "अवधि",
+        "statsOtherCategories": "अन्य",
+        "trendDelta": "{{month}} की तुलना में {{amount}}",
+        "statsTrendSummary": "{{periods}} अवधियों का रुझान · आय {{income}} · व्यय {{expenses}} · शिखर {{peak}}",
+        "statsDonutSummary": "{{count}} खंड · सबसे बड़ा: {{top}} ({{pct}}%) · कुल {{total}}",
+        "statsPointsLabel": "रुझान वक्र के मान",
+        "statsPointLabel": "{{period}}: आय {{income}}, व्यय {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "स्वास्थ्य",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "कोई समर्थित लोगो नहीं मिला।",
         "logoSearchError": "लोगो लोड नहीं हो सके।",
         "logoSourceWebsite": "वेबसाइट से",
-        "useLogo": "यह लोगो उपयोग करें"
+        "useLogo": "यह लोगो उपयोग करें",
+        "resetFilters": "फ़िल्टर रीसेट करें",
+        "noMatchesTitle": "कोई परिणाम नहीं",
+        "noMatchesDescription": "सक्रिय फ़िल्टर से कोई सदस्यता मेल नहीं खाती।",
+        "filterLabelCategory": "श्रेणी",
+        "filterLabelMethod": "भुगतान विधि",
+        "filterLabelStatus": "स्थिति",
+        "filterLabelSort": "क्रम"
     },
     "health": {
         "tabs": {

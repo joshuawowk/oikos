@@ -1053,7 +1053,21 @@
         "scopeHousehold": "家庭",
         "householdBadge": "家庭",
         "sharedToggleLabel": "与家庭共享",
-        "sharedToggleHint": "共享条目家庭成员都可见，私有条目仅自己可见。"
+        "sharedToggleHint": "共享条目家庭成员都可见，私有条目仅自己可见。",
+        "colorTeal": "青色",
+        "colorBlue": "蓝色",
+        "colorViolet": "紫色",
+        "colorMagenta": "洋红色",
+        "colorOrange": "橙色",
+        "colorGreen": "绿色",
+        "colorOcher": "赭色",
+        "statsRangeLabel": "时间范围",
+        "statsOtherCategories": "其他",
+        "trendDelta": "较 {{month}} {{amount}}",
+        "statsTrendSummary": "{{periods}} 个时段走势 · 收入 {{income}} · 支出 {{expenses}} · 峰值 {{peak}}",
+        "statsDonutSummary": "{{count}} 个分段 · 最大：{{top}}（{{pct}}%）· 合计 {{total}}",
+        "statsPointsLabel": "走势曲线数值",
+        "statsPointLabel": "{{period}}：收入 {{income}}，支出 {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "健康",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "未找到支持的标志。",
         "logoSearchError": "无法加载标志。",
         "logoSourceWebsite": "来自网站",
-        "useLogo": "使用此标志"
+        "useLogo": "使用此标志",
+        "resetFilters": "重置筛选",
+        "noMatchesTitle": "无匹配结果",
+        "noMatchesDescription": "没有订阅符合当前筛选条件。",
+        "filterLabelCategory": "分类",
+        "filterLabelMethod": "支付方式",
+        "filterLabelStatus": "状态",
+        "filterLabelSort": "排序"
     },
     "health": {
         "tabs": {

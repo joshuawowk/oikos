@@ -141,19 +141,34 @@ export async function render(target, { user } = {}) {
           <span class="sr-only">${t('subscriptions.searchLabel')}</span>
           <input id="subscriptions-search" type="search" placeholder="${t('subscriptions.searchPlaceholder')}" autocomplete="off">
         </label>
-        <select class="form-input subscriptions-filter" id="subscriptions-category-filter" aria-label="${t('subscriptions.categoryFilter')}"></select>
-        <select class="form-input subscriptions-filter" id="subscriptions-method-filter" aria-label="${t('subscriptions.paymentMethodFilter')}"></select>
-        <select class="form-input subscriptions-filter" id="subscriptions-status-filter" aria-label="${t('subscriptions.statusFilter')}">
-          <option value="all">${t('subscriptions.statusAll')}</option>
-          <option value="active">${t('subscriptions.statusActive')}</option>
-          <option value="disabled">${t('subscriptions.statusDisabled')}</option>
-        </select>
-        <select class="form-input subscriptions-filter" id="subscriptions-sort" aria-label="${t('subscriptions.sortLabel')}">
-          <option value="due">${t('subscriptions.sortDue')}</option>
-          <option value="cost-desc">${t('subscriptions.sortCostDesc')}</option>
-          <option value="cost-asc">${t('subscriptions.sortCostAsc')}</option>
-          <option value="name">${t('subscriptions.sortName')}</option>
-        </select>
+        <label class="subscriptions-filter-field">
+          <span class="subscriptions-filter-field__label">${t('subscriptions.filterLabelCategory')}</span>
+          <select class="form-input subscriptions-filter" id="subscriptions-category-filter"></select>
+        </label>
+        <label class="subscriptions-filter-field">
+          <span class="subscriptions-filter-field__label">${t('subscriptions.filterLabelMethod')}</span>
+          <select class="form-input subscriptions-filter" id="subscriptions-method-filter"></select>
+        </label>
+        <label class="subscriptions-filter-field">
+          <span class="subscriptions-filter-field__label">${t('subscriptions.filterLabelStatus')}</span>
+          <select class="form-input subscriptions-filter" id="subscriptions-status-filter">
+            <option value="all">${t('subscriptions.statusAll')}</option>
+            <option value="active">${t('subscriptions.statusActive')}</option>
+            <option value="disabled">${t('subscriptions.statusDisabled')}</option>
+          </select>
+        </label>
+        <label class="subscriptions-filter-field">
+          <span class="subscriptions-filter-field__label">${t('subscriptions.filterLabelSort')}</span>
+          <select class="form-input subscriptions-filter" id="subscriptions-sort">
+            <option value="due">${t('subscriptions.sortDue')}</option>
+            <option value="cost-desc">${t('subscriptions.sortCostDesc')}</option>
+            <option value="cost-asc">${t('subscriptions.sortCostAsc')}</option>
+            <option value="name">${t('subscriptions.sortName')}</option>
+          </select>
+        </label>
+        <button class="btn btn--ghost subscriptions-filter-reset" id="subscriptions-reset-filters" type="button" hidden>
+          <i data-lucide="filter-x" class="icon-sm" aria-hidden="true"></i>${t('subscriptions.resetFilters')}
+        </button>
         <div class="subscriptions-toolbar__actions">
           <button class="btn btn--secondary btn--icon" id="subscriptions-manage" aria-label="${t('subscriptions.manageMetadata')}" title="${t('subscriptions.manageMetadata')}">
             <i data-lucide="tags" aria-hidden="true"></i>
@@ -201,6 +216,31 @@ function renderFilters() {
   method.value = state.paymentMethodId;
   container.querySelector('#subscriptions-status-filter').value = state.status;
   container.querySelector('#subscriptions-sort').value = state.sort;
+  updateResetButton();
+}
+
+// Vier Filter plus Suche können gleichzeitig greifen — ohne Ausweg wirkt eine
+// leere Liste wie „keine Abos" statt „nichts passt zum Filter". Der Knopf
+// erscheint nur, wenn tatsächlich etwas eingeschränkt ist.
+function hasActiveFilters() {
+  return Boolean(state.query) || Boolean(state.categoryId) || Boolean(state.paymentMethodId)
+    || state.status !== 'all' || state.sort !== 'due';
+}
+
+function updateResetButton() {
+  const btn = container.querySelector('#subscriptions-reset-filters');
+  if (btn) btn.hidden = !hasActiveFilters();
+}
+
+async function resetFilters() {
+  state.query = '';
+  state.categoryId = '';
+  state.paymentMethodId = '';
+  state.status = 'all';
+  state.sort = 'due';
+  const search = container.querySelector('#subscriptions-search');
+  if (search) search.value = '';
+  await reload();
 }
 
 function bindToolbar() {
@@ -226,8 +266,10 @@ function bindToolbar() {
   });
   container.querySelector('#subscriptions-sort').addEventListener('change', (event) => {
     state.sort = event.target.value;
+    updateResetButton();
     renderContent();
   });
+  container.querySelector('#subscriptions-reset-filters').addEventListener('click', resetFilters);
   container.querySelector('#subscriptions-manage').addEventListener('click', openMetadataModal);
   container.querySelector('#subscriptions-settings').addEventListener('click', openSettingsModal);
 }
@@ -495,6 +537,19 @@ function renderCard(subscription) {
 }
 
 function renderEmpty() {
+  // „Keine Abos" und „nichts passt zum Filter" sind verschiedene Zustände: der
+  // erste braucht eine Anlegen-Aktion, der zweite einen Weg zurück.
+  if (hasActiveFilters()) {
+    return `
+      <div class="empty-state">
+        <i data-lucide="filter-x" class="empty-state__icon" aria-hidden="true"></i>
+        <div class="empty-state__title">${t('subscriptions.noMatchesTitle')}</div>
+        <div class="empty-state__description">${t('subscriptions.noMatchesDescription')}</div>
+        <button class="btn btn--primary empty-state__cta" id="subscriptions-empty-reset" type="button">
+          ${t('subscriptions.resetFilters')}
+        </button>
+      </div>`;
+  }
   return `
     <div class="empty-state">
       <i data-lucide="repeat-2" class="empty-state__icon" aria-hidden="true"></i>
@@ -508,6 +563,7 @@ function renderEmpty() {
 function bindContent() {
   container.querySelector('#subscriptions-refresh-rates')?.addEventListener('click', () => reload({ refreshRates: true }));
   container.querySelector('#subscriptions-empty-add')?.addEventListener('click', () => openSubscriptionModal());
+  container.querySelector('#subscriptions-empty-reset')?.addEventListener('click', resetFilters);
   container.querySelector('#subscriptions-list')?.addEventListener('click', async (event) => {
     const action = event.target.closest('[data-action]');
     if (!action) return;

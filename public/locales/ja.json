@@ -1053,7 +1053,21 @@
         "scopeHousehold": "世帯",
         "householdBadge": "世帯",
         "sharedToggleLabel": "世帯で共有",
-        "sharedToggleHint": "共有した項目は世帯全員に表示され、非公開の項目は自分だけに表示されます。"
+        "sharedToggleHint": "共有した項目は世帯全員に表示され、非公開の項目は自分だけに表示されます。",
+        "colorTeal": "ティール",
+        "colorBlue": "ブルー",
+        "colorViolet": "バイオレット",
+        "colorMagenta": "マゼンタ",
+        "colorOrange": "オレンジ",
+        "colorGreen": "グリーン",
+        "colorOcher": "オーカー",
+        "statsRangeLabel": "期間",
+        "statsOtherCategories": "その他",
+        "trendDelta": "{{month}} 比 {{amount}}",
+        "statsTrendSummary": "{{periods}} 期間の推移 · 収入 {{income}} · 支出 {{expenses}} · 最大 {{peak}}",
+        "statsDonutSummary": "{{count}} セグメント · 最大: {{top}}（{{pct}}%）· 合計 {{total}}",
+        "statsPointsLabel": "推移グラフの値",
+        "statsPointLabel": "{{period}}: 収入 {{income}}、支出 {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "健康",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "対応しているロゴが見つかりません。",
         "logoSearchError": "ロゴを読み込めませんでした。",
         "logoSourceWebsite": "Webサイトから",
-        "useLogo": "このロゴを使う"
+        "useLogo": "このロゴを使う",
+        "resetFilters": "フィルターをリセット",
+        "noMatchesTitle": "該当なし",
+        "noMatchesDescription": "有効なフィルターに一致するサブスクリプションはありません。",
+        "filterLabelCategory": "カテゴリ",
+        "filterLabelMethod": "支払い方法",
+        "filterLabelStatus": "ステータス",
+        "filterLabelSort": "並び替え"
     },
     "health": {
         "tabs": {

@@ -127,8 +127,20 @@ const ACCOUNT_TYPE_ICONS = {
   other:      'circle-dollar-sign',
 };
 
-// Kuratierte Konto-Akzentfarben (Modul-Tokens). Leerer Wert = Modul-Akzent (Teal).
-const ACCOUNT_COLORS = ['#0F766E', '#2563EB', '#7C3AED', '#DB2777', '#C2410C', '#15803D', '#A16207', '#0969DA'];
+// Kuratierte Konto-Akzentfarben. Die Werte kommen aus tokens.css
+// (--chart-series-*), damit die Palette im Dark Mode mit aufgehellt wird und
+// nirgends Hex-Literale im JS stehen. Leerer Wert = Modul-Akzent (Teal).
+// nameKey benennt den Farbton für Screenreader — vorher stand dort der Hexcode,
+// den die Sprachausgabe als „Raute-Null-F-Sieben..." vorgelesen hat.
+const ACCOUNT_COLORS = [
+  { value: 'var(--chart-series-2)', nameKey: 'budget.colorTeal' },
+  { value: 'var(--chart-series-4)', nameKey: 'budget.colorBlue' },
+  { value: 'var(--chart-series-1)', nameKey: 'budget.colorViolet' },
+  { value: 'var(--chart-series-6)', nameKey: 'budget.colorMagenta' },
+  { value: 'var(--chart-series-3)', nameKey: 'budget.colorOrange' },
+  { value: 'var(--chart-series-7)', nameKey: 'budget.colorGreen' },
+  { value: 'var(--chart-series-5)', nameKey: 'budget.colorOcher' },
+];
 
 function accountTypeLabel(type) {
   return t(`budget.accountType_${ACCOUNT_TYPES.includes(type) ? type : 'other'}`);
@@ -169,6 +181,27 @@ let state = {
 let _container = null;
 let _user = null;
 let _tablist = null;   // wireTablist-Handle: erlaubt programmatische Tab-Wechsel (sync)
+let _scopeTablist = null;
+
+// Fähigkeiten je Untertab — EINE Quelle für Monatsnavigation, Toolbar-„+" und FAB.
+// Vorher lagen diese drei Entscheidungen in getrennten Ausschluss-Listen, was sich
+// widersprochen hat (Monatslabel ohne Pfeile auf „Darlehen", FAB ohne Toolbar-„+"
+// auf „Berichte"). `month`: Monat ist der Bezugsrahmen des Tabs. `add`: es gibt
+// eine sinnvolle Neu-Aktion (labelKey benennt sie für FAB und Toolbar-Button).
+const TAB_CAPS = {
+  'budget':         { month: true,  add: 'budget.newEntryFabLabel' },
+  'plan':           { month: true,  add: 'budget.planAddBudget' },
+  'accounts':       { month: false, add: 'budget.addAccount' },
+  'subscriptions':  { month: false, add: 'subscriptions.add' },
+  'loans':          { month: false, add: 'budget.newLoan' },
+  'reports':        { month: false, add: null },
+  'split-expenses': { month: false, add: 'splitExpenses.addExpense' },
+};
+
+function tabCaps() {
+  if (_user?.access_scope === 'split_guest') return TAB_CAPS['split-expenses'];
+  return TAB_CAPS[state.activeTab] ?? TAB_CAPS.budget;
+}
 
 // --------------------------------------------------------
 // Formatierung
@@ -265,6 +298,14 @@ export async function render(container, { user }) {
   _user = user;
   const today = new Date();
   state.month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  // `state` ist ein Modul-Singleton und überlebt den Seitenwechsel. Filter sind
+  // aber an eine Sitzung mit dem Modul gebunden: sonst zeigt das Budget nach
+  // einer Woche noch den Kontoauszug von damals — beim Darlehens-Statusfilter
+  // sogar ohne sichtbaren Hinweis. Der aktive Tab bleibt bewusst erhalten.
+  state.accountFilterId = null;
+  state.loanFilterId = null;
+  state.loanStatusFilter = 'active';
+  state.accountsShowArchived = false;
   if (user?.access_scope === 'split_guest') state.activeTab = 'split-expenses';
 
   if (user?.access_scope !== 'split_guest') {
@@ -296,7 +337,7 @@ export async function render(container, { user }) {
         <div class="budget-scope" role="tablist" aria-label="${t('budget.scopeLabel')}">
           ${[['mine', t('budget.scopeMine')], ['household', t('budget.scopeHousehold')]].map(([id, label]) => {
             const on = id === state.scope;
-            return `<button class="sub-tab${on ? ' sub-tab--active' : ''}" type="button" role="tab" data-scope="${id}" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}"><span class="sub-tab__label">${label}</span></button>`;
+            return `<button class="sub-tab${on ? ' sub-tab--active' : ''}" type="button" role="tab" data-tab-id="${id}" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}"><span class="sub-tab__label">${label}</span></button>`;
           }).join('')}
         </div>` : ''}
         <div class="page-toolbar__actions">
@@ -369,39 +410,28 @@ function wireNav() {
     updateLabel();
   });
   // Ansichts-Scope (Mein Budget / Haushalt) — nur im personal-Modus vorhanden.
-  _container.querySelector('.budget-scope')?.addEventListener('click', async (ev) => {
-    const btn = ev.target.closest('[data-scope]');
-    if (!btn) return;
-    const next = btn.dataset.scope;
-    if (next === state.scope) return;
-    state.scope = next;
-    _container.querySelectorAll('.budget-scope [data-scope]').forEach((b) => {
-      const on = b.dataset.scope === next;
-      b.classList.toggle('sub-tab--active', on);
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-      b.tabIndex = on ? 0 : -1;
-    });
-    await loadMonth(state.month);
-    renderBody();
+  // Dieselbe Verhaltensschicht wie die Haupt-Tabs: Roving-Tabindex ohne
+  // Pfeiltasten wäre eine Tastaturfalle (nur ein Button per Tab erreichbar).
+  _scopeTablist = wireTablist(_container.querySelector('.budget-scope'), {
+    activeId: state.scope,
+    onChange: async (id) => {
+      state.scope = id;
+      await loadMonth(state.month);
+      renderBody();
+    },
   });
+  // Neu-Aktion je Tab — spiegelt TAB_CAPS.add. Tabs ohne Neu-Aktion (Berichte)
+  // blenden beide Auslöser aus, der Handler bleibt dort folgenlos.
   const addHandler = () => {
-    if (state.activeTab === 'split-expenses') {
-      _container.querySelector('#split-add-expense')?.click();
-      return;
+    switch (state.activeTab) {
+      case 'split-expenses': _container.querySelector('#split-add-expense')?.click(); return;
+      case 'subscriptions':  openSubscriptionModal(); return;
+      case 'plan':           _container.querySelector('#budget-plan-add')?.click(); return;
+      case 'accounts':       openAccountModal(); return;
+      case 'loans':          openLoanModal(); return;
+      case 'reports':        return;
+      default:               openBudgetModal({ mode: 'create' });
     }
-    if (state.activeTab === 'subscriptions') {
-      openSubscriptionModal();
-      return;
-    }
-    if (state.activeTab === 'plan') {
-      _container.querySelector('#budget-plan-add')?.click();
-      return;
-    }
-    if (state.activeTab === 'accounts') {
-      openAccountModal();
-      return;
-    }
-    openBudgetModal({ mode: 'create' });
   };
   _container.querySelector('#budget-add').addEventListener('click', addHandler);
   _container.querySelector('#fab-new-budget').addEventListener('click', addHandler);
@@ -605,26 +635,30 @@ function updateTabs() {
   const panel = _container.querySelector('#budget-body');
   if (panel) panel.setAttribute('aria-labelledby', `budget-tab-${state.activeTab}`);
   updateTabsFade();
-  const splitActive = state.activeTab === 'split-expenses' || _user?.access_scope === 'split_guest';
-  const loansActive = state.activeTab === 'loans';
-  const subscriptionsActive = state.activeTab === 'subscriptions';
-  const reportsActive = state.activeTab === 'reports';
-  const accountsActive = state.activeTab === 'accounts';
-  ['#budget-today', '#budget-label', '#budget-add'].forEach((selector) => {
+
+  // Monatsnavigation als Block: entweder der ganze Monats-Umschalter gehört zum
+  // Tab oder keines seiner Teile. Kein sichtbares Monatslabel ohne Pfeile mehr.
+  const caps = tabCaps();
+  ['#budget-prev', '#budget-next', '#budget-today', '#budget-label'].forEach((selector) => {
     const el = _container.querySelector(selector);
-    if (el) el.hidden = splitActive || subscriptionsActive || reportsActive || accountsActive;
+    if (el) el.hidden = !caps.month;
   });
-  ['#budget-prev', '#budget-next'].forEach((selector) => {
-    const el = _container.querySelector(selector);
-    if (el) el.hidden = splitActive || loansActive || subscriptionsActive || reportsActive || accountsActive;
-  });
+
+  // Toolbar-„+" und FAB zeigen dieselbe Aktion mit demselben Label — oder beide
+  // gar nichts (Berichte hat keine Neu-Aktion).
+  const addLabel = caps.add ? t(caps.add) : '';
+  const addBtn = _container.querySelector('#budget-add');
+  if (addBtn) {
+    addBtn.hidden = !caps.add;
+    if (caps.add) {
+      addBtn.setAttribute('aria-label', addLabel);
+      addBtn.setAttribute('title', addLabel);
+    }
+  }
   const fab = _container.querySelector('#fab-new-budget');
   if (fab) {
-    fab.hidden = false;
-    fab.setAttribute('aria-label', splitActive
-      ? t('splitExpenses.addExpense')
-      : subscriptionsActive ? t('subscriptions.add')
-      : accountsActive ? t('budget.addAccount') : t('budget.newEntryFabLabel'));
+    fab.hidden = !caps.add;
+    if (caps.add) fab.setAttribute('aria-label', addLabel);
   }
 }
 
@@ -810,6 +844,10 @@ function wireAccountsPage() {
       _tablist?.sync('budget');
       await loadMonth(state.month);
       renderBody();
+      // Der geklickte Button wird beim Re-Render entfernt — ohne Fokus-Umzug
+      // fällt der Fokus auf <body> und Tastatur-/Screenreader-Nutzer landen
+      // wieder am Seitenanfang. Das Panel ist tabindex="0" und trägt den Titel.
+      _container.querySelector('#budget-body')?.focus();
     });
   });
   _container.querySelectorAll('.budget-account__edit[data-edit]').forEach((el) => {
@@ -829,9 +867,9 @@ function openAccountModal(account = null) {
   const currentColor = isEdit ? (account.color || '') : '';
   const swatch = (value, styleColor, label) =>
     `<button type="button" class="budget-color-swatch ${currentColor === value ? 'is-active' : ''}"
-             data-color="${value}" style="--swatch:${styleColor}" aria-label="${label}" aria-pressed="${currentColor === value}"></button>`;
+             data-color="${esc(value)}" style="--swatch:${esc(styleColor)}" aria-label="${esc(label)}" aria-pressed="${currentColor === value}"></button>`;
   const colorSwatches = swatch('', 'var(--module-accent)', t('budget.accountColorDefault'))
-    + ACCOUNT_COLORS.map((c) => swatch(c, c, c)).join('');
+    + ACCOUNT_COLORS.map((c) => swatch(c.value, c.value, t(c.nameKey))).join('');
 
   const content = `
     <div class="form-group">
@@ -977,12 +1015,14 @@ function renderLoansDashboard() {
           <button class="budget-loans__filter" type="button" id="budget-clear-loan-filter">
             <i data-lucide="x" aria-hidden="true"></i>${t('budget.clearLoanFilter')}
           </button>` : ''}
-          <button class="budget-loans__filter ${state.loanStatusFilter === 'active' ? 'budget-loans__filter--active' : ''}"
-                  type="button" data-loan-status="active">${t('budget.loanStatusActive')}</button>
-          <button class="budget-loans__filter ${state.loanStatusFilter === 'paid' ? 'budget-loans__filter--active' : ''}"
-                  type="button" data-loan-status="paid">${t('budget.loanStatusPaid')}</button>
-          <button class="budget-loans__filter ${state.loanStatusFilter === 'all' ? 'budget-loans__filter--active' : ''}"
-                  type="button" data-loan-status="all">${t('budget.loanStatusAll')}</button>
+          ${[['active', 'budget.loanStatusActive'], ['paid', 'budget.loanStatusPaid'], ['all', 'budget.loanStatusAll']]
+            .map(([id, key]) => {
+              const on = state.loanStatusFilter === id;
+              // aria-pressed statt reiner Einfärbung: sonst ist der aktive Filter
+              // für Screenreader nicht von den inaktiven zu unterscheiden.
+              return `<button class="budget-loans__filter ${on ? 'budget-loans__filter--active' : ''}"
+                  type="button" data-loan-status="${id}" aria-pressed="${on}">${t(key)}</button>`;
+            }).join('')}
         </div>
       </div>
       <div class="budget-loans__stats">
@@ -1046,9 +1086,12 @@ function loanPaymentToEntry(loan, payment) {
   if (!payment.budget_entry_id) return null;
   return {
     id: payment.budget_entry_id,
-    title: payment.entry_title || `Loan repayment: ${loan.borrower}`,
+    // Fallbacks über t() bzw. leer: der frühere hartkodierte englische Titel und
+    // die deutsche Kategorie „Geschenke & Transfers" waren in 22 von 23 Sprachen
+    // falsch — und die Kategorie ist längst ein Key, kein Anzeigename.
+    title: payment.entry_title || t('budget.loanPaymentTitle', { borrower: loan.borrower }),
     amount: Number(payment.amount || 0),
-    category: payment.entry_category || 'Geschenke & Transfers',
+    category: payment.entry_category || '',
     subcategory: payment.entry_subcategory || '',
     date: payment.paid_date,
     is_recurring: payment.entry_is_recurring || 0,
@@ -1224,7 +1267,9 @@ function renderLoanCard(loan) {
       <div class="budget-loan-card__main">
         <div class="budget-loan-card__title-row">
           <div class="budget-loan-card__title">${esc(loan.title)}</div>
-          <button class="budget-loan-card__filter ${state.loanFilterId === loan.id ? 'budget-loan-card__filter--active' : ''}" data-action="loan-filter" data-id="${loan.id}" aria-label="${t('budget.filterLoanTransactions')}">
+          <button class="budget-loan-card__filter ${state.loanFilterId === loan.id ? 'budget-loan-card__filter--active' : ''}"
+                  type="button" data-action="loan-filter" data-id="${loan.id}"
+                  aria-pressed="${state.loanFilterId === loan.id}" aria-label="${t('budget.filterLoanTransactions')}">
             <i data-lucide="filter" aria-hidden="true"></i>
           </button>
         </div>
@@ -1276,10 +1321,16 @@ function renderTrend(current, prev, prevLabel) {
     return `<div class="budget-summary-card__trend budget-summary-card__trend--neutral">${t('budget.trendNeutral', { month: prevLabel })}</div>`;
   }
   const positive = delta > 0;
-  const arrow    = positive ? '▲' : '▼';
   const sign     = positive ? '+' : '';
   const cls      = positive ? 'budget-summary-card__trend--positive' : 'budget-summary-card__trend--negative';
-  return `<div class="budget-summary-card__trend ${cls}">${arrow} ${sign}${formatAmount(delta)} vs. ${prevLabel}</div>`;
+  // Pfeil als Lucide-Icon statt ▲/▼: die Textglyphen fallen aus der Icon-Familie
+  // und sind je nach Font unterschiedlich breit (Zeilenzittern). Das „vs." stand
+  // bisher fest im Template — jetzt trägt der Key den ganzen Satz.
+  const icon = positive ? 'trending-up' : 'trending-down';
+  return `<div class="budget-summary-card__trend ${cls}">
+    <i data-lucide="${icon}" class="icon-xs" aria-hidden="true"></i>
+    ${esc(t('budget.trendDelta', { amount: `${sign}${formatAmount(delta)}`, month: prevLabel }))}
+  </div>`;
 }
 
 function formatEntryDate(dateStr) {
@@ -1323,6 +1374,10 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
   const isEdit = mode === 'edit';
   const today  = toLocalDateKey(new Date());
   const todayMonth = today.slice(0, 7);
+  // Ein neuer Eintrag gehört in den Monat, den der Nutzer gerade ansieht. Sonst
+  // legt „+" beim Blättern in den März stillschweigend einen Juli-Eintrag an,
+  // der sofort aus der Liste verschwindet. Im laufenden Monat bleibt es heute.
+  const defaultDate = state.month === todayMonth ? today : `${state.month}-01`;
 
   const isExpense  = isEdit ? entry.amount < 0 : true;
   // Bei virtuellen Serien hält amount nur den Monatsanteil; im Formular den eingegebenen Periodenbetrag zeigen.
@@ -1388,7 +1443,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
     <div class="form-group js-entry-field">
       <label class="form-label" for="bm-date">${t('budget.dateLabel')}</label>
       <yuvomi-datepicker type="date" id="bm-date"
-             value="${isEdit ? entry.date : today}"></yuvomi-datepicker>
+             value="${isEdit ? entry.date : defaultDate}"></yuvomi-datepicker>
     </div>
 
     ${state.budgetMode === 'personal' ? `
@@ -1460,7 +1515,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
       </div>
       <div class="form-group">
         <label class="form-label" for="lm-start">${t('budget.loanStartMonthLabel')}</label>
-        <input type="month" class="form-input" id="lm-start" value="${todayMonth}">
+        <input type="month" class="form-input" id="lm-start" value="${defaultDate.slice(0, 7)}">
       </div>
       <div class="form-group">
         <label class="form-label" for="lm-notes">${t('budget.loanNotesLabel')}</label>
@@ -1708,8 +1763,12 @@ function requestNameInPanel(panel, { title, label, placeholder }) {
     if (window.lucide) lucide.createIcons({ el: overlay });
 
     const input = overlay.querySelector('#budget-inline-name');
+    // Der Auslöser bekommt den Fokus zurück, sonst fällt er beim Schließen auf
+    // <body> — das Overlay liegt über einem offenen Modal.
+    const opener = document.activeElement;
     const cleanup = (value = '') => {
       overlay.remove();
+      if (opener?.isConnected) opener.focus();
       resolve(value);
     };
     overlay.querySelectorAll('[data-action="inline-cancel"]').forEach((btn) => {
@@ -1718,9 +1777,22 @@ function requestNameInPanel(panel, { title, label, placeholder }) {
     overlay.querySelector('[data-action="inline-save"]').addEventListener('click', () => {
       cleanup(input.value.trim());
     });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') cleanup(input.value.trim());
-      if (e.key === 'Escape') cleanup('');
+    // Klick auf den Grund schließt — dieselbe Erwartung wie beim geteilten Modal.
+    overlay.addEventListener('mousedown', (e) => {
+      if (e.target === overlay) cleanup('');
+    });
+    // Escape und Fokus-Trap auf Overlay-Ebene, nicht nur im Eingabefeld: sonst
+    // tabbt man aus dem „Dialog" heraus in das darunterliegende Formular.
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); cleanup(''); return; }
+      if (e.key === 'Enter' && e.target === input) { cleanup(input.value.trim()); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = [...overlay.querySelectorAll('button, input')].filter((el) => !el.disabled);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
     input.focus();
   });
@@ -1741,7 +1813,7 @@ async function saveLoanFromPanel(panel, saveBtn, { loan = null, closeAfterSave =
   if (!/^\d{4}-\d{2}$/.test(start_month)) { window.yuvomi?.showToast(t('budget.loanStartMonthRequired'), 'danger'); return; }
 
   saveBtn.disabled = true;
-  saveBtn.textContent = '...';
+  saveBtn.textContent = '…';
   try {
     const body = { borrower, title, total_amount, installment_count, start_month, notes };
     if (isEdit) {

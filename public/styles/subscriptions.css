@@ -9,10 +9,33 @@
 
 .subscriptions-toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) repeat(4, minmax(130px, auto)) auto auto;
+  /* Suche · 4 beschriftete Filter · Zurücksetzen · 2 Icon-Aktionen */
+  grid-template-columns: minmax(220px, 1fr) repeat(4, minmax(130px, auto)) auto auto auto;
   gap: var(--space-2);
-  align-items: center;
+  /* An der Unterkante ausrichten: die Filterfelder tragen jetzt eine Labelzeile
+   * über dem Select, die Suche nicht — sonst stünden die Eingaben versetzt. */
+  align-items: end;
   margin-bottom: var(--space-3);
+}
+
+/* Sichtbares Label statt reinem aria-label: vier gleich aussehende Selects sind
+ * ohne Beschriftung nicht auseinanderzuhalten, sobald ein Wert gewählt ist. */
+.subscriptions-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.subscriptions-filter-field__label {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.subscriptions-filter-reset {
+  min-height: var(--target-base);
+  white-space: nowrap;
 }
 
 /* Desktop: Wrapper ist transparent — die beiden Icon-Buttons bleiben direkte
@@ -777,6 +800,21 @@
 
   .subscriptions-search {
     grid-column: 1 / -1;
+  }
+
+  /* Dritte Zeile: Zurücksetzen links, die beiden Icon-Aktionen rechts in ihrer
+   * natürlichen Breite — als Grid-Items würden sie sich sonst über je eine
+   * volle Spalte spannen und als überbreite leere Pillen erscheinen. */
+  .subscriptions-filter-reset {
+    grid-column: 1 / 3;
+    justify-self: start;
+  }
+
+  .subscriptions-toolbar__actions {
+    display: flex;
+    gap: var(--space-2);
+    grid-column: 3 / -1;
+    justify-content: flex-end;
   }
 
   .subscriptions-summary {

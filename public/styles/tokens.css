@@ -192,6 +192,27 @@
   --_toast-danger-text:  var(--color-text-on-accent);
   --toast-danger-text:   var(--_toast-danger-text);
 
+  /* Datenreihen-Palette für Diagramme (Donut, Kategorie-Segmente).
+   * Bewusst eigene Tokens statt geborgter Modul-Akzente: Modulfarben tragen
+   * eine Bedeutung ("das ist Einkauf"), die in einem Ausgaben-Donut falsch ist,
+   * und ihr Kontrast ist nur gegen ihre eigenen Flächen geprüft. Sieben klar
+   * getrennte Farbtöne — mehr Segmente sind ohnehin nicht mehr unterscheidbar,
+   * die Views fassen den Rest zu „Sonstige" zusammen. */
+  --_chart-series-1: #6C3AED;   /* Violett  */
+  --_chart-series-2: #0F766E;   /* Teal     */
+  --_chart-series-3: #C2410C;   /* Orange   */
+  --_chart-series-4: #0B66C3;   /* Blau     */
+  --_chart-series-5: #A16207;   /* Ocker    */
+  --_chart-series-6: #BE185D;   /* Magenta  */
+  --_chart-series-7: #15803D;   /* Grün     */
+  --chart-series-1: var(--_chart-series-1);
+  --chart-series-2: var(--_chart-series-2);
+  --chart-series-3: var(--_chart-series-3);
+  --chart-series-4: var(--_chart-series-4);
+  --chart-series-5: var(--_chart-series-5);
+  --chart-series-6: var(--_chart-series-6);
+  --chart-series-7: var(--_chart-series-7);
+
   /* --------------------------------------------------------
    * 4. Farben - Modul-Akzente
    *    Jedes Modul hat eine eigene dezente Akzentfarbe.
@@ -669,6 +690,16 @@
     /* Dunkle Tinte auf den vividen Hell-Füllungen des Dark Mode (FAB, Badges, aktive Chips) */
     --_color-ink-on-vivid: #1A1A18;
 
+    /* Datenreihen: aufgehellte Varianten, damit die Segmente auf dunkler
+     * Kartenfläche ≥3:1 tragen (Grafik-Kontrast, WCAG 1.4.11). */
+    --_chart-series-1: #A78BFA;
+    --_chart-series-2: #2DD4BF;
+    --_chart-series-3: #FB923C;
+    --_chart-series-4: #60A5FA;
+    --_chart-series-5: #FCD34D;
+    --_chart-series-6: #F472B6;
+    --_chart-series-7: #4ADE80;
+
     --_module-dashboard: #a78bfa;
     --_module-tasks:     #4ADE80;
     --_module-calendar:  #818CF8;
@@ -805,6 +836,16 @@
 
     /* Dunkle Tinte auf den vividen Hell-Füllungen des Dark Mode (FAB, Badges, aktive Chips) */
     --_color-ink-on-vivid: #1A1A18;
+
+    /* Datenreihen: aufgehellte Varianten, damit die Segmente auf dunkler
+     * Kartenfläche ≥3:1 tragen (Grafik-Kontrast, WCAG 1.4.11). */
+    --_chart-series-1: #A78BFA;
+    --_chart-series-2: #2DD4BF;
+    --_chart-series-3: #FB923C;
+    --_chart-series-4: #60A5FA;
+    --_chart-series-5: #FCD34D;
+    --_chart-series-6: #F472B6;
+    --_chart-series-7: #4ADE80;
 
     /* Modul-Akzente (Entflechtung Meals/Shopping spiegelt Light-Mode) */
     --_module-dashboard: #a78bfa;   /* Violet-400 */

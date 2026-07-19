@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Семья",
         "householdBadge": "Семья",
         "sharedToggleLabel": "Поделиться с семьёй",
-        "sharedToggleHint": "Общие записи видят все в семье; личные — только вы."
+        "sharedToggleHint": "Общие записи видят все в семье; личные — только вы.",
+        "colorTeal": "Бирюзовый",
+        "colorBlue": "Синий",
+        "colorViolet": "Фиолетовый",
+        "colorMagenta": "Пурпурный",
+        "colorOrange": "Оранжевый",
+        "colorGreen": "Зелёный",
+        "colorOcher": "Охра",
+        "statsRangeLabel": "Период",
+        "statsOtherCategories": "Прочее",
+        "trendDelta": "{{amount}} к {{month}}",
+        "statsTrendSummary": "Динамика за {{periods}} периодов · Доходы {{income}} · Расходы {{expenses}} · Максимум {{peak}}",
+        "statsDonutSummary": "Сегментов: {{count}} · Наибольший: {{top}} ({{pct}} %) · Всего {{total}}",
+        "statsPointsLabel": "Значения кривой",
+        "statsPointLabel": "{{period}}: доходы {{income}}, расходы {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Здоровье",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Поддерживаемые логотипы не найдены.",
         "logoSearchError": "Не удалось загрузить логотипы.",
         "logoSourceWebsite": "С сайта",
-        "useLogo": "Использовать этот логотип"
+        "useLogo": "Использовать этот логотип",
+        "resetFilters": "Сбросить фильтры",
+        "noMatchesTitle": "Ничего не найдено",
+        "noMatchesDescription": "Ни одна подписка не подходит под активные фильтры.",
+        "filterLabelCategory": "Категория",
+        "filterLabelMethod": "Способ оплаты",
+        "filterLabelStatus": "Статус",
+        "filterLabelSort": "Сортировка"
     },
     "health": {
         "tabs": {

@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Agregado",
         "householdBadge": "Agregado",
         "sharedToggleLabel": "Partilhar com o agregado",
-        "sharedToggleHint": "As entradas partilhadas são visíveis a todo o agregado; as privadas apenas a ti."
+        "sharedToggleHint": "As entradas partilhadas são visíveis a todo o agregado; as privadas apenas a ti.",
+        "colorTeal": "Verde-azulado",
+        "colorBlue": "Azul",
+        "colorViolet": "Violeta",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Laranja",
+        "colorGreen": "Verde",
+        "colorOcher": "Ocre",
+        "statsRangeLabel": "Período",
+        "statsOtherCategories": "Outros",
+        "trendDelta": "{{amount}} face a {{month}}",
+        "statsTrendSummary": "Evolução em {{periods}} períodos · Receitas {{income}} · Despesas {{expenses}} · Máximo {{peak}}",
+        "statsDonutSummary": "{{count}} segmentos · Maior: {{top}} ({{pct}} %) · Total {{total}}",
+        "statsPointsLabel": "Valores da curva",
+        "statsPointLabel": "{{period}}: receitas {{income}}, despesas {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Saúde",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Nenhum logótipo suportado encontrado.",
         "logoSearchError": "Não foi possível carregar os logótipos.",
         "logoSourceWebsite": "Do site",
-        "useLogo": "Usar este logótipo"
+        "useLogo": "Usar este logótipo",
+        "resetFilters": "Repor filtros",
+        "noMatchesTitle": "Sem resultados",
+        "noMatchesDescription": "Nenhuma subscrição corresponde aos filtros ativos.",
+        "filterLabelCategory": "Categoria",
+        "filterLabelMethod": "Forma de pagamento",
+        "filterLabelStatus": "Estado",
+        "filterLabelSort": "Ordenação"
     },
     "health": {
         "tabs": {

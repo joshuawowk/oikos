@@ -1060,7 +1060,21 @@
         "scopeHousehold": "Gospodarstwo",
         "householdBadge": "Gospodarstwo",
         "sharedToggleLabel": "Udostępnij gospodarstwu",
-        "sharedToggleHint": "Wspólne wpisy widzą wszyscy w gospodarstwie; prywatne tylko Ty."
+        "sharedToggleHint": "Wspólne wpisy widzą wszyscy w gospodarstwie; prywatne tylko Ty.",
+        "colorTeal": "Morski",
+        "colorBlue": "Niebieski",
+        "colorViolet": "Fioletowy",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Pomarańczowy",
+        "colorGreen": "Zielony",
+        "colorOcher": "Ochra",
+        "statsRangeLabel": "Okres",
+        "statsOtherCategories": "Pozostałe",
+        "trendDelta": "{{amount}} wzgl. {{month}}",
+        "statsTrendSummary": "Przebieg w {{periods}} okresach · Przychody {{income}} · Wydatki {{expenses}} · Maksimum {{peak}}",
+        "statsDonutSummary": "{{count}} segmentów · Największy: {{top}} ({{pct}} %) · Razem {{total}}",
+        "statsPointsLabel": "Wartości krzywej trendu",
+        "statsPointLabel": "{{period}}: przychody {{income}}, wydatki {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Zdrowie",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Nie znaleziono obsługiwanych logo.",
         "logoSearchError": "Nie udało się załadować logo.",
         "logoSourceWebsite": "Ze strony",
-        "useLogo": "Użyj tego logo"
+        "useLogo": "Użyj tego logo",
+        "resetFilters": "Wyczyść filtry",
+        "noMatchesTitle": "Brak wyników",
+        "noMatchesDescription": "Żadna subskrypcja nie pasuje do aktywnych filtrów.",
+        "filterLabelCategory": "Kategoria",
+        "filterLabelMethod": "Metoda płatności",
+        "filterLabelStatus": "Status",
+        "filterLabelSort": "Sortowanie"
     },
     "health": {
         "tabs": {

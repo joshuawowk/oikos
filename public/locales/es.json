@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Hogar",
         "householdBadge": "Hogar",
         "sharedToggleLabel": "Compartir con el hogar",
-        "sharedToggleHint": "Las entradas compartidas las ve todo el hogar; las privadas solo tú."
+        "sharedToggleHint": "Las entradas compartidas las ve todo el hogar; las privadas solo tú.",
+        "colorTeal": "Verde azulado",
+        "colorBlue": "Azul",
+        "colorViolet": "Violeta",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Naranja",
+        "colorGreen": "Verde",
+        "colorOcher": "Ocre",
+        "statsRangeLabel": "Periodo",
+        "statsOtherCategories": "Otros",
+        "trendDelta": "{{amount}} frente a {{month}}",
+        "statsTrendSummary": "Evolución en {{periods}} periodos · Ingresos {{income}} · Gastos {{expenses}} · Máximo {{peak}}",
+        "statsDonutSummary": "{{count}} segmentos · Mayor: {{top}} ({{pct}} %) · Total {{total}}",
+        "statsPointsLabel": "Valores de la curva",
+        "statsPointLabel": "{{period}}: ingresos {{income}}, gastos {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Salud",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "No se encontraron logotipos compatibles.",
         "logoSearchError": "No se pudieron cargar los logotipos.",
         "logoSourceWebsite": "Del sitio web",
-        "useLogo": "Usar este logotipo"
+        "useLogo": "Usar este logotipo",
+        "resetFilters": "Restablecer filtros",
+        "noMatchesTitle": "Sin resultados",
+        "noMatchesDescription": "Ninguna suscripción coincide con los filtros activos.",
+        "filterLabelCategory": "Categoría",
+        "filterLabelMethod": "Método de pago",
+        "filterLabelStatus": "Estado",
+        "filterLabelSort": "Orden"
     },
     "health": {
         "tabs": {

@@ -516,7 +516,15 @@
 .budget-summary-card__trend {
   font-size: var(--text-xs);
   margin-top: var(--space-1);
+  /* Icon und Text bilden eine zentrierte Zeile: der Karteninhalt ist zentriert,
+   * ein reines Inline-Icon würde sonst an den linken Kartenrand rutschen. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
 }
+
+.budget-summary-card__trend svg { flex-shrink: 0; }
 .budget-summary-card__trend--positive { color: var(--color-success); }
 .budget-summary-card__trend--negative { color: var(--color-danger);  }
 .budget-summary-card__trend--neutral  { color: var(--color-text-secondary); }
@@ -1231,11 +1239,66 @@
  * -------------------------------------------------------- */
 .budget-stats__controls { display:flex; flex-wrap:wrap; gap:var(--space-3); align-items:center; justify-content:space-between; margin-bottom:var(--space-4); }
 .budget-stats__ranges { display:inline-flex; gap:var(--space-1); background:var(--color-surface-2); border-radius:var(--radius-md); padding:var(--space-1); }
-.budget-stats__range { border:none; background:transparent; color:var(--color-text-secondary); font-size:var(--text-sm); padding:var(--space-1) var(--space-3); border-radius:var(--radius-sm); cursor:pointer; }
+.budget-stats__range { border:none; background:transparent; color:var(--color-text-secondary); font-size:var(--text-sm); padding:var(--space-1) var(--space-3); min-height:var(--target-md); border-radius:var(--radius-sm); cursor:pointer; }
 .budget-stats__range.is-active { background:var(--color-surface); color:var(--color-text-primary); box-shadow:var(--shadow-sm); }
+.budget-stats__range:focus-visible { outline:2px solid var(--active-module-accent, var(--color-accent)); outline-offset:2px; }
 .budget-stats__stepper { display:inline-flex; align-items:center; gap:var(--space-2); }
 .budget-stats__period { font-size:var(--text-sm); color:var(--color-text-secondary); }
 .budget-stats__trend { width:100%; height:auto; display:block; }
+
+/* Achsenbeschriftung der Trendkurve: Skalen-Maximum oben, Zeitraumgrenzen unten.
+ * Liegt als HTML außerhalb des SVG, weil preserveAspectRatio="none" jeden
+ * SVG-Text horizontal verzerren würde. */
+.budget-stats__trend-wrap { position:relative; }
+.budget-stats__axis-max { display:block; font-size:var(--text-xs); color:var(--color-text-tertiary); margin-bottom:var(--space-1); }
+.budget-stats__axis-x { display:flex; justify-content:space-between; font-size:var(--text-xs); color:var(--color-text-tertiary); margin-top:var(--space-1); }
+
+/* Ablesbare Einzelwerte: unsichtbare Schaltfläche je Datenpunkt über der Kurve.
+ * Der Wert selbst steht im aria-label — das hier ist nur die Trefferfläche und
+ * der sichtbare Marker, also kein Hover-only-Tooltip. */
+.budget-stats__plot { position:relative; }
+.budget-stats__points { position:absolute; inset:0; }
+.budget-stats__point {
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:calc(var(--point-x) * 100%);
+  width:calc(100% / var(--point-slots));
+  transform:translateX(-50%);
+  padding:0;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+}
+/* Marker: dünne Linie am Datenpunkt, sichtbar bei Zeigen, Tippen und Fokus. */
+.budget-stats__point::after {
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:50%;
+  width:2px;
+  transform:translateX(-50%);
+  background:var(--color-text-tertiary);
+  opacity:0;
+  transition:opacity var(--transition-fast);
+}
+.budget-stats__point.is-active::after { opacity:0.55; }
+.budget-stats__point:focus-visible {
+  outline:2px solid var(--active-module-accent, var(--color-accent));
+  outline-offset:-2px;
+  border-radius:var(--radius-sm);
+}
+.budget-stats__readout {
+  margin-top:var(--space-2);
+  font-size:var(--text-xs);
+  color:var(--color-text-secondary);
+  min-height:1.5em;   /* Platz reservieren: der Text wechselt, das Layout nicht */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .budget-stats__point::after { transition:none; }
+}
 .budget-stats__legend { display:flex; gap:var(--space-4); margin-top:var(--space-2); font-size:var(--text-sm); color:var(--color-text-secondary); }
 .budget-stats__legend--wrap { flex-wrap:wrap; gap:var(--space-2) var(--space-4); }
 .budget-stats__swatch { display:inline-block; width:10px; height:10px; border-radius:var(--radius-full); margin-right:var(--space-1); }

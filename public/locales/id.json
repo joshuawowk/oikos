@@ -1060,7 +1060,21 @@
         "scopeHousehold": "Rumah tangga",
         "householdBadge": "Rumah tangga",
         "sharedToggleLabel": "Bagikan dengan rumah tangga",
-        "sharedToggleHint": "Entri bersama terlihat oleh seluruh rumah tangga; yang pribadi hanya oleh Anda."
+        "sharedToggleHint": "Entri bersama terlihat oleh seluruh rumah tangga; yang pribadi hanya oleh Anda.",
+        "colorTeal": "Toska",
+        "colorBlue": "Biru",
+        "colorViolet": "Ungu",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Oranye",
+        "colorGreen": "Hijau",
+        "colorOcher": "Oker",
+        "statsRangeLabel": "Periode",
+        "statsOtherCategories": "Lainnya",
+        "trendDelta": "{{amount}} dibanding {{month}}",
+        "statsTrendSummary": "Tren selama {{periods}} periode · Pemasukan {{income}} · Pengeluaran {{expenses}} · Puncak {{peak}}",
+        "statsDonutSummary": "{{count}} segmen · Terbesar: {{top}} ({{pct}} %) · Total {{total}}",
+        "statsPointsLabel": "Nilai kurva tren",
+        "statsPointLabel": "{{period}}: pemasukan {{income}}, pengeluaran {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Kesehatan",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Tidak ada logo yang didukung ditemukan.",
         "logoSearchError": "Logo tidak dapat dimuat.",
         "logoSourceWebsite": "Dari situs web",
-        "useLogo": "Gunakan logo ini"
+        "useLogo": "Gunakan logo ini",
+        "resetFilters": "Atur ulang filter",
+        "noMatchesTitle": "Tidak ada hasil",
+        "noMatchesDescription": "Tidak ada langganan yang cocok dengan filter aktif.",
+        "filterLabelCategory": "Kategori",
+        "filterLabelMethod": "Metode pembayaran",
+        "filterLabelStatus": "Status",
+        "filterLabelSort": "Urutan"
     },
     "health": {
         "tabs": {

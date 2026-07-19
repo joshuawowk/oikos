@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Foyer",
         "householdBadge": "Foyer",
         "sharedToggleLabel": "Partager avec le foyer",
-        "sharedToggleHint": "Les entrées partagées sont visibles par tout le foyer ; les privées seulement par vous."
+        "sharedToggleHint": "Les entrées partagées sont visibles par tout le foyer ; les privées seulement par vous.",
+        "colorTeal": "Sarcelle",
+        "colorBlue": "Bleu",
+        "colorViolet": "Violet",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Orange",
+        "colorGreen": "Vert",
+        "colorOcher": "Ocre",
+        "statsRangeLabel": "Période",
+        "statsOtherCategories": "Autres",
+        "trendDelta": "{{amount}} vs {{month}}",
+        "statsTrendSummary": "Évolution sur {{periods}} périodes · Revenus {{income}} · Dépenses {{expenses}} · Maximum {{peak}}",
+        "statsDonutSummary": "{{count}} segments · Le plus grand : {{top}} ({{pct}} %) · Total {{total}}",
+        "statsPointsLabel": "Valeurs de la courbe",
+        "statsPointLabel": "{{period}} : revenus {{income}}, dépenses {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Santé",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Aucun logo compatible trouvé.",
         "logoSearchError": "Les logos n’ont pas pu être chargés.",
         "logoSourceWebsite": "Depuis le site",
-        "useLogo": "Utiliser ce logo"
+        "useLogo": "Utiliser ce logo",
+        "resetFilters": "Réinitialiser les filtres",
+        "noMatchesTitle": "Aucun résultat",
+        "noMatchesDescription": "Aucun abonnement ne correspond aux filtres actifs.",
+        "filterLabelCategory": "Catégorie",
+        "filterLabelMethod": "Moyen de paiement",
+        "filterLabelStatus": "Statut",
+        "filterLabelSort": "Tri"
     },
     "health": {
         "tabs": {

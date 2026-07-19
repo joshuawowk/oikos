@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Дім",
         "householdBadge": "Дім",
         "sharedToggleLabel": "Поділитися з домом",
-        "sharedToggleHint": "Спільні записи бачать усі в домі; приватні — лише ви."
+        "sharedToggleHint": "Спільні записи бачать усі в домі; приватні — лише ви.",
+        "colorTeal": "Бірюзовий",
+        "colorBlue": "Синій",
+        "colorViolet": "Фіолетовий",
+        "colorMagenta": "Пурпуровий",
+        "colorOrange": "Помаранчевий",
+        "colorGreen": "Зелений",
+        "colorOcher": "Вохра",
+        "statsRangeLabel": "Період",
+        "statsOtherCategories": "Інше",
+        "trendDelta": "{{amount}} до {{month}}",
+        "statsTrendSummary": "Динаміка за {{periods}} періодів · Доходи {{income}} · Витрати {{expenses}} · Максимум {{peak}}",
+        "statsDonutSummary": "Сегментів: {{count}} · Найбільший: {{top}} ({{pct}} %) · Разом {{total}}",
+        "statsPointsLabel": "Значення кривої",
+        "statsPointLabel": "{{period}}: доходи {{income}}, витрати {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Здоровʼя",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Підтримувані логотипи не знайдено.",
         "logoSearchError": "Не вдалося завантажити логотипи.",
         "logoSourceWebsite": "Із сайту",
-        "useLogo": "Використати цей логотип"
+        "useLogo": "Використати цей логотип",
+        "resetFilters": "Скинути фільтри",
+        "noMatchesTitle": "Нічого не знайдено",
+        "noMatchesDescription": "Жодна підписка не відповідає активним фільтрам.",
+        "filterLabelCategory": "Категорія",
+        "filterLabelMethod": "Спосіб оплати",
+        "filterLabelStatus": "Статус",
+        "filterLabelSort": "Сортування"
     },
     "health": {
         "tabs": {

@@ -1060,7 +1060,21 @@
         "scopeHousehold": "가구",
         "householdBadge": "가구",
         "sharedToggleLabel": "가구와 공유",
-        "sharedToggleHint": "공유 항목은 가구 전체에, 비공개 항목은 나에게만 표시됩니다."
+        "sharedToggleHint": "공유 항목은 가구 전체에, 비공개 항목은 나에게만 표시됩니다.",
+        "colorTeal": "청록색",
+        "colorBlue": "파란색",
+        "colorViolet": "보라색",
+        "colorMagenta": "자홍색",
+        "colorOrange": "주황색",
+        "colorGreen": "초록색",
+        "colorOcher": "황토색",
+        "statsRangeLabel": "기간",
+        "statsOtherCategories": "기타",
+        "trendDelta": "{{month}} 대비 {{amount}}",
+        "statsTrendSummary": "{{periods}}개 기간 추이 · 수입 {{income}} · 지출 {{expenses}} · 최고 {{peak}}",
+        "statsDonutSummary": "{{count}}개 구간 · 최대: {{top}}({{pct}}%) · 합계 {{total}}",
+        "statsPointsLabel": "추이 그래프 값",
+        "statsPointLabel": "{{period}}: 수입 {{income}}, 지출 {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "건강",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "지원되는 로고를 찾을 수 없습니다.",
         "logoSearchError": "로고를 불러오지 못했습니다.",
         "logoSourceWebsite": "웹사이트에서",
-        "useLogo": "이 로고 사용"
+        "useLogo": "이 로고 사용",
+        "resetFilters": "필터 초기화",
+        "noMatchesTitle": "결과 없음",
+        "noMatchesDescription": "적용된 필터와 일치하는 구독이 없습니다.",
+        "filterLabelCategory": "카테고리",
+        "filterLabelMethod": "결제 수단",
+        "filterLabelStatus": "상태",
+        "filterLabelSort": "정렬"
     },
     "health": {
         "tabs": {

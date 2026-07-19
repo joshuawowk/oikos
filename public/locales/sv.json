@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Hushåll",
         "householdBadge": "Hushåll",
         "sharedToggleLabel": "Dela med hushållet",
-        "sharedToggleHint": "Delade poster syns för hela hushållet; privata bara för dig."
+        "sharedToggleHint": "Delade poster syns för hela hushållet; privata bara för dig.",
+        "colorTeal": "Blågrön",
+        "colorBlue": "Blå",
+        "colorViolet": "Violett",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Orange",
+        "colorGreen": "Grön",
+        "colorOcher": "Ockra",
+        "statsRangeLabel": "Period",
+        "statsOtherCategories": "Övrigt",
+        "trendDelta": "{{amount}} mot {{month}}",
+        "statsTrendSummary": "Utveckling över {{periods}} perioder · Inkomster {{income}} · Utgifter {{expenses}} · Toppvärde {{peak}}",
+        "statsDonutSummary": "{{count}} segment · Störst: {{top}} ({{pct}} %) · Totalt {{total}}",
+        "statsPointsLabel": "Värden i trendkurvan",
+        "statsPointLabel": "{{period}}: inkomster {{income}}, utgifter {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Hälsa",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Inga logotyper som stöds hittades.",
         "logoSearchError": "Logotyper kunde inte läsas in.",
         "logoSourceWebsite": "Från webbplats",
-        "useLogo": "Använd denna logotyp"
+        "useLogo": "Använd denna logotyp",
+        "resetFilters": "Rensa filter",
+        "noMatchesTitle": "Inga träffar",
+        "noMatchesDescription": "Ingen prenumeration matchar de aktiva filtren.",
+        "filterLabelCategory": "Kategori",
+        "filterLabelMethod": "Betalsätt",
+        "filterLabelStatus": "Status",
+        "filterLabelSort": "Sortering"
     },
     "health": {
         "tabs": {

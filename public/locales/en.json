@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Household",
         "householdBadge": "Household",
         "sharedToggleLabel": "Share with the household",
-        "sharedToggleHint": "Shared entries are visible to everyone in the household; private ones only to you."
+        "sharedToggleHint": "Shared entries are visible to everyone in the household; private ones only to you.",
+        "colorTeal": "Teal",
+        "colorBlue": "Blue",
+        "colorViolet": "Violet",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Orange",
+        "colorGreen": "Green",
+        "colorOcher": "Ochre",
+        "statsRangeLabel": "Period",
+        "statsOtherCategories": "Other",
+        "trendDelta": "{{amount}} vs. {{month}}",
+        "statsTrendSummary": "Trend across {{periods}} periods · Income {{income}} · Expenses {{expenses}} · Peak {{peak}}",
+        "statsDonutSummary": "{{count}} segments · Largest: {{top}} ({{pct}}%) · Total {{total}}",
+        "statsPointsLabel": "Trend line values",
+        "statsPointLabel": "{{period}}: income {{income}}, expenses {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Health",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "No supported logos found.",
         "logoSearchError": "Logos could not be loaded.",
         "logoSourceWebsite": "From website",
-        "useLogo": "Use this logo"
+        "useLogo": "Use this logo",
+        "resetFilters": "Reset filters",
+        "noMatchesTitle": "No matches",
+        "noMatchesDescription": "No subscription matches the active filters.",
+        "filterLabelCategory": "Category",
+        "filterLabelMethod": "Payment method",
+        "filterLabelStatus": "Status",
+        "filterLabelSort": "Sort"
     },
     "health": {
         "tabs": {

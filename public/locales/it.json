@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Famiglia",
         "householdBadge": "Famiglia",
         "sharedToggleLabel": "Condividi con la famiglia",
-        "sharedToggleHint": "Le voci condivise sono visibili a tutta la famiglia; quelle private solo a te."
+        "sharedToggleHint": "Le voci condivise sono visibili a tutta la famiglia; quelle private solo a te.",
+        "colorTeal": "Verde acqua",
+        "colorBlue": "Blu",
+        "colorViolet": "Viola",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Arancione",
+        "colorGreen": "Verde",
+        "colorOcher": "Ocra",
+        "statsRangeLabel": "Periodo",
+        "statsOtherCategories": "Altro",
+        "trendDelta": "{{amount}} rispetto a {{month}}",
+        "statsTrendSummary": "Andamento su {{periods}} periodi · Entrate {{income}} · Uscite {{expenses}} · Massimo {{peak}}",
+        "statsDonutSummary": "{{count}} segmenti · Maggiore: {{top}} ({{pct}} %) · Totale {{total}}",
+        "statsPointsLabel": "Valori della curva",
+        "statsPointLabel": "{{period}}: entrate {{income}}, uscite {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Salute",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Nessun logo supportato trovato.",
         "logoSearchError": "Impossibile caricare i loghi.",
         "logoSourceWebsite": "Dal sito",
-        "useLogo": "Usa questo logo"
+        "useLogo": "Usa questo logo",
+        "resetFilters": "Azzera filtri",
+        "noMatchesTitle": "Nessun risultato",
+        "noMatchesDescription": "Nessun abbonamento corrisponde ai filtri attivi.",
+        "filterLabelCategory": "Categoria",
+        "filterLabelMethod": "Metodo di pagamento",
+        "filterLabelStatus": "Stato",
+        "filterLabelSort": "Ordinamento"
     },
     "health": {
         "tabs": {

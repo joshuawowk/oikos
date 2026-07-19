@@ -891,6 +891,17 @@ html.fab-anim-done .page-fab {
   display: none !important;
 }
 
+/* [hidden] durchsetzen: Klassen wie `.page-fab`/`.btn` setzen `display: flex`
+ * bzw. `inline-flex` und schlagen damit das UA-`[hidden] { display: none }` bei
+ * gleicher Spezifität — das Element bleibt sichtbar, obwohl es ausgeblendet
+ * wurde. Bisher wurde dieselbe Falle punktuell in documents.css, contacts.css
+ * und budget.css entschärft; hier steht sie einmal für alle geteilten
+ * Bedienelemente. `hidden` heißt versteckt, ausnahmslos. */
+.page-fab[hidden],
+.btn[hidden] {
+  display: none !important;
+}
+
 /* ================================================================
  * Sidebar Navigation - Desktop (≥ 1024px)
  *

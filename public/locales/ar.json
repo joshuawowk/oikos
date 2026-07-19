@@ -1053,7 +1053,21 @@
         "scopeHousehold": "الأسرة",
         "householdBadge": "الأسرة",
         "sharedToggleLabel": "المشاركة مع الأسرة",
-        "sharedToggleHint": "الإدخالات المشتركة يراها كل أفراد الأسرة؛ والخاصة أنت فقط."
+        "sharedToggleHint": "الإدخالات المشتركة يراها كل أفراد الأسرة؛ والخاصة أنت فقط.",
+        "colorTeal": "فيروزي",
+        "colorBlue": "أزرق",
+        "colorViolet": "بنفسجي",
+        "colorMagenta": "أرجواني",
+        "colorOrange": "برتقالي",
+        "colorGreen": "أخضر",
+        "colorOcher": "مغرة",
+        "statsRangeLabel": "الفترة",
+        "statsOtherCategories": "أخرى",
+        "trendDelta": "{{amount}} مقارنة بـ {{month}}",
+        "statsTrendSummary": "التطور عبر {{periods}} فترات · الدخل {{income}} · المصروفات {{expenses}} · الذروة {{peak}}",
+        "statsDonutSummary": "{{count}} أجزاء · الأكبر: {{top}} ({{pct}} %) · الإجمالي {{total}}",
+        "statsPointsLabel": "قيم منحنى التطور",
+        "statsPointLabel": "{{period}}: الدخل {{income}}، المصروفات {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "الصحة",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "لم يتم العثور على شعارات مدعومة.",
         "logoSearchError": "تعذر تحميل الشعارات.",
         "logoSourceWebsite": "من الموقع",
-        "useLogo": "استخدام هذا الشعار"
+        "useLogo": "استخدام هذا الشعار",
+        "resetFilters": "إعادة تعيين عوامل التصفية",
+        "noMatchesTitle": "لا توجد نتائج",
+        "noMatchesDescription": "لا يوجد اشتراك يطابق عوامل التصفية النشطة.",
+        "filterLabelCategory": "الفئة",
+        "filterLabelMethod": "طريقة الدفع",
+        "filterLabelStatus": "الحالة",
+        "filterLabelSort": "الترتيب"
     },
     "health": {
         "tabs": {

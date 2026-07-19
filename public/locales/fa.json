@@ -1060,7 +1060,21 @@
         "scopeHousehold": "خانوار",
         "householdBadge": "خانوار",
         "sharedToggleLabel": "اشتراک با خانوار",
-        "sharedToggleHint": "موارد مشترک را همه اعضای خانوار می‌بینند؛ موارد خصوصی فقط شما."
+        "sharedToggleHint": "موارد مشترک را همه اعضای خانوار می‌بینند؛ موارد خصوصی فقط شما.",
+        "colorTeal": "فیروزه‌ای",
+        "colorBlue": "آبی",
+        "colorViolet": "بنفش",
+        "colorMagenta": "سرخابی",
+        "colorOrange": "نارنجی",
+        "colorGreen": "سبز",
+        "colorOcher": "خاکی",
+        "statsRangeLabel": "بازه",
+        "statsOtherCategories": "سایر",
+        "trendDelta": "{{amount}} نسبت به {{month}}",
+        "statsTrendSummary": "روند در {{periods}} بازه · درآمد {{income}} · هزینه {{expenses}} · بیشینه {{peak}}",
+        "statsDonutSummary": "{{count}} بخش · بزرگ‌ترین: {{top}} ({{pct}} %) · مجموع {{total}}",
+        "statsPointsLabel": "مقادیر نمودار روند",
+        "statsPointLabel": "{{period}}: درآمد {{income}}، هزینه {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "سلامت",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "لوگوی پشتیبانی‌شده‌ای یافت نشد.",
         "logoSearchError": "لوگوها بارگذاری نشدند.",
         "logoSourceWebsite": "از وب‌سایت",
-        "useLogo": "استفاده از این لوگو"
+        "useLogo": "استفاده از این لوگو",
+        "resetFilters": "بازنشانی فیلترها",
+        "noMatchesTitle": "نتیجه‌ای یافت نشد",
+        "noMatchesDescription": "هیچ اشتراکی با فیلترهای فعال مطابقت ندارد.",
+        "filterLabelCategory": "دسته‌بندی",
+        "filterLabelMethod": "روش پرداخت",
+        "filterLabelStatus": "وضعیت",
+        "filterLabelSort": "مرتب‌سازی"
     },
     "health": {
         "tabs": {

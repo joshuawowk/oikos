@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Háztartás",
         "householdBadge": "Háztartás",
         "sharedToggleLabel": "Megosztás a háztartással",
-        "sharedToggleHint": "A megosztott tételeket az egész háztartás látja; a privátokat csak te."
+        "sharedToggleHint": "A megosztott tételeket az egész háztartás látja; a privátokat csak te.",
+        "colorTeal": "Türkiz",
+        "colorBlue": "Kék",
+        "colorViolet": "Ibolya",
+        "colorMagenta": "Bíbor",
+        "colorOrange": "Narancs",
+        "colorGreen": "Zöld",
+        "colorOcher": "Okker",
+        "statsRangeLabel": "Időszak",
+        "statsOtherCategories": "Egyéb",
+        "trendDelta": "{{amount}} a(z) {{month}} hónaphoz képest",
+        "statsTrendSummary": "Alakulás {{periods}} időszakon át · Bevétel {{income}} · Kiadás {{expenses}} · Csúcs {{peak}}",
+        "statsDonutSummary": "{{count}} szelet · Legnagyobb: {{top}} ({{pct}} %) · Összesen {{total}}",
+        "statsPointsLabel": "A trendgörbe értékei",
+        "statsPointLabel": "{{period}}: bevétel {{income}}, kiadás {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Egészség",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Nem található támogatott logó.",
         "logoSearchError": "A logók betöltése sikertelen.",
         "logoSourceWebsite": "Weboldalról",
-        "useLogo": "Használja ezt a logót"
+        "useLogo": "Használja ezt a logót",
+        "resetFilters": "Szűrők törlése",
+        "noMatchesTitle": "Nincs találat",
+        "noMatchesDescription": "Egyetlen előfizetés sem felel meg az aktív szűrőknek.",
+        "filterLabelCategory": "Kategória",
+        "filterLabelMethod": "Fizetési mód",
+        "filterLabelStatus": "Állapot",
+        "filterLabelSort": "Rendezés"
     },
     "health": {
         "tabs": {

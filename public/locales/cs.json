@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Domácnost",
         "householdBadge": "Domácnost",
         "sharedToggleLabel": "Sdílet s domácností",
-        "sharedToggleHint": "Sdílené položky vidí celá domácnost; soukromé jen ty."
+        "sharedToggleHint": "Sdílené položky vidí celá domácnost; soukromé jen ty.",
+        "colorTeal": "Tyrkysová",
+        "colorBlue": "Modrá",
+        "colorViolet": "Fialová",
+        "colorMagenta": "Purpurová",
+        "colorOrange": "Oranžová",
+        "colorGreen": "Zelená",
+        "colorOcher": "Okrová",
+        "statsRangeLabel": "Období",
+        "statsOtherCategories": "Ostatní",
+        "trendDelta": "{{amount}} oproti {{month}}",
+        "statsTrendSummary": "Vývoj za {{periods}} období · Příjmy {{income}} · Výdaje {{expenses}} · Maximum {{peak}}",
+        "statsDonutSummary": "{{count}} segmentů · Největší: {{top}} ({{pct}} %) · Celkem {{total}}",
+        "statsPointsLabel": "Hodnoty křivky vývoje",
+        "statsPointLabel": "{{period}}: příjmy {{income}}, výdaje {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Zdraví",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Nebyla nalezena žádná podporovaná loga.",
         "logoSearchError": "Loga se nepodařilo načíst.",
         "logoSourceWebsite": "Z webu",
-        "useLogo": "Použít toto logo"
+        "useLogo": "Použít toto logo",
+        "resetFilters": "Zrušit filtry",
+        "noMatchesTitle": "Žádné výsledky",
+        "noMatchesDescription": "Žádné předplatné neodpovídá aktivním filtrům.",
+        "filterLabelCategory": "Kategorie",
+        "filterLabelMethod": "Způsob platby",
+        "filterLabelStatus": "Stav",
+        "filterLabelSort": "Řazení"
     },
     "health": {
         "tabs": {

@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Huishouden",
         "householdBadge": "Huishouden",
         "sharedToggleLabel": "Delen met het huishouden",
-        "sharedToggleHint": "Gedeelde items zijn voor het hele huishouden zichtbaar; privé-items alleen voor jou."
+        "sharedToggleHint": "Gedeelde items zijn voor het hele huishouden zichtbaar; privé-items alleen voor jou.",
+        "colorTeal": "Turkoois",
+        "colorBlue": "Blauw",
+        "colorViolet": "Violet",
+        "colorMagenta": "Magenta",
+        "colorOrange": "Oranje",
+        "colorGreen": "Groen",
+        "colorOcher": "Oker",
+        "statsRangeLabel": "Periode",
+        "statsOtherCategories": "Overige",
+        "trendDelta": "{{amount}} t.o.v. {{month}}",
+        "statsTrendSummary": "Verloop over {{periods}} perioden · Inkomsten {{income}} · Uitgaven {{expenses}} · Piek {{peak}}",
+        "statsDonutSummary": "{{count}} segmenten · Grootste: {{top}} ({{pct}} %) · Totaal {{total}}",
+        "statsPointsLabel": "Waarden van de trendlijn",
+        "statsPointLabel": "{{period}}: inkomsten {{income}}, uitgaven {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Gezondheid",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Geen ondersteunde logo’s gevonden.",
         "logoSearchError": "Logo’s konden niet worden geladen.",
         "logoSourceWebsite": "Van website",
-        "useLogo": "Dit logo gebruiken"
+        "useLogo": "Dit logo gebruiken",
+        "resetFilters": "Filters wissen",
+        "noMatchesTitle": "Geen resultaten",
+        "noMatchesDescription": "Geen abonnement voldoet aan de actieve filters.",
+        "filterLabelCategory": "Categorie",
+        "filterLabelMethod": "Betaalwijze",
+        "filterLabelStatus": "Status",
+        "filterLabelSort": "Sortering"
     },
     "health": {
         "tabs": {

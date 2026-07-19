@@ -1053,7 +1053,21 @@
         "scopeHousehold": "Hộ gia đình",
         "householdBadge": "Hộ gia đình",
         "sharedToggleLabel": "Chia sẻ với hộ gia đình",
-        "sharedToggleHint": "Mục chia sẻ mọi người trong nhà đều thấy; mục riêng tư chỉ mình bạn."
+        "sharedToggleHint": "Mục chia sẻ mọi người trong nhà đều thấy; mục riêng tư chỉ mình bạn.",
+        "colorTeal": "Xanh mòng két",
+        "colorBlue": "Xanh dương",
+        "colorViolet": "Tím",
+        "colorMagenta": "Hồng sen",
+        "colorOrange": "Cam",
+        "colorGreen": "Xanh lá",
+        "colorOcher": "Vàng đất",
+        "statsRangeLabel": "Khoảng thời gian",
+        "statsOtherCategories": "Khác",
+        "trendDelta": "{{amount}} so với {{month}}",
+        "statsTrendSummary": "Diễn biến qua {{periods}} kỳ · Thu nhập {{income}} · Chi tiêu {{expenses}} · Cao nhất {{peak}}",
+        "statsDonutSummary": "{{count}} phần · Lớn nhất: {{top}} ({{pct}} %) · Tổng {{total}}",
+        "statsPointsLabel": "Giá trị đường xu hướng",
+        "statsPointLabel": "{{period}}: thu nhập {{income}}, chi tiêu {{expenses}}"
     },
     "settings": {
         "pageHealthModule": "Sức khỏe",
@@ -2729,7 +2743,14 @@
         "logoSearchEmpty": "Không tìm thấy logo được hỗ trợ.",
         "logoSearchError": "Không thể tải logo.",
         "logoSourceWebsite": "Từ trang web",
-        "useLogo": "Dùng logo này"
+        "useLogo": "Dùng logo này",
+        "resetFilters": "Đặt lại bộ lọc",
+        "noMatchesTitle": "Không có kết quả",
+        "noMatchesDescription": "Không có đăng ký nào khớp với bộ lọc đang bật.",
+        "filterLabelCategory": "Danh mục",
+        "filterLabelMethod": "Phương thức thanh toán",
+        "filterLabelStatus": "Trạng thái",
+        "filterLabelSort": "Sắp xếp"
     },
     "health": {
         "tabs": {
