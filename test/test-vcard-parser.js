@@ -50,11 +50,27 @@ test('parseVCard extrahiert FN, TEL, EMAIL, ADR, NOTE', () => {
   assert.equal(c.notes, 'Erfinderin');
 });
 
-test('parseVCard faellt bei fehlendem FN auf N zurueck, sonst name=null', () => {
-  const withN = 'BEGIN:VCARD\r\nN:Doe;Jane;;;\r\nEND:VCARD';
-  assert.equal(parseVCard(withN).name, 'Doe');
+test('parseVCard leitet den Namen aus N ab, faellt sonst auf FN zurueck (#535)', () => {
+  const withN = parseVCard('BEGIN:VCARD\r\nFN:Doe, Jane\r\nN:Doe;Jane;;;\r\nEND:VCARD');
+  assert.equal(withN.firstName, 'Jane');
+  assert.equal(withN.lastName, 'Doe');
+  // N schlaegt FN: einheitlich "Vorname Nachname" statt der Quell-Formatierung.
+  assert.equal(withN.name, 'Jane Doe');
+
+  const onlyFn = parseVCard('BEGIN:VCARD\r\nFN:Jane Doe\r\nEND:VCARD');
+  assert.equal(onlyFn.name, 'Jane Doe');
+  assert.equal(onlyFn.lastName, null);
+
   const noName = 'BEGIN:VCARD\r\nTEL:1\r\nEND:VCARD';
   assert.equal(parseVCard(noName).name, null);
+});
+
+test('parseVCard traegt Titel/Zweitname/Suffix aus N, ohne sie anzuzeigen (#535)', () => {
+  const c = parseVCard('BEGIN:VCARD\r\nN:Müller;Hans;Peter;Dr.;jr.\r\nEND:VCARD');
+  assert.equal(c.namePrefix, 'Dr.');
+  assert.equal(c.middleName, 'Peter');
+  assert.equal(c.nameSuffix, 'jr.');
+  assert.equal(c.name, 'Hans Peter Müller');
 });
 
 test('parseVCard entfaltet gefaltete Zeilen (RFC 6350)', () => {

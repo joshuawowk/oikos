@@ -8,6 +8,7 @@ import { createLogger } from '../logger.js';
 const log = createLogger('CardDAV');
 
 import * as db from '../db.js';
+import { composeDisplayName, normalizeNameParts } from '../../public/utils/contact-name.js';
 
 // --------------------------------------------------------
 // Helper Functions
@@ -64,6 +65,14 @@ function parseVCard(vCardText) {
   const vcard = {
     uid: null,
     name: null,
+    // FN unverändert, nur als Fallback wenn N fehlt (#535)
+    formattedName: null,
+    // Strukturierte N-Komponenten (#535)
+    firstName: null,
+    lastName: null,
+    middleName: null,
+    namePrefix: null,
+    nameSuffix: null,
     phones: [],
     emails: [],
     addresses: [],
@@ -102,17 +111,24 @@ function parseVCard(vCardText) {
         break;
 
       case 'FN':
-        if (!vcard.name) vcard.name = unescapeVCardValue(value);
+        if (!vcard.formattedName) vcard.formattedName = unescapeVCardValue(value);
         break;
 
-      case 'N':
-        // N is fallback if FN is not present
+      case 'N': {
+        // Strukturierte Komponenten erhalten (#535).
         // Format: Family;Given;Middle;Prefix;Suffix
-        if (!vcard.name) {
-          const parts = splitVCardValue(value, ';').map(unescapeVCardValue).filter(p => p.trim());
-          vcard.name = parts.join(' ').trim();
-        }
+        if (vcard.lastName || vcard.firstName) break; // nur die erste N-Zeile
+        const parts = splitVCardValue(value, ';').map(unescapeVCardValue);
+        const structured = normalizeNameParts({
+          lastName:   parts[0],
+          firstName:  parts[1],
+          middleName: parts[2],
+          namePrefix: parts[3],
+          nameSuffix: parts[4],
+        });
+        Object.assign(vcard, structured);
         break;
+      }
 
       case 'TEL':
         const phoneType = extractType(params) || 'other';
@@ -177,6 +193,10 @@ function parseVCard(vCardText) {
         break;
     }
   }
+
+  // Anzeigename einheitlich aus N ableiten; FN nur, wenn N keine Namensteile
+  // trägt (manche Server liefern nur FN oder ein leeres `N:;;;;`) - #535.
+  vcard.name = composeDisplayName(vcard) || vcard.formattedName;
 
   return vcard;
 }
@@ -1058,13 +1078,19 @@ async function parseAndMergeContact(vCardText, accountId, addressbookUrl) {
     const scalar = deriveScalarContactFields(vcard);
     const result = db.get().prepare(`
       INSERT INTO contacts (
-        name, category, phone, email, address, organization, job_title, birthday, website,
+        name, first_name, last_name, middle_name, name_prefix, name_suffix,
+        category, phone, email, address, organization, job_title, birthday, website,
         photo, nickname, notes,
         carddav_account_id, carddav_uid, carddav_addressbook_url, carddav_origin
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'remote')
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'remote')
     `).run(
       vcard.name,
+      vcard.firstName,
+      vcard.lastName,
+      vcard.middleName,
+      vcard.namePrefix,
+      vcard.nameSuffix,
       resolveContactCategory(vcard.categories, knownCategories),
       scalar.phone,
       scalar.email,
@@ -1167,6 +1193,27 @@ function updateContact(contactId, vcard, fillAll = false) {
   }
 
   maybeUpdate('name', 'name', vcard.name);
+
+  // Strukturierte Namensteile nachziehen (#535). Vor diesem Fix synchronisierte
+  // Kontakte haben sie noch nicht; fillAll=false füllt die NULL-Spalten nach.
+  maybeUpdate('firstName', 'first_name', vcard.firstName);
+  maybeUpdate('lastName', 'last_name', vcard.lastName);
+  maybeUpdate('middleName', 'middle_name', vcard.middleName);
+  maybeUpdate('namePrefix', 'name_prefix', vcard.namePrefix);
+  maybeUpdate('nameSuffix', 'name_suffix', vcard.nameSuffix);
+
+  // Einmalige Normalisierung des Anzeigenamens: ein rein aus CardDAV entstandener
+  // Kontakt (origin 'remote') trägt keine lokal gepflegten Daten, deshalb darf sein
+  // vor #535 aus FN übernommener Name auf das einheitliche Format gehoben werden.
+  // `merged`-Kontakte (lokal adoptiert) bleiben unangetastet.
+  const hadStructure = contact.first_name || contact.last_name;
+  if (!hadStructure && contact.carddav_origin === 'remote' &&
+      (vcard.firstName || vcard.lastName) && vcard.name && vcard.name !== contact.name &&
+      !updates.includes('name = ?')) {
+    updates.push('name = ?');
+    values.push(vcard.name);
+  }
+
   maybeUpdate('phone', 'phone', scalar.phone);
   maybeUpdate('email', 'email', scalar.email);
   maybeUpdate('address', 'address', scalar.address);

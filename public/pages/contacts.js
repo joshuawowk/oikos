@@ -12,6 +12,7 @@ import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 import { parseVCards } from '/utils/vcard.js';
+import { composeDisplayName, contactSortKey, splitDisplayName } from '/utils/contact-name.js';
 import '/components/category-manager.js';
 
 // --------------------------------------------------------
@@ -39,6 +40,11 @@ function catLabel(key) {
 function catSortIndex(key) {
   const i = state.categories.findIndex((c) => c.key === key);
   return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+}
+
+// Namens-Sortierung wie der Server: Nachname zuerst, sonst der Anzeigename (#535).
+function byName(a, b) {
+  return contactSortKey(a).localeCompare(contactSortKey(b));
 }
 
 // Liefert das Lucide-Placeholder-Markup für eine Kategorie; aria-hidden, da stets
@@ -186,8 +192,14 @@ export async function render(container, { user }) {
     api.get('/contacts'),
     api.get('/contacts/categories'),
   ]);
-  state.contacts   = res.data;
   state.categories = catRes.data ?? [];
+  // Der Server sortiert mit SQLite-NOCASE (ASCII-only); nach jeder lokalen
+  // Änderung sortiert die Seite dagegen mit localeCompare. Damit die Reihenfolge
+  // nicht zwischen Reload und Bearbeiten springt (Umlaut-Nachnamen), gilt hier
+  // durchgehend die Locale-Sortierung (#535).
+  state.contacts   = [...res.data].sort((a, b) =>
+    catSortIndex(a.category) - catSortIndex(b.category) || byName(a, b)
+  );
   renderCategoryFilters();
   renderList({ animate: true });
 
@@ -557,11 +569,37 @@ function openContactModal({ mode, contact = null }) {
   const v      = (field) => esc(isEdit && contact[field] ? contact[field] : '');
 
   const defaultCat = state.categories[0]?.key ?? FALLBACK_CATEGORY;
-  const catOpts = state.categories.map((c) =>
-    `<option value="${esc(c.key)}" ${isEdit && contact.category === c.key ? 'selected' : ''}>${esc(catLabel(c.key))}</option>`
-  ).join('');
+
+  // Ein Kontakt kann eine Kategorie tragen, die nicht (mehr) in der verwalteten
+  // Liste steht - z. B. aus einem Fremd-Import direkt in die DB. Ohne passende
+  // Option zeigte das Select stumm die erste Kategorie an und schrieb sie beim
+  // Speichern fest: der Kontakt wechselte die Kategorie, ohne dass jemand das
+  // angefasst hätte. Die Ist-Kategorie bekommt deshalb eine eigene Option und
+  // wird beim Speichern nur dann mitgeschickt, wenn der Nutzer sie ändert.
+  const orphanCat = isEdit && contact.category && !catByKey(contact.category)
+    ? contact.category
+    : null;
+  const catOpts = [
+    ...(orphanCat ? [`<option value="${esc(orphanCat)}" selected>${esc(orphanCat)}</option>`] : []),
+    ...state.categories.map((c) =>
+      `<option value="${esc(c.key)}" ${isEdit && contact.category === c.key ? 'selected' : ''}>${esc(catLabel(c.key))}</option>`
+    ),
+  ].join('');
 
   const advancedOpen = isEdit && (!!contact.address || !!contact.notes);
+
+  // Vor-/Nachname (#535). Kontakte ohne gespeicherte Struktur (Altbestand,
+  // lokal angelegt vor diesem Feld) werden heuristisch aus dem Anzeigenamen
+  // vorbelegt - gespeichert wird erst, was der Nutzer bestätigt.
+  const hadStructure = isEdit && !!(contact.first_name || contact.last_name);
+  const prefill = { firstName: '', lastName: '' };
+  if (isEdit) {
+    const parts = hadStructure
+      ? { firstName: contact.first_name, lastName: contact.last_name }
+      : splitDisplayName(contact.name);
+    prefill.firstName = parts.firstName || '';
+    prefill.lastName  = parts.lastName  || '';
+  }
 
   const advancedFieldsHtml = `
     <div class="form-group">
@@ -574,10 +612,19 @@ function openContactModal({ mode, contact = null }) {
     </div>`;
 
   const content = `
-    <div class="form-group">
-      <label class="form-label" for="cm-name">${t('contacts.nameLabel')}</label>
-      <input type="text" class="form-input" id="cm-name" placeholder="${t('contacts.namePlaceholder')}" value="${v('name')}" autocomplete="name">
-    </div>
+    <fieldset class="contact-modal__name-group">
+      <legend class="form-label">${t('contacts.nameGroupLabel')}</legend>
+      <div class="modal-grid modal-grid--2 contact-modal__name-grid">
+        <div class="form-group">
+          <label class="form-label" for="cm-first-name">${t('contacts.firstNameLabel')}</label>
+          <input type="text" class="form-input" id="cm-first-name" placeholder="${t('contacts.firstNamePlaceholder')}" value="${esc(prefill.firstName)}" autocomplete="given-name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cm-last-name">${t('contacts.lastNameLabel')}</label>
+          <input type="text" class="form-input" id="cm-last-name" placeholder="${t('contacts.lastNamePlaceholder')}" value="${esc(prefill.lastName)}" autocomplete="family-name">
+        </div>
+      </div>
+    </fieldset>
     <div class="form-group">
       <label class="form-label" for="cm-category">${t('contacts.categoryLabel')}</label>
       <div class="contacts-cat-select">
@@ -627,28 +674,54 @@ function openContactModal({ mode, contact = null }) {
         await deleteContact(contact.id);
       });
 
+      // Bei Kontakten ohne gespeicherte Struktur ist die Aufteilung nur geraten
+      // (letztes Wort = Nachname). Sie darf erst gespeichert werden, wenn der
+      // Nutzer sie bestätigt hat - sonst bekäme "AutoHaus König" beim Ändern
+      // einer Telefonnummer stillschweigend den Nachnamen "König" und würde in
+      // der Liste umsortiert (#535).
+      let nameTouched = false;
+      panel.querySelectorAll('#cm-first-name, #cm-last-name').forEach((input) => {
+        input.addEventListener('input', () => { nameTouched = true; });
+      });
+
       panel.querySelector('#cm-save').addEventListener('click', async () => {
         const saveBtn  = panel.querySelector('#cm-save');
-        const name     = panel.querySelector('#cm-name').value.trim();
+        const firstName = panel.querySelector('#cm-first-name').value.trim();
+        const lastName  = panel.querySelector('#cm-last-name').value.trim();
+        // Struktur wird nur übertragen, wenn sie gespeichert war oder der Nutzer
+        // sie angefasst hat; sonst bleibt der Anzeigename unverändert bestehen.
+        const structured = !isEdit || hadStructure || nameTouched;
+        const name      = structured
+          ? (composeDisplayName({ firstName, lastName }) || '')
+          : contact.name;
         const category = panel.querySelector('#cm-category').value;
         const phone    = panel.querySelector('#cm-phone').value.trim() || null;
         const email    = panel.querySelector('#cm-email').value.trim() || null;
         const address  = panel.querySelector('#cm-address').value.trim() || null;
         const notes    = panel.querySelector('#cm-notes').value.trim() || null;
 
-        if (!name) { window.yuvomi?.showToast(t('common.nameRequired'), 'danger'); return; }
+        if (!name) {
+          window.yuvomi?.showToast(t('contacts.nameRequiredHint'), 'danger');
+          panel.querySelector('#cm-first-name').focus();
+          return;
+        }
 
         saveBtn.disabled    = true;
         saveBtn.textContent = '…';
 
         try {
+          // firstName/lastName sind führend; der Server leitet `name` daraus ab (#535).
           const body = { name, category, phone, email, address, notes };
+          if (structured) { body.firstName = firstName; body.lastName = lastName; }
+          // Eine unverändert gebliebene Fremd-Kategorie würde der Server (zu Recht)
+          // mit 400 ablehnen; sie wird deshalb weggelassen und bleibt serverseitig
+          // per COALESCE erhalten.
+          if (orphanCat && category === orphanCat) delete body.category;
           if (mode === 'create') {
             const res = await api.post('/contacts', body);
             state.contacts.push(res.data);
             state.contacts.sort((a, b) =>
-              catSortIndex(a.category) - catSortIndex(b.category) ||
-              a.name.localeCompare(b.name)
+              catSortIndex(a.category) - catSortIndex(b.category) || byName(a, b)
             );
           } else {
             const res = await api.put(`/contacts/${contact.id}`, body);
@@ -720,7 +793,7 @@ async function deleteSelected() {
 
   let undone = false;
   const restore = () => {
-    state.contacts = [...state.contacts, ...removed].sort((a, b) => a.name.localeCompare(b.name));
+    state.contacts = [...state.contacts, ...removed].sort(byName);
     renderList();
   };
   window.yuvomi?.showToast(t('contacts.bulkDeletedToast', { count: ids.length }), 'default', 5000, () => {
@@ -749,7 +822,7 @@ async function deleteContact(id) {
   window.yuvomi?.showToast(t('contacts.deletedToast'), 'default', 5000, () => {
     undone = true;
     if (contact) {
-      state.contacts = [...state.contacts, contact].sort((a, b) => a.name.localeCompare(b.name));
+      state.contacts = [...state.contacts, contact].sort(byName);
       renderList();
     }
   });
@@ -760,7 +833,7 @@ async function deleteContact(id) {
       await api.delete(`/contacts/${id}`);
     } catch (err) {
       if (contact) {
-        state.contacts = [...state.contacts, contact].sort((a, b) => a.name.localeCompare(b.name));
+        state.contacts = [...state.contacts, contact].sort(byName);
         renderList();
       }
       window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
@@ -781,15 +854,45 @@ function resolveVCardCategory(rawCategories) {
   return matched?.key || null;
 }
 
+/**
+ * Namensvarianten eines Kontakts für den Dubletten-Abgleich (#535). Nötig, weil
+ * Quellen unterschiedlich formatieren: ein bereits synchronisierter Kontakt kann
+ * noch "Doe, John" heißen, während die frisch geparste vCard "John Doe" liefert.
+ * Verglichen werden Anzeigename, seine Komma-Umkehrung und - wo Namensteile
+ * vorliegen - beide Reihenfolgen.
+ */
+function nameVariants(c) {
+  const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const out = new Set();
+
+  const display = norm(c.name);
+  if (display) {
+    out.add(display);
+    const swapped = norm(display.replace(/^([^,]+),\s*(.+)$/, '$2 $1'));
+    if (swapped) out.add(swapped);
+  }
+
+  const first = norm(c.first_name ?? c.firstName);
+  const last  = norm(c.last_name  ?? c.lastName);
+  if (first || last) {
+    out.add(norm(`${first} ${last}`));
+    out.add(norm(`${last} ${first}`));
+  }
+
+  out.delete('');
+  return out;
+}
+
 /** Prüft, ob bereits ein Kontakt mit diesem Namen existiert (Dedup-Hinweis, NOCASE). */
-function contactExistsByName(name) {
-  const key = String(name || '').trim().toLowerCase();
-  return state.contacts.some((c) => String(c.name || '').trim().toLowerCase() === key);
+function contactExistsByName(contact) {
+  const variants = nameVariants(contact);
+  if (!variants.size) return false;
+  return state.contacts.some((c) => [...nameVariants(c)].some((v) => variants.has(v)));
 }
 
 /** Eine Auswahl-Zeile im Import-Modal. Bereits vorhandene Namen sind vorab abgewählt + markiert. */
 function importSelectionRowHtml(contact, index) {
-  const exists = contactExistsByName(contact.name);
+  const exists = contactExistsByName(contact);
   const detail = contact.phone || contact.email || '';
   return `
     <label class="vcard-import-row${exists ? ' vcard-import-row--exists' : ''}">

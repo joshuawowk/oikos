@@ -9,12 +9,44 @@ import express from 'express';
 import * as db from '../db.js';
 import { str, oneOf, date, collectErrors, MAX_TITLE, MAX_TEXT, MAX_SHORT } from '../middleware/validate.js';
 import { uniqueKey } from '../utils/category-slug.js';
+import { composeDisplayName, normalizeNameParts } from '../../public/utils/contact-name.js';
 
 const log = createLogger('Contacts');
 
 const router  = express.Router();
 
 const FALLBACK_CATEGORY = 'misc';
+
+/**
+ * Liest die strukturierten Namensteile aus einem Request-Body (#535) und leitet
+ * den Anzeigenamen daraus ab. Ein mitgesendetes `name` gilt nur, solange keine
+ * Komponenten vorliegen - sonst wäre die Anzeige wieder quellenabhängig.
+ * @param {Object} body - Request-Body
+ * @returns {{parts: Object, provided: boolean, displayName: string|null}}
+ */
+function readNameParts(body) {
+  const parts = normalizeNameParts({
+    firstName:  body.firstName,
+    lastName:   body.lastName,
+    middleName: body.middleName,
+    namePrefix: body.namePrefix,
+    nameSuffix: body.nameSuffix,
+  });
+  const provided = ['firstName', 'lastName', 'middleName', 'namePrefix', 'nameSuffix']
+    .some((k) => body[k] !== undefined);
+  return { parts, provided, displayName: composeDisplayName(parts) };
+}
+
+/** Längen-Validierung der Namensteile (gleiche Grenze wie der Anzeigename). */
+function namePartChecks(parts) {
+  return [
+    str(parts.firstName,  'Vorname',   { max: MAX_TITLE, required: false }),
+    str(parts.lastName,   'Nachname',  { max: MAX_TITLE, required: false }),
+    str(parts.middleName, 'Zweitname', { max: MAX_TITLE, required: false }),
+    str(parts.namePrefix, 'Namenszusatz', { max: MAX_SHORT, required: false }),
+    str(parts.nameSuffix, 'Namenssuffix', { max: MAX_SHORT, required: false }),
+  ];
+}
 
 /** Verwaltbare Kontakt-Kategorien aus der DB (nach sort_order). */
 function loadContactCategories() {
@@ -288,7 +320,8 @@ router.get('/', (req, res) => {
     }
 
     if (where.length) sql += ' WHERE ' + where.join(' AND ');
-    sql += ' ORDER BY category ASC, name ASC';
+    // Sortiert nach Nachname, wo er bekannt ist; sonst nach dem Anzeigenamen (#535).
+    sql += ' ORDER BY category ASC, COALESCE(NULLIF(last_name, \'\'), name) COLLATE NOCASE ASC, name COLLATE NOCASE ASC';
 
     const contacts = db.get().prepare(sql).all(...params);
     res.json({ data: contacts });
@@ -306,7 +339,9 @@ router.get('/', (req, res) => {
  */
 router.post('/', (req, res) => {
   try {
-    const vName    = str(req.body.name,     'Name',    { max: MAX_TITLE });
+    // Strukturierte Namensteile haben Vorrang vor einem mitgesendeten `name` (#535).
+    const nameParts = readNameParts(req.body);
+    const vName    = str(nameParts.displayName ?? req.body.name, 'Name', { max: MAX_TITLE });
     const vCat     = oneOf(req.body.category || FALLBACK_CATEGORY, validContactCategoryKeys(), 'Kategorie');
     const vPhone   = str(req.body.phone,   'Telefon', { max: MAX_SHORT, required: false });
     const vEmail   = str(req.body.email,   'E-Mail',  { max: MAX_TITLE, required: false });
@@ -315,7 +350,8 @@ router.post('/', (req, res) => {
     // Geburtstag (ISO YYYY-MM-DD, optional) - u. a. aus vCard-BDAY beim Import.
     // Speist den bestehenden #518-Geburtstags-Import (GET /birthdays/import/candidates).
     const vBirthday = date(req.body.birthday, 'Geburtstag', false);
-    const errors   = collectErrors([vName, vCat, vPhone, vEmail, vAddress, vNotes, vBirthday]);
+    const errors   = collectErrors([vName, vCat, vPhone, vEmail, vAddress, vNotes, vBirthday,
+                                    ...namePartChecks(nameParts.parts)]);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
 
     // Validate multi-value fields if provided
@@ -343,10 +379,13 @@ router.post('/', (req, res) => {
     // Insert contact and multi-value fields in a transaction
     const transaction = db.get().transaction(() => {
       const result = db.get().prepare(`
-        INSERT INTO contacts (name, category, phone, email, address, notes, birthday)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO contacts (name, category, phone, email, address, notes, birthday,
+                              first_name, last_name, middle_name, name_prefix, name_suffix)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(vName.value, vCat.value || FALLBACK_CATEGORY, vPhone.value, vEmail.value,
-             vAddress.value, vNotes.value, vBirthday.value);
+             vAddress.value, vNotes.value, vBirthday.value,
+             nameParts.parts.firstName, nameParts.parts.lastName, nameParts.parts.middleName,
+             nameParts.parts.namePrefix, nameParts.parts.nameSuffix);
 
       const contactId = result.lastInsertRowid;
 
@@ -425,7 +464,13 @@ router.put('/:id', (req, res) => {
     const contact = db.get().prepare('SELECT * FROM contacts WHERE id = ?').get(id);
     if (!contact) return res.status(404).json({ error: 'Kontakt nicht gefunden', code: 404 });
 
+    // Namensteile (#535): sobald welche mitkommen, ersetzen sie die gespeicherten
+    // und der Anzeigename wird neu daraus abgeleitet.
+    const nameParts = readNameParts(req.body);
+    const derivedName = nameParts.provided ? nameParts.displayName : null;
+
     const checks = [];
+    if (nameParts.provided)              checks.push(...namePartChecks(nameParts.parts));
     if (req.body.name     !== undefined) checks.push(str(req.body.name,     'Name',    { max: MAX_TITLE, required: false }));
     if (req.body.category !== undefined) checks.push(oneOf(req.body.category, validContactCategoryKeys(), 'Kategorie'));
     if (req.body.phone    !== undefined) checks.push(str(req.body.phone,    'Telefon', { max: MAX_SHORT, required: false }));
@@ -462,20 +507,30 @@ router.put('/:id', (req, res) => {
       // Update scalar fields
       db.get().prepare(`
         UPDATE contacts
-        SET name     = COALESCE(?, name),
-            category = COALESCE(?, category),
-            phone    = ?,
-            email    = ?,
-            address  = ?,
-            notes    = ?
+        SET name        = COALESCE(?, name),
+            category    = COALESCE(?, category),
+            phone       = ?,
+            email       = ?,
+            address     = ?,
+            notes       = ?,
+            first_name  = ?,
+            last_name   = ?,
+            middle_name = ?,
+            name_prefix = ?,
+            name_suffix = ?
         WHERE id = ?
       `).run(
-        req.body.name?.trim() ?? null,
+        derivedName ?? req.body.name?.trim() ?? null,
         req.body.category ?? null,
         req.body.phone   !== undefined ? (req.body.phone?.trim()   || null) : contact.phone,
         req.body.email   !== undefined ? (req.body.email?.trim()   || null) : contact.email,
         req.body.address !== undefined ? (req.body.address?.trim() || null) : contact.address,
         req.body.notes   !== undefined ? (req.body.notes?.trim()   || null) : contact.notes,
+        nameParts.provided ? nameParts.parts.firstName  : contact.first_name,
+        nameParts.provided ? nameParts.parts.lastName   : contact.last_name,
+        nameParts.provided ? nameParts.parts.middleName : contact.middle_name,
+        nameParts.provided ? nameParts.parts.namePrefix : contact.name_prefix,
+        nameParts.provided ? nameParts.parts.nameSuffix : contact.name_suffix,
         id
       );
 
@@ -628,7 +683,11 @@ router.get('/:id/vcard', (req, res) => {
       'BEGIN:VCARD',
       'VERSION:3.0',
       `FN:${esc(contact.name)}`,
-      `N:${esc(contact.name)};;;;`,
+      // Strukturierte Komponenten exportieren, wo bekannt (#535); sonst trägt
+      // das Familiennamen-Feld weiterhin den Anzeigenamen als Ganzes.
+      (contact.first_name || contact.last_name)
+        ? `N:${esc(contact.last_name)};${esc(contact.first_name)};${esc(contact.middle_name)};${esc(contact.name_prefix)};${esc(contact.name_suffix)}`
+        : `N:${esc(contact.name)};;;;`,
     ];
     if (contact.phone)   lines.push(`TEL;TYPE=VOICE:${esc(contact.phone)}`);
     if (contact.email)   lines.push(`EMAIL:${esc(contact.email)}`);

@@ -144,12 +144,23 @@ async function userFromContact(database, contactId, actorId) {
 }
 
 function syncGuestArtifacts(database, userId, { displayName, phone, email, birthDate, actorUserId }) {
-  const contact = database.prepare('SELECT id FROM contacts WHERE family_user_id = ?').get(userId);
+  const contact = database.prepare('SELECT id, name FROM contacts WHERE family_user_id = ?').get(userId);
   if (contact) {
     database.prepare(`
       UPDATE contacts SET name = ?, category = COALESCE(category, 'Sonstiges'), phone = ?, email = ?
       WHERE id = ?
     `).run(displayName, phone || null, email || null, contact.id);
+
+    // Namensteile eines gespiegelten Gast-Kontakts veralten mit dem Anzeigenamen
+    // (#535, wie in server/auth.js#syncFamilyMemberArtifacts).
+    if (contact.name !== displayName) {
+      database.prepare(`
+        UPDATE contacts
+        SET first_name = NULL, last_name = NULL, middle_name = NULL,
+            name_prefix = NULL, name_suffix = NULL
+        WHERE id = ?
+      `).run(contact.id);
+    }
   } else {
     database.prepare(`
       INSERT INTO contacts (name, category, phone, email, family_user_id)

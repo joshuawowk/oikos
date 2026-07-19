@@ -3,8 +3,10 @@
  * Zweck: Reine, DOM-freie Extraktion von Kontaktdaten aus vCard-3.0/4.0-Text.
  *        Unterstuetzt Dateien mit mehreren Kontakten (Multi-Card) und das
  *        Geburtsdatum (BDAY -> contacts.birthday, ISO YYYY-MM-DD).
- * Abhaengigkeiten: keine (bewusst import-frei -> direkt in Node testbar).
+ * Abhaengigkeiten: public/utils/contact-name.js (rein, DOM-frei).
  */
+
+import { composeDisplayName, normalizeNameParts } from './contact-name.js';
 
 /**
  * Entpackt vCard-Escapes (`\,` `\;` `\\` `\n`/`\N`) in EINEM Durchlauf.
@@ -17,6 +19,32 @@ function unescapeVCard(s) {
   return String(s || '').replace(/\\([\\,;nN])/g, (_, ch) =>
     (ch === 'n' || ch === 'N') ? '\n' : ch
   );
+}
+
+/**
+ * Zerlegt einen strukturierten vCard-Wert an *unescapten* Trennzeichen.
+ * Verhaltensgleich zu server/services/cardav-sync.js#splitVCardValue.
+ * @param {string} value
+ * @param {string} separator - Einzelzeichen (';' oder ',')
+ * @returns {string[]}
+ */
+function splitUnescaped(value, separator) {
+  const parts = [];
+  let current = '';
+  for (let i = 0; i < value.length; i++) {
+    const ch = value[i];
+    if (ch === '\\' && i + 1 < value.length) {
+      current += ch + value[i + 1];
+      i++;
+    } else if (ch === separator) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  return parts;
 }
 
 /**
@@ -75,13 +103,32 @@ export function parseVCard(text, opts = {}) {
   // Zeilenfortsetzungen entfalten (RFC 6350 3.2)
   const unfolded = String(text || '').replace(/\r?\n[ \t]/g, '');
 
-  const get = (prop) => {
+  const getRaw = (prop) => {
     const re = new RegExp(`^${prop}(?:;[^:]*)?:(.*)$`, 'im');
     const m = re.exec(unfolded);
-    return m ? unescapeVCard(m[1].trim()) : null;
+    return m ? m[1].trim() : null;
   };
 
-  const name = get('FN') || get('N')?.split(';')[0] || null;
+  const get = (prop) => {
+    const raw = getRaw(prop);
+    return raw === null ? null : unescapeVCard(raw);
+  };
+
+  // Strukturierte N-Komponenten erhalten (#535). An *unescapten* Semikola
+  // trennen, damit ein maskiertes `\;` innerhalb einer Komponente bleibt -
+  // spiegelt server/services/cardav-sync.js#splitVCardValue.
+  const nRaw = getRaw('N');
+  const nParts = nRaw ? splitUnescaped(nRaw, ';').map(unescapeVCard) : [];
+  const nameParts = normalizeNameParts({
+    lastName:   nParts[0],
+    firstName:  nParts[1],
+    middleName: nParts[2],
+    namePrefix: nParts[3],
+    nameSuffix: nParts[4],
+  });
+
+  // Anzeigename einheitlich aus N; FN nur als Fallback (#535).
+  const name = composeDisplayName(nameParts) || get('FN') || null;
   const phone = get('TEL') || null;
   const email = get('EMAIL') || null;
 
@@ -98,7 +145,7 @@ export function parseVCard(text, opts = {}) {
   const catRaw = get('CATEGORIES') || '';
   const category = (resolveCategory && resolveCategory(catRaw)) || fallbackCategory;
 
-  return { name, phone, email, address, notes, birthday, category };
+  return { name, ...nameParts, phone, email, address, notes, birthday, category };
 }
 
 /**

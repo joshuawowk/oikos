@@ -299,6 +299,19 @@ function syncFamilyMemberArtifacts(database, userId, {
       email !== undefined ? email : contact.email,
       contact.id,
     );
+
+    // Der gespiegelte Anzeigename hat keine strukturierte Quelle (#535). Ändert
+    // er sich, sind zuvor im Kontakt gepflegte Namensteile veraltet - sonst
+    // sortierte die Liste weiter nach dem alten Nachnamen und der Dialog
+    // belegte damit vor. NULL heißt: Sortierung fällt auf `name` zurück.
+    if (contact.name !== name) {
+      database.prepare(`
+        UPDATE contacts
+        SET first_name = NULL, last_name = NULL, middle_name = NULL,
+            name_prefix = NULL, name_suffix = NULL
+        WHERE id = ?
+      `).run(contact.id);
+    }
   } else {
     database.prepare(`
       INSERT INTO contacts (name, category, phone, email, family_user_id)

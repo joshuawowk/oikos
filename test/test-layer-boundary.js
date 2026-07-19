@@ -34,6 +34,7 @@ const SERVER_DIR = path.join(ROOT, 'server');
  */
 const SHARED_ISOMORPHIC = new Set([
   'public/utils/recipe-meal-types.js',
+  'public/utils/contact-name.js',
 ]);
 
 const SOURCE_EXT = /\.(js|mjs)$/;

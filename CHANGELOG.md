@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-07-19
+
+### Added
+- Contacts keep the structured name components of a vCard (given, family, additional, prefix, suffix) instead of only the combined `FN` string. CardDAV sources format that string however they like — `Given Family` on one server, `Family, Given` on the next, sometimes with a title mixed in — which made the list read and sort differently depending on where a contact came from. The display name is now composed as `First [Middle] Last` from the components, and the list sorts by last name. `FN` remains the fallback for cards whose `N` carries no name parts, such as organisation entries.
+- The contact dialog has separate fields for first and last name, grouped under one required marker: at least one of them must be filled. A contact that has no components yet is pre-filled by splitting its display name at the last word, and that guess is only saved once a name field is actually edited — so changing a phone number never invents a surname for a company contact.
+- The vCard export writes real `N` components where they exist, and the import reads them, so a contact exported from Yuvomi and read back elsewhere keeps its name structure.
+
+### Changed
+- Existing CardDAV contacts are picked up on the next sync: contacts created purely from a vCard also get their display name normalised once, while contacts that were adopted from a local entry keep the name the household gave them.
+- The duplicate check during vCard import compares both name orders and the comma form, so re-importing a contact that is already synced under `Family, Given` is recognised instead of silently offered as new.
+
+### Fixed
+- Editing a contact whose category is not in the managed list no longer moves it to a different category. The dropdown had no matching entry, silently displayed the first category and wrote it on save; the contact's actual category is now offered as its own option and left untouched unless it is changed deliberately.
+- Family and shared-expense guest contacts drop stale name components when the member's display name changes, so the list no longer sorts them under a surname that is no longer part of their name.
+
 ## [1.37.1] - 2026-07-19
 
 ### Fixed

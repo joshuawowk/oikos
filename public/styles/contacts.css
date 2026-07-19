@@ -436,6 +436,42 @@
   min-width: 0;
 }
 
+/* Vor- und Nachname sind ein Feldpaar (#535): die Legende trägt die
+   Pflicht-Markierung für beide zusammen ("Name *"), die Einzel-Labels bleiben
+   unmarkiert - Pflicht ist die Gruppe, nicht jedes Feld. */
+.contact-modal__name-group {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  min-width: 0;
+}
+
+/* Die Legende steht über zwei Feld-Labels und muss sich von ihnen abheben,
+   sonst liest man drei gleichrangige Beschriftungen statt einer Gruppe. */
+.contact-modal__name-group > legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.contact-modal__name-grid {
+  margin-bottom: 0;
+}
+
+/* Gestapelt (eine Spalte) stehen die beiden Felder dichter beieinander, und die
+   Gruppe rückt vom nächsten Feld ab - sonst liest sich das Paar loser als seine
+   Trennung zur Kategorie. */
+@container modal-body (max-width: 480px) {
+  .contact-modal__name-grid {
+    gap: var(--space-1);
+  }
+
+  .contact-modal__name-group {
+    margin-bottom: var(--space-6);
+  }
+}
+
 /* Modal-Footer (ersetzt Inline-Styles). */
 .contact-modal__footer {
   border: none;

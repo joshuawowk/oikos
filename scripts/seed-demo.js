@@ -361,14 +361,28 @@ const insertItem = db.prepare('INSERT INTO shopping_items (list_id, name, quanti
 
 // ── Contacts ─────────────────────────────────────────────────────────────────
 
+// Die Demo nutzt zwei Kategorien, die der Standardsatz nicht kennt. Sie werden
+// hier angelegt, wie ein Haushalt sie anlegen würde - sonst tragen die Kontakte
+// Keys ohne Eintrag in contact_categories, und der Bearbeiten-Dialog hätte für
+// sie keine Option (das Select fiele stumm auf die erste Kategorie zurück).
+console.log('Adding custom contact categories…');
+const insertContactCat = db.prepare(`
+  INSERT OR IGNORE INTO contact_categories (key, name, label_key, icon, sort_order)
+  VALUES (?, ?, NULL, ?, ?)
+`);
+[
+  ['family',   'Family',   'heart',     10],
+  ['services', 'Services', 'briefcase', 11],
+].forEach(row => insertContactCat.run(...row));
+
 console.log('Inserting contacts…');
 const insertContact = db.prepare(`
   INSERT INTO contacts (name, category, phone, email, address, notes, organization, job_title)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
 [
-  ['Dr. Anna Weber',            'medical',  '+49 231 445 2210', 'praxis@dr-weber.de',            'Bürgerstraße 12, Dortmund',      'GP — appointments Mon–Thu',                  'City Practice',          'General Practitioner'],
-  ['Dr. Thomas Müller',         'medical',  '+49 231 887 0034', 'info@zahnarzt-mueller.de',      'Hansastraße 55, Dortmund',       'Family dentist',                             'Dental Practice Müller', 'Dentist'],
+  ['Dr. Anna Weber',            'doctor',   '+49 231 445 2210', 'praxis@dr-weber.de',            'Bürgerstraße 12, Dortmund',      'GP — appointments Mon–Thu',                  'City Practice',          'General Practitioner'],
+  ['Dr. Thomas Müller',         'doctor',   '+49 231 887 0034', 'info@zahnarzt-mueller.de',      'Hansastraße 55, Dortmund',       'Family dentist',                             'Dental Practice Müller', 'Dentist'],
   ['Grandma & Grandpa Johnson', 'family',   '+49 2304 78 221',  'oma.johnson@gmail.com',         'Ahornweg 4, Castrop-Rauxel',     "Emma & Leo's grandparents",                  null,                     null],
   ['Westpark Primary School',   'school',   '+49 231 556 8810', 'office@westpark-grundschule.de','Westparkstraße 20, Dortmund',    "Emma's school — Mrs Bauer is class teacher", 'Westpark Primary School', null],
   ['AutoHaus König',            'services', '+49 231 997 1100', 'service@autohaus-koenig.de',    'Industriestraße 88, Dortmund',   'VW service partner — Ref: Golf TDI 2021',    'AutoHaus König',         'Service Centre'],

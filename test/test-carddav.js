@@ -37,6 +37,7 @@ describe('CardDAV Contacts Schema (Migration 30)', () => {
       CREATE TABLE contacts (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT NOT NULL,
+        first_name TEXT, last_name TEXT, middle_name TEXT, name_prefix TEXT, name_suffix TEXT,
         category   TEXT NOT NULL DEFAULT 'Sonstiges',
         phone      TEXT,
         email      TEXT,
@@ -481,6 +482,7 @@ describe('CardDAV Sync Service', () => {
       CREATE TABLE contacts (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT NOT NULL,
+        first_name TEXT, last_name TEXT, middle_name TEXT, name_prefix TEXT, name_suffix TEXT,
         category   TEXT NOT NULL DEFAULT 'Sonstiges',
         phone      TEXT,
         email      TEXT,
@@ -722,7 +724,10 @@ END:VCARD`;
 
       const result = parseVCard(vCardText);
       // Escaped ';' und ',' bleiben Teil der Komponente, echte ';' trennen.
-      assert.strictEqual(result.name, 'von M;ller Anna,Marie');
+      assert.strictEqual(result.lastName, 'von M;ller');
+      assert.strictEqual(result.firstName, 'Anna,Marie');
+      // Anzeige einheitlich "Vorname Nachname" (#535).
+      assert.strictEqual(result.name, 'Anna,Marie von M;ller');
     });
 
     it('should unescape ADR components', () => {
@@ -1648,6 +1653,7 @@ describe('CardDAV API Routes', () => {
       CREATE TABLE contacts (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT NOT NULL,
+        first_name TEXT, last_name TEXT, middle_name TEXT, name_prefix TEXT, name_suffix TEXT,
         category   TEXT NOT NULL DEFAULT 'Sonstiges',
         phone      TEXT,
         email      TEXT,
@@ -2278,6 +2284,7 @@ describe('Contacts API - Multi-Value Fields', () => {
       CREATE TABLE contacts (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT NOT NULL,
+        first_name TEXT, last_name TEXT, middle_name TEXT, name_prefix TEXT, name_suffix TEXT,
         category   TEXT NOT NULL DEFAULT 'Sonstiges',
         phone      TEXT,
         email      TEXT,
@@ -2835,6 +2842,7 @@ describe('pruneRemovedContacts: server-side contact deletions', () => {
       CREATE TABLE contacts (
         id                      INTEGER PRIMARY KEY AUTOINCREMENT,
         name                    TEXT NOT NULL,
+        first_name TEXT, last_name TEXT, middle_name TEXT, name_prefix TEXT, name_suffix TEXT,
         notes                   TEXT,
         carddav_account_id      INTEGER,
         carddav_uid             TEXT,
@@ -3071,5 +3079,64 @@ describe('parseAndMergeContact scalar + category wiring (#531 DB integration)', 
     const c = database.prepare('SELECT category, carddav_uid FROM contacts WHERE id = ?').get(localId);
     assert.strictEqual(c.category, 'school', 'Kategorie nicht auf misc herabgestuft');
     assert.strictEqual(c.carddav_uid, 'int-adopt', 'CardDAV-Verknüpfung gesetzt');
+  });
+
+  // ------------------------------------------------------------------
+  // #535: strukturierte N-Komponenten
+  // ------------------------------------------------------------------
+
+  it('speichert die N-Komponenten und zeigt "Vorname Nachname" statt der FN-Formatierung', async () => {
+    const id = await parseAndMergeContact(
+      vcf('name-1', 'FN:Mustermann, Erika Dr.', 'N:Mustermann;Erika;Maria;Dr.;M.A.'),
+      accountId, abUrl
+    );
+    const c = database.prepare('SELECT * FROM contacts WHERE id = ?').get(id);
+    assert.strictEqual(c.first_name, 'Erika');
+    assert.strictEqual(c.last_name, 'Mustermann');
+    assert.strictEqual(c.middle_name, 'Maria');
+    assert.strictEqual(c.name_prefix, 'Dr.');
+    assert.strictEqual(c.name_suffix, 'M.A.');
+    assert.strictEqual(c.name, 'Erika Maria Mustermann');
+  });
+
+  it('faellt auf FN zurueck, wenn N keine Namensteile traegt', async () => {
+    const id = await parseAndMergeContact(
+      vcf('name-2', 'FN:Bäckerei Schmidt', 'N:;;;;'), accountId, abUrl
+    );
+    const c = database.prepare('SELECT name, first_name, last_name FROM contacts WHERE id = ?').get(id);
+    assert.strictEqual(c.name, 'Bäckerei Schmidt');
+    assert.strictEqual(c.first_name, null);
+    assert.strictEqual(c.last_name, null);
+  });
+
+  it('hebt den Anzeigenamen eines rein entfernten Altkontakts einmalig auf das einheitliche Format', async () => {
+    const legacyId = database.prepare(`
+      INSERT INTO contacts (name, carddav_account_id, carddav_uid, carddav_addressbook_url, carddav_origin)
+      VALUES ('Doe, John', ?, 'name-legacy', ?, 'remote')
+    `).run(accountId, abUrl).lastInsertRowid;
+
+    await parseAndMergeContact(
+      vcf('name-legacy', 'FN:Doe, John', 'N:Doe;John;;;'), accountId, abUrl
+    );
+
+    const c = database.prepare('SELECT name, first_name, last_name FROM contacts WHERE id = ?').get(legacyId);
+    assert.strictEqual(c.name, 'John Doe');
+    assert.strictEqual(c.first_name, 'John');
+    assert.strictEqual(c.last_name, 'Doe');
+  });
+
+  it('laesst den Namen eines adoptierten (merged) Kontakts unangetastet', async () => {
+    const mergedId = database.prepare(`
+      INSERT INTO contacts (name, carddav_account_id, carddav_uid, carddav_addressbook_url, carddav_origin)
+      VALUES ('Mein eigener Name', ?, 'name-merged', ?, 'merged')
+    `).run(accountId, abUrl).lastInsertRowid;
+
+    await parseAndMergeContact(
+      vcf('name-merged', 'FN:Schmidt, Anna', 'N:Schmidt;Anna;;;'), accountId, abUrl
+    );
+
+    const c = database.prepare('SELECT name, last_name FROM contacts WHERE id = ?').get(mergedId);
+    assert.strictEqual(c.name, 'Mein eigener Name', 'lokaler Name bleibt erhalten');
+    assert.strictEqual(c.last_name, 'Schmidt', 'Struktur wird trotzdem nachgetragen');
   });
 });

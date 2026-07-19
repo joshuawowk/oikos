@@ -447,7 +447,12 @@ hand.
 ### Contacts
 | Column | Type | Constraint |
 |--------|------|-----------|
-| name | TEXT | NOT NULL |
+| name | TEXT | NOT NULL — display name, derived from the components below when they are set |
+| first_name | TEXT | nullable (migration v94) — vCard `N` given name |
+| last_name | TEXT | nullable (migration v94) — vCard `N` family name; the sort key |
+| middle_name | TEXT | nullable (migration v94) — vCard `N` additional names |
+| name_prefix | TEXT | nullable (migration v94) — vCard `N` prefix (title), stored but not displayed |
+| name_suffix | TEXT | nullable (migration v94) — vCard `N` suffix, stored but not displayed |
 | category | TEXT | FK → Contact Categories (by key), NOT NULL default `misc` |
 | phone | TEXT | legacy single-value field |
 | email | TEXT | legacy single-value field |
@@ -466,6 +471,27 @@ hand.
 | carddav_origin | TEXT | `remote` \| `merged`, nullable (migration v89) — how the CardDAV link came about; drives what a server-side deletion does |
 
 Index: UNIQUE on `(carddav_account_id, carddav_addressbook_url, carddav_uid)` WHERE `carddav_uid IS NOT NULL`
+
+**Structured name components (migration v94, v1.38.0):** CardDAV sources format the vCard `FN`
+property however they like — `Given Family`, `Family, Given`, some with titles or nicknames mixed in.
+Storing only that string made display and sorting depend on whichever server a contact came from.
+Yuvomi now keeps the structured `N` components (family, given, additional, prefix, suffix) and
+derives `name` from them as `Given [Additional] Family`; prefix and suffix are preserved for export
+but never shown. `FN` remains the fallback for vCards whose `N` carries no name parts at all (an
+empty `N:;;;;` on organisation entries, for example). The contact list sorts by
+`COALESCE(NULLIF(last_name,''), name)`, so contacts without components fall back to their display
+name. Both the REST API (`POST`/`PUT /api/v1/contacts` accept `firstName`, `lastName`, `middleName`,
+`namePrefix`, `nameSuffix` and derive `name` from them) and the vCard export (`N` carries the real
+components) use the same shared, isomorphic helper `public/utils/contact-name.js`.
+
+Existing contacts are not guessed at: the columns stay `NULL` until a source fills them. A CardDAV
+contact gets them on the next sync; one that was created purely from a vCard (`carddav_origin =
+'remote'`) also has its display name normalised once at that point, while an adopted (`merged`)
+contact keeps its locally maintained name. In the edit dialog, a contact without components is
+pre-filled by splitting the display name at its last word — but that guess is only persisted when
+the user actually edits a name field, so changing a phone number never invents a surname for
+`AutoHaus König`. Mirrored family/guest contacts (whose `name` follows a user's display name) drop
+stale components when that display name changes.
 
 **Server-side deletions (migration v89):** contacts sync automatically on the `SYNC_INTERVAL_MINUTES`
 schedule, and each run removes contacts the addressbook no longer returns — but not all of them the
@@ -1497,6 +1523,7 @@ Responsive grid with colored sticky notes. Phones use one readable column; wider
 ### Contacts (`/contacts`)
 
 - CRUD with category filter
+- **Separate first/last name (v1.38.0):** the contact dialog has two name fields grouped under one required marker ("Name \*") — at least one of them must be filled. The display name is composed as `First [Middle] Last`, and the list sorts by last name, so contacts read the same no matter which CardDAV server they came from. A contact that has no stored components yet is pre-filled by splitting its display name at the last word; that guess is only saved when a name field is actually edited. A category the household does not (or no longer) manages is offered as its own option instead of silently falling back to the first entry — see [structured name components](#contacts)
 - **Customizable categories:** a "Manage categories" button in the toolbar opens the shared `oikos-category-manager` modal to add, rename, reorder, and delete contact categories (predefined set localized with per-category icons and color tints, custom categories added inline). Deletion is blocked while a category is in use or when it is the last one — see [Contact Categories data model](#contact-categories-migration-v84)
 - **Multi-value fields:** multiple phones, emails, and addresses per contact, each with a label (mobile, work, home, etc.) and optional `isPrimary` flag
 - **Additional fields:** organization, job_title, birthday, website, photo, nickname
@@ -1506,8 +1533,8 @@ Responsive grid with colored sticky notes. Phones use one readable column; wider
 - **Keyboard shortcuts:** `/` focuses search, `n` creates a contact (disabled while a modal is open or while typing in a field)
 - **Bulk selection (opt-in):** a toolbar toggle enters selection mode — rows become checkboxes with select-all and batch delete (5-second undo). Family-linked contacts (`family_user_id`) are not selectable, since they can only be removed via their member profile
 - Rows are keyboard/screen-reader operable (each row is a focusable button); the mobile secondary-action menu uses the native Popover API (top-layer, no clipping)
-- vCard export: each contact downloadable as `.vcf` (`GET /api/v1/contacts/:id/vcard`), including `BDAY` when a birthday is set
-- vCard import: upload a `.vcf` file → client-side parser (FN, TEL, EMAIL, ADR, NOTE, CATEGORIES, and `BDAY` → `birthday`). Files with **multiple contacts** are fully supported: the parser splits every `BEGIN:VCARD…END:VCARD` block. Nothing is created silently — a **selection dialog** lists the parsed contacts with checkboxes; entries whose name already exists are pre-unchecked and badged (duplicate guard), and cards without a name are reported as skipped. Only the confirmed selection is created via `POST /api/v1/contacts` (which now accepts and stores `birthday`). The result is a single composite toast; failed creations name the reason and offer a one-click **retry** of just the failures. When imported contacts carry a birthday, the toast offers a shortcut that jumps straight into the Birthdays import dialog (see Birthdays → *Import from contacts*)
+- vCard export: each contact downloadable as `.vcf` (`GET /api/v1/contacts/:id/vcard`), including `BDAY` when a birthday is set and a real structured `N` line when the contact carries name components (v1.38.0)
+- vCard import: upload a `.vcf` file → client-side parser (FN, **N**, TEL, EMAIL, ADR, NOTE, CATEGORIES, and `BDAY` → `birthday`). The name is taken from the structured `N` components, with `FN` as fallback, so `Family, Given` sources import the same way as `Given Family` ones (v1.38.0); the duplicate guard compares both orders and the comma form, so a re-import of an already-synced contact is still recognised. Files with **multiple contacts** are fully supported: the parser splits every `BEGIN:VCARD…END:VCARD` block. Nothing is created silently — a **selection dialog** lists the parsed contacts with checkboxes; entries whose name already exists are pre-unchecked and badged (duplicate guard), and cards without a name are reported as skipped. Only the confirmed selection is created via `POST /api/v1/contacts` (which now accepts and stores `birthday`). The result is a single composite toast; failed creations name the reason and offer a one-click **retry** of just the failures. When imported contacts carry a birthday, the toast offers a shortcut that jumps straight into the Birthdays import dialog (see Birthdays → *Import from contacts*)
 - **CardDAV multi-account sync:** connect multiple CardDAV servers (Nextcloud, iCloud, Radicale, Baikal); per-addressbook enable/disable via checkboxes, plus "enable all / disable all" once an account has more than one addressbook; read-only inbound sync, automatic on the `SYNC_INTERVAL_MINUTES` schedule plus a manual trigger. Accounts are **editable** (`PUT /api/v1/contacts/cardav/accounts/:id`) — a rotated password no longer means deleting and re-adding the account and losing the addressbook selection; leaving the password field empty keeps the stored one, and a URL+username that already belongs to another account is rejected with `409`. API routes under `/api/v1/contacts/cardav/*`: create/update/delete accounts, test connections, discover/refresh addressbooks, toggle addressbook selection, sync contacts. Error responses carry a stable `errorCode` (e.g. `account_duplicate`, `account_not_found`) that the client translates; the `error` string itself is an English developer note (v1.34.0)
 
 ### Documents (`/documents`)
