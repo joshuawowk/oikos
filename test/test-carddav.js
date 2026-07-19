@@ -799,6 +799,14 @@ END:VCARD`;
       assert.strictEqual(resolveContactCategory('doctor,vip', KNOWN), 'doctor');
       assert.strictEqual(resolveContactCategory('wichtig', KNOWN), 'vip');
     });
+
+    it('should fall back to the first known key when misc is absent', () => {
+      const noMisc = [{ key: 'doctor', name: null }, { key: 'vip', name: null }];
+      assert.strictEqual(resolveContactCategory(null, noMisc), 'doctor');
+      assert.strictEqual(resolveContactCategory('unmapped', noMisc), 'doctor');
+      // Leere Kategorie-Liste: letzter Rückfall bleibt der literale Key 'misc'.
+      assert.strictEqual(resolveContactCategory('x', []), 'misc');
+    });
   });
 
   // ========================================
@@ -2982,5 +2990,74 @@ describe('fetchVCardsResilient (#529 mailbox.org FN-filter fallback)', () => {
     };
     const out = await fetchVCardsResilient(client, addressBook);
     assert.deepStrictEqual(out, []);
+  });
+});
+
+// ========================================
+// parseAndMergeContact: Skalar- & Kategorie-Verdrahtung (#531)
+// Gegen das echte, voll migrierte DB-Modul, damit die INSERT-/UPDATE-Pfade
+// (nicht nur die reinen Helfer) abgedeckt sind.
+// ========================================
+
+describe('parseAndMergeContact scalar + category wiring (#531 DB integration)', () => {
+  let database;
+  let parseAndMergeContact;
+  let accountId;
+  const abUrl = 'https://dav.example.com/abook/';
+  const vcf = (uid, ...lines) =>
+    ['BEGIN:VCARD', 'VERSION:3.0', `UID:${uid}`, ...lines, 'END:VCARD'].join('\r\n');
+
+  before(async () => {
+    // Das db-Modul bindet DB_PATH beim Laden (oben statisch importiert), daher muss
+    // die Isolation über die Prozess-Env kommen: das npm-Script setzt DB_PATH=:memory:.
+    // Ohne das würde db.init() die echte Repo-Datei öffnen und verschmutzen.
+    const dbModule = await import('../server/db.js');
+    dbModule.init();
+    database = dbModule.get();
+    ({ parseAndMergeContact } = await import('../server/services/cardav-sync.js'));
+
+    accountId = database.prepare(
+      "INSERT INTO carddav_accounts (name, carddav_url, username, password) VALUES ('t', 'https://dav.example.com', 'u', 'p')"
+    ).run().lastInsertRowid;
+  });
+
+  it('populates base phone/email/address, unescapes the name and resolves an unmapped category to misc', async () => {
+    const id = await parseAndMergeContact(
+      vcf('int-1', 'FN:Erika\\, Mustermann', 'TEL;TYPE=CELL:+49 30 123',
+        'EMAIL;TYPE=HOME:erika@example.com', 'ADR;TYPE=HOME:;;Hauptstr 5;Berlin;;10115;DE',
+        'CATEGORIES:Friends'),
+      accountId, abUrl
+    );
+    const c = database.prepare('SELECT * FROM contacts WHERE id = ?').get(id);
+    assert.strictEqual(c.name, 'Erika, Mustermann');
+    assert.strictEqual(c.phone, '+49 30 123');
+    assert.strictEqual(c.email, 'erika@example.com');
+    assert.strictEqual(c.address, 'Hauptstr 5, 10115 Berlin, DE');
+    assert.strictEqual(c.category, 'misc');
+  });
+
+  it('maps a known category key from CATEGORIES', async () => {
+    const id = await parseAndMergeContact(
+      vcf('int-2', 'FN:Some Doctor', 'CATEGORIES:doctor'), accountId, abUrl
+    );
+    const c = database.prepare('SELECT category FROM contacts WHERE id = ?').get(id);
+    assert.strictEqual(c.category, 'doctor');
+  });
+
+  it('does not downgrade an existing category to misc when adopting a local contact (fillAll)', async () => {
+    // Rein lokaler Kontakt mit Kategorie + passender E-Mail, noch nicht CardDAV-verknüpft.
+    const localId = database.prepare(
+      "INSERT INTO contacts (name, category, email) VALUES ('Local Person', 'school', 'adopt@example.com')"
+    ).run().lastInsertRowid;
+
+    const returnedId = await parseAndMergeContact(
+      vcf('int-adopt', 'FN:Local Person', 'EMAIL;TYPE=HOME:adopt@example.com', 'CATEGORIES:RandomGroup'),
+      accountId, abUrl
+    );
+
+    assert.strictEqual(returnedId, localId, 'adoptierte den bestehenden lokalen Kontakt');
+    const c = database.prepare('SELECT category, carddav_uid FROM contacts WHERE id = ?').get(localId);
+    assert.strictEqual(c.category, 'school', 'Kategorie nicht auf misc herabgestuft');
+    assert.strictEqual(c.carddav_uid, 'int-adopt', 'CardDAV-Verknüpfung gesetzt');
   });
 });

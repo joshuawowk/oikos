@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.31.6] - 2026-07-19
+
+### Fixed
+- Follow-up hardening for the CardDAV contact import (#531): imported contacts whose category could not be mapped no longer downgrade an existing, manually chosen category when an already-local contact is adopted during sync; the category fallback now also stays valid when the household has deleted the default "misc" category. The manual `.vcf` file importer's vCard unescaping was switched to the same single-pass logic as the CardDAV sync, closing an ordering edge case with `\\` escape sequences. Behavior is unchanged for normal contacts; this only affects the edge cases above.
+
 ## [1.31.5] - 2026-07-19
 
 ### Fixed

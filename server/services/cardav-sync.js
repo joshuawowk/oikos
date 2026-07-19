@@ -274,14 +274,17 @@ function deriveScalarContactFields(vcard) {
  * @returns {string} Kategorie-Key
  */
 function resolveContactCategory(rawCategories, categories) {
-  const fallback = 'misc';
+  const list = categories || [];
+  // Normalerweise 'misc'; falls der Haushalt diese Kategorie gelöscht hat, auf den
+  // ersten vorhandenen Key ausweichen, damit nie ein verwaister Key gespeichert wird.
+  const fallback = list.some((c) => c.key === 'misc') ? 'misc' : (list[0]?.key ?? 'misc');
   if (!rawCategories) return fallback;
 
   const first = String(rawCategories).split(',')[0]?.trim();
   if (!first) return fallback;
 
   const lower = first.toLowerCase();
-  const match = (categories || []).find((c) =>
+  const match = list.find((c) =>
     c.key.toLowerCase() === lower ||
     (c.name && c.name.toLowerCase() === lower)
   );
@@ -1036,7 +1039,17 @@ function updateContact(contactId, vcard, fillAll = false) {
   // Liste und Bearbeiten-Dialog sichtbare Werte haben. Bei bestehenden, vor diesem
   // Fix synchronisierten Kontakten füllt fillAll=false die noch NULL-en Spalten nach.
   const scalar = deriveScalarContactFields(vcard);
-  const knownCategories = db.get().prepare('SELECT key, name FROM contact_categories').all();
+
+  // Kategorie nur auflösen, wenn die vCard überhaupt eine liefert (spart sonst die
+  // DB-Abfrage). Eine echte Zuordnung wird immer übernommen; den misc-Fallback nur,
+  // wenn lokal noch keine Kategorie gesetzt ist — sonst würde die Adoption (fillAll)
+  // eine gültige manuelle Kategorie auf misc herabstufen (#531-Audit).
+  let resolvedCategory = null;
+  if (vcard.categories != null) {
+    const knownCategories = db.get().prepare('SELECT key, name FROM contact_categories').all();
+    const resolved = resolveContactCategory(vcard.categories, knownCategories);
+    resolvedCategory = (resolved !== 'misc' || !contact.category) ? resolved : null;
+  }
 
   maybeUpdate('name', 'name', vcard.name);
   maybeUpdate('phone', 'phone', scalar.phone);
@@ -1049,8 +1062,7 @@ function updateContact(contactId, vcard, fillAll = false) {
   maybeUpdate('photo', 'photo', vcard.photo);
   maybeUpdate('nickname', 'nickname', vcard.nickname);
   maybeUpdate('notes', 'notes', vcard.notes);
-  maybeUpdate('categories', 'category',
-    vcard.categories != null ? resolveContactCategory(vcard.categories, knownCategories) : null);
+  maybeUpdate('categories', 'category', resolvedCategory);
 
   if (updates.length === 0) return;
 

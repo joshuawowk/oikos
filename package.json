@@ -1,6 +1,6 @@
 {
   "name": "yuvomi",
-  "version": "1.31.5",
+  "version": "1.31.6",
   "description": "Self-hosted family planner - calendar, tasks, shopping, meal planning, budget and more. Private, open-source, no subscription.",
   "main": "server/index.js",
   "type": "module",
@@ -111,7 +111,7 @@
     "test:google-multi": "node --experimental-sqlite test/test-google-multi.js",
     "test:caldav-reminders": "node --experimental-sqlite test/test-caldav-reminders.js",
     "test:caldav-event-target": "node --experimental-sqlite test/test-caldav-event-target.js",
-    "test:carddav": "node --experimental-sqlite test/test-carddav.js",
+    "test:carddav": "DB_PATH=:memory: node --experimental-sqlite test/test-carddav.js",
     "test:split-expenses": "node --experimental-sqlite test/test-split-expenses.js",
     "test:split-expenses-routes": "node --experimental-sqlite --test test/test-split-expenses-routes.js",
     "test:search": "node --experimental-sqlite test/test-search.js",

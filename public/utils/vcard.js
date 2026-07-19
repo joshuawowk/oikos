@@ -6,10 +6,17 @@
  * Abhaengigkeiten: keine (bewusst import-frei -> direkt in Node testbar).
  */
 
-/** Entpackt vCard-Escapes (\n \, \; \\). */
+/**
+ * Entpackt vCard-Escapes (`\,` `\;` `\\` `\n`/`\N`) in EINEM Durchlauf.
+ * Der Single-Pass ist reihenfolge-sicher: sequenzielle `.replace()`-Ketten
+ * lösen `\\` erst am Ende auf und können dabei zuvor freigelegte Backslashes
+ * falsch weiterverarbeiten. Verhaltensgleich zu
+ * server/services/cardav-sync.js#unescapeVCardValue.
+ */
 function unescapeVCard(s) {
-  return String(s || '')
-    .replace(/\\n/gi, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+  return String(s || '').replace(/\\([\\,;nN])/g, (_, ch) =>
+    (ch === 'n' || ch === 'N') ? '\n' : ch
+  );
 }
 
 /**
