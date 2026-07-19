@@ -297,7 +297,12 @@
         "documentRemove": "Bağlantıyı kaldır",
         "documentsEmpty": "Henüz bağlı belge yok.",
         "documentsCount": "{{count}} belge",
-        "assignedToMe": "Bana atananlar"
+        "assignedToMe": "Bana atananlar",
+        "noResultsTitle": "Sonuç yok",
+        "searchPlaceholder": "Görevlerde ara…",
+        "viewToggleLabel": "Görünüm",
+        "groupToggleLabel": "Gruplama ölçütü",
+        "noResultsDescription": "\"{{query}}\" içeren görev yok."
     },
     "shopping": {
         "detailsLabel": "{{name}} ayrıntıları",
@@ -690,7 +695,13 @@
         "colorTeal": "Teal",
         "colorWhite": "Beyaz",
         "colorYellow": "Sarı",
-        "searchClear": "Aramayı temizle"
+        "searchClear": "Aramayı temizle",
+        "openNote": "Notu aç",
+        "groupPinned": "Sabitlenmiş",
+        "groupOthers": "Diğer notlar",
+        "filterCreatorLabel": "Oluşturan",
+        "formatToolbarLabel": "Metin biçimlendirme",
+        "noResultsCreatorDescription": "{{name}} tarafından not yok."
     },
     "contacts": {
         "manageCategories": "Kategorileri yönet",

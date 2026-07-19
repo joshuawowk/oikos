@@ -297,7 +297,12 @@
         "documentRemove": "Gỡ liên kết",
         "documentsEmpty": "Chưa có tài liệu nào được liên kết.",
         "documentsCount": "{{count}} tài liệu",
-        "assignedToMe": "Được giao cho tôi"
+        "assignedToMe": "Được giao cho tôi",
+        "noResultsTitle": "Không có kết quả",
+        "searchPlaceholder": "Tìm kiếm công việc…",
+        "viewToggleLabel": "Chế độ xem",
+        "groupToggleLabel": "Nhóm theo",
+        "noResultsDescription": "Không có công việc nào chứa \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Chi tiết {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Mòng két",
         "colorWhite": "Trắng",
         "colorYellow": "Vàng",
-        "searchClear": "Xóa tìm kiếm"
+        "searchClear": "Xóa tìm kiếm",
+        "openNote": "Mở ghi chú",
+        "groupPinned": "Đã ghim",
+        "groupOthers": "Ghi chú khác",
+        "filterCreatorLabel": "Người tạo",
+        "formatToolbarLabel": "Định dạng văn bản",
+        "noResultsCreatorDescription": "Không có ghi chú từ {{name}}."
     },
     "contacts": {
         "manageCategories": "Quản lý danh mục",

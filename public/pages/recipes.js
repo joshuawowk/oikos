@@ -359,7 +359,7 @@ async function saveRecipe(panel, mode, recipe) {
   const meal_types = [...panel.querySelectorAll('#recipe-meal-types input[type="checkbox"]:checked')].map((input) => input.value);
 
   if (!title) {
-    window.yuvomi?.showToast(t('recipes.titleRequired'), 'error');
+    window.yuvomi?.showToast(t('recipes.titleRequired'), 'danger');
     return;
   }
 
@@ -388,7 +388,7 @@ async function saveRecipe(panel, mode, recipe) {
     window.yuvomi?.showToast(mode === 'create' ? t('recipes.created') : t('recipes.updated'), 'success');
   } catch (err) {
     saveBtn.disabled = false;
-    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
   }
 }
 
@@ -432,6 +432,6 @@ async function duplicateRecipe(recipe) {
     renderRecipeList();
     window.yuvomi?.showToast(t('recipes.duplicated'), 'success');
   } catch (err) {
-    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
   }
 }

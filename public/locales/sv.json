@@ -297,7 +297,12 @@
         "documentRemove": "Ta bort länk",
         "documentsEmpty": "Inga dokument länkade ännu.",
         "documentsCount": "{{count}} dokument",
-        "assignedToMe": "Tilldelade mig"
+        "assignedToMe": "Tilldelade mig",
+        "noResultsTitle": "Inga resultat",
+        "searchPlaceholder": "Sök uppgifter…",
+        "viewToggleLabel": "Vy",
+        "groupToggleLabel": "Gruppera efter",
+        "noResultsDescription": "Ingen uppgift innehåller \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Detaljer för {{name}}",
@@ -690,7 +695,13 @@
         "colorPurple": "Lila",
         "colorOrange": "Orange",
         "colorWhite": "Vit",
-        "searchClear": "Rensa sökning"
+        "searchClear": "Rensa sökning",
+        "openNote": "Öppna anteckning",
+        "groupPinned": "Fästa",
+        "groupOthers": "Övriga anteckningar",
+        "filterCreatorLabel": "Skapad av",
+        "formatToolbarLabel": "Textformatering",
+        "noResultsCreatorDescription": "Inga anteckningar från {{name}}."
     },
     "contacts": {
         "manageCategories": "Hantera kategorier",

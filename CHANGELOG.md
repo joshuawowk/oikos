@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-07-19
+
+### Added
+- Tasks has a search field in the module head. It filters the list and the Kanban board instantly by title and description, on top of the existing status, priority and person filters. Tasks was the only list-heavy module without one. A search without hits names the query instead of claiming the module is empty and offering a "create task" button.
+- Notes can be filtered by author. A chip row below the module head narrows the board to one person's notes; it appears only once at least two people have written notes, and clicking the active chip clears the filter again.
+- Pinned notes sit under their own "Pinned" heading, the rest under "Other notes". They were always sorted first, but the boundary was only inferable from the ring drawn around the card.
+
+### Changed
+- The Tasks toolbar keeps its secondary controls visible instead of folding them into an overflow panel. View switch, grouping and bulk selection sat behind a `<details>` trigger on phone and tablet widths, which hid both the controls and their current state — the same pattern that was discarded in Documents in 1.22.2. Tasks now follows the layout Documents and Contacts already use: a wrapping module head above a permanently visible filter row that carries the filter chips and the grouping choice.
+- A note can be deleted from the opened note. In reading mode the entire dialog footer was hidden, so an opened note offered no action other than closing it — unlike the task dialog, which carries its delete action inline. Cancel and Save stay editor-only.
+- Long notes no longer crowd out the board. A note's preview is height-capped; the full text stays one click away in reading mode.
+
+### Fixed
+- Every filter in Tasks can be operated with a keyboard. The chips for status, priority, person, "assigned to me", "show scheduled" and the recently-used filter sets were `<span>` elements with click handlers, so the entire filter row was reachable by pointer only — while Documents and Contacts already rendered the same shared chip class as buttons. The chips now report their state via `aria-pressed`.
+- The subtask list can be opened without a mouse. Its only opener was the progress bar, a `<div>`, and the list itself is hidden by default, so there was no keyboard path to the subtasks at all. The bar is now a button reporting `aria-expanded`.
+- A task can be opened from its title in both the list and the Kanban board, and a note from a new open button on its card. All three were non-focusable containers; on the note card only pinning and deleting were reachable, so a note could not be read or edited by keyboard at all.
+- The view and grouping switches report the active option to assistive technology instead of signalling it through colour alone.
+- The last row of notes is no longer covered by the floating add button. The notes grid scrolls on its own and reserved no room for it, unlike the tasks list.
+- Error toasts show as errors again. Eight modules passed an unsupported `'error'` variant to the toast helper, which knows only `default`, `success`, `warning` and `danger`. Those messages rendered as neutral notices and were announced politely rather than assertively; 49 calls corrected across Budget, Budget plans, Calendar, Contacts, Dashboard, Meals, Notes and Recipes.
+
 ## [1.35.0] - 2026-07-19
 
 ### Added

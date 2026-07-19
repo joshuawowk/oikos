@@ -304,7 +304,12 @@
         "documentRemove": "Hapus tautan",
         "documentsEmpty": "Belum ada dokumen yang ditautkan.",
         "documentsCount": "{{count}} dokumen",
-        "assignedToMe": "Ditugaskan ke saya"
+        "assignedToMe": "Ditugaskan ke saya",
+        "noResultsTitle": "Tidak ada kecocokan",
+        "searchPlaceholder": "Cari tugas…",
+        "viewToggleLabel": "Tampilan",
+        "groupToggleLabel": "Kelompokkan menurut",
+        "noResultsDescription": "Tidak ada tugas yang berisi \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Detail untuk {{name}}",
@@ -697,7 +702,13 @@
         "colorPurple": "Ungu",
         "colorOrange": "Oranye",
         "colorWhite": "Putih",
-        "searchClear": "Hapus pencarian"
+        "searchClear": "Hapus pencarian",
+        "openNote": "Buka catatan",
+        "groupPinned": "Disematkan",
+        "groupOthers": "Catatan lainnya",
+        "filterCreatorLabel": "Dibuat oleh",
+        "formatToolbarLabel": "Format teks",
+        "noResultsCreatorDescription": "Tidak ada catatan dari {{name}}."
     },
     "contacts": {
         "manageCategories": "Kelola kategori",

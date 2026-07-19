@@ -297,7 +297,12 @@
         "documentRemove": "Koppeling verwijderen",
         "documentsEmpty": "Nog geen documenten gekoppeld.",
         "documentsCount": "{{count}} documenten",
-        "assignedToMe": "Aan mij toegewezen"
+        "assignedToMe": "Aan mij toegewezen",
+        "noResultsTitle": "Geen resultaten",
+        "searchPlaceholder": "Taken zoeken…",
+        "viewToggleLabel": "Weergave",
+        "groupToggleLabel": "Groeperen op",
+        "noResultsDescription": "Geen taak bevat \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Details van {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Groenblauw",
         "colorWhite": "Wit",
         "colorYellow": "Geel",
-        "searchClear": "Zoekopdracht wissen"
+        "searchClear": "Zoekopdracht wissen",
+        "openNote": "Notitie openen",
+        "groupPinned": "Vastgezet",
+        "groupOthers": "Overige notities",
+        "filterCreatorLabel": "Gemaakt door",
+        "formatToolbarLabel": "Tekstopmaak",
+        "noResultsCreatorDescription": "Geen notities van {{name}}."
     },
     "contacts": {
         "manageCategories": "Categorieën beheren",

@@ -297,7 +297,12 @@
         "documentRemove": "Kapcsolat eltávolítása",
         "documentsEmpty": "Még nincs csatolt dokumentum.",
         "documentsCount": "{{count}} dokumentum",
-        "assignedToMe": "Hozzám rendelve"
+        "assignedToMe": "Hozzám rendelve",
+        "noResultsTitle": "Nincs találat",
+        "searchPlaceholder": "Feladatok keresése…",
+        "viewToggleLabel": "Nézet",
+        "groupToggleLabel": "Csoportosítás",
+        "noResultsDescription": "Egyetlen feladat sem tartalmazza: \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "{{name}} részletei",
@@ -690,7 +695,13 @@
         "colorTeal": "Türkiz",
         "colorWhite": "Fehér",
         "colorYellow": "Sárga",
-        "searchClear": "Keresés törlése"
+        "searchClear": "Keresés törlése",
+        "openNote": "Jegyzet megnyitása",
+        "groupPinned": "Kitűzve",
+        "groupOthers": "További jegyzetek",
+        "filterCreatorLabel": "Létrehozta",
+        "formatToolbarLabel": "Szövegformázás",
+        "noResultsCreatorDescription": "Nincs jegyzet {{name}} felhasználótól."
     },
     "contacts": {
         "manageCategories": "Kategóriák kezelése",

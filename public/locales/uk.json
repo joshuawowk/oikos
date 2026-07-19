@@ -297,7 +297,12 @@
         "documentRemove": "Видалити зв’язок",
         "documentsEmpty": "Ще немає пов’язаних документів.",
         "documentsCount": "Документів: {{count}}",
-        "assignedToMe": "Призначені мені"
+        "assignedToMe": "Призначені мені",
+        "noResultsTitle": "Результатів немає",
+        "searchPlaceholder": "Пошук завдань…",
+        "viewToggleLabel": "Вигляд",
+        "groupToggleLabel": "Групувати за",
+        "noResultsDescription": "Жодне завдання не містить \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Деталі: {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Бірюзовий",
         "colorWhite": "Білий",
         "colorYellow": "Жовтий",
-        "searchClear": "Очистити пошук"
+        "searchClear": "Очистити пошук",
+        "openNote": "Відкрити нотатку",
+        "groupPinned": "Закріплені",
+        "groupOthers": "Інші нотатки",
+        "filterCreatorLabel": "Автор",
+        "formatToolbarLabel": "Форматування тексту",
+        "noResultsCreatorDescription": "Немає нотаток від {{name}}."
     },
     "contacts": {
         "manageCategories": "Керування категоріями",

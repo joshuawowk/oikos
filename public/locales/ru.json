@@ -297,7 +297,12 @@
         "documentRemove": "Удалить связь",
         "documentsEmpty": "Пока нет связанных документов.",
         "documentsCount": "Документов: {{count}}",
-        "assignedToMe": "Назначенные мне"
+        "assignedToMe": "Назначенные мне",
+        "noResultsTitle": "Нет результатов",
+        "searchPlaceholder": "Поиск задач…",
+        "viewToggleLabel": "Вид",
+        "groupToggleLabel": "Группировать по",
+        "noResultsDescription": "Ни одна задача не содержит \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Подробнее: {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Бирюзовый",
         "colorWhite": "Белый",
         "colorYellow": "Жёлтый",
-        "searchClear": "Очистить поиск"
+        "searchClear": "Очистить поиск",
+        "openNote": "Открыть заметку",
+        "groupPinned": "Закреплённые",
+        "groupOthers": "Другие заметки",
+        "filterCreatorLabel": "Автор",
+        "formatToolbarLabel": "Форматирование текста",
+        "noResultsCreatorDescription": "Нет заметок от {{name}}."
     },
     "contacts": {
         "manageCategories": "Управление категориями",

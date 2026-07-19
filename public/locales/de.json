@@ -304,7 +304,12 @@
         "documentRemove": "Verknüpfung entfernen",
         "documentsEmpty": "Noch keine Dokumente verknüpft.",
         "documentsCount": "{{count}} Dokumente",
-        "assignedToMe": "Mir zugewiesen"
+        "assignedToMe": "Mir zugewiesen",
+        "noResultsTitle": "Keine Treffer",
+        "searchPlaceholder": "Aufgaben durchsuchen…",
+        "viewToggleLabel": "Ansicht",
+        "groupToggleLabel": "Gruppieren nach",
+        "noResultsDescription": "Keine Aufgabe enthält \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Details zu {{name}}",
@@ -697,7 +702,13 @@
         "colorPurple": "Lila",
         "colorOrange": "Orange",
         "colorWhite": "Weiß",
-        "searchClear": "Suche leeren"
+        "searchClear": "Suche leeren",
+        "openNote": "Notiz öffnen",
+        "groupPinned": "Angepinnt",
+        "groupOthers": "Weitere Notizen",
+        "filterCreatorLabel": "Erstellt von",
+        "formatToolbarLabel": "Textformatierung",
+        "noResultsCreatorDescription": "Keine Notiz von {{name}}."
     },
     "contacts": {
         "manageCategories": "Kategorien verwalten",

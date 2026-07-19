@@ -297,7 +297,12 @@
         "documentRemove": "Κατάργηση σύνδεσης",
         "documentsEmpty": "Δεν έχουν συνδεθεί έγγραφα ακόμη.",
         "documentsCount": "{{count}} έγγραφα",
-        "assignedToMe": "Ανατεθειμένα σε μένα"
+        "assignedToMe": "Ανατεθειμένα σε μένα",
+        "noResultsTitle": "Δεν βρέθηκαν αποτελέσματα",
+        "searchPlaceholder": "Αναζήτηση εργασιών…",
+        "viewToggleLabel": "Προβολή",
+        "groupToggleLabel": "Ομαδοποίηση κατά",
+        "noResultsDescription": "Καμία εργασία δεν περιέχει \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Λεπτομέρειες για {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Πράσινο-μπλε",
         "colorWhite": "Λευκό",
         "colorYellow": "Κίτρινο",
-        "searchClear": "Εκκαθάριση αναζήτησης"
+        "searchClear": "Εκκαθάριση αναζήτησης",
+        "openNote": "Άνοιγμα σημείωσης",
+        "groupPinned": "Καρφιτσωμένες",
+        "groupOthers": "Άλλες σημειώσεις",
+        "filterCreatorLabel": "Δημιουργήθηκε από",
+        "formatToolbarLabel": "Μορφοποίηση κειμένου",
+        "noResultsCreatorDescription": "Καμία σημείωση από {{name}}."
     },
     "contacts": {
         "manageCategories": "Διαχείριση κατηγοριών",

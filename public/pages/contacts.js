@@ -636,7 +636,7 @@ function openContactModal({ mode, contact = null }) {
         const address  = panel.querySelector('#cm-address').value.trim() || null;
         const notes    = panel.querySelector('#cm-notes').value.trim() || null;
 
-        if (!name) { window.yuvomi?.showToast(t('common.nameRequired'), 'error'); return; }
+        if (!name) { window.yuvomi?.showToast(t('common.nameRequired'), 'danger'); return; }
 
         saveBtn.disabled    = true;
         saveBtn.textContent = '…';
@@ -659,7 +659,7 @@ function openContactModal({ mode, contact = null }) {
           renderList();
           window.yuvomi?.showToast(mode === 'create' ? t('contacts.savedToast') : t('contacts.updatedToast'), 'success');
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
           saveBtn.disabled    = false;
           saveBtn.textContent = isEdit ? t('common.save') : t('common.create');
         }

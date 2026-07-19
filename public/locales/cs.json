@@ -297,7 +297,12 @@
         "documentRemove": "Odebrat propojení",
         "documentsEmpty": "Zatím nejsou propojeny žádné dokumenty.",
         "documentsCount": "Dokumenty: {{count}}",
-        "assignedToMe": "Přiřazeno mně"
+        "assignedToMe": "Přiřazeno mně",
+        "noResultsTitle": "Žádné výsledky",
+        "searchPlaceholder": "Hledat úkoly…",
+        "viewToggleLabel": "Zobrazení",
+        "groupToggleLabel": "Seskupit podle",
+        "noResultsDescription": "Žádný úkol neobsahuje „{{query}}“."
     },
     "shopping": {
         "detailsLabel": "Podrobnosti: {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Teal",
         "colorWhite": "Bílá",
         "colorYellow": "Žlutá",
-        "searchClear": "Vymazat hledání"
+        "searchClear": "Vymazat hledání",
+        "openNote": "Otevřít poznámku",
+        "groupPinned": "Připnuté",
+        "groupOthers": "Ostatní poznámky",
+        "filterCreatorLabel": "Vytvořil(a)",
+        "formatToolbarLabel": "Formátování textu",
+        "noResultsCreatorDescription": "Žádné poznámky od {{name}}."
     },
     "contacts": {
         "manageCategories": "Spravovat kategorie",

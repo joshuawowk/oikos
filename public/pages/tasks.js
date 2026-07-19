@@ -13,6 +13,7 @@ import { esc } from '/utils/html.js';
 import { refresh as refreshReminders } from '/reminders.js';
 import { renderUserMultiSelect, getSelectedUserIds, bindUserMultiSelect, renderAvatarStack } from '/components/user-multi-select.js';
 import { resolveReminderPreset } from '/utils/reminder-offset.js';
+import { renderPageSearch, wirePageSearch } from '/utils/page-search.js';
 import '/components/category-manager.js';
 
 // --------------------------------------------------------
@@ -247,9 +248,9 @@ function renderTaskCard(task, opts = {}) {
         </button>
 
         <div class="task-card__body">
-          <div class="task-card__title u-card-title" data-action="open-task" data-id="${task.id}">
+          <button type="button" class="task-card__title u-card-title" data-action="open-task" data-id="${task.id}">
             ${esc(task.title)}
-          </div>
+          </button>
           <div class="task-card__meta">
             ${renderPriorityBadge(task.priority)}
             ${renderStartDateBadge(task.start_date)}
@@ -275,13 +276,14 @@ function renderTaskCard(task, opts = {}) {
       </div>
 
       ${progress !== null ? `
-        <div class="subtask-progress" data-action="toggle-subtasks" data-id="${task.id}"
-             aria-label="${t('tasks.subtaskToggle')}">
+        <button type="button" class="subtask-progress" data-action="toggle-subtasks" data-id="${task.id}"
+                aria-expanded="${expandedSubtasks ? 'true' : 'false'}" aria-controls="subtasks-${task.id}"
+                aria-label="${t('tasks.subtaskToggle')}">
           <div class="subtask-progress__bar-wrap">
             <div class="subtask-progress__bar-fill" style="--progress-scale:${progress / 100}"></div>
           </div>
           <span class="subtask-progress__text">${task.subtask_done}/${task.subtask_total}</span>
-        </div>` : ''}
+        </button>` : ''}
 
       ${task.subtasks !== undefined ? `
         <div class="subtask-list ${expandedSubtasks ? 'subtask-list--visible' : ''}"
@@ -318,18 +320,23 @@ function sortTasks(a, b, now) {
 
 function renderTaskGroups(tasks, groupMode) {
   if (!tasks.length) {
+    // Leere Suche ≠ leeres Modul: bei aktiver Suche wäre „Noch keine Aufgaben"
+    // schlicht falsch und der Anlegen-CTA die falsche Antwort (Notizen-Muster).
+    const isFiltered = state.searchQuery.trim().length > 0;
     return `<div class="empty-state">
       <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
         <polyline points="22 4 12 14.01 9 11.01"/>
       </svg>
-      <div class="empty-state__title">${t('tasks.emptyTitle')}</div>
-      <div class="empty-state__description">${t('tasks.emptyDescription')}</div>
-      <p class="empty-state__hint">${t('emptyHint.tasks')}</p>
+      <div class="empty-state__title">${isFiltered ? t('tasks.noResultsTitle') : t('tasks.emptyTitle')}</div>
+      <div class="empty-state__description">${isFiltered
+        ? t('tasks.noResultsDescription', { query: esc(state.searchQuery) })
+        : t('tasks.emptyDescription')}</div>
+      ${isFiltered ? '' : `<p class="empty-state__hint">${t('emptyHint.tasks')}</p>
       <button class="btn btn--primary empty-state__cta" id="empty-cta-tasks">
         <i data-lucide="plus" aria-hidden="true" class="icon-md"></i>
         ${t('tasks.emptyAction')}
-      </button>
+      </button>`}
     </div>`;
   }
 
@@ -526,7 +533,23 @@ let state = {
   filterPanelOpen: false,
   bulkSelectMode:  false,
   selectedTaskIds: new Set(),
+  searchQuery:     '',
 };
+
+/**
+ * Aufgaben nach der Toolbar-Suche gefiltert. Rein clientseitig über Titel und
+ * Beschreibung — die Serverfilter (Status/Priorität/Person) laufen weiter über
+ * loadTasks(). state.tasks bleibt ungefiltert, damit Zähler wie das
+ * Überfällig-Badge die Gesamtlage melden und nicht die Suchtreffer.
+ */
+function filteredTasks() {
+  const q = state.searchQuery.trim().toLowerCase();
+  if (!q) return state.tasks;
+  return state.tasks.filter((task) =>
+    (task.title       || '').toLowerCase().includes(q) ||
+    (task.description || '').toLowerCase().includes(q)
+  );
+}
 
 // --------------------------------------------------------
 // API-Aktionen
@@ -984,7 +1007,9 @@ function renderKanbanCard(task) {
   return `
     <div class="kanban-card ${task.status === 'done' ? 'kanban-card--done' : ''}"
          data-task-id="${task.id}" draggable="true">
-      <div class="kanban-card__title u-card-title u-compact">${esc(task.title)}</div>
+      <!-- Button statt div: einziger Tastaturweg in die Kartendetails; der
+           Board-Klick-Handler fängt ihn über den umschließenden [draggable]. -->
+      <button type="button" class="kanban-card__title u-card-title u-compact">${esc(task.title)}</button>
       <div class="kanban-card__meta">
         ${renderPriorityBadge(task.priority)}
         ${due ? `<span class="due-date ${due.cls}"><i data-lucide="clock" class="icon-sm" aria-hidden="true"></i> ${due.label}</span>` : ''}
@@ -1006,7 +1031,7 @@ function renderKanban(container) {
   const cols = KANBAN_COLS();
   const grouped = {};
   for (const col of cols) grouped[col.status] = [];
-  for (const t of state.tasks) {
+  for (const t of filteredTasks()) {
     if (grouped[t.status]) grouped[t.status].push(t);
     else grouped['open'].push(t);
   }
@@ -1267,7 +1292,7 @@ function renderTaskList(container) {
   const listEl = container.querySelector('#task-list');
   if (!listEl) return;
   listEl.replaceChildren();
-  listEl.insertAdjacentHTML('beforeend', renderTaskGroups(state.tasks, state.groupMode));
+  listEl.insertAdjacentHTML('beforeend', renderTaskGroups(filteredTasks(), state.groupMode));
   if (window.lucide) window.lucide.createIcons({ el: listEl });
   stagger(listEl.querySelectorAll('.swipe-row, .kanban-card'));
   updateOverdueBadge();
@@ -1290,6 +1315,25 @@ function makeRemoveSpan() {
   return rm;
 }
 
+/**
+ * Ein Filter-Chip. Immer ein <button> — die Chips schalten Filter, sind also
+ * Bedienelemente und müssen fokussierbar sein und ihren Zustand melden.
+ * Dokumente und Kontakte rendern dieselbe .filter-chip-Klasse ebenfalls als
+ * Button mit aria-pressed; hier lag zuvor ein <span> ohne Tastaturzugang.
+ *
+ * pressed === null markiert Aktions-Chips (zuletzt verwendete Filter), die
+ * keinen Ein/Aus-Zustand haben und daher kein aria-pressed tragen dürfen.
+ */
+function makeChip({ label, active = false, extraClass = '', pressed = undefined, withRemove = false }) {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = `filter-chip${active ? ' filter-chip--active' : ''}${extraClass ? ` ${extraClass}` : ''}`;
+  if (pressed !== null) chip.setAttribute('aria-pressed', String(pressed ?? active));
+  if (label != null) chip.appendChild(document.createTextNode(label));
+  if (withRemove) chip.appendChild(makeRemoveSpan());
+  return chip;
+}
+
 function renderFilters(container) {
   const bar   = container.querySelector('#filter-bar');
   const panel = container.querySelector('#filter-panel');
@@ -1304,39 +1348,33 @@ function renderFilters(container) {
   bar.replaceChildren();
 
   if (state.filters.status) {
-    const chip = document.createElement('span');
-    chip.className = 'filter-chip filter-chip--active';
+    const chip = makeChip({ label: statusLabels[state.filters.status], active: true, withRemove: true });
     chip.dataset.filter = 'status';
-    chip.textContent = statusLabels[state.filters.status];
-    chip.appendChild(makeRemoveSpan());
     bar.appendChild(chip);
   }
   if (state.filters.priority) {
-    const chip = document.createElement('span');
-    chip.className = 'filter-chip filter-chip--active';
+    const chip = makeChip({ label: priorityLabels[state.filters.priority], active: true, withRemove: true });
     chip.dataset.filter = 'priority';
-    chip.textContent = priorityLabels[state.filters.priority];
-    chip.appendChild(makeRemoveSpan());
     bar.appendChild(chip);
   }
   // Aktiver Personen-Filter — außer es ist die eigene ID, die deckt der
   // dedizierte „Mir zugewiesen"-Chip ab (keine Doppel-Anzeige).
   if (state.filters.assigned_to && !isAssignedToMe()) {
     const u = state.users.find((u) => u.id === Number(state.filters.assigned_to));
-    const chip = document.createElement('span');
-    chip.className = 'filter-chip filter-chip--active';
+    const chip = makeChip({
+      label: u?.display_name ?? t('tasks.filterGroupPerson'),
+      active: true,
+      withRemove: true,
+    });
     chip.dataset.filter = 'assigned_to';
-    chip.textContent = u?.display_name ?? t('tasks.filterGroupPerson');
-    chip.appendChild(makeRemoveSpan());
     bar.appendChild(chip);
   }
 
   // "Mir zugewiesen" Schnellzugriff — nur sinnvoll bei mehreren Familienmitgliedern.
   // Icon+Label bewusst identisch zum Kalender-Toggle (gleiche Fähigkeit, eine Gestalt).
   if (state.users.length > 1 && state.currentUserId != null) {
-    const meChip = document.createElement('span');
     const meActive = isAssignedToMe();
-    meChip.className = `filter-chip filter-chip--toggle${meActive ? ' filter-chip--active' : ''}`;
+    const meChip = makeChip({ label: null, active: meActive, extraClass: 'filter-chip--toggle' });
     meChip.id = 'filter-assigned-me';
     const meIcon = document.createElement('i');
     meIcon.setAttribute('data-lucide', 'user');
@@ -1350,8 +1388,7 @@ function renderFilters(container) {
   }
 
   // "Geplante anzeigen" Toggle-Chip — Icon+Label wie „Mir zugewiesen" (beide Toggles).
-  const futureChip = document.createElement('span');
-  futureChip.className = `filter-chip filter-chip--toggle${state.showFuture ? ' filter-chip--active' : ''}`;
+  const futureChip = makeChip({ label: null, active: state.showFuture, extraClass: 'filter-chip--toggle' });
   futureChip.id = 'filter-show-future';
   const futureIcon = document.createElement('i');
   futureIcon.setAttribute('data-lucide', 'calendar-clock');
@@ -1403,10 +1440,9 @@ function renderFilters(container) {
       if (u) parts.push(u.display_name);
     }
     if (!parts.length) return;
-    const chip = document.createElement('span');
-    chip.className = 'filter-chip filter-chip--recent';
+    // Aktions-Chip (wendet ein Filter-Set an), kein Ein/Aus-Zustand → pressed:null.
+    const chip = makeChip({ label: parts.join(' · '), extraClass: 'filter-chip--recent', pressed: null });
     chip.dataset.recentFilter = JSON.stringify(f);
-    chip.textContent = parts.join(' · ');
     bar.appendChild(chip);
   });
 
@@ -1440,6 +1476,8 @@ function renderFilters(container) {
     groups.forEach((group) => {
       const section = document.createElement('div');
       section.className = 'filter-panel__group';
+      section.setAttribute('role', 'group');
+      section.setAttribute('aria-label', group.label);
 
       const heading = document.createElement('div');
       heading.className = 'filter-panel__label';
@@ -1451,14 +1489,9 @@ function renderFilters(container) {
 
       group.items.forEach((item) => {
         const isActive = state.filters[group.key] === item.value;
-        const chip = document.createElement('span');
-        chip.className = `filter-chip${isActive ? ' filter-chip--active' : ''}`;
+        const chip = makeChip({ label: item.label, active: isActive, withRemove: isActive });
         chip.dataset.filter = group.key;
         chip.dataset.value = item.value;
-        chip.textContent = item.label;
-        if (isActive) {
-          chip.appendChild(makeRemoveSpan());
-        }
         row.appendChild(chip);
       });
 
@@ -1786,18 +1819,23 @@ function wireViewToggle(container) {
     btn.addEventListener('click', () => {
       state.viewMode = btn.dataset.view;
       localStorage.setItem('yuvomi-tasks-view', state.viewMode);
-      toggle.querySelectorAll('[data-view]').forEach((b) =>
-        b.classList.toggle('group-toggle__btn--active', b.dataset.view === state.viewMode)
-      );
+      toggle.querySelectorAll('[data-view]').forEach((b) => {
+        const on = b.dataset.view === state.viewMode;
+        b.classList.toggle('group-toggle__btn--active', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+      // Sichtbarkeit über [hidden] statt style.display: ein Zustand, den auch
+      // assistive Technik als „nicht vorhanden" liest.
       const groupToggle = container.querySelector('#group-mode-toggle');
-      if (groupToggle) groupToggle.style.display = state.viewMode === 'list' ? '' : 'none';
+      if (groupToggle) groupToggle.hidden = state.viewMode !== 'list';
       const bulkSelectBtn = container.querySelector('#btn-bulk-select');
       if (bulkSelectBtn) {
-        bulkSelectBtn.style.display = state.viewMode === 'list' ? '' : 'none';
+        bulkSelectBtn.hidden = state.viewMode !== 'list';
         if (state.viewMode === 'kanban') {
           state.bulkSelectMode = false;
           state.selectedTaskIds.clear();
           bulkSelectBtn.classList.remove('btn--active');
+          bulkSelectBtn.setAttribute('aria-pressed', 'false');
         }
       }
       // Skeleton-Flash: einen Frame Render-Feedback geben, dann Ansicht aufbauen
@@ -1819,9 +1857,11 @@ function wireGroupToggle(container) {
   toggle.querySelectorAll('.group-toggle__btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.groupMode = btn.dataset.mode;
-      toggle.querySelectorAll('.group-toggle__btn').forEach((b) =>
-        b.classList.toggle('group-toggle__btn--active', b.dataset.mode === state.groupMode)
-      );
+      toggle.querySelectorAll('.group-toggle__btn').forEach((b) => {
+        const on = b.dataset.mode === state.groupMode;
+        b.classList.toggle('group-toggle__btn--active', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
       renderTaskList(container);
     });
   });
@@ -1987,7 +2027,10 @@ function wireTaskList(container) {
 
     if (action === 'toggle-subtasks') {
       const subtaskList = document.getElementById(`subtasks-${id}`);
-      if (subtaskList) subtaskList.classList.toggle('subtask-list--visible');
+      if (subtaskList) {
+        const open = subtaskList.classList.toggle('subtask-list--visible');
+        target.setAttribute('aria-expanded', String(open));
+      }
     }
 
     if (action === 'toggle-subtask') {
@@ -2057,35 +2100,31 @@ export async function render(container, { user }) {
   container.replaceChildren();
   container.insertAdjacentHTML('beforeend', `
     <div class="tasks-page">
-      <div class="page-toolbar tasks-toolbar">
+      <div class="page-toolbar page-toolbar--wrap tasks-toolbar">
         <h1 class="page-toolbar__title">${t('tasks.title')}</h1>
+        ${renderPageSearch({
+          id: 'tasks-search',
+          label: t('tasks.searchPlaceholder'),
+          placeholder: t('tasks.searchPlaceholder'),
+          value: state.searchQuery,
+          clearLabel: t('common.searchClear'),
+          className: 'tasks-toolbar__search page-toolbar__center',
+        })}
         <div class="page-toolbar__actions">
-          <details class="tasks-toolbar__secondary">
-            <summary class="btn btn--ghost btn--icon tasks-toolbar__secondary-trigger"
-                     title="${t('nav.more')}" aria-label="${t('nav.more')}">
-              <i data-lucide="sliders-horizontal" class="icon-lg" aria-hidden="true"></i>
-            </summary>
-            <div class="tasks-toolbar__secondary-panel">
-              <div class="group-toggle" id="group-mode-toggle" ${isKanban ? 'style="display:none"' : ''}>
-                <button class="group-toggle__btn group-toggle__btn--active" data-mode="category">${t('tasks.categoryLabel')}</button>
-                <button class="group-toggle__btn" data-mode="due">${t('tasks.dueDateLabel')}</button>
-              </div>
-              <div class="group-toggle" id="view-toggle">
-                <button class="group-toggle__btn ${isKanban ? '' : 'group-toggle__btn--active'}" data-view="list"
-                        title="${t('tasks.listView')}" aria-label="${t('tasks.listView')}">
-                  <i data-lucide="list" class="icon-md" aria-hidden="true"></i>
-                </button>
-                <button class="group-toggle__btn ${isKanban ? 'group-toggle__btn--active' : ''}" data-view="kanban"
-                        title="${t('tasks.kanbanView')}" aria-label="${t('tasks.kanbanView')}">
-                  <i data-lucide="columns" class="icon-md" aria-hidden="true"></i>
-                </button>
-              </div>
-              <button class="btn btn--ghost btn--icon" id="btn-bulk-select" ${isKanban ? 'style="display:none"' : ''}
-                      title="${t('tasks.bulkSelect')}" aria-label="${t('tasks.bulkSelect')}" aria-pressed="false">
-                <i data-lucide="list-checks" class="icon-lg" aria-hidden="true"></i>
-              </button>
-            </div>
-          </details>
+          <div class="group-toggle" id="view-toggle" role="group" aria-label="${t('tasks.viewToggleLabel')}">
+            <button type="button" class="group-toggle__btn ${isKanban ? '' : 'group-toggle__btn--active'}" data-view="list"
+                    title="${t('tasks.listView')}" aria-label="${t('tasks.listView')}" aria-pressed="${!isKanban}">
+              <i data-lucide="list" class="icon-md" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="group-toggle__btn ${isKanban ? 'group-toggle__btn--active' : ''}" data-view="kanban"
+                    title="${t('tasks.kanbanView')}" aria-label="${t('tasks.kanbanView')}" aria-pressed="${isKanban}">
+              <i data-lucide="columns" class="icon-md" aria-hidden="true"></i>
+            </button>
+          </div>
+          <button class="btn btn--ghost btn--icon" id="btn-bulk-select" ${isKanban ? 'hidden' : ''}
+                  title="${t('tasks.bulkSelect')}" aria-label="${t('tasks.bulkSelect')}" aria-pressed="false">
+            <i data-lucide="list-checks" class="icon-lg" aria-hidden="true"></i>
+          </button>
           <button class="btn btn--icon btn--ghost" id="btn-manage-categories"
                   aria-label="${t('tasks.manageCategories')}" title="${t('tasks.manageCategories')}">
             <i data-lucide="tags" class="icon-lg" aria-hidden="true"></i>
@@ -2097,7 +2136,18 @@ export async function render(container, { user }) {
       </div>
 
       <div class="tasks-body">
-        <div class="tasks-filters" id="filter-bar"></div>
+        <div class="tasks-filters-row">
+          <div class="tasks-filters" id="filter-bar" role="group" aria-label="${t('tasks.filterBtn')}"></div>
+          <div class="tasks-filters__end">
+            <div class="group-toggle" id="group-mode-toggle" role="group"
+                 aria-label="${t('tasks.groupToggleLabel')}" ${isKanban ? 'hidden' : ''}>
+              <button type="button" class="group-toggle__btn group-toggle__btn--active"
+                      data-mode="category" aria-pressed="true">${t('tasks.categoryLabel')}</button>
+              <button type="button" class="group-toggle__btn"
+                      data-mode="due" aria-pressed="false">${t('tasks.dueDateLabel')}</button>
+            </div>
+          </div>
+        </div>
         <div class="filter-panel" id="filter-panel" hidden></div>
         <div class="bulk-actions-bar" id="bulk-actions-bar" hidden>
           <span class="bulk-actions-bar__count" id="bulk-count"></span>
@@ -2174,6 +2224,14 @@ export async function render(container, { user }) {
     ?.addEventListener('click', () => openTaskCategoryManager(container));
   renderFilters(container);
   renderTaskList(container);
+
+  wirePageSearch(container, {
+    id: 'tasks-search',
+    onQuery: (value) => {
+      state.searchQuery = value;
+      renderTaskList(container);
+    },
+  });
 
   // Deep-Link: ?open=<id> öffnet direkt das Edit-Modal
   const openId = new URLSearchParams(window.location.search).get('open');

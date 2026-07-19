@@ -297,7 +297,12 @@
         "documentRemove": "लिंक हटाएँ",
         "documentsEmpty": "अभी तक कोई दस्तावेज़ लिंक नहीं है।",
         "documentsCount": "{{count}} दस्तावेज़",
-        "assignedToMe": "मुझे सौंपे गए"
+        "assignedToMe": "मुझे सौंपे गए",
+        "noResultsTitle": "कोई परिणाम नहीं",
+        "searchPlaceholder": "कार्य खोजें…",
+        "viewToggleLabel": "दृश्य",
+        "groupToggleLabel": "इसके अनुसार समूहित करें",
+        "noResultsDescription": "\"{{query}}\" वाला कोई कार्य नहीं है।"
     },
     "shopping": {
         "detailsLabel": "{{name}} का विवरण",
@@ -690,7 +695,13 @@
         "colorTeal": "टील",
         "colorWhite": "सफेद",
         "colorYellow": "पीला",
-        "searchClear": "खोज साफ़ करें"
+        "searchClear": "खोज साफ़ करें",
+        "openNote": "नोट खोलें",
+        "groupPinned": "पिन किए गए",
+        "groupOthers": "अन्य नोट्स",
+        "filterCreatorLabel": "द्वारा बनाया गया",
+        "formatToolbarLabel": "टेक्स्ट स्वरूपण",
+        "noResultsCreatorDescription": "{{name}} का कोई नोट नहीं।"
     },
     "contacts": {
         "manageCategories": "श्रेणियाँ प्रबंधित करें",

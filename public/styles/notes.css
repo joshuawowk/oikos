@@ -50,16 +50,51 @@
 /* --------------------------------------------------------
  * Masonry-Grid
  * -------------------------------------------------------- */
+/* Ersteller-Filter: eigene Zeile zwischen Kopf und Raster, gleiche Grammatik
+ * wie .documents-filters. Erscheint nur ab zwei Autorinnen/Autoren (JS setzt
+ * [hidden]) — die Regel darunter sorgt dafür, dass das Attribut gegen den
+ * display:flex dieser Zeile gewinnt. */
+.notes-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.notes-filters[hidden] {
+  display: none;
+}
+
 .notes-grid {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: var(--space-4);
+  /* Der FAB schwebt über dieser scrollenden Fläche. Ohne eigene Reserve lag die
+   * letzte Kartenreihe dauerhaft darunter — .tasks-body rechnet denselben
+   * Freiraum bereits ein. */
+  padding-bottom: calc(var(--space-16) + var(--space-8));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
   align-items: start;
   gap: var(--space-3);
+}
+
+/* Abschnittsköpfe („Angepinnt" / „Weitere Notizen") spannen über alle Spalten,
+ * wie der Leerzustand. */
+.notes-group__title {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--type-section-title);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.notes-group__title:not(:first-child) {
+  margin-top: var(--space-4);
 }
 
 /* Lade-Zustand: Grid aufheben, damit die geteilte Skeleton-Liste
@@ -183,6 +218,14 @@
   /* Renderer emittiert jetzt Blockstruktur (<p>/<ul>/<h*>) + explizite <br>,
    * daher normal statt pre-wrap — sonst doppelte Umbrüche/Whitespace. */
   white-space: normal;
+  /* Vorschau-Höhe deckeln: eine lange Notiz sprengte sonst das Raster und
+   * verdrängte alle anderen Zettel aus dem Blickfeld. Der volle Text steht
+   * einen Klick entfernt im Lese-Modus. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 12;
+  line-clamp: 12;
+  overflow: hidden;
 }
 
 .note-card__footer {
@@ -223,6 +266,13 @@
   object-fit: cover;
 }
 
+.note-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.note-card__open,
 .note-card__delete {
   width: var(--target-base);
   height: var(--target-base);
@@ -239,15 +289,22 @@
   transition: opacity var(--transition-fast), background-color var(--transition-fast);
 }
 
+.note-card__open::before,
 .note-card__delete::before {
   content: '';
   position: absolute;
   inset: 0;
 }
 
+.note-card:hover .note-card__open,
 .note-card:hover .note-card__delete,
+.note-card__open:focus-visible,
 .note-card__delete:focus-visible {
   opacity: 1;
+}
+
+.note-card__open:hover {
+  background: var(--color-overlay);
 }
 
 .note-card__delete:hover {
@@ -257,6 +314,7 @@
 
 @media (pointer: coarse) {
   .note-card__pin,
+  .note-card__open,
   .note-card__delete {
     opacity: 1;
   }
@@ -365,7 +423,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Nicht schrumpfen: bei 13 Buttons in einem ~340px-Modal bricht die Leiste
+  /* Nicht schrumpfen: bei 12 Buttons in einem ~340px-Modal bricht die Leiste
    * jetzt um (flex-wrap), statt die Buttons unter die Fingergröße zu quetschen. */
   flex: 0 0 auto;
   width: 32px;

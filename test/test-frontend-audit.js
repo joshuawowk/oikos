@@ -1412,21 +1412,70 @@ test('phase 3 high-frequency controls use tokenized touch targets', () => {
   assert.match(notes, /\.note-card__delete[\s\S]*width:\s*var\(--target-base\)/);
 });
 
-test('phase 3 mobile Tasks toolbar collapses secondary controls into one overflow trigger', () => {
+test('Tasks toolbar keeps secondary controls visible instead of an overflow slider', () => {
   const tasksPage = read('../public/pages/tasks.js');
   const tasksCss = read('../public/styles/tasks.css');
 
-  assert.match(tasksPage, /<details class="tasks-toolbar__secondary"/);
-  assert.match(tasksPage, /class="btn btn--ghost btn--icon tasks-toolbar__secondary-trigger"/);
-  assert.match(tasksPage, /<div class="tasks-toolbar__secondary-panel">[\s\S]*id="group-mode-toggle"[\s\S]*id="view-toggle"[\s\S]*id="btn-bulk-select"/);
-  assert.match(
-    tasksCss,
-    /@media \(max-width:\s*1023px\)[\s\S]*\.tasks-toolbar__secondary-panel\s*\{[\s\S]*position:\s*absolute[\s\S]*display:\s*none/
-  );
-  assert.match(
-    tasksCss,
-    /@media \(max-width:\s*1023px\)[\s\S]*\.tasks-toolbar__secondary\[open\] \.tasks-toolbar__secondary-panel\s*\{[\s\S]*display:\s*flex/
-  );
+  // Das frühere <details>-Overflow-Panel versteckte Ansicht/Gruppierung hinter
+  // einem Klick und zeigte deren Zustand nicht — dasselbe Muster wurde in
+  // Dokumente (#506) verworfen. Aufgaben nutzt jetzt die geteilte Grammatik:
+  // umbrechender Kopf plus sichtbare Filterzeile.
+  assert.doesNotMatch(tasksPage, /<details class="tasks-toolbar__secondary"/);
+  assert.doesNotMatch(tasksCss, /tasks-toolbar__secondary/);
+  assert.match(tasksPage, /class="page-toolbar page-toolbar--wrap tasks-toolbar"/);
+
+  // Ansichtswechsel bleibt im Kopf, Gruppierung wandert in die Filterzeile.
+  assert.match(tasksPage, /<div class="page-toolbar__actions">[\s\S]*id="view-toggle"[\s\S]*id="btn-bulk-select"/);
+  assert.match(tasksPage, /<div class="tasks-filters-row">[\s\S]*id="filter-bar"[\s\S]*id="group-mode-toggle"/);
+  assert.match(tasksCss, /\.tasks-filters-row\s*\{[\s\S]*display:\s*flex/);
+
+  // [hidden] muss gegen display:flex/inline-flex gewinnen, sonst bleiben die in
+  // der Kanban-Ansicht ausgeblendeten Controls sichtbar.
+  assert.match(tasksCss, /\.tasks-filters-row \[hidden\]\s*\{[\s\S]*display:\s*none/);
+});
+
+test('Tasks and Notes expose every click target as a real control', () => {
+  const tasksPage = read('../public/pages/tasks.js');
+  const notesPage = read('../public/pages/notes.js');
+
+  // Filter-Chips waren <span> ohne Tastaturzugang, während Dokumente und
+  // Kontakte dieselbe .filter-chip-Klasse als <button aria-pressed> rendern.
+  assert.match(tasksPage, /function makeChip\(/);
+  assert.match(tasksPage, /chip\s*=\s*document\.createElement\('button'\)/);
+  assert.doesNotMatch(tasksPage, /className\s*=\s*'filter-chip[^']*';?[\s\S]{0,80}createElement\('span'\)/);
+
+  // Titel öffnet die Aufgabe, Fortschrittsbalken klappt die Unteraufgaben auf,
+  // Kanban-Titel öffnet die Karte — alle drei waren Divs.
+  assert.match(tasksPage, /<button type="button" class="task-card__title/);
+  assert.match(tasksPage, /<button type="button" class="subtask-progress"[\s\S]*aria-expanded=/);
+  assert.match(tasksPage, /<button type="button" class="kanban-card__title/);
+
+  // Notizkarte: der einzige Tastaturweg in die Notiz.
+  assert.match(notesPage, /class="note-card__open" data-action="open"/);
+
+  // Umschalter melden ihren Zustand nicht nur über Farbe.
+  assert.match(tasksPage, /data-view="list"[\s\S]*aria-pressed=/);
+  assert.match(tasksPage, /data-mode="category" aria-pressed="true"/);
+});
+
+test('showToast is never called with an unsupported variant', () => {
+  // showToast kennt nur default | success | warning | danger. 'error' landete
+  // still im polite-Container ohne Fehlerkennzeichnung.
+  const files = [
+    '../public/router.js',
+    '../public/pages/notes.js',
+    '../public/pages/tasks.js',
+    '../public/pages/budget.js',
+    '../public/pages/calendar.js',
+    '../public/pages/contacts.js',
+    '../public/pages/dashboard.js',
+    '../public/pages/meals.js',
+    '../public/pages/recipes.js',
+    '../public/pages/budget-plans.js',
+  ];
+  for (const file of files) {
+    assert.doesNotMatch(read(file), /showToast\([^;]*?,\s*'error'\)/s, `${file} uses showToast(..., 'error')`);
+  }
 });
 
 test('responsive adaptation keeps Notes vertical and prevents intrinsic-width overflow', () => {
@@ -1615,11 +1664,11 @@ test('hardening uses logical alignment for RTL-sensitive adapted controls', () =
   // The shared search control's leading icon uses logical inset for RTL.
   assert.match(pageSearch, /\.page-search__icon\s*\{[\s\S]*inset-inline-start:/);
   assert.match(notes, /\.note-card__pin\s*\{[\s\S]*inset-inline-end:/);
-  assert.match(tasks, /\.tasks-toolbar__secondary-panel\s*\{[\s\S]*inset-inline-end:\s*0/);
-  assert.match(
-    tasks,
-    /\[dir=['"]rtl['"]\] \.tasks-toolbar__secondary-panel\s*\{[\s\S]*inset-inline-start:\s*0;[\s\S]*inset-inline-end:\s*auto/
-  );
+  // Das absolut positionierte Overflow-Panel (mit eigenen RTL-Insets) ist
+  // entfallen; die Filterzeile richtet ihre Gruppierungswahl jetzt über eine
+  // logische Property aus und braucht deshalb keine [dir=rtl]-Sonderregel.
+  assert.match(tasks, /\.tasks-filters__end\s*\{[\s\S]*margin-inline-start:\s*auto/);
+  assert.doesNotMatch(tasks, /margin-(left|right):\s*auto/);
 });
 
 test('route failures expose a localized recoverable alert instead of raw technical errors', () => {

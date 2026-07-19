@@ -267,7 +267,7 @@ async function savePlan(panel, category) {
   const raw = panel.querySelector('#plan-amount').value;
   const amount = parseFloat(raw);
   if (isNaN(amount) || amount <= 0) {
-    window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error');
+    window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger');
     return;
   }
   const btn = panel.querySelector('#plan-save');
@@ -281,7 +281,7 @@ async function savePlan(panel, category) {
   } catch (err) {
     console.error('[Budget] plan save error:', err);
     btn.disabled = false;
-    window.yuvomi?.showToast(t('budget.loadError'), 'error');
+    window.yuvomi?.showToast(t('budget.loadError'), 'danger');
   }
 }
 
@@ -303,6 +303,6 @@ async function deletePlan(category) {
     window.yuvomi?.showToast(t('budget.planRemovedToast'), 'success');
   } catch (err) {
     console.error('[Budget] plan delete error:', err);
-    window.yuvomi?.showToast(t('budget.loadError'), 'error');
+    window.yuvomi?.showToast(t('budget.loadError'), 'danger');
   }
 }

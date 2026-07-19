@@ -900,7 +900,7 @@ function openAccountModal(account = null) {
           renderBody();
           window.yuvomi?.showToast(nextArchived ? t('budget.accountArchivedToast') : t('budget.accountRestoredToast'), 'success');
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
         }
       });
 
@@ -917,7 +917,7 @@ function openAccountModal(account = null) {
           renderBody();
           window.yuvomi?.showToast(t('budget.accountDeletedToast'), 'success');
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
         }
       });
 
@@ -928,8 +928,8 @@ function openAccountModal(account = null) {
         const rawBal  = panel.querySelector('#am-balance').value;
         const startingBalance = rawBal === '' ? 0 : parseFloat(rawBal);
 
-        if (!name) { window.yuvomi?.showToast(t('common.titleRequired'), 'error'); return; }
-        if (isNaN(startingBalance)) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
+        if (!name) { window.yuvomi?.showToast(t('common.titleRequired'), 'danger'); return; }
+        if (isNaN(startingBalance)) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger'); return; }
 
         saveBtn.disabled = true;
         saveBtn.textContent = '…';
@@ -947,7 +947,7 @@ function openAccountModal(account = null) {
         } catch (err) {
           saveBtn.disabled = false;
           saveBtn.textContent = isEdit ? t('common.save') : t('common.add');
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
         }
       });
     },
@@ -1552,7 +1552,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
           updateCategoryOptions(res.data.key);
           window.yuvomi?.showToast(t('budget.categoryAddedToast'), 'success');
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
         }
       };
 
@@ -1572,7 +1572,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
           updateSubcategoryOptions(res.data.key);
           window.yuvomi?.showToast(t('budget.subcategoryAddedToast'), 'success');
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
         }
       };
 
@@ -1618,9 +1618,9 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
         // Zuordnung beim Bearbeiten unverändert (account_id nicht mitsenden).
         const accountId  = accountSel ? (accountSel.value === '' ? null : parseInt(accountSel.value, 10)) : undefined;
 
-        if (!title)           { window.yuvomi?.showToast(t('common.titleRequired'), 'error'); return; }
-        if (isNaN(absVal) || absVal <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
-        if (!date) { window.yuvomi?.showToast(t('calendar.invalidDate'), 'error'); return; }
+        if (!title)           { window.yuvomi?.showToast(t('common.titleRequired'), 'danger'); return; }
+        if (isNaN(absVal) || absVal <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger'); return; }
+        if (!date) { window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger'); return; }
 
         const amount = currentType === 'expense' ? -absVal : absVal;
 
@@ -1672,7 +1672,7 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
             window.yuvomi?.showToast(t('budget.savedToast'), 'success');
           }
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
           saveBtn.disabled    = false;
           saveBtn.textContent = isEdit ? t('common.save') : t('common.add');
         }
@@ -1735,10 +1735,10 @@ async function saveLoanFromPanel(panel, saveBtn, { loan = null, closeAfterSave =
   const start_month = panel.querySelector('#lm-start').value;
   const notes = panel.querySelector('#lm-notes').value.trim();
 
-  if (!borrower) { window.yuvomi?.showToast(t('budget.loanBorrowerRequired'), 'error'); return; }
-  if (isNaN(total_amount) || total_amount <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'error'); return; }
-  if (!Number.isInteger(installment_count) || installment_count < 1) { window.yuvomi?.showToast(t('budget.loanInstallmentsRequired'), 'error'); return; }
-  if (!/^\d{4}-\d{2}$/.test(start_month)) { window.yuvomi?.showToast(t('budget.loanStartMonthRequired'), 'error'); return; }
+  if (!borrower) { window.yuvomi?.showToast(t('budget.loanBorrowerRequired'), 'danger'); return; }
+  if (isNaN(total_amount) || total_amount <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger'); return; }
+  if (!Number.isInteger(installment_count) || installment_count < 1) { window.yuvomi?.showToast(t('budget.loanInstallmentsRequired'), 'danger'); return; }
+  if (!/^\d{4}-\d{2}$/.test(start_month)) { window.yuvomi?.showToast(t('budget.loanStartMonthRequired'), 'danger'); return; }
 
   saveBtn.disabled = true;
   saveBtn.textContent = '...';
@@ -1754,7 +1754,7 @@ async function saveLoanFromPanel(panel, saveBtn, { loan = null, closeAfterSave =
     renderBody();
     window.yuvomi?.showToast(isEdit ? t('budget.loanSavedToast') : t('budget.loanAddedToast'), 'success');
   } catch (err) {
-    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     saveBtn.disabled = false;
     saveBtn.textContent = isEdit ? t('common.save') : t('budget.createLoan');
   }
@@ -1849,7 +1849,7 @@ async function markLoanPayment(id) {
       window.yuvomi?.showToast(t('budget.loanPaymentAddedToast'), 'success');
     }
   } catch (err) {
-    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
   }
 }
 
@@ -1876,7 +1876,7 @@ async function deleteLoan(id) {
     } catch (err) {
       state.loans.loans = [...state.loans.loans, loan];
       renderBody();
-      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+      window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
     }
   }, 5000);
 }

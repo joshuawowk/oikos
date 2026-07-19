@@ -2948,7 +2948,7 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
   const title   = overlay.querySelector('#modal-title').value.trim();
 
   if (!title) {
-    window.yuvomi?.showToast(t('calendar.titleRequired'), 'error');
+    window.yuvomi?.showToast(t('calendar.titleRequired'), 'danger');
     return;
   }
 
@@ -2975,7 +2975,7 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
     const etRaw = overlay.querySelector('#modal-end-time').value;
     const et = parseTimeInput(etRaw);
     if ((stRaw && !st) || (etRaw && !et)) {
-      window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
+      window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
       return;
     }
     start_datetime = st ? `${sd}T${st}` : sd;
@@ -2987,11 +2987,11 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
     : ['#modal-start-date', '#modal-end-date'];
   const hasInvalidDate = visibleDateFields.some((selector) => !isDateInputValid(overlay.querySelector(selector)?.value));
   if (!start_datetime || hasInvalidDate) {
-    window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
+    window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
     return;
   }
   if (isEndBeforeStart(start_datetime, end_datetime)) {
-    window.yuvomi?.showToast(t('calendar.endBeforeStart'), 'error');
+    window.yuvomi?.showToast(t('calendar.endBeforeStart'), 'danger');
     return;
   }
 
@@ -3001,7 +3001,7 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
   try {
     const rrule = getRRuleValues(overlay, 'event');
     if (!rrule.valid_until) {
-      window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
+      window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
       saveBtn.disabled    = false;
       saveBtn.textContent = mode === 'edit' ? t('common.save') : t('common.create');
       return;
@@ -3155,7 +3155,7 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
     // Server-Validierungsmeldung bevorzugen, sonst lokalisierter Fallback; der
     // rohe err.message-Text (Netzwerk/JS) wird nie gezeigt. Das Modal bleibt offen
     // und der Button reaktiviert — die Eingaben des Nutzers bleiben erhalten.
-    window.yuvomi?.showToast(err.data?.error ?? t('calendar.saveError'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('calendar.saveError'), 'danger');
     saveBtn.disabled    = false;
     saveBtn.textContent = mode === 'edit' ? t('common.save') : t('common.create');
   }

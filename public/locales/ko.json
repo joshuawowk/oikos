@@ -304,7 +304,12 @@
         "documentRemove": "연결 해제",
         "documentsEmpty": "아직 연결된 문서가 없습니다.",
         "documentsCount": "문서 {{count}}개",
-        "assignedToMe": "나에게 할당됨"
+        "assignedToMe": "나에게 할당됨",
+        "noResultsTitle": "결과 없음",
+        "searchPlaceholder": "할 일 검색…",
+        "viewToggleLabel": "보기",
+        "groupToggleLabel": "그룹화 기준",
+        "noResultsDescription": "\"{{query}}\"을(를) 포함하는 할 일이 없습니다."
     },
     "shopping": {
         "detailsLabel": "{{name}} 세부 정보",
@@ -697,7 +702,13 @@
         "colorPurple": "보라",
         "colorOrange": "주황",
         "colorWhite": "흰색",
-        "searchClear": "검색 지우기"
+        "searchClear": "검색 지우기",
+        "openNote": "메모 열기",
+        "groupPinned": "고정됨",
+        "groupOthers": "기타 메모",
+        "filterCreatorLabel": "작성자",
+        "formatToolbarLabel": "텍스트 서식",
+        "noResultsCreatorDescription": "{{name}}의 메모가 없습니다."
     },
     "contacts": {
         "manageCategories": "카테고리 관리",

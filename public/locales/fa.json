@@ -304,7 +304,12 @@
         "documentRemove": "حذف پیوند",
         "documentsEmpty": "هنوز سندی پیوند داده نشده است.",
         "documentsCount": "{{count}} سند",
-        "assignedToMe": "واگذارشده به من"
+        "assignedToMe": "واگذارشده به من",
+        "noResultsTitle": "بدون نتیجه",
+        "searchPlaceholder": "جستجوی وظایف…",
+        "viewToggleLabel": "نما",
+        "groupToggleLabel": "گروه‌بندی بر اساس",
+        "noResultsDescription": "هیچ وظیفه‌ای شامل «{{query}}» نیست."
     },
     "shopping": {
         "detailsLabel": "جزئیات برای {{name}}",
@@ -697,7 +702,13 @@
         "colorPurple": "بنفش",
         "colorOrange": "نارنجی",
         "colorWhite": "سفید",
-        "searchClear": "پاک کردن جستجو"
+        "searchClear": "پاک کردن جستجو",
+        "openNote": "باز کردن یادداشت",
+        "groupPinned": "سنجاق‌شده",
+        "groupOthers": "یادداشت‌های دیگر",
+        "filterCreatorLabel": "ایجادشده توسط",
+        "formatToolbarLabel": "قالب‌بندی متن",
+        "noResultsCreatorDescription": "هیچ یادداشتی از {{name}} نیست."
     },
     "contacts": {
         "manageCategories": "مدیریت دسته‌ها",

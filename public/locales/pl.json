@@ -304,7 +304,12 @@
         "documentRemove": "Usuń powiązanie",
         "documentsEmpty": "Brak powiązanych dokumentów.",
         "documentsCount": "Dokumenty: {{count}}",
-        "assignedToMe": "Przypisane do mnie"
+        "assignedToMe": "Przypisane do mnie",
+        "noResultsTitle": "Brak wyników",
+        "searchPlaceholder": "Szukaj zadań…",
+        "viewToggleLabel": "Widok",
+        "groupToggleLabel": "Grupuj według",
+        "noResultsDescription": "Żadne zadanie nie zawiera „{{query}}”."
     },
     "shopping": {
         "detailsLabel": "Szczegóły: {{name}}",
@@ -697,7 +702,13 @@
         "colorPurple": "Fioletowy",
         "colorOrange": "Pomarańczowy",
         "colorWhite": "Biały",
-        "searchClear": "Wyczyść wyszukiwanie"
+        "searchClear": "Wyczyść wyszukiwanie",
+        "openNote": "Otwórz notatkę",
+        "groupPinned": "Przypięte",
+        "groupOthers": "Pozostałe notatki",
+        "filterCreatorLabel": "Utworzone przez",
+        "formatToolbarLabel": "Formatowanie tekstu",
+        "noResultsCreatorDescription": "Brak notatek od {{name}}."
     },
     "contacts": {
         "manageCategories": "Zarządzaj kategoriami",

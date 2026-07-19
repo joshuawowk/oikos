@@ -1853,7 +1853,7 @@ export async function render(container, { user }) {
             await api.put('/preferences', { dashboard_widgets: widgetConfig });
             savedWidgetConfig = widgetConfig.map((w) => ({ ...w }));
           } catch {
-            window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
+            window.yuvomi?.showToast(t('common.errorGeneric'), 'danger');
           }
           isCustomizing = false;
           rebuildDashboard(widgetConfig);
@@ -1866,7 +1866,7 @@ export async function render(container, { user }) {
     try {
       await persistWidgetConfig(widgetConfig);
     } catch {
-      window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
+      window.yuvomi?.showToast(t('common.errorGeneric'), 'danger');
     }
   }
 
@@ -2139,7 +2139,7 @@ function wireWeatherRefresh(container, onUpdated = null) {
       // Manuelle Aktion: ein Fehlschlag darf nicht still als Erfolg quittiert
       // werden (sonst wirkt der Button tot). Kein Datensatz → Fehler-Toast.
       if (!res.data) {
-        window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
+        window.yuvomi?.showToast(t('common.errorGeneric'), 'danger');
         return;
       }
       const wWidget = container.querySelector('#weather-widget');
@@ -2155,7 +2155,7 @@ function wireWeatherRefresh(container, onUpdated = null) {
         window.yuvomi?.showToast(t('dashboard.weatherUpdated'), 'success', 1500);
       }
     } catch {
-      window.yuvomi?.showToast(t('common.errorGeneric'), 'error');
+      window.yuvomi?.showToast(t('common.errorGeneric'), 'danger');
     } finally {
       // Immer aufräumen, damit der Button nach jedem Ausgang wieder bedienbar
       // ist (bei Erfolg wird das Widget ohnehin frisch gerendert).

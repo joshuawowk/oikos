@@ -297,7 +297,12 @@
         "documentRemove": "إزالة الرابط",
         "documentsEmpty": "لا توجد مستندات مرتبطة بعد.",
         "documentsCount": "{{count}} مستندات",
-        "assignedToMe": "المُسندة إليّ"
+        "assignedToMe": "المُسندة إليّ",
+        "noResultsTitle": "لا توجد نتائج",
+        "searchPlaceholder": "البحث في المهام…",
+        "viewToggleLabel": "العرض",
+        "groupToggleLabel": "التجميع حسب",
+        "noResultsDescription": "لا توجد مهمة تحتوي على \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "تفاصيل {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "أخضر مزرق",
         "colorWhite": "أبيض",
         "colorYellow": "أصفر",
-        "searchClear": "مسح البحث"
+        "searchClear": "مسح البحث",
+        "openNote": "فتح الملاحظة",
+        "groupPinned": "مثبتة",
+        "groupOthers": "ملاحظات أخرى",
+        "filterCreatorLabel": "أنشأها",
+        "formatToolbarLabel": "تنسيق النص",
+        "noResultsCreatorDescription": "لا توجد ملاحظات من {{name}}."
     },
     "contacts": {
         "manageCategories": "إدارة الفئات",

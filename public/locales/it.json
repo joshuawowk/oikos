@@ -297,7 +297,12 @@
         "documentRemove": "Rimuovi collegamento",
         "documentsEmpty": "Nessun documento collegato.",
         "documentsCount": "{{count}} documenti",
-        "assignedToMe": "Assegnati a me"
+        "assignedToMe": "Assegnati a me",
+        "noResultsTitle": "Nessun risultato",
+        "searchPlaceholder": "Cerca attività…",
+        "viewToggleLabel": "Vista",
+        "groupToggleLabel": "Raggruppa per",
+        "noResultsDescription": "Nessuna attività contiene \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Dettagli di {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Verde acqua",
         "colorWhite": "Bianco",
         "colorYellow": "Giallo",
-        "searchClear": "Cancella ricerca"
+        "searchClear": "Cancella ricerca",
+        "openNote": "Apri nota",
+        "groupPinned": "Fissate",
+        "groupOthers": "Altre note",
+        "filterCreatorLabel": "Creato da",
+        "formatToolbarLabel": "Formattazione testo",
+        "noResultsCreatorDescription": "Nessuna nota di {{name}}."
     },
     "contacts": {
         "manageCategories": "Gestisci categorie",

@@ -603,7 +603,7 @@ async function addRecipeToSlot(recipe, date, mealType, { replaceMeals = [] } = {
     }
     renderWeekGrid();
   } catch (err) {
-    window.yuvomi?.showToast(window.yuvomi?.friendlyError?.(err) ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(window.yuvomi?.friendlyError?.(err) ?? t('common.errorGeneric'), 'danger');
   }
 }
 
@@ -658,7 +658,7 @@ async function runRandomize(panel) {
     window.yuvomi?.showToast(t('meals.randomizeSuccess', { count: plan.assignments.length }), 'success');
   } catch (err) {
     runBtn.disabled = false;
-    window.yuvomi?.showToast(window.yuvomi?.friendlyError?.(err) ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(window.yuvomi?.friendlyError?.(err) ?? t('common.errorGeneric'), 'danger');
   }
 }
 
@@ -941,7 +941,7 @@ function openMealModal(opts) {
       saveAsRecipeBtn?.addEventListener('click', async () => {
         const title = panel.querySelector('#modal-title').value.trim();
         if (!title) {
-          window.yuvomi?.showToast(t('meals.titleRequired'), 'error');
+          window.yuvomi?.showToast(t('meals.titleRequired'), 'danger');
           return;
         }
 
@@ -969,7 +969,7 @@ function openMealModal(opts) {
 
           window.yuvomi?.showToast(t('recipes.created'), 'success');
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
         } finally {
           saveAsRecipeBtn.disabled = false;
         }
@@ -1013,7 +1013,7 @@ function openMealModal(opts) {
             btn.disabled = false;
           }
         } catch (err) {
-          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'error');
+          window.yuvomi?.showToast(err.data?.error ?? t('common.unknownError'), 'danger');
           btn.disabled = false;
         }
       });
@@ -1174,12 +1174,12 @@ async function saveModal(overlay) {
     : false;
 
   if (!date || !isDateInputValid(dateRaw)) {
-    window.yuvomi?.showToast(t('calendar.invalidDate'), 'error');
+    window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
     return;
   }
 
   if (!title) {
-    window.yuvomi?.showToast(t('meals.titleRequired'), 'error');
+    window.yuvomi?.showToast(t('meals.titleRequired'), 'danger');
     return;
   }
 
@@ -1226,7 +1226,7 @@ async function saveModal(overlay) {
     renderWeekGrid();
     window.yuvomi?.showToast(mode === 'create' ? t('meals.addMealTitle') : t('meals.editMeal'), 'success');
   } catch (err) {
-    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
     saveBtn.disabled    = false;
     saveBtn.textContent = state.modal?.mode === 'edit' ? t('common.save') : t('common.add');
   }
@@ -1300,7 +1300,7 @@ async function deleteMeal(mealId) {
 
 async function transferMeal(mealId) {
   if (!state.lists.length) {
-    window.yuvomi?.showToast(t('meals.noShoppingLists'), 'error');
+    window.yuvomi?.showToast(t('meals.noShoppingLists'), 'danger');
     return;
   }
 
@@ -1323,7 +1323,7 @@ async function transferMeal(mealId) {
       window.yuvomi?.showToast(t('meals.transferAlreadyDone'), 'info');
     }
   } catch (err) {
-    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'error');
+    window.yuvomi?.showToast(err.data?.error ?? t('common.errorGeneric'), 'danger');
   }
 }
 

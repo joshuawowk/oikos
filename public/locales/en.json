@@ -297,7 +297,12 @@
         "documentRemove": "Remove link",
         "documentsEmpty": "No documents linked yet.",
         "documentsCount": "{{count}} documents",
-        "assignedToMe": "Assigned to me"
+        "assignedToMe": "Assigned to me",
+        "noResultsTitle": "No results",
+        "searchPlaceholder": "Search tasks…",
+        "viewToggleLabel": "View",
+        "groupToggleLabel": "Group by",
+        "noResultsDescription": "No task contains \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Details for {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Teal",
         "colorWhite": "White",
         "colorYellow": "Yellow",
-        "searchClear": "Clear search"
+        "searchClear": "Clear search",
+        "openNote": "Open note",
+        "groupPinned": "Pinned",
+        "groupOthers": "Other notes",
+        "filterCreatorLabel": "Created by",
+        "formatToolbarLabel": "Text formatting",
+        "noResultsCreatorDescription": "No notes from {{name}}."
     },
     "contacts": {
         "manageCategories": "Manage categories",

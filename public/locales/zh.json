@@ -297,7 +297,12 @@
         "documentRemove": "移除关联",
         "documentsEmpty": "尚未关联任何文档。",
         "documentsCount": "{{count}} 个文档",
-        "assignedToMe": "分配给我"
+        "assignedToMe": "分配给我",
+        "noResultsTitle": "无结果",
+        "searchPlaceholder": "搜索任务…",
+        "viewToggleLabel": "视图",
+        "groupToggleLabel": "分组方式",
+        "noResultsDescription": "没有任务包含\"{{query}}\"。"
     },
     "shopping": {
         "detailsLabel": "{{name}} 的详情",
@@ -690,7 +695,13 @@
         "colorTeal": "青绿色",
         "colorWhite": "白色",
         "colorYellow": "黄色",
-        "searchClear": "清除搜索"
+        "searchClear": "清除搜索",
+        "openNote": "打开便签",
+        "groupPinned": "已置顶",
+        "groupOthers": "其他便签",
+        "filterCreatorLabel": "创建者",
+        "formatToolbarLabel": "文本格式",
+        "noResultsCreatorDescription": "没有来自 {{name}} 的便签。"
     },
     "contacts": {
         "manageCategories": "管理类别",

@@ -297,7 +297,12 @@
         "documentRemove": "Retirer le lien",
         "documentsEmpty": "Aucun document associé pour l’instant.",
         "documentsCount": "{{count}} documents",
-        "assignedToMe": "Attribués à moi"
+        "assignedToMe": "Attribués à moi",
+        "noResultsTitle": "Aucun résultat",
+        "searchPlaceholder": "Rechercher des tâches…",
+        "viewToggleLabel": "Affichage",
+        "groupToggleLabel": "Grouper par",
+        "noResultsDescription": "Aucune tâche ne contient \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Détails de {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Sarcelle",
         "colorWhite": "Blanc",
         "colorYellow": "Jaune",
-        "searchClear": "Effacer la recherche"
+        "searchClear": "Effacer la recherche",
+        "openNote": "Ouvrir la note",
+        "groupPinned": "Épinglées",
+        "groupOthers": "Autres notes",
+        "filterCreatorLabel": "Créé par",
+        "formatToolbarLabel": "Mise en forme du texte",
+        "noResultsCreatorDescription": "Aucune note de {{name}}."
     },
     "contacts": {
         "manageCategories": "Gérer les catégories",

@@ -297,7 +297,12 @@
         "documentRemove": "Remover associação",
         "documentsEmpty": "Ainda não há documentos associados.",
         "documentsCount": "{{count}} documentos",
-        "assignedToMe": "Atribuídos a mim"
+        "assignedToMe": "Atribuídos a mim",
+        "noResultsTitle": "Nenhum resultado",
+        "searchPlaceholder": "Pesquisar tarefas…",
+        "viewToggleLabel": "Visualização",
+        "groupToggleLabel": "Agrupar por",
+        "noResultsDescription": "Nenhuma tarefa contém \"{{query}}\"."
     },
     "shopping": {
         "detailsLabel": "Detalhes de {{name}}",
@@ -690,7 +695,13 @@
         "colorTeal": "Verde-azulado",
         "colorWhite": "Branco",
         "colorYellow": "Amarelo",
-        "searchClear": "Limpar pesquisa"
+        "searchClear": "Limpar pesquisa",
+        "openNote": "Abrir nota",
+        "groupPinned": "Fixadas",
+        "groupOthers": "Outras notas",
+        "filterCreatorLabel": "Criado por",
+        "formatToolbarLabel": "Formatação de texto",
+        "noResultsCreatorDescription": "Nenhuma nota de {{name}}."
     },
     "contacts": {
         "manageCategories": "Gerir categorias",
