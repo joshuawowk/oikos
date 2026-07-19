@@ -402,9 +402,12 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
   font-weight: var(--font-weight-medium);
   text-align: center;
   line-height: 1.2;
-  /* Lange Modulnamen brechen um statt zu überlaufen (schmale Spalten ~80px). */
-  overflow-wrap: anywhere;
+  /* Lange Modulnamen brechen mit echter Silbentrennung um (lang-Attribut setzt
+   * lang-init.js) statt an beliebiger Stelle: overflow-wrap:anywhere erzeugte
+   * Brüche wie „Haushaltshil-fe" (Audit F-09). break-word bleibt als Backstop
+   * für unhyphenierbare Langwörter — es bricht erst, wenn nichts anderes geht. */
   hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 .more-item[aria-current="page"] .more-item__label {
@@ -474,7 +477,10 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  /* Wie .more-item__label: Silbentrennung statt Bruch an beliebiger Stelle
+   * („Einstellung-en", Audit F-09). */
+  hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 /* ── Such-Overlay ── */
