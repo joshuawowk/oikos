@@ -70,6 +70,18 @@ const PREVIEWABLE_MIME = new Set([
   'text/csv',
 ]);
 
+// Bild-Typen, die als kompaktes DMS-Thumbnail (Issue #533) inline ausgeliefert
+// werden dürfen. Bewusst nur nicht-skriptfähige Rasterformate — SVG ist NICHT
+// enthalten, da es Skripte ausführen könnte. Liefert das DMS etwas anderes
+// (z. B. octet-stream), wird die Vorschau verworfen und der Client fällt auf das
+// Kategorie-Icon zurück.
+const THUMBNAIL_MIME = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+]);
+
 function normalizeMime(value) {
   return String(value || '').split(';')[0].trim().toLowerCase();
 }
@@ -130,10 +142,12 @@ function documentSelect() {
            d.external_meta, d.folder_id, d.created_by, d.created_at, d.updated_at,
            f.name AS folder_name,
            u.display_name AS creator_name, u.avatar_color AS creator_color,
+           da.provider AS dms_provider,
            GROUP_CONCAT(a.user_id) AS allowed_member_ids
     FROM family_documents d
     LEFT JOIN family_document_folders f ON f.id = d.folder_id
     LEFT JOIN users u ON u.id = d.created_by
+    LEFT JOIN dms_accounts da ON da.id = d.dms_account_id
     LEFT JOIN family_document_access a ON a.document_id = d.id
   `;
 }
@@ -181,6 +195,29 @@ async function resolveDocumentContent(document) {
     dmsResolver = async () => dmsAdapterFactory(account).fetchContent(document.storage_key);
   }
   return readDocumentContent(document, { dmsResolver });
+}
+
+// Kompaktes Vorschaubild (Issue #533). Nur für DMS-verknüpfte Dokumente, deren
+// Adapter Thumbnails liefert (Paperless). Wirft ThumbnailUnavailableError, wenn
+// kein Bild erzeugt werden kann — der Client fällt dann auf das Icon zurück.
+class ThumbnailUnavailableError extends Error {}
+
+async function resolveDmsThumbnail(account, storageKey) {
+  const adapter = dmsAdapterFactory(account);
+  if (typeof adapter.fetchThumbnail !== 'function') throw new ThumbnailUnavailableError();
+  const thumb = await adapter.fetchThumbnail(storageKey);
+  const mime = normalizeMime(thumb?.mime);
+  if (!thumb?.buffer?.length || !THUMBNAIL_MIME.has(mime)) throw new ThumbnailUnavailableError();
+  return { buffer: thumb.buffer, mime };
+}
+
+function sendThumbnail(res, thumb, cacheSeconds) {
+  res.setHeader('Content-Type', thumb.mime);
+  res.setHeader('Content-Length', String(thumb.buffer.length));
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', `private, max-age=${cacheSeconds}`);
+  res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'");
+  res.end(thumb.buffer);
 }
 
 function sendStorageError(res, error, fallbackMessage) {
@@ -626,6 +663,27 @@ router.patch('/:id/archive', (req, res) => {
   } catch (err) {
     log.error('PATCH /:id/archive error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });
+  }
+});
+
+router.get('/:id/thumbnail', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const doc = getVisibleDocument(id, req, true);
+    if (!doc) return res.status(404).json({ error: 'Document not found.', code: 404 });
+    if (doc.storage_backend !== 'dms') {
+      return res.status(415).json({ error: 'Thumbnail not available for this document.', code: 415 });
+    }
+    const account = loadDmsAccount(doc.dms_account_id);
+    if (!account) return res.status(404).json({ error: 'Linked DMS account is gone.', code: 404 });
+    const thumb = await resolveDmsThumbnail(account, doc.storage_key);
+    sendThumbnail(res, thumb, 300);
+  } catch (err) {
+    if (err instanceof ThumbnailUnavailableError) {
+      return res.status(415).json({ error: 'Thumbnail not available for this document.', code: 415 });
+    }
+    log.error('GET /:id/thumbnail error:', err);
+    res.status(502).json({ error: 'Failed to load thumbnail.', code: 502 });
   }
 });
 

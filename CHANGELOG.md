@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-07-19
+
+### Added
+- Linked DMS documents now show a compact first-page thumbnail so the right file can be recognized without opening it (#533). In the documents list, Paperless-linked documents render a thumbnail over the category glyph, and the "Link from DMS" picker previews each hit with a thumbnail plus filename and file type before linking. The picker preview also opens the original document in the DMS in a new tab. Thumbnails are proxied server-side (visibility-enforced for the list, admin-only for the picker), restricted to a raster-image allowlist with `nosniff` and a strict CSP, and gracefully fall back to the category icon whenever a preview cannot be generated (for example providers without a thumbnail endpoint, such as Papra).
+
 ## [1.31.6] - 2026-07-19
 
 ### Fixed

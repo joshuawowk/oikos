@@ -132,6 +132,24 @@ test('fetchContent: lädt Binärdaten herunter, gibt buffer + mime zurück', asy
   assert.equal(out.buffer.toString(), '%PDF-1.4 fake');
 });
 
+test('fetchThumbnail: lädt Vorschaubild von /thumb/, gibt buffer + mime zurück (#533)', async () => {
+  const buf = Buffer.from('89504e470d0a1a0a', 'hex');
+  mockFetch(() => binaryResponse(buf, 'image/webp'));
+  const adapter = new PaperlessAdapter(account);
+  const out = await adapter.fetchThumbnail('42');
+  assert.equal(calls[0].url, 'https://dms.example.com/api/documents/42/thumb/');
+  assert.equal(calls[0].opts.headers.Authorization, 'Token tok123');
+  assert.equal(out.mime, 'image/webp');
+  assert.ok(Buffer.isBuffer(out.buffer));
+  assert.deepEqual(out.buffer, buf);
+});
+
+test('fetchThumbnail: HTTP-Fehler wirft mit Statuscode', async () => {
+  mockFetch(() => binaryResponse(Buffer.alloc(0), null, 404));
+  const adapter = new PaperlessAdapter(account);
+  await assert.rejects(() => adapter.fetchThumbnail('9'), /DMS request failed \(404\)/);
+});
+
 test('testConnection: testet echten JSON-Endpunkt /api/documents/ statt /api/ (#527)', async () => {
   mockFetch(() => jsonResponse({ count: 1, results: [] }));
   const adapter = new PaperlessAdapter(account);

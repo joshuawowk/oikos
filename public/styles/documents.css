@@ -439,6 +439,45 @@
   height: 22px;
 }
 
+/* DMS-Thumbnail-Vorschau (Issue #533): das geladene Bild überlagert den
+   Kategorie-Glyph im Icon-Slot. Schlägt das Laden fehl, bleibt der Glyph. */
+.document-thumb {
+  position: relative;
+  overflow: hidden;
+}
+
+.document-thumb__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.document-thumb__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--color-surface-2);
+  transition: transform var(--transition-base);
+}
+
+/* Die ganze Karte ist bereits Klick-Ziel (cursor: pointer). Sobald ein Thumbnail
+   geladen ist, quittiert der Slot den Hover mit einem sanften Zoom - eine kleine
+   Bestätigung, dass diese Vorschau die Karte öffnet. Kein eigener Cursor nötig. */
+.document-thumb--ready:hover .document-thumb__img {
+  transform: scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-thumb__img {
+    transition: none;
+  }
+  .document-thumb--ready:hover .document-thumb__img {
+    transform: none;
+  }
+}
+
 .document-card__header {
   display: flex;
   align-items: center;
@@ -861,7 +900,7 @@
   margin-bottom: var(--space-2);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-surface-1) 88%, transparent);
+  background: color-mix(in srgb, var(--color-surface-2) 88%, transparent);
   backdrop-filter: blur(6px);
   box-shadow: var(--glass-shadow-sm);
   color: var(--color-text-secondary);
@@ -884,7 +923,7 @@
   line-height: 0;
   border-radius: var(--radius-glass-inner);
   box-shadow: var(--glass-shadow-md);
-  background: var(--color-surface-1);
+  background: var(--color-surface-2);
   overflow: hidden;
 }
 
@@ -1056,9 +1095,93 @@
   background: var(--color-surface-2);
 }
 
-.dms-result__title {
+.dms-result__media {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--module-accent) 12%, transparent);
+  color: var(--module-accent);
+}
+
+.dms-result__media svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dms-result__thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--color-surface-2);
+}
+
+/* Ist die Vorschau ein Link ins DMS, taucht beim Hover/Fokus ein Öffnen-Symbol
+   über der Kachel auf - eine kleine Belohnung dafür, dass die Vorschau mehr kann
+   als nur zeigen (Issue #533). */
+.dms-result__media--link {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.dms-result__open {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  color: var(--color-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 52%, transparent);
+  transition: opacity var(--transition-fast);
+}
+
+.dms-result__open svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dms-result__media--link:hover .dms-result__open,
+.dms-result__media--link:focus-visible .dms-result__open {
+  opacity: 1;
+}
+
+.dms-result__media--link:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--module-accent));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dms-result__open {
+    transition: none;
+  }
+}
+
+.dms-result__text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dms-result__title {
+  display: block;
   color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dms-result__sub {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

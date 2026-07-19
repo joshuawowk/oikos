@@ -328,6 +328,7 @@ function renderDocuments() {
   list.replaceChildren();
   list.insertAdjacentHTML('beforeend', docs.map((doc) => state.view === 'list' ? renderListItem(doc) : renderGridCard(doc)).join(''));
   if (window.lucide) lucide.createIcons({ el: list });
+  wireThumbnails(list);
   stagger(list.querySelectorAll('.document-card, .document-row'));
 }
 
@@ -551,6 +552,50 @@ function documentStorageBackend(doc) {
   return doc.storage_provider === 'external' ? 'dms' : 'local';
 }
 
+// Kompaktes Vorschaubild (Issue #533): nur DMS-Dokumente mit vorhandenem Konto,
+// deren Provider Thumbnails liefert. Papra hat keinen Thumb-Endpoint -> gar nicht
+// erst anfragen, damit keine ins Leere laufenden 415-Requests entstehen.
+function docSupportsThumbnail(doc) {
+  return documentStorageBackend(doc) === 'dms'
+    && Boolean(doc.dms_account_id)
+    && doc.dms_provider === 'paperless';
+}
+
+// Icon-Slot einer Karte: Kategorie-Glyph, plus (bei Thumbnail-Support) ein Bild,
+// das nach erfolgreichem Laden das Glyph ersetzt. Schlägt das Laden fehl, bleibt
+// das Glyph stehen (Fallback auf die bisherige Darstellung).
+function renderDocIconSlot(doc) {
+  const icon = `<i data-lucide="${CATEGORY_ICONS[doc.category] || 'file'}" aria-hidden="true"></i>`;
+  if (!docSupportsThumbnail(doc)) return icon;
+  return `<span class="document-thumb__glyph" data-thumb-icon>${icon}</span>`
+    + `<img class="document-thumb__img" data-thumb="clickable" src="/api/v1/documents/${doc.id}/thumbnail"`
+    + ` alt="" loading="lazy" width="42" height="42" hidden>`;
+}
+
+function fileTypeLabel(filename) {
+  const ext = String(filename || '').toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  return ext ? ext.toUpperCase() : '';
+}
+
+// Zeigt das geladene Thumbnail und blendet den Glyph-Fallback aus. Deckt auch den
+// Cache-Fall ab, in dem das Bild schon vor dem Listener-Bind fertig geladen ist.
+function wireThumbnails(root) {
+  root.querySelectorAll('img[data-thumb]').forEach((img) => {
+    const reveal = () => {
+      if (!img.naturalWidth) { img.remove(); return; }
+      img.hidden = false;
+      img.parentElement?.querySelector('[data-thumb-icon]')?.setAttribute('hidden', '');
+      // Erst wenn ein Thumbnail steht, signalisiert der Icon-Slot per Cursor/Hover,
+      // dass er (wie die ganze Karte) den Viewer öffnet. data-thumb-clickable grenzt
+      // die Karten-Thumbnails vom rein identifizierenden Picker-Thumbnail ab.
+      if (img.dataset.thumb === 'clickable') img.parentElement?.classList.add('document-thumb--ready');
+    };
+    if (img.complete) { reveal(); return; }
+    img.addEventListener('load', reveal, { once: true });
+    img.addEventListener('error', () => img.remove(), { once: true });
+  });
+}
+
 function uploadBackendLabel(backend) {
   if (backend === 'webdav') return t('documents.storageWebdav');
   if (backend === 'local_folder') return t('documents.storageLocalFolder');
@@ -605,7 +650,7 @@ function renderGridCard(doc) {
   return `
     <article class="document-card" data-id="${doc.id}">
       <div class="document-card__header">
-        <div class="document-card__icon"><i data-lucide="${CATEGORY_ICONS[doc.category] || 'file'}" aria-hidden="true"></i></div>
+        <div class="document-card__icon document-thumb">${renderDocIconSlot(doc)}</div>
         <span class="document-card__date">${formatDate(doc.updated_at)}</span>
       </div>
       <div class="document-card__body">
@@ -621,7 +666,7 @@ function renderGridCard(doc) {
 function renderListItem(doc) {
   return `
     <article class="document-row" data-id="${doc.id}">
-      <div class="document-row__icon"><i data-lucide="${CATEGORY_ICONS[doc.category] || 'file'}" aria-hidden="true"></i></div>
+      <div class="document-row__icon document-thumb">${renderDocIconSlot(doc)}</div>
       <div class="document-row__body">
         <h2 class="document-row__title">${esc(doc.name)}</h2>
         <div class="document-row__meta">${renderMeta(doc)}</div>
@@ -1056,13 +1101,57 @@ function renderDmsResults(container, items, accountId) {
     container.appendChild(li);
     return;
   }
+  const provider = state.dmsAccounts.find((a) => String(a.id) === String(accountId))?.provider;
+  const supportsThumb = provider === 'paperless';
   for (const item of items) {
     const li = document.createElement('li');
     li.className = 'dms-result';
 
+    // Kompakte Vorschau (Issue #533): Thumbnail der ersten Seite mit Glyph-Fallback.
+    // Ist eine gültige DMS-URL vorhanden, wird die Kachel zum Link, der das Original
+    // im DMS öffnet - so lässt sich vor dem Verknüpfen prüfen, ob es das richtige ist.
+    const canOpen = /^https?:\/\//i.test(item.url || '');
+    const media = document.createElement(canOpen ? 'a' : 'span');
+    media.className = canOpen ? 'dms-result__media dms-result__media--link' : 'dms-result__media';
+    if (canOpen) {
+      media.href = item.url;
+      media.target = '_blank';
+      media.rel = 'noopener noreferrer';
+      media.title = t('documents.dmsOpenExternal');
+      media.setAttribute('aria-label', t('documents.dmsOpenExternal'));
+    }
+    media.insertAdjacentHTML('beforeend', `<span class="dms-result__glyph" data-thumb-icon><i data-lucide="file-text" aria-hidden="true"></i></span>`);
+    if (supportsThumb) {
+      const img = document.createElement('img');
+      img.className = 'dms-result__thumb';
+      img.dataset.thumb = '';
+      img.loading = 'lazy';
+      img.alt = '';
+      img.width = 40;
+      img.height = 40;
+      img.hidden = true;
+      img.src = `/api/v1/documents/dms/thumbnail?account_id=${encodeURIComponent(accountId)}&dms_document_id=${encodeURIComponent(item.id)}`;
+      media.appendChild(img);
+    }
+    if (canOpen) {
+      // Hover-Verrät: ein Öffnen-Symbol taucht über der Vorschau auf.
+      media.insertAdjacentHTML('beforeend', `<span class="dms-result__open" aria-hidden="true"><i data-lucide="external-link"></i></span>`);
+    }
+
+    const text = document.createElement('span');
+    text.className = 'dms-result__text';
     const label = document.createElement('span');
     label.className = 'dms-result__title';
     label.textContent = item.title;
+    text.appendChild(label);
+    const typeLabel = fileTypeLabel(item.filename);
+    const sub = [item.filename, typeLabel].filter((v) => v && v !== item.title).join(' · ');
+    if (sub) {
+      const subEl = document.createElement('span');
+      subEl.className = 'dms-result__sub';
+      subEl.textContent = sub;
+      text.appendChild(subEl);
+    }
 
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -1088,9 +1177,11 @@ function renderDmsResults(container, items, accountId) {
       }
     });
 
-    li.append(label, btn);
+    li.append(media, text, btn);
     container.appendChild(li);
   }
+  if (window.lucide) lucide.createIcons({ el: container });
+  wireThumbnails(container);
 }
 
 function readFileAsDataUrl(file) {

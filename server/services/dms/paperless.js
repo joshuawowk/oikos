@@ -118,6 +118,19 @@ export class PaperlessAdapter {
     };
   }
 
+  // Vorschaubild der ersten Seite (Issue #533). Paperless-ngx rendert für jedes
+  // Dokument ein Thumbnail (i. d. R. image/webp) unter /thumb/. Der Aufrufer prüft
+  // den zurückgegebenen MIME-Typ gegen eine Bild-Allowlist, bevor er es inline
+  // ausliefert; hier wird nur durchgereicht, was die Instanz sendet.
+  async fetchThumbnail(id) {
+    const res = await this.#request(`/api/documents/${encodeURIComponent(id)}/thumb/`);
+    const arrayBuf = await res.arrayBuffer();
+    return {
+      buffer: Buffer.from(arrayBuf),
+      mime: res.headers.get('content-type') || 'application/octet-stream',
+    };
+  }
+
   async upload({ buffer, filename, mime, title, tags = [] }) {
     if (!filename) throw new Error('DMS upload requires a filename');
     const form = new FormData();

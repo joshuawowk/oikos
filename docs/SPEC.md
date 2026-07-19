@@ -845,6 +845,14 @@ bytes come from SQLite, WebDAV bytes are fetched from the configured remote obje
 documents are proxied through their adapter. The per-document visibility check applies before any
 content is read.
 
+Linked DMS documents also show a compact first-page thumbnail (`GET /documents/:id/thumbnail`,
+visibility-enforced) and the link picker previews DMS hits before linking
+(`GET /documents/dms/thumbnail`, admin-only, keyed by account + DMS document id). Both proxy the
+adapter's thumbnail (Paperless `/thumb/`; providers without one degrade to the category glyph),
+serve only a raster-image allowlist (`png/jpeg/webp/gif`, no SVG) with `nosniff` and a strict CSP,
+and the client falls back to the icon when no thumbnail can be generated. The picker preview links
+out to the original in the DMS. (v1.32.0)
+
 PDF preview renders inline everywhere: browsers with a built-in PDF viewer (desktop) use a
 same-origin `<iframe>`, while browsers without one (iOS Safari and most mobile browsers, where an
 `<iframe>`/`<embed>` renders blank) fall back to a self-hosted pdf.js canvas viewer. Pages render
