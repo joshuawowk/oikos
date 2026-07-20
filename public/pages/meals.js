@@ -6,7 +6,7 @@
 
 import { api } from '/api.js';
 import { openModal as openSharedModal, closeModal as closeSharedModal, selectModal, confirmModal, advancedSection, wireBlurValidation, reportFieldError } from '/components/modal.js';
-import { stagger, scheduleUndoableDelete } from '/utils/ux.js';
+import { stagger, scheduleUndoableDelete, wireScrollFade } from '/utils/ux.js';
 import { t, formatDate, formatDayMonth, formatDateInput, parseDateInput, isDateInputValid } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
@@ -327,6 +327,15 @@ function renderWeekGrid() {
   if (window.lucide) lucide.createIcons({ el: grid });
   stagger(grid.querySelectorAll('.meal-card'));
   wireGrid(grid);
+
+  // Scroll-Affordance des Desktop-Boards: End-Anriss signalisiert verborgene
+  // Tage rechts (Critique-Folgebefund; Muster wie Tab-Leisten/Chip-Zeilen).
+  // Einmal binden — der MutationObserver von wireScrollFade deckt spätere
+  // replaceChildren-Rerenders ab.
+  if (!grid.dataset.fadeWired) {
+    grid.dataset.fadeWired = 'true';
+    wireScrollFade(grid);
+  }
 
   // Auf schmalen Viewports (gestapelte Tage) den heutigen Tag in den Blick scrollen.
   if (window.matchMedia?.('(max-width: 640px)').matches) {

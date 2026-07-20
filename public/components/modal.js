@@ -613,6 +613,9 @@ function _ensureFieldError(group, input, message) {
   if (!el) {
     el = document.createElement('p');
     el.className = 'form-field__error';
+    // Live-Region: Screenreader hören die Meldung auch dann, wenn der Fokus
+    // nicht springt (Critique-Folgebefund zu WCAG 4.1.3).
+    el.setAttribute?.('role', 'alert');
     el.textContent = t('common.required');
     // Direkt hinter das Feld, nicht ans Gruppenende: liegen Hinweistexte
     // dazwischen, rutscht die Meldung sonst weit weg (gemessen 86px beim

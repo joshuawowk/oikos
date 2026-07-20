@@ -698,6 +698,22 @@
     display: contents;
   }
 
+  /* Scroll-Affordance des Boards (Critique-Folgebefund): wireScrollFade setzt
+   * die geteilten has-fade-*-Klassen (filter-chip.css). Der End-Anriss zeigt
+   * „rechts liegen weitere Tage" — auch wenn eine Spalte zufällig bündig mit
+   * der Kante abschließt. Die Start-Maske ist hier neutralisiert: sie würde
+   * die sticky Gutter-Labels am linken Rand ausblenden; links übernimmt der
+   * opake Gutter-Hintergrund die Anriss-Rolle. */
+  .week-grid.has-fade-start {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .week-grid.has-fade-start.has-fade-end {
+    mask-image: linear-gradient(to right, #000 calc(100% - var(--space-6)), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--space-6)), transparent);
+  }
+
   .recipe-sidebar {
     display: flex;
     flex-direction: column;
