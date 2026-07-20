@@ -113,7 +113,9 @@ const wipe = db.transaction(() => {
   for (const t of WIPE) {
     try { db.prepare(`DELETE FROM ${t}`).run(); } catch (e) { /* table may not exist */ }
   }
-  db.prepare("DELETE FROM sqlite_sequence").run();
+  // sqlite_sequence existiert erst, wenn je eine AUTOINCREMENT-Tabelle Daten
+  // hatte - auf einer frisch migrierten DB fehlt sie und der Seed bräche hier.
+  try { db.prepare("DELETE FROM sqlite_sequence").run(); } catch (e) { /* fresh db */ }
 });
 wipe();
 db.pragma('foreign_keys = ON');
