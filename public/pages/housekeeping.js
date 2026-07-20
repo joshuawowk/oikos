@@ -18,6 +18,13 @@ function localDate(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// "2026-07" ist ein API-Schlüssel, kein Anzeigetext: Leser bekommen den
+// lokalisierten Monatsnamen (Audit A2-23).
+function formatMonthLabel(ym, opts = { month: 'long', year: 'numeric' }) {
+  if (!/^\d{4}-\d{2}$/.test(String(ym || ''))) return String(ym || '');
+  return new Intl.DateTimeFormat(getLocale(), opts).format(new Date(`${ym}-01T00:00:00`));
+}
+
 function localDayParams() {
   return new URLSearchParams({
     local_date: localDate(),
@@ -278,10 +285,13 @@ function renderDashboard(content) {
   const maxPayment = Math.max(1, ...(data.monthly_payments || []).map((row) => row.total));
   const bars = (data.monthly_payments || []).map((row) => {
     const height = Math.max(8, Math.round((row.total / maxPayment) * 88));
+    // Wert sichtbar am Balken statt nur im Hover-title: das Chart trug sonst
+    // keine ablesbare Achse oder Zahl (Audit A2-23).
     return `
       <div class="housekeeping-chart__bar-wrap">
-        <div class="housekeeping-chart__bar" style="height:${height}px" title="${esc(row.month)} ${esc(money(row.total))}"></div>
-        <span>${esc(row.month.slice(5))}</span>
+        <span class="housekeeping-chart__value">${esc(money(row.total))}</span>
+        <div class="housekeeping-chart__bar" style="height:${height}px" title="${esc(formatMonthLabel(row.month))} ${esc(money(row.total))}"></div>
+        <span>${esc(formatMonthLabel(row.month, { month: 'short' }))}</span>
       </div>
     `;
   }).join('');
@@ -543,7 +553,7 @@ function renderReports(content) {
     <section class="housekeeping-card">
       <div class="housekeeping-section-heading">
         <h2>${esc(t('housekeeping.visitReports'))}</h2>
-        <span>${esc(state.visitReport?.month || '')}</span>
+        <span>${esc(formatMonthLabel(state.visitReport?.month || ''))}</span>
       </div>
       <section class="housekeeping-metrics housekeeping-metrics--compact">
         <article class="housekeeping-metric">

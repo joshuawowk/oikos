@@ -292,6 +292,16 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* Ein Rückweg pro Viewport (Audit A2-25a): Desktop navigiert über den
+ * Breadcrumb, Mobil über den Zurück-Link - nie beide gleichzeitig. */
+@media (min-width: 768px) {
+  .settings-leaf-back-link { display: none; }
+}
+
+@media (max-width: 767px) {
+  .settings-breadcrumb { display: none; }
+}
+
 .settings-overview-back-link:hover,
 .settings-leaf-back-link:hover,
 .settings-breadcrumb__link:hover {
@@ -1712,6 +1722,10 @@
   padding-top: var(--space-4);
   border-top: var(--space-px) solid var(--color-border);
 }
+
+/* display:flex schlägt das UA-[hidden] bei gleicher Spezifität - die
+ * Sichtbarkeitssteuerung (nur bei aktivem WebDAV) braucht den Guard. */
+.settings-document-storage-warning[hidden] { display: none !important; }
 
 .settings-document-storage-warning {
   display: flex;

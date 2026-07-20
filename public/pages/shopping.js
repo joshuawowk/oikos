@@ -797,6 +797,7 @@ function openMealPlanImport(container) {
           <label class="form-label" for="shopping-import-to">${t('calendar.toLabel')}</label>
           <yuvomi-datepicker type="date" id="shopping-import-to" value="${esc(defaultTo)}"></yuvomi-datepicker>
         </div>
+        <p class="form-hint" id="shopping-import-preview" role="status" aria-live="polite"></p>
         <div class="modal-actions">
           <button type="button" class="btn btn--secondary" id="shopping-import-cancel">${t('common.cancel')}</button>
           <button type="submit" class="btn btn--primary">${t('shopping.importMealsAction')}</button>
@@ -806,6 +807,28 @@ function openMealPlanImport(container) {
       const form = panel.querySelector('#shopping-import-meals-form');
       const cancelBtn = panel.querySelector('#shopping-import-cancel');
       cancelBtn?.addEventListener('click', () => closeModal());
+
+      // Vorschau vor dem Import (Audit A1-22): dieselbe Route rechnet mit
+      // preview:true nur, statt zu schreiben - der Dialog sagt, was passiert.
+      const previewEl = panel.querySelector('#shopping-import-preview');
+      async function updatePreview() {
+        const from = panel.querySelector('#shopping-import-from')?.value || '';
+        const to = panel.querySelector('#shopping-import-to')?.value || '';
+        if (!from || !to || !previewEl) return;
+        try {
+          const data = await api.post(`/shopping/${state.activeListId}/import-meal-plan`, { from, to, preview: true });
+          const transferred = Number(data.data?.transferred) || 0;
+          const meals = Number(data.data?.meals) || 0;
+          previewEl.textContent = transferred
+            ? t('shopping.importMealsPreview', { count: transferred, meals })
+            : t('shopping.importMealsEmpty');
+        } catch {
+          previewEl.textContent = '';
+        }
+      }
+      updatePreview();
+      panel.querySelector('#shopping-import-from')?.addEventListener('change', updatePreview);
+      panel.querySelector('#shopping-import-to')?.addEventListener('change', updatePreview);
       form?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const from = panel.querySelector('#shopping-import-from')?.value || '';

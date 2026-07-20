@@ -91,6 +91,7 @@
         "rewards": "Belohnungen"
     },
     "search": {
+        "emptyHint": "Ab 2 Zeichen durchsuchst du Aufgaben, Termine, Notizen, Kontakte, Einkauf und Gesundheit.",
         "title": "Suche",
         "placeholder": "Suchen…",
         "noResults": "Keine Ergebnisse gefunden.",
@@ -143,7 +144,7 @@
         "shoppingMore": "+{{count}} weitere",
         "weather": "Wetter",
         "familyMembers": "Familienmitglieder",
-        "participantsAdded": "Teilnehmer hinzugefügt",
+        "participantsAdded": "im Haushalt",
         "upcomingBirthdays": "Nächste Geburtstage",
         "noBirthdays": "Noch keine Geburtstage",
         "daysLeft": "{{count}} Tage",
@@ -156,7 +157,7 @@
         "noBudgetData": "Keine Budgetdaten in diesem Monat.",
         "customize": "Anpassen",
         "customizeTitle": "Widgets anpassen",
-        "customizeReset": "Standard",
+        "customizeReset": "Zurücksetzen",
         "customizeSaved": "Dashboard gespeichert",
         "customizeMoveUp": "Nach oben",
         "customizeMoveDown": "Nach unten",
@@ -361,6 +362,7 @@
         "importMeals": "Aus Essensplan",
         "importMealsTitle": "Essensplan importieren",
         "importMealsAction": "Importieren",
+        "importMealsPreview": "{{count}} Zutaten aus {{meals}} Mahlzeiten werden übernommen.",
         "importMealsEmpty": "Im gewählten Zeitraum wurden keine Essensplan-Zutaten gefunden.",
         "manageCategories": "Kategorien verwalten"
     },
@@ -462,6 +464,7 @@
         "allDay": "Ganztägig",
         "allDayShort": "ganztg.",
         "moreEvents": "+{{count}} weitere",
+        "dayEmptyHint": "Noch keine Termine. Tippe auf eine Uhrzeit, um einen Termin anzulegen.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "KW {{week}} · {{month}} {{year}}",
         "agendaFrom": "Ab {{date}}",
@@ -2064,6 +2067,9 @@
         "duplicate": "Duplizieren",
         "duplicated": "Rezept dupliziert.",
         "copySuffix": "Kopie",
+        "viewRecipe": "Rezept ansehen",
+        "searchPlaceholder": "Rezepte durchsuchen…",
+        "searchNoResults": "Keine Rezepte gefunden.",
         "dragToMealsHint": "Ziehe Rezepte auf Essens-Slots, um sie schnell einzuplanen."
     },
     "onboarding": {
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Messung gelöscht"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Medikamente",
             "emptyTitle": "Noch keine Medikamente",
             "emptyDesc": "Medikamente mit Einnahmeplan und Erinnerungen erscheinen hier.",

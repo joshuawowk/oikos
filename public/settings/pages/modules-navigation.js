@@ -166,6 +166,9 @@ function rowControlsHtml(row) {
   `;
 }
 
+// Toggle-Label ist sr-only: der sichtbare Status-Chip derselben Zeile sagt
+// bereits "Aktiviert"; ein zweites sichtbares "Aktiviert" am Toggle war
+// Doppel-Copy (Audit A2-25b). Gilt ebenso für die Kitchen-Zeile.
 function builtInRowHtml(row) {
   const statusLabel = row.enabled ? t('settings.thirdPartyModulesStatusEnabled') : t('settings.thirdPartyModulesStatusDisabled');
   const statusClass = row.enabled ? 'settings-module-status--enabled' : 'settings-module-status--disabled';
@@ -186,7 +189,7 @@ function builtInRowHtml(row) {
       </div>
       <label class="toggle-row settings-module-row__toggle">
         <input type="checkbox" data-built-in-module-toggle="${esc(row.id)}"${row.enabled ? ' checked' : ''}${row.locked ? ' disabled' : ''}>
-        <span class="settings-module-row__toggle-label">${t('settings.thirdPartyModulesEnableLabel')}</span>
+        <span class="settings-module-row__toggle-label sr-only">${t('settings.thirdPartyModulesEnableLabel')}</span>
       </label>
     </div>
   `;
@@ -246,7 +249,7 @@ function thirdPartyRowHtml(row) {
       </div>
       <label class="toggle-row settings-module-row__toggle">
         <input type="checkbox" data-third-party-module-toggle="${esc(row.id)}"${row.enabled ? ' checked' : ''}${row.toggleDisabled ? ' disabled' : ''}>
-        <span class="settings-module-row__toggle-label">${t('settings.thirdPartyModulesEnableLabel')}</span>
+        <span class="settings-module-row__toggle-label sr-only">${t('settings.thirdPartyModulesEnableLabel')}</span>
       </label>
     </div>
   `;

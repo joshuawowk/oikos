@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} de plus",
         "weather": "Météo",
         "familyMembers": "Membres de la famille",
-        "participantsAdded": "participants ajoutés",
+        "participantsAdded": "dans le foyer",
         "upcomingBirthdays": "Prochains anniversaires",
         "noBirthdays": "Aucun anniversaire pour l'instant",
         "daysLeft": "{{count}} jours",
@@ -354,6 +354,7 @@
         "importMeals": "Depuis le plan de repas",
         "importMealsTitle": "Importer depuis le plan de repas",
         "importMealsAction": "Importer",
+        "importMealsPreview": "{{count}} ingrédients de {{meals}} repas seront ajoutés.",
         "importMealsEmpty": "Aucun ingrédient de repas n'a été trouvé dans la période sélectionnée.",
         "manageCategories": "Gérer les catégories"
     },
@@ -455,6 +456,7 @@
         "allDay": "Toute la journée",
         "allDayShort": "tj.",
         "moreEvents": "+{{count}} de plus",
+        "dayEmptyHint": "Aucun rendez-vous. Touche une heure pour en créer un.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "S{{week}} · {{month}} {{year}}",
         "agendaFrom": "À partir du {{date}}",
@@ -1978,10 +1980,14 @@
         "duplicate": "Dupliquer",
         "duplicated": "Recette dupliquée.",
         "copySuffix": "copie",
+        "viewRecipe": "Voir la recette",
+        "searchPlaceholder": "Rechercher des recettes…",
+        "searchNoResults": "Aucune recette trouvée.",
         "dragToMealsHint": "Glissez les recettes sur les créneaux de repas pour les planifier rapidement.",
         "emptyAction": "Créer une recette"
     },
     "search": {
+        "emptyHint": "Saisis au moins 2 caractères pour chercher dans les tâches, rendez-vous, notes, contacts, courses et santé.",
         "title": "Recherche",
         "open": "Ouvrir la recherche",
         "placeholder": "Rechercher…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Mesure supprimée"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Médicaments",
             "emptyTitle": "Aucun médicament",
             "emptyDesc": "Les médicaments avec horaires et rappels apparaissent ici.",

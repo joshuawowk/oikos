@@ -2243,8 +2243,10 @@ svg.weather-forecast__icon {
 
 .widget-size-mini {
   display: grid;
-  grid-template-columns: repeat(4, 5px);
-  grid-template-rows: repeat(4, 5px);
+  /* 2x2-Basisraster (siehe renderSizeMiniGridCells): größere Zellen machen
+   * die vier Formen auf einen Blick unterscheidbar (Audit A1-17). */
+  grid-template-columns: repeat(2, 9px);
+  grid-template-rows: repeat(2, 9px);
   gap: var(--space-0h);
   padding: var(--space-1);
   border: 1px solid var(--color-border);

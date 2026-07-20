@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} till",
         "weather": "Väder",
         "familyMembers": "Familjemedlemmar",
-        "participantsAdded": "deltagare tillagda",
+        "participantsAdded": "i hushållet",
         "upcomingBirthdays": "Kommande födelsedagar",
         "noBirthdays": "Inga födelsedagar ännu",
         "daysLeft": "{{count}} dagar",
@@ -354,6 +354,7 @@
         "importMeals": "Från matplanen",
         "importMealsTitle": "Importera från matplanen",
         "importMealsAction": "Importera",
+        "importMealsPreview": "{{count}} ingredienser från {{meals}} måltider läggs till.",
         "importMealsEmpty": "Inga måltidsingredienser hittades i det valda intervallet.",
         "manageCategories": "Hantera kategorier"
     },
@@ -455,6 +456,7 @@
         "allDay": "Hela dagen",
         "allDayShort": "hela dagen",
         "moreEvents": "+{{count}} fler",
+        "dayEmptyHint": "Inga händelser än. Tryck på en tid för att lägga till.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "V{{week}} · {{month}} {{year}}",
         "agendaFrom": "Från {{date}}",
@@ -1978,10 +1980,14 @@
         "duplicate": "Duplicera",
         "duplicated": "Recept duplicerat.",
         "copySuffix": "kopia",
+        "viewRecipe": "Visa recept",
+        "searchPlaceholder": "Sök recept…",
+        "searchNoResults": "Inga recept hittades.",
         "dragToMealsHint": "Dra recept till måltidsfälten för att snabbt planera dem.",
         "emptyAction": "Skapa recept"
     },
     "search": {
+        "emptyHint": "Skriv minst 2 tecken för att söka bland uppgifter, händelser, anteckningar, kontakter, inköp och hälsa.",
         "title": "Sök",
         "open": "Öppna sökning",
         "placeholder": "Sök…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Mätning borttagen"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Mediciner",
             "emptyTitle": "Inga mediciner ännu",
             "emptyDesc": "Mediciner med schema och påminnelser visas här.",

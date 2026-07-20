@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} और",
         "weather": "मौसम",
         "familyMembers": "परिवार के सदस्य",
-        "participantsAdded": "प्रतिभागी जोड़े गए",
+        "participantsAdded": "परिवार में",
         "upcomingBirthdays": "आने वाले जन्मदिन",
         "noBirthdays": "अभी कोई जन्मदिन नहीं",
         "daysLeft": "{{count}} दिन",
@@ -149,7 +149,7 @@
         "noBudgetData": "इस महीने बजट डेटा नहीं है।",
         "customize": "अनुकूलित करें",
         "customizeTitle": "विजेट अनुकूलित करें",
-        "customizeReset": "डिफ़ॉल्ट",
+        "customizeReset": "रीसेट करें",
         "customizeSaved": "डैशबोर्ड सहेजा गया",
         "customizeMoveUp": "ऊपर ले जाएं",
         "customizeMoveDown": "नीचे ले जाएं",
@@ -354,6 +354,7 @@
         "importMeals": "भोजन योजना से",
         "importMealsTitle": "भोजन योजना से आयात करें",
         "importMealsAction": "आयात करें",
+        "importMealsPreview": "{{meals}} भोजन से {{count}} सामग्री जोड़ी जाएँगी।",
         "importMealsEmpty": "चयनित अवधि में भोजन योजना की कोई सामग्री नहीं मिली।",
         "manageCategories": "श्रेणियाँ प्रबंधित करें"
     },
@@ -455,6 +456,7 @@
         "allDay": "पूरे दिन",
         "allDayShort": "पूरा दिन",
         "moreEvents": "+{{count}} और",
+        "dayEmptyHint": "अभी कोई ईवेंट नहीं। जोड़ने के लिए किसी समय पर टैप करें।",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "सप्ताह {{week}} · {{month}} {{year}}",
         "agendaFrom": "{{date}} से",
@@ -1978,10 +1980,14 @@
         "duplicate": "डुप्लिकेट",
         "duplicated": "रेसिपी डुप्लिकेट की गई।",
         "copySuffix": "कॉपी",
+        "viewRecipe": "रेसिपी देखें",
+        "searchPlaceholder": "रेसिपी खोजें…",
+        "searchNoResults": "कोई रेसिपी नहीं मिली।",
         "dragToMealsHint": "रेसिपी को भोजन स्लॉट पर खींचकर जल्दी योजना बनाएं।",
         "emptyAction": "रेसिपी बनाएं"
     },
     "search": {
+        "emptyHint": "कार्य, ईवेंट, नोट्स, संपर्क, खरीदारी और स्वास्थ्य में खोजने के लिए कम से कम 2 अक्षर लिखें।",
         "title": "खोज",
         "open": "खोज खोलें",
         "placeholder": "खोजें…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "माप हटाई गई"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "दवाइयाँ",
             "emptyTitle": "अभी कोई दवा नहीं",
             "emptyDesc": "शेड्यूल और रिमाइंडर वाली दवाइयाँ यहाँ दिखाई देंगी।",

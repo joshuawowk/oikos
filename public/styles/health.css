@@ -1669,9 +1669,14 @@ button.health-med-card:hover {
 .cycle-preg__bar-fill {
   display: block;
   height: 100%;
+  width: 100%;
   border-radius: inherit;
   background: var(--module-accent);
-  transition: width var(--transition-base, 240ms) ease;
+  /* transform statt width: layout-frei animierbar (Detector layout-transition);
+   * der Füllstand kommt als --cycle-fill (0..1) aus dem Markup. */
+  transform-origin: left center;
+  transform: scaleX(var(--cycle-fill, 0));
+  transition: transform var(--duration-md) ease;
 }
 
 .cycle-preg__due { font-size: var(--text-sm); color: var(--color-text-secondary); }

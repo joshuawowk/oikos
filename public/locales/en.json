@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} more",
         "weather": "Weather",
         "familyMembers": "Family members",
-        "participantsAdded": "participants added",
+        "participantsAdded": "in the household",
         "upcomingBirthdays": "Upcoming birthdays",
         "noBirthdays": "No birthdays yet",
         "daysLeft": "{{count}} days",
@@ -354,6 +354,7 @@
         "importMeals": "From meal plan",
         "importMealsTitle": "Import from meal plan",
         "importMealsAction": "Import",
+        "importMealsPreview": "{{count}} ingredients from {{meals}} meals will be added.",
         "importMealsEmpty": "No meal ingredients were found in the selected range.",
         "manageCategories": "Manage categories"
     },
@@ -455,6 +456,7 @@
         "allDay": "All day",
         "allDayShort": "all day",
         "moreEvents": "+{{count}} more",
+        "dayEmptyHint": "No events yet. Tap a time to add one.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "W{{week}} · {{month}} {{year}}",
         "agendaFrom": "From {{date}}",
@@ -2056,10 +2058,14 @@
         "duplicate": "Duplicate",
         "duplicated": "Recipe duplicated.",
         "copySuffix": "copy",
+        "viewRecipe": "View recipe",
+        "searchPlaceholder": "Search recipes…",
+        "searchNoResults": "No recipes found.",
         "dragToMealsHint": "Drag recipes onto meal slots to plan them quickly.",
         "emptyAction": "Create recipe"
     },
     "search": {
+        "emptyHint": "Type at least 2 characters to search tasks, events, notes, contacts, shopping and health.",
         "title": "Search",
         "open": "Open search",
         "placeholder": "Search…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Measurement deleted"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Medications",
             "emptyTitle": "No medications yet",
             "emptyDesc": "Medications with schedules and reminders appear here.",

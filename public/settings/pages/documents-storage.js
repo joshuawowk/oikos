@@ -131,7 +131,7 @@ function renderPage(container) {
       <div class="settings-card" id="document-storage-card">
         <p class="settings-card-description">${t('settings.documentStorageDescription')}</p>
         <div id="document-storage-status-host"></div>
-        <p class="settings-document-storage-warning">
+        <p class="settings-document-storage-warning" id="document-storage-backup-warning" hidden>
           <i data-lucide="triangle-alert" aria-hidden="true"></i>
           <span>${t('settings.documentStorageBackupWarning')}</span>
         </p>
@@ -151,6 +151,7 @@ function applyConfigToForm(form, data) {
   };
 
   form.querySelector('#document-storage-enabled').checked = Boolean(data.enabled);
+  syncBackupWarning(Boolean(data.enabled));
   form.querySelector('#document-storage-url').value = data.url ?? '';
   form.querySelector('#document-storage-username').value = data.username ?? '';
   const passwordInput = form.querySelector('#document-storage-password');
@@ -206,7 +207,18 @@ function hasProtectedDocumentStorageChange(form, payload) {
   return !envControlled.password && Object.hasOwn(payload, 'password');
 }
 
+// Die Backup-Warnung betrifft nur WebDAV-Ziele; bei "Lokal" ist sie falsch
+// beunruhigend (Audit A2-25c). Sichtbarkeit folgt dem Aktiviert-Zustand.
+function syncBackupWarning(enabled) {
+  const warning = document.getElementById('document-storage-backup-warning');
+  if (warning) warning.hidden = !enabled;
+}
+
 function bindConnectionForm(container, form, reload) {
+  form.querySelector('#document-storage-enabled')?.addEventListener('change', (event) => {
+    syncBackupWarning(event.currentTarget.checked);
+  });
+
   form.querySelector('[data-reveal-target]')?.addEventListener('click', (event) => {
     const button = event.currentTarget;
     const input = form.querySelector(`#${button.dataset.revealTarget}`);

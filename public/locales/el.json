@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} ακόμα",
         "weather": "Καιρός",
         "familyMembers": "Μέλη οικογένειας",
-        "participantsAdded": "συμμετέχοντες προστέθηκαν",
+        "participantsAdded": "στο νοικοκυριό",
         "upcomingBirthdays": "Επόμενα γενέθλια",
         "noBirthdays": "Δεν υπάρχουν γενέθλια ακόμα",
         "daysLeft": "{{count}} ημέρες",
@@ -354,6 +354,7 @@
         "importMeals": "Από το πλάνο γευμάτων",
         "importMealsTitle": "Εισαγωγή από το πλάνο γευμάτων",
         "importMealsAction": "Εισαγωγή",
+        "importMealsPreview": "Θα προστεθούν {{count}} υλικά από {{meals}} γεύματα.",
         "importMealsEmpty": "Δεν βρέθηκαν υλικά γευμάτων στο επιλεγμένο εύρος.",
         "manageCategories": "Διαχείριση κατηγοριών"
     },
@@ -455,6 +456,7 @@
         "allDay": "Όλη μέρα",
         "allDayShort": "όλη μέρα",
         "moreEvents": "+{{count}} ακόμα",
+        "dayEmptyHint": "Δεν υπάρχουν ραντεβού. Πάτησε μια ώρα για να προσθέσεις.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "Εβδ{{week}} · {{month}} {{year}}",
         "agendaFrom": "Από {{date}}",
@@ -1978,10 +1980,14 @@
         "duplicate": "Διπλότυπο",
         "duplicated": "Η συνταγή αντιγράφηκε.",
         "copySuffix": "αντίγραφο",
+        "viewRecipe": "Προβολή συνταγής",
+        "searchPlaceholder": "Αναζήτηση συνταγών…",
+        "searchNoResults": "Δεν βρέθηκαν συνταγές.",
         "dragToMealsHint": "Σύρετε συνταγές στα πλαίσια γευμάτων για γρήγορο προγραμματισμό.",
         "emptyAction": "Δημιουργία συνταγής"
     },
     "search": {
+        "emptyHint": "Πληκτρολόγησε τουλάχιστον 2 χαρακτήρες για αναζήτηση σε εργασίες, ραντεβού, σημειώσεις, επαφές, αγορές και υγεία.",
         "title": "Αναζήτηση",
         "open": "Άνοιγμα αναζήτησης",
         "placeholder": "Αναζήτηση…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Η μέτρηση διαγράφηκε"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Φάρμακα",
             "emptyTitle": "Κανένα φάρμακο ακόμη",
             "emptyDesc": "Φάρμακα με πρόγραμμα και υπενθυμίσεις εμφανίζονται εδώ.",

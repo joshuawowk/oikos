@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} mais",
         "weather": "Clima",
         "familyMembers": "Membros da família",
-        "participantsAdded": "participantes adicionados",
+        "participantsAdded": "na família",
         "upcomingBirthdays": "Próximos aniversários",
         "noBirthdays": "Nenhum aniversário ainda",
         "daysLeft": "{{count}} dias",
@@ -149,7 +149,7 @@
         "noBudgetData": "Sem dados de orçamento neste mês.",
         "customize": "Personalizar",
         "customizeTitle": "Personalizar widgets",
-        "customizeReset": "Padrão",
+        "customizeReset": "Repor",
         "customizeSaved": "Painel salvo",
         "customizeMoveUp": "Mover para cima",
         "customizeMoveDown": "Mover para baixo",
@@ -354,6 +354,7 @@
         "importMeals": "Do plano de refeições",
         "importMealsTitle": "Importar do plano de refeições",
         "importMealsAction": "Importar",
+        "importMealsPreview": "Serão adicionados {{count}} ingredientes de {{meals}} refeições.",
         "importMealsEmpty": "Não foram encontrados ingredientes de refeições no intervalo selecionado.",
         "manageCategories": "Gerir categorias"
     },
@@ -455,6 +456,7 @@
         "allDay": "Dia inteiro",
         "allDayShort": "dia int.",
         "moreEvents": "+{{count}} mais",
+        "dayEmptyHint": "Ainda sem eventos. Toca numa hora para criar um.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "Sem {{week}} · {{month}} {{year}}",
         "agendaFrom": "A partir de {{date}}",
@@ -1978,10 +1980,14 @@
         "duplicate": "Duplicar",
         "duplicated": "Receita duplicada.",
         "copySuffix": "cópia",
+        "viewRecipe": "Ver receita",
+        "searchPlaceholder": "Pesquisar receitas…",
+        "searchNoResults": "Nenhuma receita encontrada.",
         "dragToMealsHint": "Arraste receitas para os espaços das refeições para planear rapidamente.",
         "emptyAction": "Criar receita"
     },
     "search": {
+        "emptyHint": "Digita pelo menos 2 caracteres para pesquisar tarefas, eventos, notas, contactos, compras e saúde.",
         "title": "Pesquisa",
         "open": "Abrir pesquisa",
         "placeholder": "Pesquisar…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Medição eliminada"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Medicamentos",
             "emptyTitle": "Sem medicamentos",
             "emptyDesc": "Medicamentos com horários e lembretes aparecem aqui.",

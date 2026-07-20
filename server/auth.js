@@ -248,6 +248,9 @@ function publicUser(row) {
     email: row.email ?? null,
     birth_date: row.birth_date ?? null,
     created_at: row.created_at,
+    // Nur wenn die Query das Flag mitselektiert (GET /users); andere
+    // publicUser-Pfade behalten ihre bisherige Feldmenge.
+    ...(row.is_worker !== undefined && { is_worker: Boolean(row.is_worker) }),
   };
 }
 
@@ -995,9 +998,13 @@ router.get('/me', requireAuth, (req, res) => {
  */
 router.get('/users', requireAuth, (req, res) => {
   try {
+    // is_worker markiert Konten der Haushaltshilfe (housekeeping_workers),
+    // damit die Familien-Verwaltung sie nicht als Familienmitglied labelt
+    // (Audit A2-25e). Muster wie der Worker-Ausschluss in routes/family.js.
     const users = db.get()
       .prepare(`
-        SELECT ${USER_PUBLIC_COLUMNS}
+        SELECT ${USER_PUBLIC_COLUMNS},
+               EXISTS(SELECT 1 FROM housekeeping_workers hw WHERE hw.user_id = users.id) AS is_worker
         FROM users
         ORDER BY display_name
       `)

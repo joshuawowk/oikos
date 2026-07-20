@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} ще",
         "weather": "Погода",
         "familyMembers": "Члени родини",
-        "participantsAdded": "учасників додано",
+        "participantsAdded": "у сім'ї",
         "upcomingBirthdays": "Найближчі дні народження",
         "noBirthdays": "Днів народження ще немає",
         "daysLeft": "{{count}} дн.",
@@ -354,6 +354,7 @@
         "importMeals": "З плану харчування",
         "importMealsTitle": "Імпортувати з плану харчування",
         "importMealsAction": "Імпортувати",
+        "importMealsPreview": "Буде додано {{count}} інгредієнтів із {{meals}} прийомів їжі.",
         "importMealsEmpty": "У вибраному діапазоні не знайдено інгредієнтів страв.",
         "manageCategories": "Керувати категоріями"
     },
@@ -455,6 +456,7 @@
         "allDay": "Весь день",
         "allDayShort": "весь день",
         "moreEvents": "+{{count}} ще",
+        "dayEmptyHint": "Поки немає подій. Торкніться часу, щоб створити.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "Т{{week}} · {{month}} {{year}}",
         "agendaFrom": "З {{date}}",
@@ -2011,10 +2013,14 @@
         "duplicate": "Дублювати",
         "duplicated": "Рецепт продубльовано.",
         "copySuffix": "копія",
+        "viewRecipe": "Переглянути рецепт",
+        "searchPlaceholder": "Пошук рецептів…",
+        "searchNoResults": "Рецептів не знайдено.",
         "dragToMealsHint": "Перетягуйте рецепти в слоти прийомів їжі, щоб швидко скласти план.",
         "emptyAction": "Створити рецепт"
     },
     "search": {
+        "emptyHint": "Введіть щонайменше 2 символи для пошуку в завданнях, подіях, нотатках, контактах, покупках і здоров'ї.",
         "title": "Пошук",
         "open": "Відкрити пошук",
         "placeholder": "Пошук…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Вимірювання видалено"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Ліки",
             "emptyTitle": "Ще немає ліків",
             "emptyDesc": "Ліки з розкладом і нагадуваннями зʼявляться тут.",

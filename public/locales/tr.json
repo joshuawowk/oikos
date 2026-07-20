@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} daha",
         "weather": "Hava",
         "familyMembers": "Aile üyeleri",
-        "participantsAdded": "katılımcı eklendi",
+        "participantsAdded": "hanede",
         "upcomingBirthdays": "Yaklaşan doğum günleri",
         "noBirthdays": "Henüz doğum günü yok",
         "daysLeft": "{{count}} gün",
@@ -354,6 +354,7 @@
         "importMeals": "Yemek planından",
         "importMealsTitle": "Yemek planından içe aktar",
         "importMealsAction": "İçe aktar",
+        "importMealsPreview": "{{meals}} öğünden {{count}} malzeme eklenecek.",
         "importMealsEmpty": "Seçilen aralıkta yemek malzemesi bulunamadı.",
         "manageCategories": "Kategorileri yönet"
     },
@@ -455,6 +456,7 @@
         "allDay": "Tüm gün",
         "allDayShort": "tüm gün",
         "moreEvents": "+{{count}} daha",
+        "dayEmptyHint": "Henüz etkinlik yok. Eklemek için bir saate dokun.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "H{{week}} · {{month}} {{year}}",
         "agendaFrom": "{{date}} tarihinden itibaren",
@@ -1978,10 +1980,14 @@
         "duplicate": "Çoğalt",
         "duplicated": "Tarif çoğaltıldı.",
         "copySuffix": "kopya",
+        "viewRecipe": "Tarifi görüntüle",
+        "searchPlaceholder": "Tariflerde ara…",
+        "searchNoResults": "Tarif bulunamadı.",
         "dragToMealsHint": "Tarifleri öğün alanlarına sürükleyerek hızlıca planlayın.",
         "emptyAction": "Tarif oluştur"
     },
     "search": {
+        "emptyHint": "Görevler, etkinlikler, notlar, kişiler, alışveriş ve sağlıkta aramak için en az 2 karakter yaz.",
         "title": "Arama",
         "open": "Aramayı aç",
         "placeholder": "Ara…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Ölçüm silindi"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "İlaçlar",
             "emptyTitle": "Henüz ilaç yok",
             "emptyDesc": "Program ve hatırlatmalı ilaçlar burada görünür.",

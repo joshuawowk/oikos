@@ -446,8 +446,10 @@ router.post('/:listId/items', (req, res) => {
 // --------------------------------------------------------
 // POST /api/v1/shopping/:listId/import-meal-plan
 // Importiert Zutaten aus dem Essensplan eines Datumsbereichs in eine Liste.
-// Body: { from: YYYY-MM-DD, to: YYYY-MM-DD }
-// Response: { data: { transferred: number, added: number } }
+// Body: { from: YYYY-MM-DD, to: YYYY-MM-DD, preview?: boolean }
+// preview:true rechnet nur (keine Schreib-Transaktion) - für die Vorschau
+// "X Zutaten aus Y Mahlzeiten" im Import-Dialog (Audit A1-22).
+// Response: { data: { transferred: number, added: number, meals: number, preview?: true } }
 // --------------------------------------------------------
 router.post('/:listId/import-meal-plan', (req, res) => {
   try {
@@ -474,10 +476,19 @@ router.post('/:listId/import-meal-plan', (req, res) => {
     `).all(vFrom.value, vTo.value);
 
     if (!ingredients.length) {
-      return res.json({ data: { transferred: 0, added: 0 } });
+      return res.json({ data: { transferred: 0, added: 0, meals: 0 } });
     }
 
+    const mealCount = new Set(ingredients.map((i) => i.meal_id)).size;
     const aggregated = aggregateMealIngredients(ingredients);
+
+    // Vorschau (Audit A1-22): identische Auswahl und Aggregation, aber ohne
+    // Schreib-Transaktion. Der Client zeigt "X Zutaten aus Y Mahlzeiten",
+    // bevor der Nutzer den Import bestätigt.
+    if (req.body.preview === true) {
+      return res.json({ data: { transferred: ingredients.length, added: aggregated.length, meals: mealCount, preview: true } });
+    }
+
     const added = db.get().transaction(() => {
       const insertItem = db.get().prepare(`
         INSERT INTO shopping_items (list_id, name, quantity, category, added_from_meal)
@@ -494,7 +505,7 @@ router.post('/:listId/import-meal-plan', (req, res) => {
       return aggregated.length;
     })();
 
-    res.json({ data: { transferred: ingredients.length, added } });
+    res.json({ data: { transferred: ingredients.length, added, meals: mealCount } });
   } catch (err) {
     log.error('POST /:listId/import-meal-plan error:', err);
     res.status(500).json({ error: 'Internal server error.', code: 500 });

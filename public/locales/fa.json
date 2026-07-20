@@ -91,6 +91,7 @@
         "rewards": "پاداش‌ها"
     },
     "search": {
+        "emptyHint": "برای جستجو در کارها، رویدادها، یادداشت‌ها، مخاطبین، خرید و سلامت دست‌کم ۲ نویسه بنویس.",
         "title": "جستجو",
         "placeholder": "جستجو…",
         "noResults": "نتیجه‌ای یافت نشد.",
@@ -143,7 +144,7 @@
         "shoppingMore": "+{{count}} بیشتر",
         "weather": "آب‌وهوا",
         "familyMembers": "اعضای خانواده",
-        "participantsAdded": "شرکت‌کنندگان افزوده شدند",
+        "participantsAdded": "در خانواده",
         "upcomingBirthdays": "تولدهای پیش‌رو",
         "noBirthdays": "هنوز تولدی نیست",
         "daysLeft": "{{count}} روز",
@@ -156,7 +157,7 @@
         "noBudgetData": "این ماه داده بودجه‌ای نیست.",
         "customize": "سفارشی‌سازی",
         "customizeTitle": "سفارشی‌سازی ابزارک‌ها",
-        "customizeReset": "پیش‌فرض",
+        "customizeReset": "بازنشانی",
         "customizeSaved": "داشبورد ذخیره شد",
         "customizeMoveUp": "بالا",
         "customizeMoveDown": "پایین",
@@ -361,6 +362,7 @@
         "importMeals": "از برنامه غذایی",
         "importMealsTitle": "درون‌ریزی از برنامه غذایی",
         "importMealsAction": "درون‌ریزی",
+        "importMealsPreview": "{{count}} ماده از {{meals}} وعده افزوده می‌شود.",
         "importMealsEmpty": "هیچ ماده غذایی از برنامه غذایی در بازه انتخاب‌شده پیدا نشد.",
         "manageCategories": "مدیریت دسته‌ها"
     },
@@ -462,6 +464,7 @@
         "allDay": "تمام‌روز",
         "allDayShort": "تمام‌روز",
         "moreEvents": "+{{count}} بیشتر",
+        "dayEmptyHint": "هنوز رویدادی نیست. روی یک ساعت بزن تا اضافه کنی.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "هفته {{week}} · {{month}} {{year}}",
         "agendaFrom": "از {{date}}",
@@ -2064,6 +2067,9 @@
         "duplicate": "تکثیر",
         "duplicated": "دستور غذا تکثیر شد.",
         "copySuffix": "کپی",
+        "viewRecipe": "مشاهده دستور پخت",
+        "searchPlaceholder": "جستجوی دستورها…",
+        "searchNoResults": "دستوری یافت نشد.",
         "dragToMealsHint": "برای برنامه‌ریزی سریع، دستورها را روی خانه‌های وعده بکشید."
     },
     "onboarding": {
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "اندازه‌گیری حذف شد"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "داروها",
             "emptyTitle": "هنوز دارویی نیست",
             "emptyDesc": "داروها با برنامه مصرف و یادآورها اینجا نمایش داده می‌شوند.",

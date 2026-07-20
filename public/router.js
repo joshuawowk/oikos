@@ -7,7 +7,7 @@
 import { api, auth } from '/api.js';
 import { canAccessNavModule, navModuleAccess } from '/permissions.js';
 import { clearApiCache } from '/sw-register.js';
-import { initI18n, getLocale, t } from '/i18n.js';
+import { initI18n, getLocale, t, formatDate, formatTime } from '/i18n.js';
 import { esc } from '/utils/html.js';
 import { wireScrollFade } from '/utils/ux.js';
 import { init as initReminders, stop as stopReminders } from '/reminders.js';
@@ -1325,12 +1325,15 @@ function renderAppShell(container) {
   closeIcon.setAttribute('aria-hidden', 'true');
   searchClose.appendChild(closeIcon);
   searchHeader.appendChild(searchInput);
-  searchHeader.appendChild(searchClose);
   const searchResults = document.createElement('div');
   searchResults.className = 'search-overlay__results';
   searchResults.id = 'search-results';
   searchOverlay.appendChild(searchHeader);
   searchOverlay.appendChild(searchResults);
+  // Schließen NACH den Treffern im DOM (visuell absolut oben rechts): Tab aus
+  // dem Suchfeld erreicht so direkt das erste Ergebnis statt erst den
+  // Schließen-Button (Audit A1-14); Esc bleibt der schnelle Ausstieg.
+  searchOverlay.appendChild(searchClose);
 
   const toastContainerPolite = document.createElement('div');
   toastContainerPolite.className = 'toast-container';
@@ -1406,7 +1409,9 @@ const SHORTCUTS = [
   // Direkt auf die Overlay-Funktion — der alte Umweg über einen Klick auf die
   // Suchleiste im (geschlossenen, inerten) Mehr-Sheet war eine fragile Kette.
   { key: '/',   description: () => t('shortcuts.search'),  action: () => _openSearch?.() },
-  { key: 'n',   description: () => t('shortcuts.new'),     action: () => document.querySelector('.page-fab')?.click() },
+  // Fallback auf den Schnellaktionen-FAB des Dashboards (#fab-main): dort gibt
+  // es keinen .page-fab und `n` war ein stilles No-op (Audit A1-12).
+  { key: 'n',   description: () => t('shortcuts.new'),     action: () => (document.querySelector('.page-fab') ?? document.querySelector('#fab-main'))?.click() },
   { key: 'f',   description: () => t('shortcuts.searchCalendar'), action: () => {
     if (location.pathname === '/calendar') document.querySelector('#cal-search')?.click();
   } },
@@ -1417,10 +1422,13 @@ const SHORTCUTS = [
   { key: 'g s', description: () => t('shortcuts.goShop'),  action: () => navigate('/shopping') },
   { key: 'g n', description: () => t('shortcuts.goNotes'),   action: () => navigate('/notes')              },
   { key: 'g h', description: () => t('shortcuts.goHealth'),  action: () => navigate(getLastHealthRoute())  },
+  // Die 3er-Chords nennen ihr konkretes Ziel (Essensplan/Rezepte/Einkauf):
+  // vier identische "Küche"-Zeilen im Hilfe-Modal waren nicht unterscheidbar
+  // (Audit A1-13).
   { key: 'g k',   description: () => t('shortcuts.goKitchen'), action: () => navigate(getLastKitchenRoute()) },
-  { key: 'g k m', description: () => t('shortcuts.goKitchen'), action: () => navigate('/meals')             },
-  { key: 'g k r', description: () => t('shortcuts.goKitchen'), action: () => navigate('/recipes')           },
-  { key: 'g k s', description: () => t('shortcuts.goKitchen'), action: () => navigate('/shopping')          },
+  { key: 'g k m', description: () => t('nav.meals'),           action: () => navigate('/meals')             },
+  { key: 'g k r', description: () => t('nav.recipes'),         action: () => navigate('/recipes')           },
+  { key: 'g k s', description: () => t('nav.shopping'),        action: () => navigate('/shopping')          },
 ];
 
 let _pendingKey = null;
@@ -1780,11 +1788,22 @@ function initSearch(container) {
   let _searchTrapHandler = null;
   let lastFocusedBeforeSearch = null;
 
+  // Leerzustand mit Erwartungshilfe: das frisch geöffnete Overlay war zuvor
+  // eine leere weiße Fläche ohne Hinweis, was durchsucht wird (Audit A1-14).
+  function renderSearchHint() {
+    results.replaceChildren();
+    const hint = document.createElement('p');
+    hint.className = 'search-overlay__empty';
+    hint.textContent = t('search.emptyHint');
+    results.appendChild(hint);
+  }
+
   function openSearch() {
     if (window._closeMoreSheet) window._closeMoreSheet({ restoreFocus: false });
     lastFocusedBeforeSearch = document.activeElement;
     setOverlayInteractive(overlay, true);
     overlay.classList.add('search-overlay--visible');
+    if (!input.value.trim()) renderSearchHint();
     setTimeout(() => input.focus(), 50);
     if (window.lucide) window.lucide.createIcons({ el: overlay });
 
@@ -1812,12 +1831,29 @@ function initSearch(container) {
     }
   });
 
+  // Pfeiltasten führen vom Suchfeld durch die Treffer (Audit A1-14): Enter
+  // aktiviert den fokussierten Treffer nativ (Buttons), Esc schließt.
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const hits = [...results.querySelectorAll('.search-result')];
+    if (!hits.length) return;
+    e.preventDefault();
+    const idx = hits.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') {
+      (idx < 0 ? hits[0] : hits[Math.min(idx + 1, hits.length - 1)]).focus();
+    } else if (idx > 0) {
+      hits[idx - 1].focus();
+    } else if (idx === 0) {
+      input.focus();
+    }
+  });
+
   let searchTimer = null;
   input.addEventListener('input', () => {
     clearTimeout(searchTimer);
     const q = input.value.trim();
     if (q.length < 2) {
-      results.replaceChildren();
+      renderSearchHint();
       return;
     }
     searchTimer = setTimeout(async () => {
@@ -1862,7 +1898,7 @@ function renderSearchResults(container, data, onClose) {
     return preset ? t(preset.labelKey) : item.title;
   };
 
-  function makeSection(labelKey, items, routeFn, labelFn) {
+  function makeSection(labelKey, items, routeFn, labelFn, metaFn) {
     if (!items.length) return;
     const section = document.createElement('div');
     section.className = 'search-section';
@@ -1877,6 +1913,15 @@ function renderSearchResults(container, data, onClose) {
       title.className = 'search-result__title';
       title.textContent = labelFn ? labelFn(item) : item.title;
       btn.appendChild(title);
+      // Zweitzeile mit Datum/Detail: Treffer ohne jeden Kontext waren nicht
+      // unterscheidbar (Audit A1-14).
+      const metaText = metaFn?.(item);
+      if (metaText) {
+        const meta = document.createElement('span');
+        meta.className = 'search-result__meta';
+        meta.textContent = metaText;
+        btn.appendChild(meta);
+      }
       btn.addEventListener('click', () => {
         onClose();
         navigate(routeFn(item));
@@ -1886,13 +1931,17 @@ function renderSearchResults(container, data, onClose) {
     container.appendChild(section);
   }
 
-  makeSection('nav.tasks',    tasks,    (i) => `/tasks?open=${i.id}`);
-  makeSection('nav.calendar', events,   (i) => `/calendar?open=${i.id}`);
+  makeSection('nav.tasks',    tasks,    (i) => `/tasks?open=${i.id}`, null,
+    (i) => (i.due_date ? formatDate(i.due_date) : ''));
+  makeSection('nav.calendar', events,   (i) => `/calendar?open=${i.id}`, null,
+    (i) => (i.start_datetime ? `${formatDate(i.start_datetime)}${i.all_day ? '' : ` · ${formatTime(i.start_datetime)}`}` : ''));
   makeSection('nav.notes',    notes,    (i) => `/notes?open=${i.id}`);
   makeSection('nav.contacts', contacts, (i) => `/contacts?open=${i.id}`);
   makeSection('nav.shopping', items,    (i) => `/shopping?list=${i.list_id}&highlight=${i.id}`);
-  makeSection('health.tabs.meds',     meds,       () => '/health/meds');
-  makeSection('health.tabs.activity', activities, () => '/health/activity', activityLabel);
+  makeSection('health.tabs.meds',     meds,       () => '/health/meds', null,
+    (i) => i.dosage_text || '');
+  makeSection('health.tabs.activity', activities, () => '/health/activity', activityLabel,
+    (i) => (i.performed_at ? formatDate(i.performed_at) : ''));
 }
 
 // Read-only-Modus für ein Modul anwenden (#467): FAB via <html data-module-readonly>

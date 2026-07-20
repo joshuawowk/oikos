@@ -1625,11 +1625,10 @@ function renderDayView(container) {
   const layout = layoutOverlaps(timed);
 
   container.replaceChildren();
+  // Kein eigener Datums-Header mehr: die Toolbar zeigt exakt dasselbe Datum
+  // bereits als Ansichts-Label (Audit A1-18).
   container.insertAdjacentHTML('beforeend', `
     <div class="day-view">
-      <div class="day-view__header">
-        <div class="day-view__date-label">${formatDate(state.cursor, { weekday: true, long: true })}</div>
-      </div>
       ${(allday.length || tasksOnDay(state.cursor).length || holidaysOnDay(state.cursor).length) ? `
       <div class="allday-row" style="display:grid;grid-template-columns:var(--space-12) 1fr;">
         <div class="calendar-all-day-label">${t('calendar.allDayShort')}</div>
@@ -1660,6 +1659,7 @@ function renderDayView(container) {
               <div class="week-view__hour-line" style="top:${h * HOUR_HEIGHT}px;"></div>
             `).join('')}
             ${timed.map((ev) => renderWeekEvent(ev, layout.get(ev.id))).join('')}
+            ${dayEvs.length === 0 ? `<div class="day-view__empty-hint" style="top:${(state.cursor === state.today ? nowTop() : 9 * HOUR_HEIGHT) + 16}px">${t('calendar.dayEmptyHint')}</div>` : ''}
             ${state.cursor === state.today ? `<div class="week-view__now-line" style="top:${nowTop()}px;"></div>` : ''}
           </div>
         </div>
@@ -2765,13 +2765,26 @@ function wireDurationMemory(panel) {
   });
 }
 
+// Neue Termine ohne explizite Uhrzeit starten heute zur nächsten halben
+// Stunde: der starre 09:00-Default legte den Start nachmittags in die
+// Vergangenheit (Audit A1-18). Andere Tage behalten 09:00 als neutralen
+// Start; kippt die Rundung über Mitternacht, ebenfalls.
+function defaultNewEventTime(dateStr) {
+  if (dateStr !== state.today) return '09:00';
+  const now = new Date();
+  const dayBefore = now.getDate();
+  now.setMinutes(now.getMinutes() <= 30 ? 30 : 60, 0, 0);
+  if (now.getDate() !== dayBefore) return '09:00';
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
 function buildEventModalContent({ mode, event, date, reminder = null, time = null }) {
   const isEdit = mode === 'edit';
   const today  = date || state.today;
 
   const startDate = isEdit ? localDate(event.start_datetime) : today;
   const startTime = isEdit && event.start_datetime.length > 10
-    ? localTime(event.start_datetime) : (time ?? '09:00');
+    ? localTime(event.start_datetime) : (time ?? defaultNewEventTime(today));
   // Standard-Termindauer aus den Präferenzen: neue Termine erhalten ein Ende,
   // das um die konfigurierte Dauer nach dem Start liegt (#441).
   const durationMin = state.defaultDuration || 60;
@@ -2789,17 +2802,12 @@ function buildEventModalContent({ mode, event, date, reminder = null, time = nul
   const visibility = (isEdit ? event.visibility : null) || 'all';
 
   // Sekundärfelder: wandern hinter „Weitere Einstellungen". Beim Bearbeiten
-  // automatisch geöffnet, falls bereits Werte gesetzt sind.
+  // automatisch geöffnet, falls bereits Werte gesetzt sind. Der Ort steht als
+  // Alltagsfeld im Hauptbereich (Audit A1-11), nicht mehr hier.
   const advancedFieldsOpen = isEdit
-    && (!!event.location || !!event.description || hasAttachment(event));
+    && (!!event.description || hasAttachment(event));
 
   const advancedFieldsHtml = `
-    <div class="form-group">
-      <label class="form-label" for="modal-location">${t('calendar.locationLabel')}</label>
-      <input type="text" class="form-input" id="modal-location"
-             placeholder="${t('calendar.locationPlaceholder')}" value="${esc(isEdit && event.location ? event.location : '')}">
-    </div>
-
     <div class="form-group js-color-picker-group">
       <label class="form-label" id="event-color-label">${t('calendar.colorLabel')}</label>
       <div class="color-picker" id="event-color-picker" role="radiogroup" aria-labelledby="event-color-label">
@@ -2922,6 +2930,12 @@ function buildEventModalContent({ mode, event, date, reminder = null, time = nul
           <yuvomi-datepicker type="date" id="modal-allday-end" value="${esc(formatDateInput(endDate))}" label="${esc(t('calendar.toLabel'))}"></yuvomi-datepicker>
         </div>
       </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="modal-location">${t('calendar.locationLabel')}</label>
+      <input type="text" class="form-input" id="modal-location"
+             placeholder="${t('calendar.locationPlaceholder')}" value="${esc(isEdit && event.location ? event.location : '')}">
     </div>
 
     <div class="form-group">

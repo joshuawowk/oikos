@@ -62,9 +62,11 @@ test('Toolbar-Aktion und FAB teilen sich Sichtbarkeit und Label', () => {
 test('hidden greift bei geteilten Bedienelementen trotz display-Klasse', () => {
   // `.page-fab { display:flex }` bzw. `.btn { display:inline-flex }` schlagen
   // das UA-`[hidden]` bei gleicher Spezifität — ohne Guard bleibt der FAB auf
-  // dem Berichte-Tab sichtbar.
-  assert.match(layoutCss, /\.page-fab\[hidden\][\s\S]{0,60}display:\s*none\s*!important/);
-  assert.match(layoutCss, /\.btn\[hidden\][\s\S]{0,60}display:\s*none\s*!important/);
+  // dem Berichte-Tab sichtbar. Seit UX-Audit R2 deckt der Guard auch
+  // `.form-group` ab (RRULE-Endefelder, Audit A1-10).
+  assert.match(layoutCss, /\.page-fab\[hidden\][\s\S]{0,120}display:\s*none\s*!important/);
+  assert.match(layoutCss, /\.btn\[hidden\][\s\S]{0,120}display:\s*none\s*!important/);
+  assert.match(layoutCss, /\.form-group\[hidden\][\s\S]{0,120}display:\s*none\s*!important/);
 });
 
 // --------------------------------------------------------

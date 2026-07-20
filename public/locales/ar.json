@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} أخرى",
         "weather": "الطقس",
         "familyMembers": "أفراد العائلة",
-        "participantsAdded": "مشاركون مضافون",
+        "participantsAdded": "في الأسرة",
         "upcomingBirthdays": "أعياد الميلاد القادمة",
         "noBirthdays": "لا توجد أعياد ميلاد بعد",
         "daysLeft": "{{count}} أيام",
@@ -149,7 +149,7 @@
         "noBudgetData": "لا توجد بيانات ميزانية لهذا الشهر.",
         "customize": "تخصيص",
         "customizeTitle": "تخصيص الأدوات",
-        "customizeReset": "الافتراضي",
+        "customizeReset": "إعادة تعيين",
         "customizeSaved": "تم حفظ لوحة التحكم",
         "customizeMoveUp": "للأعلى",
         "customizeMoveDown": "للأسفل",
@@ -354,6 +354,7 @@
         "importMeals": "من خطة الوجبات",
         "importMealsTitle": "استيراد من خطة الوجبات",
         "importMealsAction": "استيراد",
+        "importMealsPreview": "ستتم إضافة {{count}} مكونات من {{meals}} وجبات.",
         "importMealsEmpty": "لم يتم العثور على مكونات وجبات في النطاق المحدد.",
         "manageCategories": "إدارة الفئات"
     },
@@ -455,6 +456,7 @@
         "allDay": "طوال اليوم",
         "allDayShort": "اليوم كله",
         "moreEvents": "+{{count}} أخرى",
+        "dayEmptyHint": "لا مواعيد بعد. انقر على وقت لإضافة موعد.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "الأسبوع {{week}} · {{month}} {{year}}",
         "agendaFrom": "من {{date}}",
@@ -1978,10 +1980,14 @@
         "duplicate": "نسخ",
         "duplicated": "تم نسخ الوصفة.",
         "copySuffix": "نسخة",
+        "viewRecipe": "عرض الوصفة",
+        "searchPlaceholder": "البحث في الوصفات…",
+        "searchNoResults": "لم يتم العثور على وصفات.",
         "dragToMealsHint": "اسحب الوصفات إلى خانات الوجبات لتخطيطها بسرعة.",
         "emptyAction": "إنشاء وصفة"
     },
     "search": {
+        "emptyHint": "اكتب حرفين على الأقل للبحث في المهام والمواعيد والملاحظات وجهات الاتصال والتسوق والصحة.",
         "title": "بحث",
         "open": "فتح البحث",
         "placeholder": "بحث…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "تم حذف القياس"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "الأدوية",
             "emptyTitle": "لا توجد أدوية بعد",
             "emptyDesc": "ستظهر الأدوية مع الجداول والتذكيرات هنا.",

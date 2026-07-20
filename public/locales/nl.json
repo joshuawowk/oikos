@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} meer",
         "weather": "Weer",
         "familyMembers": "Gezinsleden",
-        "participantsAdded": "deelnemers toegevoegd",
+        "participantsAdded": "in het huishouden",
         "upcomingBirthdays": "Aankomende verjaardagen",
         "noBirthdays": "Nog geen verjaardagen",
         "daysLeft": "{{count}} dagen",
@@ -149,7 +149,7 @@
         "noBudgetData": "Geen budgetgegevens deze maand.",
         "customize": "Aanpassen",
         "customizeTitle": "Widgets aanpassen",
-        "customizeReset": "Terugzetten",
+        "customizeReset": "Herstellen",
         "customizeSaved": "Dashboard opgeslagen",
         "customizeMoveUp": "Omhoog verplaatsen",
         "customizeMoveDown": "Omlaag verplaatsen",
@@ -354,6 +354,7 @@
         "importMeals": "Uit maaltijdplan",
         "importMealsTitle": "Importeren uit maaltijdplan",
         "importMealsAction": "Importeren",
+        "importMealsPreview": "{{count}} ingrediënten uit {{meals}} maaltijden worden toegevoegd.",
         "importMealsEmpty": "Er zijn geen maaltijdingrediënten gevonden in de geselecteerde periode.",
         "manageCategories": "Categorieën beheren"
     },
@@ -455,6 +456,7 @@
         "allDay": "Hele dag",
         "allDayShort": "hele dag",
         "moreEvents": "+{{count}} meer",
+        "dayEmptyHint": "Nog geen afspraken. Tik op een tijdstip om er een toe te voegen.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "W{{week}} · {{month}} {{year}}",
         "agendaFrom": "Vanaf {{date}}",
@@ -2056,10 +2058,14 @@
         "duplicate": "Dupliceren",
         "duplicated": "Recept gedupliceerd.",
         "copySuffix": "kopie",
+        "viewRecipe": "Recept bekijken",
+        "searchPlaceholder": "Recepten zoeken…",
+        "searchNoResults": "Geen recepten gevonden.",
         "dragToMealsHint": "Sleep recepten naar maaltijdvakken om ze snel in te plannen.",
         "emptyAction": "Recept aanmaken"
     },
     "search": {
+        "emptyHint": "Typ minstens 2 tekens om te zoeken in taken, afspraken, notities, contacten, boodschappen en gezondheid.",
         "title": "Zoeken",
         "open": "Zoeken openen",
         "placeholder": "Zoeken…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Meting verwijderd"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Medicijnen",
             "emptyTitle": "Nog geen medicijnen",
             "emptyDesc": "Medicijnen met schema en herinneringen verschijnen hier.",

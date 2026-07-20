@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} ещё",
         "weather": "Погода",
         "familyMembers": "Члены семьи",
-        "participantsAdded": "участников добавлено",
+        "participantsAdded": "в семье",
         "upcomingBirthdays": "Ближайшие дни рождения",
         "noBirthdays": "Дней рождения пока нет",
         "daysLeft": "{{count}} дн.",
@@ -354,6 +354,7 @@
         "importMeals": "Из плана питания",
         "importMealsTitle": "Импорт из плана питания",
         "importMealsAction": "Импортировать",
+        "importMealsPreview": "Будет добавлено {{count}} ингредиентов из {{meals}} приёмов пищи.",
         "importMealsEmpty": "В выбранном диапазоне не найдено ингредиентов блюд.",
         "manageCategories": "Управление категориями"
     },
@@ -455,6 +456,7 @@
         "allDay": "Весь день",
         "allDayShort": "весь день",
         "moreEvents": "+{{count}} ещё",
+        "dayEmptyHint": "Пока нет событий. Нажмите на время, чтобы создать.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "Н{{week}} · {{month}} {{year}}",
         "agendaFrom": "С {{date}}",
@@ -1978,10 +1980,14 @@
         "duplicate": "Дублировать",
         "duplicated": "Рецепт дублирован.",
         "copySuffix": "копия",
+        "viewRecipe": "Открыть рецепт",
+        "searchPlaceholder": "Поиск рецептов…",
+        "searchNoResults": "Рецепты не найдены.",
         "dragToMealsHint": "Перетаскивайте рецепты в слоты приёмов пищи, чтобы быстро составить план.",
         "emptyAction": "Создать рецепт"
     },
     "search": {
+        "emptyHint": "Введите минимум 2 символа для поиска по задачам, событиям, заметкам, контактам, покупкам и здоровью.",
         "title": "Поиск",
         "open": "Открыть поиск",
         "placeholder": "Поиск…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Измерение удалено"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Лекарства",
             "emptyTitle": "Пока нет лекарств",
             "emptyDesc": "Лекарства с расписанием и напоминаниями появятся здесь.",

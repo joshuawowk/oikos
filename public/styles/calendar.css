@@ -635,11 +635,17 @@
   overflow: hidden;
 }
 
-.day-view__header {
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+/* Leerer Tag: dezenter Hinweis in der Stundenfläche, klick-transparent -
+ * ein Tipp auf die Uhrzeit legt weiterhin direkt einen Termin an
+ * (Audit A1-18). Position (top) setzt renderDayView an Now-Linie bzw. 9 Uhr. */
+.day-view__empty-hint {
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
   text-align: center;
-  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
 }
 
 .day-view__scroll {

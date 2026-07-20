@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} 更多",
         "weather": "天气",
         "familyMembers": "家庭成员",
-        "participantsAdded": "位参与者已添加",
+        "participantsAdded": "家庭成员",
         "upcomingBirthdays": "即将到来的生日",
         "noBirthdays": "还没有生日",
         "daysLeft": "{{count}} 天",
@@ -354,6 +354,7 @@
         "importMeals": "从餐食计划",
         "importMealsTitle": "从餐食计划导入",
         "importMealsAction": "导入",
+        "importMealsPreview": "将从 {{meals}} 餐中导入 {{count}} 种食材。",
         "importMealsEmpty": "在所选范围内未找到餐食配料。",
         "manageCategories": "管理分类"
     },
@@ -455,6 +456,7 @@
         "allDay": "全天",
         "allDayShort": "全天",
         "moreEvents": "+{{count}} 更多",
+        "dayEmptyHint": "还没有日程。点按时间即可创建。",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "第 {{week}} 周 · {{month}} {{year}}",
         "agendaFrom": "从 {{date}} 起",
@@ -1978,10 +1980,14 @@
         "duplicate": "复制",
         "duplicated": "食谱已复制。",
         "copySuffix": "副本",
+        "viewRecipe": "查看食谱",
+        "searchPlaceholder": "搜索食谱…",
+        "searchNoResults": "未找到食谱。",
         "dragToMealsHint": "将食谱拖到餐次格中即可快速安排。",
         "emptyAction": "创建食谱"
     },
     "search": {
+        "emptyHint": "输入至少 2 个字符即可搜索任务、日程、便签、联系人、购物和健康。",
         "title": "搜索",
         "open": "打开搜索",
         "placeholder": "搜索…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "测量已删除"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "药物",
             "emptyTitle": "还没有药物",
             "emptyDesc": "带用药计划和提醒的药物将显示在这里。",

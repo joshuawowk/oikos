@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} altri",
         "weather": "Meteo",
         "familyMembers": "Membri della famiglia",
-        "participantsAdded": "partecipanti aggiunti",
+        "participantsAdded": "in famiglia",
         "upcomingBirthdays": "Prossimi compleanni",
         "noBirthdays": "Ancora nessun compleanno",
         "daysLeft": "{{count}} giorni",
@@ -354,6 +354,7 @@
         "importMeals": "Dal piano pasti",
         "importMealsTitle": "Importa dal piano pasti",
         "importMealsAction": "Importa",
+        "importMealsPreview": "Verranno aggiunti {{count}} ingredienti da {{meals}} pasti.",
         "importMealsEmpty": "Nell'intervallo selezionato non sono stati trovati ingredienti dei pasti.",
         "manageCategories": "Gestisci categorie"
     },
@@ -455,6 +456,7 @@
         "allDay": "Tutto il giorno",
         "allDayShort": "tutto il giorno",
         "moreEvents": "+{{count}} altri",
+        "dayEmptyHint": "Nessun appuntamento. Tocca un orario per crearne uno.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "S{{week}} · {{month}} {{year}}",
         "agendaFrom": "Dal {{date}}",
@@ -1978,10 +1980,14 @@
         "duplicate": "Duplica",
         "duplicated": "Ricetta duplicata.",
         "copySuffix": "copia",
+        "viewRecipe": "Vedi ricetta",
+        "searchPlaceholder": "Cerca ricette…",
+        "searchNoResults": "Nessuna ricetta trovata.",
         "dragToMealsHint": "Trascina le ricette negli slot dei pasti per pianificarli rapidamente.",
         "emptyAction": "Crea ricetta"
     },
     "search": {
+        "emptyHint": "Digita almeno 2 caratteri per cercare tra attività, appuntamenti, note, contatti, spesa e salute.",
         "title": "Ricerca",
         "open": "Apri ricerca",
         "placeholder": "Cerca…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Misurazione eliminata"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Farmaci",
             "emptyTitle": "Nessun farmaco",
             "emptyDesc": "I farmaci con orari e promemoria appaiono qui.",

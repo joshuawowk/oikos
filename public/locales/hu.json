@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} több",
         "weather": "Időjárás",
         "familyMembers": "Családtagok",
-        "participantsAdded": "résztvevők hozzáadva",
+        "participantsAdded": "a háztartásban",
         "upcomingBirthdays": "Közelgő születésnapok",
         "noBirthdays": "Még nincsenek születésnapok",
         "daysLeft": "{{count}} nap",
@@ -149,7 +149,7 @@
         "noBudgetData": "Nincs költségvetési adat ebben a hónapban.",
         "customize": "Testreszabás",
         "customizeTitle": "Widgetek testreszabása",
-        "customizeReset": "Alaphelyzet",
+        "customizeReset": "Visszaállítás",
         "customizeSaved": "Áttekintő mentve",
         "customizeMoveUp": "Fel",
         "customizeMoveDown": "Le",
@@ -354,6 +354,7 @@
         "importMeals": "Étkezési tervből",
         "importMealsTitle": "Importálás az étkezési tervből",
         "importMealsAction": "Importálás",
+        "importMealsPreview": "{{count}} hozzávaló kerül át {{meals}} étkezésből.",
         "importMealsEmpty": "A kiválasztott időszakban nem találhatók étkezési hozzávalók.",
         "manageCategories": "Kategóriák kezelése"
     },
@@ -455,6 +456,7 @@
         "allDay": "Egész nap",
         "allDayShort": "egész nap",
         "moreEvents": "+{{count}} további",
+        "dayEmptyHint": "Még nincs esemény. Koppints egy időpontra a létrehozáshoz.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "H{{week}} · {{month}} {{year}}",
         "agendaFrom": "Innentől: {{date}}",
@@ -2056,10 +2058,14 @@
         "duplicate": "Másolat",
         "duplicated": "Recept másolva.",
         "copySuffix": "másolat",
+        "viewRecipe": "Recept megtekintése",
+        "searchPlaceholder": "Receptek keresése…",
+        "searchNoResults": "Nincs találat a receptek között.",
         "dragToMealsHint": "Húzza a recepteket az étkezési helyekre a gyors tervezéshez.",
         "emptyAction": "Recept létrehozása"
     },
     "search": {
+        "emptyHint": "Írj be legalább 2 karaktert a feladatok, események, jegyzetek, névjegyek, bevásárlás és egészség kereséséhez.",
         "title": "Keresés",
         "open": "Keresés megnyitása",
         "placeholder": "Keresés…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Mérés törölve"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Gyógyszerek",
             "emptyTitle": "Még nincs gyógyszer",
             "emptyDesc": "A gyógyszerek ütemezéssel és emlékeztetőkkel itt jelennek meg.",

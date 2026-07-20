@@ -50,6 +50,57 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Die Kartenfläche öffnet die Lese-Ansicht (Audit A1-21). */
+.recipe-card {
+  cursor: pointer;
+}
+
+.recipe-card:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+/* Suchzeile über der Liste (Audit A1-21) */
+.recipes-toolbar {
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.recipes-search {
+  flex: 1;
+  max-width: 420px;
+}
+
+.recipes-search-empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+/* Nur-Lese-Rezeptansicht im Modal (Audit A1-21) */
+.recipe-read {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.recipe-read__heading {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.recipe-read__ingredients {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.recipe-read__notes {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 .recipe-card__title {
   margin: 0;
   min-width: 0;

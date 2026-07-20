@@ -91,6 +91,7 @@
         "rewards": "Nagrody"
     },
     "search": {
+        "emptyHint": "Wpisz co najmniej 2 znaki, aby przeszukać zadania, terminy, notatki, kontakty, zakupy i zdrowie.",
         "title": "Szukaj",
         "placeholder": "Szukaj…",
         "noResults": "Nie znaleziono wyników.",
@@ -143,7 +144,7 @@
         "shoppingMore": "+{{count}} więcej",
         "weather": "Pogoda",
         "familyMembers": "Członkowie rodziny",
-        "participantsAdded": "Dodano uczestników",
+        "participantsAdded": "w rodzinie",
         "upcomingBirthdays": "Nadchodzące urodziny",
         "noBirthdays": "Brak urodzin",
         "daysLeft": "{{count}} dni",
@@ -156,7 +157,7 @@
         "noBudgetData": "Brak danych budżetowych w tym miesiącu.",
         "customize": "Dostosuj",
         "customizeTitle": "Dostosuj widżety",
-        "customizeReset": "Domyślne",
+        "customizeReset": "Resetuj",
         "customizeSaved": "Pulpit zapisany",
         "customizeMoveUp": "Przesuń w górę",
         "customizeMoveDown": "Przesuń w dół",
@@ -361,6 +362,7 @@
         "importMeals": "Z planu posiłków",
         "importMealsTitle": "Importuj z planu posiłków",
         "importMealsAction": "Importuj",
+        "importMealsPreview": "Zostanie dodanych {{count}} składników z {{meals}} posiłków.",
         "importMealsEmpty": "Nie znaleziono składników posiłków w wybranym zakresie dat.",
         "manageCategories": "Zarządzaj kategoriami"
     },
@@ -462,6 +464,7 @@
         "allDay": "Cały dzień",
         "allDayShort": "cały dz.",
         "moreEvents": "+{{count}} więcej",
+        "dayEmptyHint": "Brak terminów. Dotknij godziny, aby dodać nowy.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "Tydz. {{week}} · {{month}} {{year}}",
         "agendaFrom": "Od {{date}}",
@@ -2064,6 +2067,9 @@
         "duplicate": "Duplikuj",
         "duplicated": "Przepis zduplikowany.",
         "copySuffix": "Kopia",
+        "viewRecipe": "Zobacz przepis",
+        "searchPlaceholder": "Szukaj przepisów…",
+        "searchNoResults": "Nie znaleziono przepisów.",
         "dragToMealsHint": "Przeciągnij przepisy do pól posiłków, aby szybko je zaplanować."
     },
     "onboarding": {
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Pomiar usunięty"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Leki",
             "emptyTitle": "Brak leków",
             "emptyDesc": "Leki z harmonogramem i przypomnieniami pojawią się tutaj.",

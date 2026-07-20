@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} dalších",
         "weather": "Počasí",
         "familyMembers": "Členové rodiny",
-        "participantsAdded": "přidaní účastníci",
+        "participantsAdded": "v domácnosti",
         "upcomingBirthdays": "Nadcházející narozeniny",
         "noBirthdays": "Zatím žádné narozeniny",
         "daysLeft": "Za {{count}} dní",
@@ -354,6 +354,7 @@
         "importMeals": "Z jídelníčku",
         "importMealsTitle": "Import z jídelníčku",
         "importMealsAction": "Importovat",
+        "importMealsPreview": "Bude přidáno {{count}} surovin z {{meals}} jídel.",
         "importMealsEmpty": "Ve vybraném rozsahu nebyly nalezeny žádné ingredience jídel.",
         "manageCategories": "Spravovat kategorie"
     },
@@ -455,6 +456,7 @@
         "allDay": "Celý den",
         "allDayShort": "celý den",
         "moreEvents": "+{{count}} dalších",
+        "dayEmptyHint": "Zatím žádné události. Klepni na čas a přidej novou.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "T{{week}} · {{month}} {{year}}",
         "agendaFrom": "Od {{date}}",
@@ -1924,6 +1926,7 @@
         "moreSettings": "Další nastavení"
     },
     "search": {
+        "emptyHint": "Zadej alespoň 2 znaky pro hledání v úkolech, událostech, poznámkách, kontaktech, nákupech a zdraví.",
         "title": "Hledat",
         "placeholder": "Hledat…",
         "noResults": "Žádné výsledky nenalezeny.",
@@ -2524,6 +2527,9 @@
         "duplicate": "Duplikovat",
         "duplicated": "Recept duplikován.",
         "copySuffix": "kopie",
+        "viewRecipe": "Zobrazit recept",
+        "searchPlaceholder": "Hledat recepty…",
+        "searchNoResults": "Žádné recepty nenalezeny.",
         "dragToMealsHint": "Přetáhněte recepty do slotů jídel a rychle je naplánujte."
     },
     "wmo": {
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Měření smazáno"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Léky",
             "emptyTitle": "Zatím žádné léky",
             "emptyDesc": "Léky s rozvrhem a připomínkami se zobrazí zde.",

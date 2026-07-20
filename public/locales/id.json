@@ -91,6 +91,7 @@
         "rewards": "Hadiah"
     },
     "search": {
+        "emptyHint": "Ketik minimal 2 karakter untuk mencari tugas, acara, catatan, kontak, belanja, dan kesehatan.",
         "title": "Cari",
         "placeholder": "Cari…",
         "noResults": "Tidak ada hasil ditemukan.",
@@ -143,7 +144,7 @@
         "shoppingMore": "+{{count}} lagi",
         "weather": "Cuaca",
         "familyMembers": "Anggota keluarga",
-        "participantsAdded": "Peserta ditambahkan",
+        "participantsAdded": "dalam rumah tangga",
         "upcomingBirthdays": "Ulang tahun mendatang",
         "noBirthdays": "Belum ada ulang tahun",
         "daysLeft": "{{count}} hari",
@@ -156,7 +157,7 @@
         "noBudgetData": "Tidak ada data anggaran bulan ini.",
         "customize": "Sesuaikan",
         "customizeTitle": "Sesuaikan widget",
-        "customizeReset": "Standar",
+        "customizeReset": "Atur ulang",
         "customizeSaved": "Dasbor disimpan",
         "customizeMoveUp": "Ke atas",
         "customizeMoveDown": "Ke bawah",
@@ -361,6 +362,7 @@
         "importMeals": "Dari rencana makan",
         "importMealsTitle": "Impor dari rencana makan",
         "importMealsAction": "Impor",
+        "importMealsPreview": "{{count}} bahan dari {{meals}} hidangan akan ditambahkan.",
         "importMealsEmpty": "Tidak ada bahan makanan yang ditemukan dalam rentang yang dipilih.",
         "manageCategories": "Kelola kategori"
     },
@@ -462,6 +464,7 @@
         "allDay": "Sepanjang hari",
         "allDayShort": "seharian",
         "moreEvents": "+{{count}} lagi",
+        "dayEmptyHint": "Belum ada acara. Ketuk waktu untuk menambahkan.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "Minggu {{week}} · {{month}} {{year}}",
         "agendaFrom": "Mulai {{date}}",
@@ -2064,6 +2067,9 @@
         "duplicate": "Duplikat",
         "duplicated": "Resep diduplikat.",
         "copySuffix": "Salinan",
+        "viewRecipe": "Lihat resep",
+        "searchPlaceholder": "Cari resep…",
+        "searchNoResults": "Resep tidak ditemukan.",
         "dragToMealsHint": "Seret resep ke slot makan untuk merencanakannya dengan cepat."
     },
     "onboarding": {
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Pengukuran dihapus"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Obat",
             "emptyTitle": "Belum ada obat",
             "emptyDesc": "Obat dengan jadwal minum dan pengingat muncul di sini.",

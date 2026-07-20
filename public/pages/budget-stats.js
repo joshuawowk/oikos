@@ -325,8 +325,13 @@ function renderTrendChart() {
       <p class="sr-only">${view.ctx.esc(summary)}</p>
       <div class="budget-stats__trend-wrap">
         <span class="budget-stats__axis-max" aria-hidden="true">${fmtAmount(max)}</span>
+        <span class="budget-stats__axis-mid" aria-hidden="true">${fmtAmount(max / 2)}</span>
         <div class="budget-stats__plot">
           <svg class="budget-stats__trend" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+            ${[0.25, 0.5, 0.75].map((f) => {
+              const gy = (PAD + f * (H - 2 * PAD)).toFixed(1);
+              return `<line class="budget-stats__grid" x1="0" y1="${gy}" x2="${W}" y2="${gy}" vector-effect="non-scaling-stroke" />`;
+            }).join('')}
             <polyline fill="none" stroke="var(--color-success)" stroke-width="2"
                       vector-effect="non-scaling-stroke" points="${points(incomes)}" />
             <polyline fill="none" stroke="var(--color-danger)" stroke-width="2"
@@ -403,7 +408,12 @@ function wireTrendPoints(host, series) {
     show(next, { focus: true });
   });
 
-  show(series.length - 1); // jüngster Zeitabschnitt als Ausgangswert, kein Sprung im Layout
+  // Jüngster Zeitabschnitt MIT Daten als Ausgangswert: der Monatsletzte ist
+  // oft noch leer und "31.07. · 0,00" wäre ein nichtssagender Start
+  // (Audit A2-05). Ganz ohne Daten bleibt der letzte Abschnitt.
+  let initial = series.length - 1;
+  while (initial > 0 && !series[initial].income && !series[initial].expenses) initial--;
+  show(initial);
 }
 
 function updatePeriodLabel() {

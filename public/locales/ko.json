@@ -91,6 +91,7 @@
         "rewards": "보상"
     },
     "search": {
+        "emptyHint": "2자 이상 입력하면 할 일, 일정, 메모, 연락처, 쇼핑, 건강을 검색합니다.",
         "title": "검색",
         "placeholder": "검색…",
         "noResults": "결과를 찾을 수 없습니다.",
@@ -143,7 +144,7 @@
         "shoppingMore": "+{{count}}개 더",
         "weather": "날씨",
         "familyMembers": "가족 구성원",
-        "participantsAdded": "참여자 추가됨",
+        "participantsAdded": "가족 구성원",
         "upcomingBirthdays": "다가오는 생일",
         "noBirthdays": "아직 생일 없음",
         "daysLeft": "{{count}}일",
@@ -156,7 +157,7 @@
         "noBudgetData": "이번 달 예산 데이터가 없습니다.",
         "customize": "맞춤 설정",
         "customizeTitle": "위젯 맞춤 설정",
-        "customizeReset": "기본값",
+        "customizeReset": "초기화",
         "customizeSaved": "대시보드가 저장되었습니다",
         "customizeMoveUp": "위로",
         "customizeMoveDown": "아래로",
@@ -361,6 +362,7 @@
         "importMeals": "식단에서",
         "importMealsTitle": "식단에서 가져오기",
         "importMealsAction": "가져오기",
+        "importMealsPreview": "{{meals}}개 식사에서 {{count}}개 재료를 추가합니다.",
         "importMealsEmpty": "선택한 기간에 식단 재료가 없습니다.",
         "manageCategories": "카테고리 관리"
     },
@@ -462,6 +464,7 @@
         "allDay": "종일",
         "allDayShort": "종일",
         "moreEvents": "+{{count}}개 더",
+        "dayEmptyHint": "아직 일정이 없습니다. 시간을 탭해 추가하세요.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "{{week}}주 · {{month}} {{year}}",
         "agendaFrom": "{{date}}부터",
@@ -2064,6 +2067,9 @@
         "duplicate": "복제",
         "duplicated": "레시피가 복제되었습니다.",
         "copySuffix": "복사본",
+        "viewRecipe": "레시피 보기",
+        "searchPlaceholder": "레시피 검색…",
+        "searchNoResults": "레시피를 찾을 수 없습니다.",
         "dragToMealsHint": "레시피를 식사 슬롯으로 끌어 놓아 빠르게 계획하세요."
     },
     "onboarding": {
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "측정이 삭제되었습니다"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "약",
             "emptyTitle": "아직 약 없음",
             "emptyDesc": "복용 계획과 알림이 있는 약이 여기에 표시됩니다.",

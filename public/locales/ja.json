@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} 件",
         "weather": "天気",
         "familyMembers": "家族メンバー",
-        "participantsAdded": "人が追加済み",
+        "participantsAdded": "家族のメンバー",
         "upcomingBirthdays": "今後の誕生日",
         "noBirthdays": "誕生日はまだありません",
         "daysLeft": "{{count}}日",
@@ -149,7 +149,7 @@
         "noBudgetData": "今月の予算データはありません。",
         "customize": "カスタマイズ",
         "customizeTitle": "ウィジェットのカスタマイズ",
-        "customizeReset": "デフォルト",
+        "customizeReset": "リセット",
         "customizeSaved": "ダッシュボードを保存しました",
         "customizeMoveUp": "上へ",
         "customizeMoveDown": "下へ",
@@ -354,6 +354,7 @@
         "importMeals": "献立から",
         "importMealsTitle": "献立からインポート",
         "importMealsAction": "インポート",
+        "importMealsPreview": "{{meals}}件の食事から{{count}}件の材料を追加します。",
         "importMealsEmpty": "選択した期間内に献立の材料が見つかりませんでした。",
         "manageCategories": "カテゴリを管理"
     },
@@ -455,6 +456,7 @@
         "allDay": "終日",
         "allDayShort": "終日",
         "moreEvents": "+{{count}} 件",
+        "dayEmptyHint": "予定はまだありません。時間をタップして追加できます。",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "第 {{week}} 週 · {{month}} {{year}}",
         "agendaFrom": "{{date}} から",
@@ -1978,10 +1980,14 @@
         "duplicate": "複製",
         "duplicated": "レシピが複製されました。",
         "copySuffix": "コピー",
+        "viewRecipe": "レシピを見る",
+        "searchPlaceholder": "レシピを検索…",
+        "searchNoResults": "レシピが見つかりません。",
         "dragToMealsHint": "レシピを食事スロットにドラッグして、すばやく献立を組めます。",
         "emptyAction": "レシピを作成"
     },
     "search": {
+        "emptyHint": "2文字以上入力すると、タスク・予定・メモ・連絡先・買い物・健康を検索できます。",
         "title": "検索",
         "open": "検索を開く",
         "placeholder": "検索…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "測定を削除しました"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "薬",
             "emptyTitle": "まだ薬がありません",
             "emptyDesc": "スケジュールとリマインダー付きの薬がここに表示されます。",

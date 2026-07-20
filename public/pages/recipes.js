@@ -5,6 +5,7 @@
 
 import { api } from '/api.js';
 import { t } from '/i18n.js';
+import { esc } from '/utils/html.js';
 import { openModal as openSharedModal, closeModal as closeSharedModal, advancedSection } from '/components/modal.js';
 import { DEFAULT_CATEGORY_NAME } from '/utils/shopping-categories.js';
 import { renderKitchenTabsBar } from '/utils/kitchen-tabs.js';
@@ -18,7 +19,19 @@ let _container = null;
 const state = {
   recipes: [],
   categories: [],
+  query: '',
 };
+
+// Client-seitige Suche über Titel, Notizen und Zutaten (Audit A1-21):
+// die Rezeptliste ist vollständig geladen, ein Server-Roundtrip wäre Umweg.
+function filteredRecipes() {
+  const q = state.query.toLowerCase();
+  if (!q) return state.recipes;
+  return state.recipes.filter((r) =>
+    r.title?.toLowerCase().includes(q)
+    || r.notes?.toLowerCase().includes(q)
+    || (r.ingredients ?? []).some((i) => i.name?.toLowerCase().includes(q)));
+}
 
 function mealCategories() {
   return state.categories.filter((c) => c.name !== 'Haushalt' && c.name !== 'Drogerie');
@@ -60,6 +73,25 @@ export async function render(container) {
   title.className = 'sr-only';
   title.textContent = t('recipes.title');
 
+  // Suchfeld über der Liste: Rezepte waren als einziges Kitchen-Modul nicht
+  // durchsuchbar (Audit A1-21).
+  const toolbar = document.createElement('div');
+  toolbar.className = 'page-toolbar recipes-toolbar';
+  const searchWrap = document.createElement('div');
+  searchWrap.className = 'recipes-search';
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'form-input recipes-search__input';
+  searchInput.id = 'recipes-search';
+  searchInput.placeholder = t('recipes.searchPlaceholder');
+  searchInput.setAttribute('aria-label', t('recipes.searchPlaceholder'));
+  searchInput.addEventListener('input', () => {
+    state.query = searchInput.value.trim();
+    renderRecipeList();
+  });
+  searchWrap.appendChild(searchInput);
+  toolbar.appendChild(searchWrap);
+
   const list = document.createElement('div');
   list.className = 'recipes-list';
   list.id = 'recipes-list';
@@ -78,7 +110,7 @@ export async function render(container) {
   fabIcon.setAttribute('aria-hidden', 'true');
   fab.appendChild(fabIcon);
 
-  page.append(title, list, fab);
+  page.append(title, toolbar, list, fab);
   container.replaceChildren(page);
   renderKitchenTabsBar(container, '/recipes');
 
@@ -91,7 +123,16 @@ export async function render(container) {
 
   list.addEventListener('click', async (e) => {
     const actionBtn = e.target.closest('[data-action]');
-    if (!actionBtn) return;
+    if (!actionBtn) {
+      // Klick auf die Kartenfläche öffnet die Nur-Lese-Ansicht: Kochen darf
+      // kein Bearbeiten-Formular erzwingen (Audit A1-21). Externe Links in
+      // der Karte behalten ihr natives Verhalten.
+      if (e.target.closest('a')) return;
+      const card = e.target.closest('.recipe-card[data-id]');
+      const recipe = card && state.recipes.find((r) => r.id === Number(card.dataset.id));
+      if (recipe) openRecipeReadModal(recipe);
+      return;
+    }
 
     const recipeId = Number(actionBtn.dataset.id);
     const recipe = state.recipes.find((r) => r.id === recipeId);
@@ -115,6 +156,17 @@ export async function render(container) {
     if (actionBtn.dataset.action === 'add-to-meals') {
       window.yuvomi?.navigate(`/meals?recipe=${recipe.id}`);
     }
+  });
+
+  // Enter/Space auf der fokussierten Karte öffnet die Lese-Ansicht (die Karte
+  // ist role=button; innere Buttons feuern ihren eigenen click).
+  list.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.recipe-card[data-id]');
+    if (!card || e.target !== card) return;
+    e.preventDefault();
+    const recipe = state.recipes.find((r) => r.id === Number(card.dataset.id));
+    if (recipe) openRecipeReadModal(recipe);
   });
 }
 
@@ -153,10 +205,25 @@ function renderRecipeList() {
     return;
   }
 
-  for (const recipe of state.recipes) {
+  const visible = filteredRecipes();
+  if (!visible.length) {
+    const noHits = document.createElement('p');
+    noHits.className = 'recipes-search-empty';
+    noHits.setAttribute('role', 'status');
+    noHits.textContent = t('recipes.searchNoResults');
+    list.appendChild(noHits);
+    return;
+  }
+
+  for (const recipe of visible) {
     const card = document.createElement('article');
     card.className = 'recipe-card';
     card.dataset.id = String(recipe.id);
+    // Die Kartenfläche öffnet die Lese-Ansicht (Audit A1-21) und braucht
+    // deshalb Tastaturzugang; die inneren Aktions-Buttons bleiben eigene Stops.
+    card.setAttribute('role', 'button');
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${t('recipes.viewRecipe')}: ${recipe.title}`);
 
     const h = document.createElement('h2');
     h.className = 'recipe-card__title';
@@ -172,17 +239,21 @@ function renderRecipeList() {
     }
 
     const mealTypes = normalizeRecipeMealTypes(recipe.meal_types);
-    const badges = document.createElement('div');
-    badges.className = 'recipe-card__meal-types';
-    badges.replaceChildren(...mealTypeOptions()
-      .filter((option) => mealTypes.includes(option.key))
-      .map((option) => {
-        const badge = document.createElement('span');
-        badge.className = `meal-type-badge meal-type-badge--${option.key}`;
-        badge.textContent = option.label;
-        return badge;
-      }));
-    card.appendChild(badges);
+    // Chips nur, wenn sie unterscheiden: gilt ein Rezept für alle Mahlzeiten,
+    // ist die volle Chip-Reihe reine Ornamentik auf jeder Karte (Audit A1-21).
+    if (mealTypes.length && mealTypes.length < mealTypeOptions().length) {
+      const badges = document.createElement('div');
+      badges.className = 'recipe-card__meal-types';
+      badges.replaceChildren(...mealTypeOptions()
+        .filter((option) => mealTypes.includes(option.key))
+        .map((option) => {
+          const badge = document.createElement('span');
+          badge.className = `meal-type-badge meal-type-badge--${option.key}`;
+          badge.textContent = option.label;
+          return badge;
+        }));
+      card.appendChild(badges);
+    }
 
     if (recipe.recipe_url) {
       const link = document.createElement('a');
@@ -266,6 +337,50 @@ function renderRecipeList() {
   }
 
   if (window.lucide) window.lucide.createIcons({ el: list });
+}
+
+// Nur-Lese-Ansicht fürs Kochen (Audit A1-21): volle Zutatenliste und Notizen
+// ohne Formular-Chrome; Bearbeiten bleibt eine bewusste Folgeaktion.
+function openRecipeReadModal(recipe) {
+  const mealTypes = normalizeRecipeMealTypes(recipe.meal_types);
+  const showBadges = mealTypes.length && mealTypes.length < mealTypeOptions().length;
+  const ingredients = recipe.ingredients ?? [];
+
+  const content = `
+    <div class="recipe-read">
+      ${showBadges ? `<div class="recipe-card__meal-types">${mealTypeOptions()
+        .filter((o) => mealTypes.includes(o.key))
+        .map((o) => `<span class="meal-type-badge meal-type-badge--${esc(o.key)}">${esc(o.label)}</span>`)
+        .join('')}</div>` : ''}
+      ${ingredients.length ? `
+        <h3 class="recipe-read__heading">${t('recipes.ingredientsLabel')}</h3>
+        <ul class="recipe-read__ingredients">
+          ${ingredients.map((i) => `<li>${i.quantity ? `<strong>${esc(i.quantity)}</strong> ` : ''}${esc(i.name)}</li>`).join('')}
+        </ul>` : ''}
+      ${recipe.notes ? `
+        <h3 class="recipe-read__heading">${t('recipes.notesLabel')}</h3>
+        <p class="recipe-read__notes">${esc(recipe.notes)}</p>` : ''}
+      ${recipe.recipe_url ? `
+        <a class="btn btn--ghost recipe-card__link" href="${esc(recipe.recipe_url)}" target="_blank" rel="noopener noreferrer">
+          <i data-lucide="external-link" class="icon-sm" aria-hidden="true"></i>
+          <span>${t('recipes.openLink')}</span>
+        </a>` : ''}
+    </div>
+    <div class="modal-panel__footer">
+      <button type="button" class="btn btn--ghost" data-action="close-modal">${t('common.close')}</button>
+      <button type="button" class="btn btn--primary" id="recipe-read-edit">${t('common.edit')}</button>
+    </div>`;
+
+  openSharedModal({
+    title: recipe.title,
+    content,
+    size: 'md',
+    onSave(panel) {
+      panel.querySelector('#recipe-read-edit')?.addEventListener('click', () => {
+        openRecipeModal('edit', recipe);
+      });
+    },
+  });
 }
 
 function openRecipeModal(mode, recipe = null) {

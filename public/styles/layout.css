@@ -487,7 +487,9 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
 .search-overlay {
   position: fixed;
   inset: 0;
-  background-color: var(--color-surface);
+  /* Leichte Modul-Tönung statt randlosem Weiß: die Suche gehört sichtbar zur
+   * App-Fläche (Audit A1-14). */
+  background-color: color-mix(in srgb, var(--active-module-accent, var(--color-accent)) 6%, var(--color-bg));
   z-index: calc(var(--z-nav) + 3);
   display: flex;
   flex-direction: column;
@@ -503,7 +505,10 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: calc(var(--space-3) + var(--safe-area-inset-top)) var(--space-4) var(--space-3);
+  /* Rechts Raum für den absolut positionierten Schließen-Button. */
+  padding: calc(var(--space-3) + var(--safe-area-inset-top))
+           calc(var(--space-4) + var(--target-base) + var(--space-3))
+           var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -524,6 +529,11 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
 }
 
 .search-overlay__close {
+  /* Liegt im DOM hinter den Treffern (Tab-Weg: Suchfeld -> Ergebnisse,
+   * Audit A1-14), visuell aber weiterhin oben rechts im Kopfbereich. */
+  position: absolute;
+  top: calc(var(--space-3) + var(--safe-area-inset-top));
+  right: var(--space-4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -557,6 +567,13 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
 
 .search-section {
   margin-bottom: var(--space-5);
+}
+
+.search-result__meta {
+  display: block;
+  margin-top: var(--space-0h);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
 }
 
 .search-section__heading {
@@ -905,6 +922,7 @@ html.fab-anim-done .page-fab {
  * Bedienelemente. `hidden` heißt versteckt, ausnahmslos. */
 .page-fab[hidden],
 .btn[hidden],
+.form-group[hidden],
 p.field-hint--warn[hidden] {
   display: none !important;
 }
@@ -950,8 +968,20 @@ p.field-hint--warn[hidden] {
     flex-direction: column;
     z-index: var(--z-nav);
     padding: var(--space-4) 0 var(--space-4);
+    /* Bewusste Layout-Transition (Detector layout-transition, geprüft):
+     * der Collapse ändert echte Inhaltsbreite - transform kann Breite nicht
+     * animieren, ein Overlay-Umbau stünde in keinem Verhältnis. Läuft nur
+     * beim manuellen Ein-/Ausklappen; reduced-motion schaltet sie ab. */
     transition: width var(--transition-slow);
     overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-sidebar,
+    .app-content,
+    .nav-sidebar__toggle {
+      transition: none;
+    }
   }
 
   .nav-sidebar__logo {

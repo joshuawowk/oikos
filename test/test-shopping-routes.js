@@ -248,7 +248,7 @@ test('POST /:listId/import-meal-plan: leerer Bereich → transferred/added 0', a
   const list = await newList();
   const r = await call('POST', `/${list}/import-meal-plan`, { from: '2030-01-01', to: '2030-01-07' });
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body.data, { transferred: 0, added: 0 });
+  assert.deepEqual(r.body.data, { transferred: 0, added: 0, meals: 0 });
 });
 
 test('POST /:listId/import-meal-plan: aggregiert + markiert on_shopping_list', async () => {
@@ -262,13 +262,27 @@ test('POST /:listId/import-meal-plan: aggregiert + markiert on_shopping_list', a
   assert.equal(r.status, 200);
   assert.equal(r.body.data.transferred, 3, 'alle drei Zutaten übertragen');
   assert.equal(r.body.data.added, 2, 'auf zwei Artikel aggregiert');
+  assert.equal(r.body.data.meals, 1, 'Mahlzeiten-Zahl für die Vorschau-Copy');
   const milch = db.prepare(`SELECT quantity FROM shopping_items WHERE list_id = ? AND name = 'Milch'`).get(list);
   assert.equal(milch.quantity, '2 l', 'Mengen summiert');
   const open = db.prepare('SELECT COUNT(*) c FROM meal_ingredients WHERE meal_id = ? AND on_shopping_list = 0').get(meal).c;
   assert.equal(open, 0, 'Zutaten als übertragen markiert');
   // zweiter Import überträgt nichts mehr
   const r2 = await call('POST', `/${list}/import-meal-plan`, { from: '2026-06-08', to: '2026-06-14' });
-  assert.deepEqual(r2.body.data, { transferred: 0, added: 0 });
+  assert.deepEqual(r2.body.data, { transferred: 0, added: 0, meals: 0 });
+});
+
+test('POST /:listId/import-meal-plan: preview rechnet, ohne zu schreiben (Audit A1-22)', async () => {
+  const list = await newList('Preview');
+  const meal = db.prepare(`INSERT INTO meals (date, meal_type, title, created_by) VALUES ('2026-07-01','dinner','P',?)`).run(U).lastInsertRowid;
+  db.prepare(`INSERT INTO meal_ingredients (meal_id, name, quantity, category) VALUES (?,?,?,?)`).run(meal, 'Reis', '500 g', 'Sonstiges');
+  const r = await call('POST', `/${list}/import-meal-plan`, { from: '2026-07-01', to: '2026-07-01', preview: true });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.data, { transferred: 1, added: 1, meals: 1, preview: true });
+  const items = db.prepare('SELECT COUNT(*) c FROM shopping_items WHERE list_id = ?').get(list).c;
+  assert.equal(items, 0, 'Vorschau legt keine Artikel an');
+  const open = db.prepare('SELECT COUNT(*) c FROM meal_ingredients WHERE meal_id = ? AND on_shopping_list = 0').get(meal).c;
+  assert.equal(open, 1, 'Zutat bleibt unmarkiert');
 });
 
 // --------------------------------------------------------------------------

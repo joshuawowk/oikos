@@ -1251,6 +1251,22 @@
 .budget-stats__axis-max { display:block; font-size:var(--text-xs); color:var(--color-text-tertiary); margin-bottom:var(--space-1); }
 .budget-stats__axis-x { display:flex; justify-content:space-between; font-size:var(--text-xs); color:var(--color-text-tertiary); margin-top:var(--space-1); }
 
+/* Werteachse statt einer einzelnen Max-Zahl (Audit A2-05): Gitterlinien im
+ * SVG (25/50/75%), das Halbwert-Label liegt am linken Rand auf halber Höhe. */
+.budget-stats__trend-wrap { position: relative; }
+.budget-stats__axis-mid {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  padding-inline: var(--space-0h);
+  pointer-events: none;
+}
+.budget-stats__grid { stroke: var(--color-border-subtle); stroke-width: 1; }
+
 /* Ablesbare Einzelwerte: unsichtbare Schaltfläche je Datenpunkt über der Kurve.
  * Der Wert selbst steht im aria-label — das hier ist nur die Trefferfläche und
  * der sichtbare Marker, also kein Hover-only-Tooltip. */

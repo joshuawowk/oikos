@@ -93,11 +93,15 @@ function chartGridMarkup(min, max) {
   const { W, PAD_L, PAD_R } = CHART;
   const { top, bottom } = chartScales();
   const out = [];
+  // Bei Spannen ab 4 Einheiten sind Dezimal-Ticks Pseudo-Präzision
+  // ("125,9 mmHg", Audit A2-21) - dort runden die Labels auf Ganzzahlen.
+  // Kleine Labor-Spannen (z. B. 0,5-1,2) behalten ihre Nachkommastellen.
+  const wholeTicks = (max - min) >= 4;
   for (let k = 0; k <= 4; k++) {
     const gy = top + (k * (bottom - top)) / 4;
     const val = max - (k * (max - min)) / 4;
     out.push(`<line class="health-chart__grid" x1="${PAD_L}" y1="${gy.toFixed(1)}" x2="${W - PAD_R}" y2="${gy.toFixed(1)}" />`);
-    out.push(`<text x="${PAD_L - 6}" y="${(gy + 3.5).toFixed(1)}" class="health-chart__axis health-chart__axis--y" text-anchor="end">${esc(fmtNum(val))}</text>`);
+    out.push(`<text x="${PAD_L - 6}" y="${(gy + 3.5).toFixed(1)}" class="health-chart__axis health-chart__axis--y" text-anchor="end">${esc(fmtNum(wholeTicks ? Math.round(val) : val))}</text>`);
   }
   return out.join('');
 }
@@ -1159,7 +1163,7 @@ function dueRowMarkup(dose, med, log) {
   const name = med ? med.name : '';
   const status = log?.status;
   const own = isOwnMedsView();
-  const doseText = dose.dose_qty != null ? ` · ${fmtNum(dose.dose_qty)}` : '';
+  const doseText = dose.dose_qty != null ? ` · ${t('health.meds.doseQty', { count: fmtNum(dose.dose_qty) })}` : '';
 
   let actions;
   if (status === 'taken') {
@@ -1570,7 +1574,7 @@ function schedRowMarkup(s) {
   const daysLabel = (s.days_mask == null || indices.length === WEEKDAY_COUNT)
     ? t('health.meds.schedule.daily')
     : indices.map((i) => t(WEEKDAY_LABEL_KEYS[i])).join(', ');
-  const doseText = s.dose_qty != null ? ` · ${fmtNum(s.dose_qty)}` : '';
+  const doseText = s.dose_qty != null ? ` · ${t('health.meds.doseQty', { count: fmtNum(s.dose_qty) })}` : '';
   return `
     <li class="health-sched-row" data-schedule-id="${esc(s.id)}">
       <span class="health-sched-row__time">${esc(s.time_of_day)}</span>
@@ -2435,6 +2439,9 @@ function renderActivityShell() {
   const summary = weekSummary(activity.rows, { anchor: activity.anchor, weekStartsOn: 1 });
   const weekRows = activityWeekRows(summary);
   const totals = activityTotals(weekRows);
+  // Leere Woche: nur der Stepper (Wochen-Navigation) und EINE Leerzustand-
+  // Karte im Chart-Slot. Die "0 Einheiten"-Stat-Wand und die doppelte
+  // Leer-Meldung im Log entfallen (Audit A2-09/A2-21).
 
   activity.root.insertAdjacentHTML('beforeend', `
     <div class="health-persons" role="tablist" aria-label="${esc(t('health.activity.personsLabel'))}">
@@ -2448,9 +2455,9 @@ function renderActivityShell() {
         <button class="btn btn--icon" data-step="1" aria-label="${esc(t('health.activity.nextWeek'))}"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
       </div>
     </div>
-    <div class="health-activity__summary">${activityStatsMarkup(totals)}</div>
+    ${totals.count === 0 ? '' : `<div class="health-activity__summary">${activityStatsMarkup(totals)}</div>`}
     <div class="health-activity__chart">${activityChartMarkup(summary)}</div>
-    <div class="health-activity__log">${activityLogMarkup(weekRows)}</div>
+    ${totals.count === 0 ? '' : `<div class="health-activity__log">${activityLogMarkup(weekRows)}</div>`}
   `);
   if (window.lucide) window.lucide.createIcons({ el: activity.root });
   wireActivity();
@@ -2971,7 +2978,7 @@ function overviewDueMarkup() {
 function overviewDueRowMarkup(dose, med, log, own) {
   const name = med ? med.name : '';
   const status = log?.status;
-  const doseText = dose.dose_qty != null ? ` · ${fmtNum(dose.dose_qty)}` : '';
+  const doseText = dose.dose_qty != null ? ` · ${t('health.meds.doseQty', { count: fmtNum(dose.dose_qty) })}` : '';
 
   let actions;
   if (status === 'taken') {
@@ -3132,7 +3139,7 @@ function overviewUpcomingMarkup() {
   }
   const rows = up.map((dose) => {
     const med = overview.meds.find((m) => m.id === dose.medicationId);
-    const doseText = dose.dose_qty != null ? ` · ${fmtNum(dose.dose_qty)}` : '';
+    const doseText = dose.dose_qty != null ? ` · ${t('health.meds.doseQty', { count: fmtNum(dose.dose_qty) })}` : '';
     return `
       <li class="health-overview-reminder">
         <span class="health-dose__time">${esc(dose.time)}</span>
@@ -3476,7 +3483,7 @@ function cyclePregnancyMarkup(prediction, own) {
         <span class="cycle-preg__countdown">${esc(countdown)}</span>
       </div>
       <div class="cycle-preg__bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(t('health.cycle.pregnancy.progressLabel'))}">
-        <span class="cycle-preg__bar-fill" style="width:${pct}%"></span>
+        <span class="cycle-preg__bar-fill" style="--cycle-fill:${(pct / 100).toFixed(4)}"></span>
       </div>
       <div class="cycle-preg__due">${esc(t('health.cycle.pregnancy.dueDate', { date: formatDate(p.dueDate) }))}</div>`;
   } else {
@@ -3539,7 +3546,7 @@ function cycleRingMarkup(prediction) {
       <div class="cycle-ring__center">
         <span class="cycle-ring__phase">${esc(phaseLabel)}</span>
         <span class="cycle-ring__day">${esc(t('health.cycle.ring.cycleDay', { day: prediction.cycleDay }))}</span>
-        <span class="cycle-ring__status">${esc(cycleCountdownText(prediction))}</span>
+        <span class="cycle-ring__status">${esc(`${t('health.cycle.status.nextPeriod')}: ${cycleCountdownText(prediction)}`)}</span>
       </div>
     </div>`;
 }

@@ -108,14 +108,23 @@ async function readImageAsDataUrl(file) {
   return cropped;
 }
 
-function memberHtml(u) {
-  const familyRole = familyRoleLabel(u.family_role);
+function memberHtml(u, currentUserId) {
+  // Konten der Haushaltshilfe sind keine Familienmitglieder: sie tragen das
+  // Personal-Label statt einer Familienrolle (Audit A2-25e).
+  const familyRole = u.is_worker ? t('housekeeping.staff') : familyRoleLabel(u.family_role);
   const systemRole = u.role === 'admin' ? ` · ${esc(t('settings.systemAdminBadge'))}` : '';
   const profileMeta = [
     u.phone ? t('settings.memberPhoneMeta', { value: u.phone }) : '',
     u.email || '',
     u.birth_date ? t('settings.memberBirthdayMeta', { date: formatDate(u.birth_date) }) : '',
   ].filter(Boolean).map(esc).join(' · ');
+  // Row-Action-Grammatik statt dauerhaft rotem Outline-Button: Löschen wird
+  // erst bei Hover/Fokus laut. Der eigene Account bekommt keine Lösch-Aktion
+  // in der Mitgliederliste (Audit A2-25d).
+  const deleteBtn = u.id === currentUserId ? '' : `
+      <button class="row-action row-action--danger" data-delete-user="${u.id}" data-name="${esc(u.display_name)}" aria-label="${esc(u.display_name)} ${t('settings.deleteMemberLabel')}" title="${t('settings.deleteMemberLabel')}">
+        <i data-lucide="trash-2" class="icon-md" aria-hidden="true"></i>
+      </button>`;
   return `
     <li class="settings-member" data-id="${u.id}">
       ${avatarHtml(u, 'settings-avatar settings-avatar--sm')}
@@ -124,12 +133,9 @@ function memberHtml(u) {
         <span class="settings-member__meta">@${esc(u.username)} · ${esc(familyRole)}${systemRole}</span>
         ${profileMeta ? `<span class="settings-member__meta">${profileMeta}</span>` : ''}
       </div>
-      <button class="btn btn--icon btn--secondary" data-edit-user="${u.id}" aria-label="${esc(u.display_name)} ${t('settings.editMemberLabel')}" title="${t('settings.editMemberLabel')}">
-        <i data-lucide="edit-2" aria-hidden="true"></i>
-      </button>
-      <button class="btn btn--icon btn--danger-outline" data-delete-user="${u.id}" data-name="${esc(u.display_name)}" aria-label="${esc(u.display_name)} ${t('settings.deleteMemberLabel')}" title="${t('settings.deleteMemberLabel')}">
-        <i data-lucide="trash-2" aria-hidden="true"></i>
-      </button>
+      <button class="row-action" data-edit-user="${u.id}" aria-label="${esc(u.display_name)} ${t('settings.editMemberLabel')}" title="${t('settings.editMemberLabel')}">
+        <i data-lucide="edit-2" class="icon-md" aria-hidden="true"></i>
+      </button>${deleteBtn}
     </li>
   `;
 }
@@ -202,7 +208,7 @@ function renderPage(container) {
   `);
 }
 
-function renderMemberList(container, users) {
+function renderMemberList(container, users, currentUserId) {
   const list = container.querySelector('#members-list');
   if (!list) return;
   list.replaceChildren();
@@ -212,7 +218,7 @@ function renderMemberList(container, users) {
     empty.textContent = t('settings.familyEmpty');
     list.appendChild(empty);
   } else {
-    list.insertAdjacentHTML('beforeend', users.map(memberHtml).join(''));
+    list.insertAdjacentHTML('beforeend', users.map((u) => memberHtml(u, currentUserId)).join(''));
   }
   window.lucide?.createIcons({ el: list });
 }
@@ -382,7 +388,7 @@ function openEditMemberModal(member, currentUser, users, container) {
           if (currentUser?.id === member.id) Object.assign(currentUser, res.user);
           closeModal({ force: true });
           window.yuvomi?.showToast(t('settings.memberUpdatedToast', { name: res.user.display_name }), 'success');
-          renderMemberList(container, users);
+          renderMemberList(container, users, currentUser?.id);
           bindDeleteButtons(container);
           bindEditButtons(container, currentUser, users);
         } catch (err) {
@@ -445,7 +451,7 @@ function bindEvents(container, currentUser, users) {
       try {
         const res = await auth.createUser(data);
         users.push(res.user);
-        renderMemberList(container, users);
+        renderMemberList(container, users, currentUser?.id);
         addMemberForm.reset();
         container.querySelector('#new-avatar-color').value = randomAvatarColor();
         container.querySelector('#add-member-form-card').classList.add('settings-card--hidden');
@@ -483,7 +489,7 @@ async function loadMembers(container, currentUser) {
     return;
   }
 
-  renderMemberList(container, users);
+  renderMemberList(container, users, currentUser?.id);
   bindEvents(container, currentUser, users);
   window.lucide?.createIcons({ el: container });
 }

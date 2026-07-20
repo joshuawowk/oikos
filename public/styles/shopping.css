@@ -210,9 +210,8 @@
     padding-inline: var(--space-2);
   }
 
-  .list-header__import-btn span {
-    display: none;
-  }
+  /* Label bleibt auch mobil sichtbar: das nackte Import-Icon war kryptisch
+   * (Audit A1-22). */
 }
 
 /* --------------------------------------------------------

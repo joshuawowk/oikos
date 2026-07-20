@@ -136,7 +136,7 @@
         "shoppingMore": "+{{count}} nữa",
         "weather": "Thời tiết",
         "familyMembers": "Thành viên gia đình",
-        "participantsAdded": "người tham gia đã được thêm",
+        "participantsAdded": "trong gia đình",
         "upcomingBirthdays": "Sinh nhật sắp tới",
         "noBirthdays": "Chưa có sinh nhật nào",
         "daysLeft": "Còn {{count}} ngày",
@@ -354,6 +354,7 @@
         "importMeals": "Từ kế hoạch bữa ăn",
         "importMealsTitle": "Nhập từ kế hoạch bữa ăn",
         "importMealsAction": "Nhập",
+        "importMealsPreview": "{{count}} nguyên liệu từ {{meals}} bữa ăn sẽ được thêm.",
         "importMealsEmpty": "Không tìm thấy nguyên liệu bữa ăn nào trong phạm vi đã chọn.",
         "manageCategories": "Quản lý danh mục"
     },
@@ -455,6 +456,7 @@
         "allDay": "Cả ngày",
         "allDayShort": "cả ngày",
         "moreEvents": "+{{count}} sự kiện khác",
+        "dayEmptyHint": "Chưa có sự kiện. Chạm vào một giờ để thêm.",
         "dayRangeLabel": "{{from}} - {{to}}",
         "weekNumberLabel": "Tuần {{week}} · Tháng {{month}} năm {{year}}",
         "agendaFrom": "Từ {{date}}",
@@ -2056,10 +2058,14 @@
         "duplicate": "Nhân bản",
         "duplicated": "Công thức đã được nhân bản.",
         "copySuffix": "bản sao",
+        "viewRecipe": "Xem công thức",
+        "searchPlaceholder": "Tìm công thức…",
+        "searchNoResults": "Không tìm thấy công thức.",
         "dragToMealsHint": "Kéo công thức vào ô bữa ăn để lên kế hoạch nhanh hơn.",
         "emptyAction": "Tạo công thức"
     },
     "search": {
+        "emptyHint": "Nhập ít nhất 2 ký tự để tìm trong công việc, sự kiện, ghi chú, danh bạ, mua sắm và sức khỏe.",
         "title": "Tìm kiếm",
         "open": "Mở tìm kiếm",
         "placeholder": "Tìm kiếm…",
@@ -2867,6 +2873,7 @@
             "measurementDeleted": "Đã xóa lần đo"
         },
         "meds": {
+            "doseQty": "{{count}}×",
             "title": "Thuốc",
             "emptyTitle": "Chưa có thuốc",
             "emptyDesc": "Thuốc kèm lịch và nhắc nhở sẽ hiển thị ở đây.",

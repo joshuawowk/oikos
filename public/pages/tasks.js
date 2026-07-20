@@ -1359,7 +1359,7 @@ function renderFilters(container) {
   // ---- Chip-Leiste: nur aktive Filter + Toggle-Button ----
   bar.replaceChildren();
 
-  if (state.filters.status) {
+  if (state.filters.status && state.viewMode !== 'kanban') {
     const chip = makeChip({ label: statusLabels[state.filters.status], active: true, withRemove: true });
     chip.dataset.filter = 'status';
     bar.appendChild(chip);
@@ -1465,12 +1465,14 @@ function renderFilters(container) {
   panel.replaceChildren();
 
   if (state.filterPanelOpen) {
+    // Im Kanban entfällt die Status-Gruppe: die Spalten übernehmen diese
+    // Achse bereits (Audit A1-07).
     const groups = [
-      {
+      ...(state.viewMode !== 'kanban' ? [{
         key: 'status',
         label: t('tasks.filterGroupStatus'),
         items: STATUSES().map((s) => ({ value: s.value, label: s.label })),
-      },
+      }] : []),
       {
         key: 'priority',
         label: t('tasks.filterGroupPriority'),
@@ -1831,6 +1833,12 @@ function wireViewToggle(container) {
     btn.addEventListener('click', () => {
       state.viewMode = btn.dataset.view;
       localStorage.setItem('yuvomi-tasks-view', state.viewMode);
+      // Kanban-Spalten SIND der Status: ein aktiver Statusfilter würde nur
+      // Spalten leeren ("Offen 0" trotz offener Aufgaben, Audit A1-07).
+      if (state.viewMode === 'kanban' && state.filters.status) {
+        state.filters.status = '';
+      }
+      renderFilters(container);
       toggle.querySelectorAll('[data-view]').forEach((b) => {
         const on = b.dataset.view === state.viewMode;
         b.classList.toggle('group-toggle__btn--active', on);

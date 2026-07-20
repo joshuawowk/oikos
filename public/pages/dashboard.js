@@ -732,7 +732,7 @@ function renderUpcomingBirthdays(birthdays) {
           <div class="birthday-widget-item__name">${esc(b.name)}</div>
           <div class="birthday-widget-item__meta">${formatDate(b.next_birthday)} · ${daysLabel}</div>
         </div>
-        <div class="birthday-widget-item__age">${esc(String(b.next_age ?? ''))}</div>
+        ${b.next_age != null ? `<div class="birthday-widget-item__age" title="${esc(t('birthdays.turnsAge', { age: b.next_age }))}" aria-label="${esc(t('birthdays.turnsAge', { age: b.next_age }))}">${esc(String(b.next_age))}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -1203,7 +1203,10 @@ function renderDashboardOverview(user, editing = false) {
         <div class="dashboard-overview__tools">
           ${editing ? `
           <div class="dashboard-customize-toolbar" role="toolbar" aria-label="${t('dashboard.customizeTitle')}">
-            <button class="btn btn--ghost" id="dashboard-customize-reset">${t('dashboard.customizeReset')}</button>
+            <button class="btn btn--ghost" id="dashboard-customize-reset">
+              <i data-lucide="rotate-ccw" class="icon-sm" aria-hidden="true"></i>
+              ${t('dashboard.customizeReset')}
+            </button>
             <button class="btn btn--secondary" id="dashboard-customize-cancel">${t('common.cancel')}</button>
             <button class="btn btn--primary" id="dashboard-customize-save">${t('common.save')}</button>
           </div>` : ''}
@@ -1228,11 +1231,14 @@ function renderSizeMiniGrid(size) {
 }
 
 function renderSizeMiniGridCells(size) {
+  // 2x2-Basisraster statt 4x4: die vier Presets unterscheiden sich nur in
+  // Breite/Höhe 1 vs. 2 - auf 16 winzigen Zellen war das kaum ablesbar und
+  // die Buttons wirkten identisch (Audit A1-17).
   const [cols, rows] = size.split('x').map(Number);
-  return Array.from({ length: 16 }, (_, i) => {
-    const col = (i % 4) + 1;
-    const row = Math.floor(i / 4) + 1;
-    return `<span class="${col <= cols && row <= rows ? 'is-active' : ''}"></span>`;
+  return Array.from({ length: 4 }, (_, i) => {
+    const col = (i % 2) + 1;
+    const row = Math.floor(i / 2) + 1;
+    return `<span class="${col <= Math.min(cols, 2) && row <= Math.min(rows, 2) ? 'is-active' : ''}"></span>`;
   }).join('');
 }
 
