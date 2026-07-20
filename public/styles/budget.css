@@ -1040,6 +1040,11 @@
   background-color: var(--glass-bg-card-hover);
 }
 
+.budget-entry:focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: -2px;
+}
+
 .budget-entry__indicator {
   width: 8px;
   height: 8px;

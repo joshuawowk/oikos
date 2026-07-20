@@ -1336,6 +1336,11 @@ function makeChip({ label, active = false, extraClass = '', pressed = undefined,
   chip.type = 'button';
   chip.className = `filter-chip${active ? ' filter-chip--active' : ''}${extraClass ? ` ${extraClass}` : ''}`;
   if (pressed !== null) chip.setAttribute('aria-pressed', String(pressed ?? active));
+  // Das Entfernen-X ist aria-hidden (Dekor im selben Button); die Entfernen-
+  // Aktion muss deshalb in den Accessible Name des Chips selbst.
+  if (withRemove && label != null) {
+    chip.setAttribute('aria-label', t('tasks.removeFilter', { label }));
+  }
   if (label != null) chip.appendChild(document.createTextNode(label));
   if (withRemove) chip.appendChild(makeRemoveSpan());
   return chip;

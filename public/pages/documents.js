@@ -460,6 +460,10 @@ function renderEmptyState(list) {
 }
 
 function renderDocuments() {
+  // Jeder Rerender (Moduswechsel, Filter, Löschen) ersetzt die Karten samt
+  // Menü-Anker. Ein offenes Kontextmenü hinge sonst als Geister-Popover im
+  // Top-Layer, weil weder Scroll- noch Resize-Listener feuern.
+  closeContextMenu();
   const list = _container.querySelector('#documents-list');
   if (!list) return;
   list.removeAttribute('aria-busy');

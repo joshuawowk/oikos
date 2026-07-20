@@ -612,6 +612,18 @@ function renderBody() {
       if (entry) openBudgetModal({ mode: 'edit', entry });
     }
   });
+
+  // Enter/Space auf der fokussierten Zeile öffnet Bearbeiten, analog zum Klick.
+  // Guard auf e.target === Zeile: Enter auf dem inneren Lösch-Button feuert
+  // bereits dessen click und darf nicht zusätzlich das Edit-Modal öffnen.
+  _container.querySelector('#budget-list')?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const item = e.target.closest('.budget-entry[data-id]');
+    if (!item || e.target !== item) return;
+    e.preventDefault();
+    const entry = state.entries.find((x) => x.id === parseInt(item.dataset.id, 10));
+    if (entry) openBudgetModal({ mode: 'edit', entry });
+  });
 }
 
 function updateTabs() {
@@ -724,8 +736,13 @@ function renderEntries() {
       ? ` <span class="budget-badge budget-badge--shared">${esc(t('budget.householdBadge'))}</span>`
       : '';
 
+    // Die Zeile ist die Edit-Fläche und braucht deshalb Tastaturzugang
+    // (role=button + tabindex); ein echtes <button> geht nicht, weil der
+    // Lösch-Button darin verschachtelt ist. Das aria-label hält den
+    // Lösch-Button-Namen aus dem Zeilen-Namen heraus.
     return `
-      <div class="budget-entry" data-id="${e.id}">
+      <div class="budget-entry" data-id="${e.id}" role="button" tabindex="0"
+           aria-label="${esc(t('budget.editEntry'))}: ${esc(e.title)}, ${sign}${formatAmount(e.amount)}">
         <div class="budget-entry__indicator ${indClass}"></div>
         <div class="budget-entry__body">
           <div class="budget-entry__title">${esc(e.title)}${sharedBadge}</div>

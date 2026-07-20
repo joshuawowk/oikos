@@ -462,7 +462,12 @@ function renderNoteReadHtml(content) {
 
 function openNoteModal({ mode, note = null }) {
   const isEdit      = mode === 'edit';
-  const selColor    = isEdit ? note.color : NOTE_COLORS[0];
+  const selColor    = (isEdit ? note.color : null) || NOTE_COLORS[0];
+  // Bestehende Notizen können Farben außerhalb der Palette tragen (Alt-Daten,
+  // frühere Paletten). Die aktuelle Farbe wird dann als eigener Swatch
+  // vorangestellt: sonst wäre nichts selektiert und die Radio-Gruppe hätte
+  // keinen Tastatur-Einstieg (kein tabindex="0" im Roving-Muster).
+  const swatchColors = NOTE_COLORS.includes(selColor) ? NOTE_COLORS : [selColor, ...NOTE_COLORS];
   // Bestehende Notizen öffnen im Lese-Modus (#507); neue direkt im Editor.
   const initialView = isEdit ? 'read' : 'edit';
 
@@ -506,14 +511,14 @@ function openNoteModal({ mode, note = null }) {
       <div class="form-group">
         <label class="form-label" id="note-color-label">${t('notes.colorLabel')}</label>
         <div class="note-color-picker" role="radiogroup" aria-labelledby="note-color-label">
-          ${NOTE_COLORS.map((c) => `
+          ${swatchColors.map((c) => `
             <div class="note-color-swatch ${c === selColor ? 'note-color-swatch--active' : ''}"
-                 data-color="${c}"
-                 style="background-color:${c};border:2px solid ${c === NOTE_COLORS[7] ? 'var(--color-border)' : c};"
+                 data-color="${esc(c)}"
+                 style="background-color:${esc(c)};border:2px solid ${c === NOTE_COLORS[7] ? 'var(--color-border)' : esc(c)};"
                  role="radio"
                  tabindex="${c === selColor ? '0' : '-1'}"
                  aria-checked="${c === selColor ? 'true' : 'false'}"
-                 aria-label="${NOTE_COLOR_NAMES()[c] ?? c}"></div>
+                 aria-label="${esc(NOTE_COLOR_NAMES()[c] ?? t('notes.colorCurrent'))}"></div>
           `).join('')}
         </div>
       </div>
