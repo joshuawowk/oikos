@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "p. ej. García",
         "categoryLabel": "Categoría",
         "phoneLabel": "Teléfono",
+        "mvAddPhone": "Añadir número de teléfono",
+        "mvAddEmail": "Añadir dirección de correo",
+        "mvLabel": "Etiqueta",
+        "mvLabelPlaceholder": "Etiqueta (p. ej. trabajo)",
+        "mvRemove": "Quitar entrada",
+        "birthdayLabel": "Cumpleaños",
+        "birthdayHint": "También aparece en el calendario mediante la importación de cumpleaños.",
         "phonePlaceholder": "+34 …",
         "emailLabel": "Email",
         "emailPlaceholder": "nombre@ejemplo.es",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Ya añadido",
         "importNoBirthdaySection": "Contactos sin cumpleaños",
         "importNoBirthdayHint": "Estos contactos no tienen cumpleaños guardado - añádelo manualmente.",
-        "importEmpty": "No se encontraron contactos con cumpleaños. Primero sincroniza una libreta de direcciones CardDAV.",
+        "importEmpty": "No se han encontrado contactos con cumpleaños. Añade los cumpleaños directamente en el contacto o impórtalos mediante vCard o la sincronización de la libreta de direcciones.",
         "importSubmit": "Añadir {{count}}",
         "importSuccess": "{{count}} cumpleaños añadidos.",
         "importNothingSelected": "Selecciona al menos un contacto.",
@@ -2851,7 +2858,10 @@
                 "private": "Privado",
                 "family": "Familia"
             },
-            "sparse": "Muy pocas mediciones para mostrar una tendencia."
+            "sparse": "Muy pocas mediciones para mostrar una tendencia.",
+            "recentMeasurements": "Últimas mediciones",
+            "deleteMeasurement": "Eliminar medición",
+            "measurementDeleted": "Medición eliminada"
         },
         "meds": {
             "title": "Medicamentos",
@@ -2872,6 +2882,7 @@
             "doseError": "No se pudo guardar el registro.",
             "nameRequired": "El nombre es obligatorio.",
             "noMeds": "Aún no hay medicamentos.",
+            "logTitle": "Registro de tomas",
             "personsLabel": "Persona",
             "take": "Tomado",
             "skip": "Omitir",

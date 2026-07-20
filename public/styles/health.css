@@ -2016,3 +2016,110 @@ button.cycle-cal__day:not(:disabled):hover { background: var(--color-surface-2);
   .cycle-cal__day { transition: none; }
   .cycle-choice { transition: none; }
 }
+
+/* Messwert-Historie unter dem Vitals-Chart (Audit R2, A2-08): kompakte Zeilen,
+ * Löschen als row-action nur in der eigenen Ansicht. */
+.health-recent {
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-work);
+  padding: var(--space-2) var(--space-3);
+}
+
+.health-recent__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.health-recent__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.health-recent__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--target-md);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.health-recent__row:first-child { border-top: none; }
+
+.health-recent__date {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  min-width: 96px;
+}
+
+.health-recent__value {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-recent__value small {
+  color: var(--color-text-tertiary);
+}
+
+/* Einnahmeprotokoll-Aufklapper unter der Adhärenz (Audit R2, A2-22). */
+.health-medlog {
+  margin-top: var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-work);
+  padding: var(--space-2) var(--space-3);
+}
+
+.health-medlog summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  min-height: var(--target-md);
+  display: flex;
+  align-items: center;
+}
+
+.health-medlog__list {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+}
+
+.health-medlog__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target-md);
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: var(--text-sm);
+}
+
+.health-medlog__row svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-success);
+  flex-shrink: 0;
+}
+
+.health-medlog__row.is-skipped svg {
+  color: var(--color-text-tertiary);
+}
+
+.health-medlog__med {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-medlog__time,
+.health-medlog__status {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}

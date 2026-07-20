@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "např. Novák",
         "categoryLabel": "Kategorie",
         "phoneLabel": "Telefon",
+        "mvAddPhone": "Přidat telefonní číslo",
+        "mvAddEmail": "Přidat e-mailovou adresu",
+        "mvLabel": "Štítek",
+        "mvLabelPlaceholder": "Štítek (např. práce)",
+        "mvRemove": "Odebrat záznam",
+        "birthdayLabel": "Narozeniny",
+        "birthdayHint": "Přes import narozenin se zobrazí i v kalendáři.",
         "phonePlaceholder": "+420 …",
         "emailLabel": "E-mail",
         "emailPlaceholder": "jmeno@example.com",
@@ -2452,7 +2459,7 @@
         "importAlreadyAdded": "Již přidáno",
         "importNoBirthdaySection": "Kontakty bez data narození",
         "importNoBirthdayHint": "U těchto kontaktů není uloženo datum narození - přidejte ho ručně.",
-        "importEmpty": "Nenalezeny žádné kontakty s datem narození. Nejprve synchronizujte adresář CardDAV.",
+        "importEmpty": "Nenalezeny žádné kontakty s narozeninami. Zadej narozeniny přímo u kontaktu, nebo je získej importem vCard či synchronizací adresáře.",
         "importSubmit": "Přidat {{count}}",
         "importSuccess": "Přidáno narozenin: {{count}}.",
         "importNothingSelected": "Vyberte alespoň jeden kontakt.",
@@ -2851,7 +2858,10 @@
                 "private": "Soukromé",
                 "family": "Rodina"
             },
-            "sparse": "Příliš málo měření pro zobrazení trendu."
+            "sparse": "Příliš málo měření pro zobrazení trendu.",
+            "recentMeasurements": "Poslední měření",
+            "deleteMeasurement": "Smazat měření",
+            "measurementDeleted": "Měření smazáno"
         },
         "meds": {
             "title": "Léky",
@@ -2872,6 +2882,7 @@
             "doseError": "Záznam se nepodařilo uložit.",
             "nameRequired": "Název je povinný.",
             "noMeds": "Zatím žádné léky.",
+            "logTitle": "Protokol užívání",
             "personsLabel": "Osoba",
             "take": "Užito",
             "skip": "Přeskočit",

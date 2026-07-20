@@ -1184,6 +1184,20 @@ function renderAppShell(container) {
 
   sidebar.appendChild(sidebarLogo);
   sidebar.appendChild(sidebarToggle);
+
+  // Sichtbarer Desktop-Einstieg in die globale Suche (Audit R2, A1-01): vor den
+  // Modul-Items, bleibt im eingeklappten Modus als Lupe erreichbar. Kein
+  // data-route, damit Delegation/Indikator das Item ignorieren.
+  const sidebarSearch = sidebarActionEl({
+    labelKey: 'nav.search',
+    icon: 'search',
+    className: 'nav-item--search',
+    onClick: () => _openSearch?.(),
+  });
+  sidebarSearch.setAttribute('aria-keyshortcuts', '/');
+  sidebarSearch.setAttribute('title', `${t('nav.search')} (/)`);
+  sidebar.appendChild(sidebarSearch);
+
   sidebar.appendChild(sidebarItems);
 
   // Footer-Aktionen (keine Routen → kein data-route, damit Delegation/Indikator
@@ -1374,6 +1388,7 @@ function renderAppShell(container) {
   container.addEventListener('pointerdown', prefetchFromEvent);
 
   const openSearch = initSearch(container);
+  _openSearch = openSearch;
   initMoreSheet(container, openSearch);
   initOfflineBanner();
   initKeyboardShortcuts();
@@ -1388,9 +1403,9 @@ const FAB_SEEN_MAX = 5;
 const SIDEBAR_COLLAPSED_KEY = 'yuvomi.sidebar.collapsed';
 
 const SHORTCUTS = [
-  { key: '/',   description: () => t('shortcuts.search'),  action: () => {
-    document.getElementById('more-sheet-search')?.click();
-  } },
+  // Direkt auf die Overlay-Funktion — der alte Umweg über einen Klick auf die
+  // Suchleiste im (geschlossenen, inerten) Mehr-Sheet war eine fragile Kette.
+  { key: '/',   description: () => t('shortcuts.search'),  action: () => _openSearch?.() },
   { key: 'n',   description: () => t('shortcuts.new'),     action: () => document.querySelector('.page-fab')?.click() },
   { key: 'f',   description: () => t('shortcuts.searchCalendar'), action: () => {
     if (location.pathname === '/calendar') document.querySelector('#cal-search')?.click();
@@ -1410,6 +1425,8 @@ const SHORTCUTS = [
 
 let _pendingKey = null;
 let _pendingTimer = null;
+// Von initSearch gesetzt: öffnet das globale Such-Overlay (Sidebar-Item + `/`).
+let _openSearch = null;
 
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {

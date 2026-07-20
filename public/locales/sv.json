@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "t.ex. Andersson",
         "categoryLabel": "Kategori",
         "phoneLabel": "Telefon",
+        "mvAddPhone": "Lägg till telefonnummer",
+        "mvAddEmail": "Lägg till e-postadress",
+        "mvLabel": "Etikett",
+        "mvLabelPlaceholder": "Etikett (t.ex. arbete)",
+        "mvRemove": "Ta bort post",
+        "birthdayLabel": "Födelsedag",
+        "birthdayHint": "Visas också i kalendern via födelsedagsimporten.",
         "phonePlaceholder": "+46 …",
         "emailLabel": "E-post",
         "emailPlaceholder": "namn@exempel.se",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Redan tillagd",
         "importNoBirthdaySection": "Kontakter utan födelsedag",
         "importNoBirthdayHint": "Dessa kontakter saknar sparat födelsedatum - lägg till det manuellt.",
-        "importEmpty": "Inga kontakter med födelsedag hittades. Synkronisera en CardDAV-adressbok först.",
+        "importEmpty": "Inga kontakter med födelsedag hittades. Lägg till födelsedagar direkt på kontakten eller hämta dem via vCard-import eller adressbokssynkning.",
         "importSubmit": "Lägg till {{count}}",
         "importSuccess": "{{count}} födelsedagar tillagda.",
         "importNothingSelected": "Välj minst en kontakt.",
@@ -2851,7 +2858,10 @@
                 "private": "Privat",
                 "family": "Familj"
             },
-            "sparse": "För få mätvärden för att visa en trend."
+            "sparse": "För få mätvärden för att visa en trend.",
+            "recentMeasurements": "Senaste mätningar",
+            "deleteMeasurement": "Ta bort mätning",
+            "measurementDeleted": "Mätning borttagen"
         },
         "meds": {
             "title": "Mediciner",
@@ -2872,6 +2882,7 @@
             "doseError": "Posten kunde inte sparas.",
             "nameRequired": "Namn krävs.",
             "noMeds": "Inga mediciner ännu.",
+            "logTitle": "Intagslogg",
             "personsLabel": "Person",
             "take": "Taget",
             "skip": "Hoppa över",

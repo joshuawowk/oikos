@@ -477,6 +477,7 @@ router.put('/:id', (req, res) => {
     if (req.body.email    !== undefined) checks.push(str(req.body.email,    'E-Mail',  { max: MAX_TITLE, required: false }));
     if (req.body.address  !== undefined) checks.push(str(req.body.address,  'Adresse', { max: MAX_TEXT,  required: false }));
     if (req.body.notes    !== undefined) checks.push(str(req.body.notes,    'Notizen', { max: MAX_TEXT,  required: false }));
+    if (req.body.birthday !== undefined) checks.push(date(req.body.birthday, 'Geburtstag', false));
     const errors = collectErrors(checks);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
 
@@ -513,6 +514,7 @@ router.put('/:id', (req, res) => {
             email       = ?,
             address     = ?,
             notes       = ?,
+            birthday    = ?,
             first_name  = ?,
             last_name   = ?,
             middle_name = ?,
@@ -526,6 +528,7 @@ router.put('/:id', (req, res) => {
         req.body.email   !== undefined ? (req.body.email?.trim()   || null) : contact.email,
         req.body.address !== undefined ? (req.body.address?.trim() || null) : contact.address,
         req.body.notes   !== undefined ? (req.body.notes?.trim()   || null) : contact.notes,
+        req.body.birthday !== undefined ? (req.body.birthday || null) : contact.birthday,
         nameParts.provided ? nameParts.parts.firstName  : contact.first_name,
         nameParts.provided ? nameParts.parts.lastName   : contact.last_name,
         nameParts.provided ? nameParts.parts.middleName : contact.middle_name,

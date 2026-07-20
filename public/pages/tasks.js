@@ -269,6 +269,11 @@ function renderTaskCard(task, opts = {}) {
 
         ${renderAvatarStack(task.assigned_users ?? [], { size: 28 })}
 
+        ${!(task.subtask_total > 0) && task.status !== 'archived' && !task.parent_task_id ? `
+        <button class="btn btn--ghost btn--icon btn--icon-sm task-card__inline-action" data-action="add-subtask" data-parent="${task.id}"
+                aria-label="${t('tasks.subtaskAdd')}" title="${t('tasks.subtaskAdd')}">
+          <i data-lucide="list-plus" class="icon-md" aria-hidden="true"></i>
+        </button>` : ''}
         <button class="btn btn--ghost btn--icon btn--icon-sm task-card__inline-action" data-action="edit-task" data-id="${task.id}"
                 aria-label="${t('tasks.editButton')}">
           <i data-lucide="pencil" class="icon-md" aria-hidden="true"></i>

@@ -734,6 +734,13 @@
         "lastNamePlaceholder": "np. Kowalski",
         "categoryLabel": "Kategoria",
         "phoneLabel": "Telefon",
+        "mvAddPhone": "Dodaj numer telefonu",
+        "mvAddEmail": "Dodaj adres e-mail",
+        "mvLabel": "Etykieta",
+        "mvLabelPlaceholder": "Etykieta (np. praca)",
+        "mvRemove": "Usuń pozycję",
+        "birthdayLabel": "Urodziny",
+        "birthdayHint": "Dzięki importowi urodzin pojawia się też w kalendarzu.",
         "phonePlaceholder": "+48 …",
         "emailLabel": "E-mail",
         "emailPlaceholder": "imie@przyklad.pl",
@@ -2024,7 +2031,7 @@
         "importAlreadyAdded": "Już dodano",
         "importNoBirthdaySection": "Kontakty bez daty urodzin",
         "importNoBirthdayHint": "Te kontakty nie mają zapisanej daty urodzin - dodaj ją ręcznie.",
-        "importEmpty": "Nie znaleziono kontaktów z datą urodzin. Najpierw zsynchronizuj książkę adresową CardDAV.",
+        "importEmpty": "Nie znaleziono kontaktów z urodzinami. Dodaj urodziny bezpośrednio przy kontakcie albo zaimportuj je przez vCard lub synchronizację książki adresowej.",
         "importSubmit": "Dodaj {{count}}",
         "importSuccess": "Dodano urodziny: {{count}}.",
         "importNothingSelected": "Wybierz co najmniej jeden kontakt.",
@@ -2851,7 +2858,10 @@
                 "private": "Prywatne",
                 "family": "Rodzina"
             },
-            "sparse": "Za mało pomiarów, aby pokazać trend."
+            "sparse": "Za mało pomiarów, aby pokazać trend.",
+            "recentMeasurements": "Ostatnie pomiary",
+            "deleteMeasurement": "Usuń pomiar",
+            "measurementDeleted": "Pomiar usunięty"
         },
         "meds": {
             "title": "Leki",
@@ -2872,6 +2882,7 @@
             "doseError": "Nie udało się zapisać wpisu.",
             "nameRequired": "Nazwa jest wymagana.",
             "noMeds": "Brak leków.",
+            "logTitle": "Dziennik przyjmowania",
             "personsLabel": "Osoba",
             "take": "Przyjęto",
             "skip": "Pomiń",

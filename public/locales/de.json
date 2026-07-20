@@ -734,6 +734,13 @@
         "lastNamePlaceholder": "z. B. Müller",
         "categoryLabel": "Kategorie",
         "phoneLabel": "Telefon",
+        "mvAddPhone": "Telefonnummer hinzufügen",
+        "mvAddEmail": "E-Mail-Adresse hinzufügen",
+        "mvLabel": "Label",
+        "mvLabelPlaceholder": "Label (z. B. Arbeit)",
+        "mvRemove": "Eintrag entfernen",
+        "birthdayLabel": "Geburtstag",
+        "birthdayHint": "Erscheint über den Geburtstags-Import auch im Kalender.",
         "phonePlaceholder": "+49 …",
         "emailLabel": "E-Mail",
         "emailPlaceholder": "name@beispiel.de",
@@ -2024,7 +2031,7 @@
         "importAlreadyAdded": "Bereits übernommen",
         "importNoBirthdaySection": "Kontakte ohne Geburtstag",
         "importNoBirthdayHint": "Für diese Kontakte ist kein Geburtstag hinterlegt - bitte manuell ergänzen.",
-        "importEmpty": "Keine Kontakte mit Geburtstag gefunden. Synchronisiere zuerst ein CardDAV-Adressbuch.",
+        "importEmpty": "Keine Kontakte mit Geburtstag gefunden. Trage Geburtstage direkt am Kontakt ein oder hole sie per vCard-Import bzw. Adressbuch-Sync.",
         "importSubmit": "{{count}} übernehmen",
         "importSuccess": "{{count}} Geburtstage übernommen.",
         "importNothingSelected": "Bitte mindestens einen Kontakt auswählen.",
@@ -2851,7 +2858,10 @@
                 "private": "Privat",
                 "family": "Familie"
             },
-            "sparse": "Zu wenige Messwerte für einen Trend."
+            "sparse": "Zu wenige Messwerte für einen Trend.",
+            "recentMeasurements": "Letzte Messungen",
+            "deleteMeasurement": "Messung löschen",
+            "measurementDeleted": "Messung gelöscht"
         },
         "meds": {
             "title": "Medikamente",
@@ -2872,6 +2882,7 @@
             "doseError": "Eintrag konnte nicht gespeichert werden.",
             "nameRequired": "Name ist erforderlich.",
             "noMeds": "Noch keine Medikamente.",
+            "logTitle": "Einnahmeprotokoll",
             "personsLabel": "Person",
             "take": "Einnehmen",
             "skip": "Überspringen",

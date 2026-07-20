@@ -566,9 +566,51 @@ function onPanelToggle(e) {
 // Modal
 // --------------------------------------------------------
 
-function openContactModal({ mode, contact = null }) {
+async function openContactModal({ mode, contact = null }) {
   const isEdit = mode === 'edit';
+  // Telefon-/E-Mail-Mehrfachwerte und Geburtstag liefert nur der Einzelabruf;
+  // die Listen-API führt sie nicht. Ohne Nachladen wären CardDAV-Zweitnummern
+  // im Formular unsichtbar (Audit R2, A2-11).
+  if (isEdit) {
+    try { contact = (await api.get(`/contacts/${contact.id}`)).data ?? contact; }
+    catch { /* Offline/Fehler: Formular arbeitet mit den Listenfeldern weiter */ }
+  }
   const v      = (field) => esc(isEdit && contact[field] ? contact[field] : '');
+
+  // Mehrwert-Zeilen: bestehende Arrays; sonst speist das Legacy-Einzelfeld die
+  // erste Zeile. Mindestens eine (ggf. leere) Zeile pro Gruppe.
+  const mvRows = (arr, single) => {
+    const rows = Array.isArray(arr) && arr.length
+      ? arr.map((r) => ({ label: r.label === 'other' ? '' : (r.label || ''), value: r.value || '' }))
+      : (single ? [{ label: '', value: single }] : []);
+    return rows.length ? rows : [{ label: '', value: '' }];
+  };
+  const phoneRows = mvRows(isEdit ? contact.phones : null, isEdit ? contact.phone : '');
+  const emailRows = mvRows(isEdit ? contact.emails : null, isEdit ? contact.email : '');
+
+  const mvRow = (kind, row, isFirst) => `
+    <div class="contact-mv-row" data-mv-row>
+      <input type="${kind === 'phone' ? 'tel' : 'email'}" class="form-input" data-mv-value
+             ${isFirst ? `id="cm-${kind}"` : ''} value="${esc(row.value)}"
+             placeholder="${t(kind === 'phone' ? 'contacts.phonePlaceholder' : 'contacts.emailPlaceholder')}"
+             autocomplete="${kind === 'phone' ? 'tel' : 'email'}">
+      <input type="text" class="form-input contact-mv-row__label" data-mv-label maxlength="50"
+             value="${esc(row.label)}" placeholder="${t('contacts.mvLabelPlaceholder')}"
+             aria-label="${t('contacts.mvLabel')}">
+      <button type="button" class="row-action row-action--danger" data-mv-remove ${isFirst ? 'hidden' : ''}
+              aria-label="${t('contacts.mvRemove')}">
+        <i data-lucide="x" class="icon-sm" aria-hidden="true"></i>
+      </button>
+    </div>`;
+
+  const mvSection = (kind, rows, labelKey, addKey) => `
+    <div class="form-group" data-mv-group="${kind}">
+      <label class="form-label" for="cm-${kind}">${t(labelKey)}</label>
+      <div class="contact-mv-list" data-mv-list>${rows.map((r, i) => mvRow(kind, r, i === 0)).join('')}</div>
+      <button type="button" class="btn btn--ghost contact-mv-add" data-mv-add>
+        <i data-lucide="plus" class="icon-sm" aria-hidden="true"></i>${t(addKey)}
+      </button>
+    </div>`;
 
   const defaultCat = state.categories[0]?.key ?? FALLBACK_CATEGORY;
 
@@ -609,6 +651,11 @@ function openContactModal({ mode, contact = null }) {
       <input type="text" class="form-input" id="cm-address" placeholder="${t('contacts.addressPlaceholder')}" value="${v('address')}" autocomplete="street-address">
     </div>
     <div class="form-group">
+      <label class="form-label" for="cm-birthday">${t('contacts.birthdayLabel')}</label>
+      <yuvomi-datepicker id="cm-birthday" type="date" value="${v('birthday')}"></yuvomi-datepicker>
+      <p class="form-hint">${t('contacts.birthdayHint')}</p>
+    </div>
+    <div class="form-group">
       <label class="form-label" for="cm-notes">${t('contacts.notesLabel')}</label>
       <textarea class="form-input" id="cm-notes" rows="2" placeholder="${t('contacts.notesPlaceholder')}">${v('notes')}</textarea>
     </div>`;
@@ -634,14 +681,8 @@ function openContactModal({ mode, contact = null }) {
         <select class="form-input" id="cm-category">${catOpts}</select>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="cm-phone">${t('contacts.phoneLabel')}</label>
-      <input type="tel" class="form-input" id="cm-phone" placeholder="${t('contacts.phonePlaceholder')}" value="${v('phone')}" autocomplete="tel">
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="cm-email">${t('contacts.emailLabel')}</label>
-      <input type="email" class="form-input" id="cm-email" placeholder="${t('contacts.emailPlaceholder')}" value="${v('email')}" autocomplete="email">
-    </div>
+    ${mvSection('phone', phoneRows, 'contacts.phoneLabel', 'contacts.mvAddPhone')}
+    ${mvSection('email', emailRows, 'contacts.emailLabel', 'contacts.mvAddEmail')}
 
     ${advancedSection(advancedFieldsHtml, { open: advancedOpen })}
 
@@ -661,6 +702,21 @@ function openContactModal({ mode, contact = null }) {
     size: 'md',
     onSave(panel) {
       panel.querySelector('#cm-cancel').addEventListener('click', closeModal);
+
+      // Mehrwert-Gruppen: Zeile ergänzen/entfernen (Telefon + E-Mail).
+      panel.querySelectorAll('[data-mv-group]').forEach((group) => {
+        const kind = group.dataset.mvGroup;
+        const list = group.querySelector('[data-mv-list]');
+        group.querySelector('[data-mv-add]')?.addEventListener('click', () => {
+          list.insertAdjacentHTML('beforeend', mvRow(kind, { label: '', value: '' }, false));
+          if (window.lucide) lucide.createIcons({ el: list });
+          list.lastElementChild?.querySelector('[data-mv-value]')?.focus();
+        });
+        group.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-mv-remove]');
+          if (btn) btn.closest('[data-mv-row]')?.remove();
+        });
+      });
 
       // Kategorie-Vorschau live aktualisieren (Icon links neben dem Select).
       const catSel  = panel.querySelector('#cm-category');
@@ -697,9 +753,20 @@ function openContactModal({ mode, contact = null }) {
           ? (composeDisplayName({ firstName, lastName }) || '')
           : contact.name;
         const category = panel.querySelector('#cm-category').value;
-        const phone    = panel.querySelector('#cm-phone').value.trim() || null;
-        const email    = panel.querySelector('#cm-email').value.trim() || null;
+        // Mehrwert-Gruppen einsammeln: leere Zeilen fallen weg, die erste Zeile
+        // ist primär und spiegelt sich in die Legacy-Einzelspalte (phone/email).
+        const collectMv = (kind) => [...panel.querySelectorAll(`[data-mv-group="${kind}"] [data-mv-row]`)]
+          .map((row) => ({
+            label: row.querySelector('[data-mv-label]').value.trim(),
+            value: row.querySelector('[data-mv-value]').value.trim(),
+          }))
+          .filter((r) => r.value);
+        const phoneEntries = collectMv('phone');
+        const emailEntries = collectMv('email');
+        const phone    = phoneEntries[0]?.value || null;
+        const email    = emailEntries[0]?.value || null;
         const address  = panel.querySelector('#cm-address').value.trim() || null;
+        const birthday = panel.querySelector('#cm-birthday')?.value || null;
         const notes    = panel.querySelector('#cm-notes').value.trim() || null;
 
         if (!name) {
@@ -713,7 +780,11 @@ function openContactModal({ mode, contact = null }) {
 
         try {
           // firstName/lastName sind führend; der Server leitet `name` daraus ab (#535).
-          const body = { name, category, phone, email, address, notes };
+          const body = { name, category, phone, email, address, notes, birthday };
+          // Replace-Set: das Formular hält alle Werte, Label-Pflicht des Servers
+          // deckt 'other' als neutrales Default ab.
+          body.phones = phoneEntries.map((r, i) => ({ label: r.label || 'other', value: r.value, isPrimary: i === 0 }));
+          body.emails = emailEntries.map((r, i) => ({ label: r.label || 'other', value: r.value, isPrimary: i === 0 }));
           if (structured) { body.firstName = firstName; body.lastName = lastName; }
           // Eine unverändert gebliebene Fremd-Kategorie würde der Server (zu Recht)
           // mit 400 ablehnen; sie wird deshalb weggelassen und bleibt serverseitig

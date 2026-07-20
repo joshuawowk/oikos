@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "ad es. Rossi",
         "categoryLabel": "Categoria",
         "phoneLabel": "Telefono",
+        "mvAddPhone": "Aggiungi numero di telefono",
+        "mvAddEmail": "Aggiungi indirizzo email",
+        "mvLabel": "Etichetta",
+        "mvLabelPlaceholder": "Etichetta (es. lavoro)",
+        "mvRemove": "Rimuovi voce",
+        "birthdayLabel": "Compleanno",
+        "birthdayHint": "Compare anche nel calendario tramite l’importazione dei compleanni.",
         "phonePlaceholder": "+39 …",
         "emailLabel": "Email",
         "emailPlaceholder": "nome@example.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Già aggiunto",
         "importNoBirthdaySection": "Contatti senza compleanno",
         "importNoBirthdayHint": "Per questi contatti non è salvata una data di nascita - aggiungila manualmente.",
-        "importEmpty": "Nessun contatto con una data di nascita trovato. Sincronizza prima una rubrica CardDAV.",
+        "importEmpty": "Nessun contatto con compleanno trovato. Aggiungi i compleanni direttamente al contatto oppure importali via vCard o sincronizzazione della rubrica.",
         "importSubmit": "Aggiungi {{count}}",
         "importSuccess": "{{count}} compleanni aggiunti.",
         "importNothingSelected": "Seleziona almeno un contatto.",
@@ -2851,7 +2858,10 @@
                 "private": "Privato",
                 "family": "Famiglia"
             },
-            "sparse": "Troppe poche misurazioni per mostrare un andamento."
+            "sparse": "Troppe poche misurazioni per mostrare un andamento.",
+            "recentMeasurements": "Ultime misurazioni",
+            "deleteMeasurement": "Elimina misurazione",
+            "measurementDeleted": "Misurazione eliminata"
         },
         "meds": {
             "title": "Farmaci",
@@ -2872,6 +2882,7 @@
             "doseError": "Impossibile salvare la voce.",
             "nameRequired": "Il nome è obbligatorio.",
             "noMeds": "Ancora nessun farmaco.",
+            "logTitle": "Registro assunzioni",
             "personsLabel": "Persona",
             "take": "Assunto",
             "skip": "Salta",

@@ -252,6 +252,26 @@ try {
     assert(/geburtstag|birthday|YYYY-MM-DD/i.test(body.error), 'Fehlermeldung nennt Datum/Format');
   });
 
+  // PUT: birthday setzen/ändern (Audit R2: Feld ist jetzt im Kontakt-Formular),
+  // Weglassen lässt den Wert unangetastet, leerer Wert löscht ihn.
+  await asyncTest('PUT /:id setzt, erhält und löscht birthday', async () => {
+    const created = await jsend(`${base}`, 'POST', { name: 'BDay Edit', category: 'misc' });
+    const bId = created.body.data.id;
+
+    const set = await jsend(`${base}/${bId}`, 'PUT', { birthday: '1985-03-02' });
+    assert(set.status === 200, `Status ${set.status}`);
+    assert(set.body.data.birthday === '1985-03-02', `birthday gesetzt, war ${set.body.data.birthday}`);
+
+    const untouched = await jsend(`${base}/${bId}`, 'PUT', { notes: 'nur Notiz' });
+    assert(untouched.body.data.birthday === '1985-03-02', 'birthday bleibt ohne Feld unangetastet');
+
+    const cleared = await jsend(`${base}/${bId}`, 'PUT', { birthday: '' });
+    assert(cleared.body.data.birthday === null, `leerer Wert löscht birthday, war ${cleared.body.data.birthday}`);
+
+    const bad = await jsend(`${base}/${bId}`, 'PUT', { birthday: '02.03.1985' });
+    assert(bad.status === 400, `ungültiges Format → 400, war ${bad.status}`);
+  });
+
   // ------------------------------------------------------------------
   // DELETE /:id - Familienmitglied-Schutz (403), Erfolg (204), 404
   // ------------------------------------------------------------------

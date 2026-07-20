@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "pl. Nagy",
         "categoryLabel": "Kategória",
         "phoneLabel": "Telefon",
+        "mvAddPhone": "Telefonszám hozzáadása",
+        "mvAddEmail": "E-mail-cím hozzáadása",
+        "mvLabel": "Címke",
+        "mvLabelPlaceholder": "Címke (pl. munka)",
+        "mvRemove": "Bejegyzés eltávolítása",
+        "birthdayLabel": "Születésnap",
+        "birthdayHint": "A születésnap-importtal a naptárban is megjelenik.",
         "phonePlaceholder": "+36 …",
         "emailLabel": "Email",
         "emailPlaceholder": "nev@pelda.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Már hozzáadva",
         "importNoBirthdaySection": "Névjegyek születésnap nélkül",
         "importNoBirthdayHint": "Ezeknél a névjegyeknél nincs mentve születésnap - add meg kézzel.",
-        "importEmpty": "Nem található születésnappal rendelkező névjegy. Előbb szinkronizálj egy CardDAV-címjegyzéket.",
+        "importEmpty": "Nem található születésnappal rendelkező névjegy. Add meg a születésnapokat közvetlenül a névjegynél, vagy hozd be őket vCard-importtal vagy címjegyzék-szinkronizálással.",
         "importSubmit": "{{count}} hozzáadása",
         "importSuccess": "{{count}} születésnap hozzáadva.",
         "importNothingSelected": "Válassz ki legalább egy névjegyet.",
@@ -2851,7 +2858,10 @@
                 "private": "Privát",
                 "family": "Család"
             },
-            "sparse": "Túl kevés mérés a trend megjelenítéséhez."
+            "sparse": "Túl kevés mérés a trend megjelenítéséhez.",
+            "recentMeasurements": "Legutóbbi mérések",
+            "deleteMeasurement": "Mérés törlése",
+            "measurementDeleted": "Mérés törölve"
         },
         "meds": {
             "title": "Gyógyszerek",
@@ -2872,6 +2882,7 @@
             "doseError": "A bejegyzés nem menthető.",
             "nameRequired": "A név kötelező.",
             "noMeds": "Még nincsenek gyógyszerek.",
+            "logTitle": "Bevételi napló",
             "personsLabel": "Személy",
             "take": "Bevéve",
             "skip": "Kihagyás",

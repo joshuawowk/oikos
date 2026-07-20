@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "ör. Yılmaz",
         "categoryLabel": "Kategori",
         "phoneLabel": "Phone",
+        "mvAddPhone": "Telefon numarası ekle",
+        "mvAddEmail": "E-posta adresi ekle",
+        "mvLabel": "Etiket",
+        "mvLabelPlaceholder": "Etiket (örn. iş)",
+        "mvRemove": "Girdiyi kaldır",
+        "birthdayLabel": "Doğum günü",
+        "birthdayHint": "Doğum günü içe aktarımıyla takvimde de görünür.",
         "phonePlaceholder": "+90 …",
         "emailLabel": "E-posta",
         "emailPlaceholder": "ad@ornek.com.tr",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Zaten eklendi",
         "importNoBirthdaySection": "Doğum günü olmayan kişiler",
         "importNoBirthdayHint": "Bu kişiler için doğum günü kayıtlı değil - lütfen elle ekleyin.",
-        "importEmpty": "Doğum günü olan kişi bulunamadı. Önce bir CardDAV adres defterini eşitleyin.",
+        "importEmpty": "Doğum günü olan kişi bulunamadı. Doğum günlerini doğrudan kişiye ekle veya vCard içe aktarma ya da adres defteri eşitlemesiyle getir.",
         "importSubmit": "{{count}} ekle",
         "importSuccess": "{{count}} doğum günü eklendi.",
         "importNothingSelected": "Lütfen en az bir kişi seçin.",
@@ -2851,7 +2858,10 @@
                 "private": "Özel",
                 "family": "Aile"
             },
-            "sparse": "Bir eğilim göstermek için ölçüm sayısı çok az."
+            "sparse": "Bir eğilim göstermek için ölçüm sayısı çok az.",
+            "recentMeasurements": "Son ölçümler",
+            "deleteMeasurement": "Ölçümü sil",
+            "measurementDeleted": "Ölçüm silindi"
         },
         "meds": {
             "title": "İlaçlar",
@@ -2872,6 +2882,7 @@
             "doseError": "Kayıt kaydedilemedi.",
             "nameRequired": "Ad zorunludur.",
             "noMeds": "Henüz ilaç yok.",
+            "logTitle": "Alım kaydı",
             "personsLabel": "Kişi",
             "take": "Alındı",
             "skip": "Atla",

@@ -734,6 +734,13 @@
         "lastNamePlaceholder": "مثلاً محمدی",
         "categoryLabel": "دسته",
         "phoneLabel": "تلفن",
+        "mvAddPhone": "افزودن شماره تلفن",
+        "mvAddEmail": "افزودن آدرس ایمیل",
+        "mvLabel": "برچسب",
+        "mvLabelPlaceholder": "برچسب (مثلاً محل کار)",
+        "mvRemove": "حذف ورودی",
+        "birthdayLabel": "تولد",
+        "birthdayHint": "از طریق واردکردن تولدها در تقویم هم نمایش داده می‌شود.",
         "phonePlaceholder": "+98 …",
         "emailLabel": "ایمیل",
         "emailPlaceholder": "name@example.com",
@@ -2024,7 +2031,7 @@
         "importAlreadyAdded": "قبلاً افزوده شد",
         "importNoBirthdaySection": "مخاطبین بدون تاریخ تولد",
         "importNoBirthdayHint": "برای این مخاطبین تاریخ تولدی ذخیره نشده است - لطفاً به‌صورت دستی اضافه کنید.",
-        "importEmpty": "هیچ مخاطبی با تاریخ تولد یافت نشد. ابتدا یک دفترچه آدرس CardDAV را همگام‌سازی کنید.",
+        "importEmpty": "مخاطبی با تاریخ تولد پیدا نشد. تولدها را مستقیماً در مخاطب وارد کن یا از طریق vCard یا همگام‌سازی دفترچه آدرس بیاور.",
         "importSubmit": "افزودن {{count}}",
         "importSuccess": "{{count}} تولد افزوده شد.",
         "importNothingSelected": "لطفاً حداقل یک مخاطب انتخاب کنید.",
@@ -2851,7 +2858,10 @@
                 "private": "خصوصی",
                 "family": "خانواده"
             },
-            "sparse": "اندازه‌گیری‌ها برای نمایش روند بسیار کم است."
+            "sparse": "اندازه‌گیری‌ها برای نمایش روند بسیار کم است.",
+            "recentMeasurements": "آخرین اندازه‌گیری‌ها",
+            "deleteMeasurement": "حذف اندازه‌گیری",
+            "measurementDeleted": "اندازه‌گیری حذف شد"
         },
         "meds": {
             "title": "داروها",
@@ -2872,6 +2882,7 @@
             "doseError": "مدخل ذخیره نشد.",
             "nameRequired": "نام الزامی است.",
             "noMeds": "هنوز دارویی نیست.",
+            "logTitle": "گزارش مصرف",
             "personsLabel": "شخص",
             "take": "مصرف‌شده",
             "skip": "رد کردن",

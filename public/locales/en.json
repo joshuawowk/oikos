@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "e.g. Miller",
         "categoryLabel": "Category",
         "phoneLabel": "Phone",
+        "mvAddPhone": "Add phone number",
+        "mvAddEmail": "Add email address",
+        "mvLabel": "Label",
+        "mvLabelPlaceholder": "Label (e.g. work)",
+        "mvRemove": "Remove entry",
+        "birthdayLabel": "Birthday",
+        "birthdayHint": "Also appears in the calendar via the birthday import.",
         "phonePlaceholder": "+1 …",
         "emailLabel": "Email",
         "emailPlaceholder": "name@example.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Already added",
         "importNoBirthdaySection": "Contacts without a birthday",
         "importNoBirthdayHint": "No birthday is stored for these contacts - please add it manually.",
-        "importEmpty": "No contacts with a birthday found. Sync a CardDAV address book first.",
+        "importEmpty": "No contacts with a birthday found. Add birthdays directly on a contact, or bring them in via vCard import or address book sync.",
         "importSubmit": "Add {{count}}",
         "importSuccess": "{{count}} birthdays added.",
         "importNothingSelected": "Please select at least one contact.",
@@ -2851,7 +2858,10 @@
                 "private": "Private",
                 "family": "Family"
             },
-            "sparse": "Too few readings to show a trend."
+            "sparse": "Too few readings to show a trend.",
+            "recentMeasurements": "Recent measurements",
+            "deleteMeasurement": "Delete measurement",
+            "measurementDeleted": "Measurement deleted"
         },
         "meds": {
             "title": "Medications",
@@ -2872,6 +2882,7 @@
             "doseError": "Entry could not be saved.",
             "nameRequired": "Name is required.",
             "noMeds": "No medications yet.",
+            "logTitle": "Intake log",
             "personsLabel": "Person",
             "take": "Taken",
             "skip": "Skip",

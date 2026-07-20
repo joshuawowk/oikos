@@ -734,6 +734,13 @@
         "lastNamePlaceholder": "mis. Wijaya",
         "categoryLabel": "Kategori",
         "phoneLabel": "Telepon",
+        "mvAddPhone": "Tambah nomor telepon",
+        "mvAddEmail": "Tambah alamat email",
+        "mvLabel": "Label",
+        "mvLabelPlaceholder": "Label (mis. kantor)",
+        "mvRemove": "Hapus entri",
+        "birthdayLabel": "Ulang tahun",
+        "birthdayHint": "Juga muncul di kalender lewat impor ulang tahun.",
         "phonePlaceholder": "+62 …",
         "emailLabel": "Email",
         "emailPlaceholder": "nama@contoh.com",
@@ -2024,7 +2031,7 @@
         "importAlreadyAdded": "Sudah ditambahkan",
         "importNoBirthdaySection": "Kontak tanpa ulang tahun",
         "importNoBirthdayHint": "Kontak ini tidak memiliki tanggal ulang tahun tersimpan - tambahkan secara manual.",
-        "importEmpty": "Tidak ada kontak dengan ulang tahun ditemukan. Sinkronkan buku alamat CardDAV terlebih dahulu.",
+        "importEmpty": "Tidak ada kontak dengan ulang tahun. Tambahkan ulang tahun langsung di kontak, atau ambil lewat impor vCard atau sinkronisasi buku alamat.",
         "importSubmit": "Tambahkan {{count}}",
         "importSuccess": "{{count}} ulang tahun ditambahkan.",
         "importNothingSelected": "Pilih setidaknya satu kontak.",
@@ -2851,7 +2858,10 @@
                 "private": "Pribadi",
                 "family": "Keluarga"
             },
-            "sparse": "Terlalu sedikit pengukuran untuk menampilkan tren."
+            "sparse": "Terlalu sedikit pengukuran untuk menampilkan tren.",
+            "recentMeasurements": "Pengukuran terakhir",
+            "deleteMeasurement": "Hapus pengukuran",
+            "measurementDeleted": "Pengukuran dihapus"
         },
         "meds": {
             "title": "Obat",
@@ -2872,6 +2882,7 @@
             "doseError": "Entri tidak dapat disimpan.",
             "nameRequired": "Nama wajib diisi.",
             "noMeds": "Belum ada obat.",
+            "logTitle": "Log konsumsi",
             "personsLabel": "Orang",
             "take": "Diminum",
             "skip": "Lewati",

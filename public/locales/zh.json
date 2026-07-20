@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "例如：王",
         "categoryLabel": "分类",
         "phoneLabel": "电话",
+        "mvAddPhone": "添加电话号码",
+        "mvAddEmail": "添加电子邮箱",
+        "mvLabel": "标签",
+        "mvLabelPlaceholder": "标签（如：工作）",
+        "mvRemove": "移除条目",
+        "birthdayLabel": "生日",
+        "birthdayHint": "通过生日导入也会显示在日历中。",
         "phonePlaceholder": "+86 …",
         "emailLabel": "邮箱",
         "emailPlaceholder": "name@example.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "已添加",
         "importNoBirthdaySection": "没有生日的联系人",
         "importNoBirthdayHint": "这些联系人未保存生日 - 请手动添加。",
-        "importEmpty": "未找到有生日的联系人。请先同步 CardDAV 通讯录。",
+        "importEmpty": "未找到有生日的联系人。请直接在联系人中填写生日，或通过 vCard 导入、通讯录同步获取。",
         "importSubmit": "添加 {{count}}",
         "importSuccess": "已添加 {{count}} 个生日。",
         "importNothingSelected": "请至少选择一个联系人。",
@@ -2851,7 +2858,10 @@
                 "private": "私密",
                 "family": "家庭"
             },
-            "sparse": "测量数据太少，无法显示趋势。"
+            "sparse": "测量数据太少，无法显示趋势。",
+            "recentMeasurements": "最近的测量",
+            "deleteMeasurement": "删除测量",
+            "measurementDeleted": "测量已删除"
         },
         "meds": {
             "title": "药物",
@@ -2872,6 +2882,7 @@
             "doseError": "无法保存记录。",
             "nameRequired": "名称为必填项。",
             "noMeds": "暂无药物。",
+            "logTitle": "服药记录",
             "personsLabel": "成员",
             "take": "已服用",
             "skip": "跳过",

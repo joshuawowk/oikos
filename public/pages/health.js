@@ -14,7 +14,7 @@
 import { api } from '/api.js';
 import { t, formatDate, formatTime, getLocale, getNumberFormat } from '/i18n.js';
 import { esc } from '/utils/html.js';
-import { wireScrollFade } from '/utils/ux.js';
+import { wireScrollFade, scheduleUndoableDelete } from '/utils/ux.js';
 import { toLocalDateKey, parseLocalDateKey, addLocalDays } from '/utils/date.js';
 import { openModal, closeModal, confirmModal } from '/components/modal.js';
 import { createPageFab, setPageFabAction } from '/utils/fab.js';
@@ -650,7 +650,8 @@ function renderDetail() {
         <div class="empty-state health-chart-empty">
           <div class="empty-state__title">${esc(t('health.vitals.noData'))}</div>
         </div>`}
-    </div>`);
+    </div>
+    ${recentMeasurementsMarkup(metric)}`);
   if (window.lucide) window.lucide.createIcons({ el: host });
 
   host.querySelectorAll('[data-step]').forEach((btn) =>
@@ -658,6 +659,52 @@ function renderDetail() {
       stepAnchor(Number(btn.dataset.step));
       renderVitalsShell();
     }));
+
+  // Korrekturpfad (Audit R2, A2-08): Einzelmessungen sind lösch-, damit
+  // korrigierbar (löschen + neu erfassen). Undo-Toast statt Confirm (Hausmuster).
+  host.querySelectorAll('[data-delete-vital]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.deleteVital);
+      const idx = vitals.rows.findIndex((r) => r.id === id);
+      if (idx === -1) return;
+      const [row] = vitals.rows.splice(idx, 1);
+      renderVitalsShell();
+      scheduleUndoableDelete({
+        commit: ({ keepalive } = {}) => api.delete(`/health/vitals/${id}`, { keepalive }),
+        restore: () => { vitals.rows.splice(idx, 0, row); renderVitalsShell(); },
+        message: t('health.vitals.measurementDeleted'),
+      });
+    }));
+}
+
+// Kompakte Historie der gewählten Metrik: jüngste Messungen mit Löschweg
+// (nur eigene Ansicht) - macht Tippfehler ohne Umweg korrigierbar.
+function recentMeasurementsMarkup(metric) {
+  const rows = vitals.rows
+    .filter((r) => r.type === metric.type)
+    .sort((a, b) => String(b.measured_at).localeCompare(String(a.measured_at)))
+    .slice(0, 8);
+  if (!rows.length) return '';
+  const own = isOwnView();
+  const valueText = (r) => metric.type === 'bp'
+    ? `${fmtNum(r.value_num)}/${fmtNum(r.value_num2)}`
+    : fmtNum(r.value_num);
+  return `
+    <div class="health-recent">
+      <div class="health-recent__title">${esc(t('health.vitals.recentMeasurements'))}</div>
+      <ul class="health-recent__list">
+        ${rows.map((r) => `
+          <li class="health-recent__row">
+            <span class="health-recent__date">${esc(formatDate(String(r.measured_at).slice(0, 10)))}</span>
+            <span class="health-recent__value">${esc(valueText(r))}${r.unit ? ` <small>${esc(r.unit)}</small>` : ''}</span>
+            ${own ? `
+            <button type="button" class="row-action row-action--danger" data-delete-vital="${r.id}"
+                    aria-label="${esc(t('health.vitals.deleteMeasurement'))}">
+              <i data-lucide="trash-2" aria-hidden="true"></i>
+            </button>` : ''}
+          </li>`).join('')}
+      </ul>
+    </div>`;
 }
 
 function stepAnchor(dir) {
@@ -1086,7 +1133,7 @@ function renderMedsShell() {
       <h3 class="health-meds__section-title u-toolbar-title">${esc(t('health.meds.dueToday.title'))}</h3>
     </div>
     <div class="health-meds__due">${dueTodayMarkup()}</div>
-    <div class="health-meds__adherence-wrap">${adherenceMarkup()}</div>
+    <div class="health-meds__adherence-wrap">${adherenceMarkup()}${medLogHistoryMarkup()}</div>
     <h3 class="health-meds__section-title u-toolbar-title">${esc(t('health.meds.title'))}</h3>
     <div class="health-meds__list" id="health-meds-list">${medListMarkup()}</div>
   `);
@@ -1168,6 +1215,38 @@ function adherenceMarkup() {
       <div class="health-adherence__bar"><span style="width:${pct}%"></span></div>
       <div class="health-adherence__summary">${esc(t('health.meds.adherence.summary', { taken: a.taken, planned: a.planned }))}</div>
     </div>`;
+}
+
+// Einnahmeprotokoll als aufklappbare Ansicht unter der Adhärenz (Audit R2,
+// A2-22): die aggregierte Zahl bekommt ihre nachlesbaren Belege - bisher gab
+// es das Protokoll nur als CSV-Export.
+function medLogHistoryMarkup() {
+  const entries = [];
+  for (const m of meds.list) {
+    for (const l of (meds.logsByMed[m.id] || [])) {
+      entries.push({ med: m.name, at: l.taken_at || l.scheduled_at || l.created_at || '', status: l.status });
+    }
+  }
+  if (!entries.length) return '';
+  entries.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  const rows = entries.slice(0, 10).map((e) => {
+    const skipped = e.status === 'skipped';
+    const d = String(e.at);
+    const timeLabel = d.length >= 16
+      ? `${formatDate(d.slice(0, 10))} · ${formatTime(new Date(d))}`
+      : formatDate(d.slice(0, 10));
+    return `<li class="health-medlog__row${skipped ? ' is-skipped' : ''}">
+        <i data-lucide="${skipped ? 'circle-slash' : 'check'}" aria-hidden="true"></i>
+        <span class="health-medlog__med">${esc(e.med)}</span>
+        <span class="health-medlog__time">${esc(timeLabel)}</span>
+        <span class="health-medlog__status">${esc(skipped ? t('health.meds.status.skipped') : t('health.meds.status.taken'))}</span>
+      </li>`;
+  }).join('');
+  return `
+    <details class="health-medlog">
+      <summary>${esc(t('health.meds.logTitle'))}</summary>
+      <ul class="health-medlog__list">${rows}</ul>
+    </details>`;
 }
 
 function medListMarkup() {

@@ -734,6 +734,13 @@
         "lastNamePlaceholder": "예: 김",
         "categoryLabel": "카테고리",
         "phoneLabel": "전화",
+        "mvAddPhone": "전화번호 추가",
+        "mvAddEmail": "이메일 주소 추가",
+        "mvLabel": "라벨",
+        "mvLabelPlaceholder": "라벨 (예: 직장)",
+        "mvRemove": "항목 제거",
+        "birthdayLabel": "생일",
+        "birthdayHint": "생일 가져오기를 통해 캘린더에도 표시됩니다.",
         "phonePlaceholder": "+82 …",
         "emailLabel": "이메일",
         "emailPlaceholder": "name@example.com",
@@ -2024,7 +2031,7 @@
         "importAlreadyAdded": "이미 추가됨",
         "importNoBirthdaySection": "생일이 없는 연락처",
         "importNoBirthdayHint": "이 연락처에는 저장된 생일이 없습니다 - 직접 추가하세요.",
-        "importEmpty": "생일이 있는 연락처를 찾을 수 없습니다. 먼저 CardDAV 주소록을 동기화하세요.",
+        "importEmpty": "생일이 있는 연락처가 없습니다. 연락처에 생일을 직접 입력하거나 vCard 가져오기 또는 주소록 동기화로 가져오세요.",
         "importSubmit": "{{count}}개 추가",
         "importSuccess": "생일 {{count}}개를 추가했습니다.",
         "importNothingSelected": "연락처를 하나 이상 선택하세요.",
@@ -2851,7 +2858,10 @@
                 "private": "비공개",
                 "family": "가족"
             },
-            "sparse": "추세를 표시하기에 측정값이 너무 적습니다."
+            "sparse": "추세를 표시하기에 측정값이 너무 적습니다.",
+            "recentMeasurements": "최근 측정",
+            "deleteMeasurement": "측정 삭제",
+            "measurementDeleted": "측정이 삭제되었습니다"
         },
         "meds": {
             "title": "약",
@@ -2872,6 +2882,7 @@
             "doseError": "기록을 저장하지 못했습니다.",
             "nameRequired": "이름은 필수입니다.",
             "noMeds": "아직 약 없음.",
+            "logTitle": "복용 기록",
             "personsLabel": "사람",
             "take": "복용함",
             "skip": "건너뛰기",

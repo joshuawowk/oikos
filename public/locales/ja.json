@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "例: 山田",
         "categoryLabel": "カテゴリー",
         "phoneLabel": "電話番号",
+        "mvAddPhone": "電話番号を追加",
+        "mvAddEmail": "メールアドレスを追加",
+        "mvLabel": "ラベル",
+        "mvLabelPlaceholder": "ラベル（例：勤務先）",
+        "mvRemove": "項目を削除",
+        "birthdayLabel": "誕生日",
+        "birthdayHint": "誕生日のインポートでカレンダーにも表示されます。",
         "phonePlaceholder": "+81 …",
         "emailLabel": "メール",
         "emailPlaceholder": "name@example.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "追加済み",
         "importNoBirthdaySection": "誕生日のない連絡先",
         "importNoBirthdayHint": "これらの連絡先には誕生日が登録されていません - 手動で追加してください。",
-        "importEmpty": "誕生日のある連絡先が見つかりません。先に CardDAV アドレス帳を同期してください。",
+        "importEmpty": "誕生日のある連絡先が見つかりません。連絡先に直接誕生日を入力するか、vCardインポートやアドレス帳の同期で取り込んでください。",
         "importSubmit": "{{count}} 件を追加",
         "importSuccess": "{{count}} 件の誕生日を追加しました。",
         "importNothingSelected": "少なくとも 1 件の連絡先を選択してください。",
@@ -2851,7 +2858,10 @@
                 "private": "非公開",
                 "family": "家族"
             },
-            "sparse": "傾向を表示するには測定値が少なすぎます。"
+            "sparse": "傾向を表示するには測定値が少なすぎます。",
+            "recentMeasurements": "最近の測定",
+            "deleteMeasurement": "測定を削除",
+            "measurementDeleted": "測定を削除しました"
         },
         "meds": {
             "title": "薬",
@@ -2872,6 +2882,7 @@
             "doseError": "記録を保存できませんでした。",
             "nameRequired": "名前は必須です。",
             "noMeds": "薬はまだありません。",
+            "logTitle": "服用記録",
             "personsLabel": "人",
             "take": "服用済み",
             "skip": "スキップ",

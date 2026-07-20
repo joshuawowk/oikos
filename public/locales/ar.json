@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "مثال: ميلر",
         "categoryLabel": "الفئة",
         "phoneLabel": "الهاتف",
+        "mvAddPhone": "إضافة رقم هاتف",
+        "mvAddEmail": "إضافة بريد إلكتروني",
+        "mvLabel": "تسمية",
+        "mvLabelPlaceholder": "تسمية (مثل العمل)",
+        "mvRemove": "إزالة الإدخال",
+        "birthdayLabel": "عيد الميلاد",
+        "birthdayHint": "يظهر أيضًا في التقويم عبر استيراد أعياد الميلاد.",
         "phonePlaceholder": "+966 …",
         "emailLabel": "البريد الإلكتروني",
         "emailPlaceholder": "name@example.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "تمت الإضافة",
         "importNoBirthdaySection": "جهات اتصال بدون تاريخ ميلاد",
         "importNoBirthdayHint": "لا يوجد تاريخ ميلاد محفوظ لهذه الجهات - يرجى إضافته يدويًا.",
-        "importEmpty": "لم يتم العثور على جهات اتصال بتاريخ ميلاد. زامن دفتر عناوين CardDAV أولاً.",
+        "importEmpty": "لم يتم العثور على جهات اتصال لها عيد ميلاد. أضف أعياد الميلاد مباشرة في جهة الاتصال أو استوردها عبر vCard أو مزامنة دفتر العناوين.",
         "importSubmit": "إضافة {{count}}",
         "importSuccess": "تمت إضافة {{count}} عيد ميلاد.",
         "importNothingSelected": "يرجى اختيار جهة اتصال واحدة على الأقل.",
@@ -2851,7 +2858,10 @@
                 "private": "خاص",
                 "family": "العائلة"
             },
-            "sparse": "قياسات قليلة جدًا لعرض اتجاه."
+            "sparse": "قياسات قليلة جدًا لعرض اتجاه.",
+            "recentMeasurements": "آخر القياسات",
+            "deleteMeasurement": "حذف القياس",
+            "measurementDeleted": "تم حذف القياس"
         },
         "meds": {
             "title": "الأدوية",
@@ -2872,6 +2882,7 @@
             "doseError": "تعذّر حفظ الإدخال.",
             "nameRequired": "الاسم مطلوب.",
             "noMeds": "لا توجد أدوية بعد.",
+            "logTitle": "سجل التناول",
             "personsLabel": "الشخص",
             "take": "تم التناول",
             "skip": "تخطّي",

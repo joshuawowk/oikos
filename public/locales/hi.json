@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "उदा. शर्मा",
         "categoryLabel": "श्रेणी",
         "phoneLabel": "फ़ोन",
+        "mvAddPhone": "फ़ोन नंबर जोड़ें",
+        "mvAddEmail": "ईमेल पता जोड़ें",
+        "mvLabel": "लेबल",
+        "mvLabelPlaceholder": "लेबल (जैसे कार्यालय)",
+        "mvRemove": "प्रविष्टि हटाएँ",
+        "birthdayLabel": "जन्मदिन",
+        "birthdayHint": "जन्मदिन आयात के ज़रिए कैलेंडर में भी दिखता है।",
         "phonePlaceholder": "+91 …",
         "emailLabel": "ईमेल",
         "emailPlaceholder": "name@example.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "पहले से जोड़ा गया",
         "importNoBirthdaySection": "बिना जन्मदिन वाले संपर्क",
         "importNoBirthdayHint": "इन संपर्कों के लिए कोई जन्मतिथि सहेजी नहीं गई है - कृपया मैन्युअल रूप से जोड़ें।",
-        "importEmpty": "जन्मदिन वाला कोई संपर्क नहीं मिला। पहले एक CardDAV पता पुस्तिका सिंक करें।",
+        "importEmpty": "जन्मदिन वाला कोई संपर्क नहीं मिला। जन्मदिन सीधे संपर्क में जोड़ें या vCard आयात अथवा पता-पुस्तिका सिंक से लाएँ।",
         "importSubmit": "{{count}} जोड़ें",
         "importSuccess": "{{count}} जन्मदिन जोड़े गए।",
         "importNothingSelected": "कृपया कम से कम एक संपर्क चुनें।",
@@ -2851,7 +2858,10 @@
                 "private": "निजी",
                 "family": "परिवार"
             },
-            "sparse": "रुझान दिखाने के लिए बहुत कम माप।"
+            "sparse": "रुझान दिखाने के लिए बहुत कम माप।",
+            "recentMeasurements": "हाल की मापें",
+            "deleteMeasurement": "माप हटाएँ",
+            "measurementDeleted": "माप हटाई गई"
         },
         "meds": {
             "title": "दवाइयाँ",
@@ -2872,6 +2882,7 @@
             "doseError": "प्रविष्टि सहेजी नहीं जा सकी।",
             "nameRequired": "नाम आवश्यक है।",
             "noMeds": "अभी तक कोई दवा नहीं।",
+            "logTitle": "सेवन लॉग",
             "personsLabel": "व्यक्ति",
             "take": "ली गई",
             "skip": "छोड़ें",

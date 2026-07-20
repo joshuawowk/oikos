@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "ví dụ: Nguyễn",
         "categoryLabel": "Danh mục",
         "phoneLabel": "Điện thoại",
+        "mvAddPhone": "Thêm số điện thoại",
+        "mvAddEmail": "Thêm địa chỉ email",
+        "mvLabel": "Nhãn",
+        "mvLabelPlaceholder": "Nhãn (vd: cơ quan)",
+        "mvRemove": "Xóa mục",
+        "birthdayLabel": "Sinh nhật",
+        "birthdayHint": "Cũng xuất hiện trong lịch qua tính năng nhập sinh nhật.",
         "phonePlaceholder": "+84 …",
         "emailLabel": "Email",
         "emailPlaceholder": "name@example.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Đã thêm",
         "importNoBirthdaySection": "Liên hệ không có ngày sinh",
         "importNoBirthdayHint": "Các liên hệ này chưa lưu ngày sinh - vui lòng thêm thủ công.",
-        "importEmpty": "Không tìm thấy liên hệ nào có ngày sinh. Hãy đồng bộ sổ địa chỉ CardDAV trước.",
+        "importEmpty": "Không tìm thấy liên hệ nào có sinh nhật. Thêm sinh nhật trực tiếp vào liên hệ, hoặc lấy về qua nhập vCard hay đồng bộ danh bạ.",
         "importSubmit": "Thêm {{count}}",
         "importSuccess": "Đã thêm {{count}} sinh nhật.",
         "importNothingSelected": "Vui lòng chọn ít nhất một liên hệ.",
@@ -2851,7 +2858,10 @@
                 "private": "Riêng tư",
                 "family": "Gia đình"
             },
-            "sparse": "Quá ít số đo để hiển thị xu hướng."
+            "sparse": "Quá ít số đo để hiển thị xu hướng.",
+            "recentMeasurements": "Các lần đo gần đây",
+            "deleteMeasurement": "Xóa lần đo",
+            "measurementDeleted": "Đã xóa lần đo"
         },
         "meds": {
             "title": "Thuốc",
@@ -2872,6 +2882,7 @@
             "doseError": "Không thể lưu mục.",
             "nameRequired": "Tên là bắt buộc.",
             "noMeds": "Chưa có thuốc.",
+            "logTitle": "Nhật ký uống thuốc",
             "personsLabel": "Người",
             "take": "Đã dùng",
             "skip": "Bỏ qua",

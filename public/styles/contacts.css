@@ -638,3 +638,22 @@
   gap: var(--space-3);
   margin-top: var(--space-4);
 }
+
+/* Mehrwert-Editor im Kontakt-Modal (Audit R2, A2-11): Wert + optionales Label
+ * je Zeile, Entfernen als row-action; das Label bleibt schmal. */
+.contact-mv-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.contact-mv-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.contact-mv-add {
+  margin-top: var(--space-2);
+}

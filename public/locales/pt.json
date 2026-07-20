@@ -726,6 +726,13 @@
         "lastNamePlaceholder": "p. ex. Silva",
         "categoryLabel": "Categoria",
         "phoneLabel": "Telefone",
+        "mvAddPhone": "Adicionar número de telefone",
+        "mvAddEmail": "Adicionar endereço de e-mail",
+        "mvLabel": "Etiqueta",
+        "mvLabelPlaceholder": "Etiqueta (p. ex. trabalho)",
+        "mvRemove": "Remover entrada",
+        "birthdayLabel": "Aniversário",
+        "birthdayHint": "Também aparece no calendário através da importação de aniversários.",
         "phonePlaceholder": "+55 …",
         "emailLabel": "E-mail",
         "emailPlaceholder": "nome@exemplo.com",
@@ -2017,7 +2024,7 @@
         "importAlreadyAdded": "Já adicionado",
         "importNoBirthdaySection": "Contatos sem aniversário",
         "importNoBirthdayHint": "Estes contatos não têm aniversário guardado - adicione-o manualmente.",
-        "importEmpty": "Nenhum contato com aniversário encontrado. Sincronize primeiro uma agenda de endereços CardDAV.",
+        "importEmpty": "Nenhum contacto com aniversário encontrado. Adiciona os aniversários diretamente no contacto ou traz-os por importação vCard ou sincronização do livro de endereços.",
         "importSubmit": "Adicionar {{count}}",
         "importSuccess": "{{count}} aniversários adicionados.",
         "importNothingSelected": "Selecione pelo menos um contato.",
@@ -2851,7 +2858,10 @@
                 "private": "Privado",
                 "family": "Família"
             },
-            "sparse": "Poucas medições para mostrar uma tendência."
+            "sparse": "Poucas medições para mostrar uma tendência.",
+            "recentMeasurements": "Medições recentes",
+            "deleteMeasurement": "Eliminar medição",
+            "measurementDeleted": "Medição eliminada"
         },
         "meds": {
             "title": "Medicamentos",
@@ -2872,6 +2882,7 @@
             "doseError": "Não foi possível guardar o registo.",
             "nameRequired": "O nome é obrigatório.",
             "noMeds": "Ainda sem medicamentos.",
+            "logTitle": "Registo de tomas",
             "personsLabel": "Pessoa",
             "take": "Tomado",
             "skip": "Ignorar",

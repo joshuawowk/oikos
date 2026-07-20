@@ -528,6 +528,10 @@ function renderReports(content) {
         <strong>${esc(visit.worker_name || t('housekeeping.staff'))}</strong>
         <span>${esc(formatDate(visit.check_in))} · ${esc(money(visit.total_amount))} · ${esc(paid ? t('housekeeping.paymentPaid') : t('housekeeping.paymentPending'))}</span>
       </div>
+      ${paid ? '' : `
+      <button class="btn btn--secondary" type="button" data-pay-report="${visit.id}">
+        <i data-lucide="check" class="icon-sm" aria-hidden="true"></i>${esc(t('housekeeping.markPaid'))}
+      </button>`}
       <button class="btn btn--secondary btn--icon" type="button" data-visit-report="${visit.id}" aria-label="${esc(t('housekeeping.openVisitReport'))}">
         <i data-lucide="file-text" aria-hidden="true"></i>
       </button>
@@ -564,12 +568,29 @@ function renderReports(content) {
   content.querySelectorAll('[data-visit-report]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const visit = visits.find((item) => String(item.id) === btn.dataset.visitReport);
-      if (visit) openVisitReportModal(visit);
+      if (visit) openVisitReportModal(visit, content);
+    });
+  });
+
+  // Bezahlen direkt an der Ausstehend-Zeile (Audit R2, A2-14): derselbe Flow
+  // wie im Personal-Einsatzlog, hier gegen die Berichtsliste.
+  content.querySelectorAll('[data-pay-report]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const visit = visits.find((item) => String(item.id) === btn.dataset.payReport);
+      if (!visit) return;
+      try {
+        await api.post(`/housekeeping/visits/${visit.id}/pay`, {});
+        window.yuvomi?.showToast(t('housekeeping.visitPaidToast'), 'success');
+        await loadData();
+        renderReports(content);
+      } catch (err) {
+        window.yuvomi?.showToast(err.message, 'danger');
+      }
     });
   });
 }
 
-function openVisitReportModal(visit) {
+function openVisitReportModal(visit, content = null) {
   const paid = !!visit.paid_at;
   openModal({
     title: t('housekeeping.visitReportDetails'),
@@ -591,11 +612,31 @@ function openVisitReportModal(visit) {
           <div><dt>${esc(t('housekeeping.extras'))}</dt><dd>${esc(money(visit.extras))}</dd></div>
           <div><dt>${esc(t('housekeeping.totalPayment'))}</dt><dd>${esc(money(visit.total_amount))}</dd></div>
           <div><dt>${esc(t('housekeeping.paymentStatus'))}</dt><dd>${esc(paid ? t('housekeeping.paymentPaid') : t('housekeeping.paymentPending'))}</dd></div>
-          <div><dt>${esc(t('housekeeping.paymentTask'))}</dt><dd>${esc(visit.payment_task_id ? `#${visit.payment_task_id}` : t('housekeeping.notAvailable'))}</dd></div>
-          <div><dt>${esc(t('housekeeping.calendarEvent'))}</dt><dd>${esc(visit.calendar_event_id ? `#${visit.calendar_event_id}` : t('housekeeping.notAvailable'))}</dd></div>
+          ${visit.payment_task_id ? `<div><dt>${esc(t('housekeeping.paymentTask'))}</dt><dd>#${esc(visit.payment_task_id)}</dd></div>` : ''}
+          ${visit.calendar_event_id ? `<div><dt>${esc(t('housekeeping.calendarEvent'))}</dt><dd>#${esc(visit.calendar_event_id)}</dd></div>` : ''}
         </dl>
+        ${paid ? '' : `
+        <div class="modal-panel__footer" style="border:none;padding:0;margin-top:var(--space-4)">
+          <button class="btn btn--ghost" type="button" data-action="close-modal">${esc(t('common.cancel'))}</button>
+          <button class="btn btn--primary" type="button" id="visit-report-pay">
+            <i data-lucide="check" class="icon-sm" aria-hidden="true"></i>${esc(t('housekeeping.markPaid'))}
+          </button>
+        </div>`}
       </div>
     `,
+    onSave(panel) {
+      panel.querySelector('#visit-report-pay')?.addEventListener('click', async () => {
+        try {
+          await api.post(`/housekeeping/visits/${visit.id}/pay`, {});
+          window.yuvomi?.showToast(t('housekeeping.visitPaidToast'), 'success');
+          closeModal({ force: true });
+          await loadData();
+          if (content?.isConnected) renderReports(content);
+        } catch (err) {
+          window.yuvomi?.showToast(err.message, 'danger');
+        }
+      });
+    },
   });
 }
 
