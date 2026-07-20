@@ -614,13 +614,21 @@ function openContextMenu(anchorBtn, itemsHtml, onAction) {
 
   // Aufräumen zentral am Schließen — egal ob per Auswahl, Escape, Klick
   // daneben oder Scroll. Der Fokus geht an den Auslöser zurück.
+  // Der toggle-Event feuert ASYNCHRON: Öffnet ein zweiter Kebab sein Menü,
+  // bevor das Schließ-Event des ersten verarbeitet ist, zeigt _contextMenu
+  // bereits auf das neue Menü. Der verspätete Handler des alten darf dann
+  // weder die Registrierung nullen noch die geteilten window-Listener oder
+  // den Fokus anfassen — sonst wird das neue Menü unschließbar (Geister-
+  // Popover, Audit A2-13).
   menu.addEventListener('toggle', (e) => {
     if (e.newState === 'open') return;
     anchorBtn.setAttribute('aria-expanded', 'false');
-    window.removeEventListener('resize', closeContextMenu, true);
-    window.removeEventListener('scroll', closeContextMenu, true);
-    _contextMenu = null;
-    if (anchorBtn.isConnected) anchorBtn.focus();
+    if (_contextMenu?.el === menu) {
+      window.removeEventListener('resize', closeContextMenu, true);
+      window.removeEventListener('scroll', closeContextMenu, true);
+      _contextMenu = null;
+      if (anchorBtn.isConnected) anchorBtn.focus();
+    }
     menu.remove();
   });
 
