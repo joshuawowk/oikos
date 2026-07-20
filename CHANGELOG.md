@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.1] - 2026-07-21
+
+Follow-up to the audit round: the two remaining P1 findings from the design critique - broken word wrapping in primary surfaces and detached form errors - plus the resulting board redesign.
+
+### Changed
+- The desktop meal planner is now a true week board: each meal-type label (breakfast, lunch, dinner, snack) sits once per row in a sticky left gutter instead of repeating in up to 28 slots, and the rows stay aligned across all days. Day columns keep a readable minimum width - when the week does not fit, the board becomes a horizontal scroll-snap window with an edge fade as scroll affordance instead of squeezing the columns.
+- Labels and titles are never hyphen-broken anymore: meal-type labels and dish names in the week board, module names in the mobile "More" sheet and health metric card labels always render whole words. The "More" sheet switched to a 3-column launcher grid so every module name fits on one line, with larger touch targets as a side effect.
+
+### Fixed
+- Required-field and validation errors in modal forms now appear directly at the offending field - message below the input (screen-reader linked and announced), error border, focus and scroll to the field - instead of a toast in the bottom corner that overlapped the modal buttons. Wired across the event modal and the meals, notes, recipes, budget, budget-plans, subscriptions and health forms; errors clear themselves while typing.
+- The demo seed script no longer crashes on a freshly migrated database.
+
 ## [1.40.0] - 2026-07-20
 
 Second app-wide UX/UI audit round (51 findings across all modules, desktop/mobile), fully verified in the browser. Alongside the polish, several existing features got the visible entry points they were missing.
