@@ -354,7 +354,8 @@
         "importMeals": "从餐食计划",
         "importMealsTitle": "从餐食计划导入",
         "importMealsAction": "导入",
-        "importMealsPreview": "将从 {{meals}} 餐中导入 {{count}} 种食材。",
+        "importMealsPreview": "将从 {{mealsText}}中导入 {{count}} 种食材。",
+        "importMealsPreviewMeals": "{{count}} 餐",
         "importMealsEmpty": "在所选范围内未找到餐食配料。",
         "manageCategories": "管理分类"
     },
@@ -2809,7 +2810,7 @@
                 "title": "快速记录",
                 "vital": "生命体征",
                 "activity": "活动",
-                "meds": "药物"
+                "meds": "服药"
             },
             "reminders": {
                 "title": "接下来的提醒",

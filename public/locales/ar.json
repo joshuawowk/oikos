@@ -354,7 +354,12 @@
         "importMeals": "من خطة الوجبات",
         "importMealsTitle": "استيراد من خطة الوجبات",
         "importMealsAction": "استيراد",
-        "importMealsPreview": "ستتم إضافة {{count}} مكونات من {{meals}} وجبات.",
+        "importMealsPreview": "ستتم إضافة {{count}} مكونات من {{mealsText}}.",
+        "importMealsPreview_one": "ستتم إضافة {{count}} مكون من {{mealsText}}.",
+        "importMealsPreview_other": "ستتم إضافة {{count}} مكونات من {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} وجبات",
+        "importMealsPreviewMeals_one": "{{count}} وجبة",
+        "importMealsPreviewMeals_other": "{{count}} وجبات",
         "importMealsEmpty": "لم يتم العثور على مكونات وجبات في النطاق المحدد.",
         "manageCategories": "إدارة الفئات"
     },
@@ -2809,7 +2814,7 @@
                 "title": "تسجيل سريع",
                 "vital": "مؤشر حيوي",
                 "activity": "النشاط",
-                "meds": "الأدوية"
+                "meds": "جرعة"
             },
             "reminders": {
                 "title": "التذكيرات التالية",

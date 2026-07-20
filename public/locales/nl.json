@@ -354,7 +354,12 @@
         "importMeals": "Uit maaltijdplan",
         "importMealsTitle": "Importeren uit maaltijdplan",
         "importMealsAction": "Importeren",
-        "importMealsPreview": "{{count}} ingrediënten uit {{meals}} maaltijden worden toegevoegd.",
+        "importMealsPreview": "{{count}} ingrediënten uit {{mealsText}} worden toegevoegd.",
+        "importMealsPreview_one": "{{count}} ingrediënt uit {{mealsText}} wordt toegevoegd.",
+        "importMealsPreview_other": "{{count}} ingrediënten uit {{mealsText}} worden toegevoegd.",
+        "importMealsPreviewMeals": "{{count}} maaltijden",
+        "importMealsPreviewMeals_one": "{{count}} maaltijd",
+        "importMealsPreviewMeals_other": "{{count}} maaltijden",
         "importMealsEmpty": "Er zijn geen maaltijdingrediënten gevonden in de geselecteerde periode.",
         "manageCategories": "Categorieën beheren"
     },
@@ -2809,7 +2814,7 @@
                 "title": "Snel vastleggen",
                 "vital": "Vitale waarde",
                 "activity": "Activiteit",
-                "meds": "Medicijnen"
+                "meds": "Inname"
             },
             "reminders": {
                 "title": "Volgende herinneringen",

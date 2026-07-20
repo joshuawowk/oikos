@@ -354,7 +354,13 @@
         "importMeals": "З плану харчування",
         "importMealsTitle": "Імпортувати з плану харчування",
         "importMealsAction": "Імпортувати",
-        "importMealsPreview": "Буде додано {{count}} інгредієнтів із {{meals}} прийомів їжі.",
+        "importMealsPreview": "Буде додано {{count}} інгредієнтів із {{mealsText}}.",
+        "importMealsPreview_one": "Буде додано {{count}} інгредієнт із {{mealsText}}.",
+        "importMealsPreview_few": "Буде додано {{count}} інгредієнти із {{mealsText}}.",
+        "importMealsPreview_other": "Буде додано {{count}} інгредієнтів із {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} прийомів їжі",
+        "importMealsPreviewMeals_one": "{{count}} прийому їжі",
+        "importMealsPreviewMeals_other": "{{count}} прийомів їжі",
         "importMealsEmpty": "У вибраному діапазоні не знайдено інгредієнтів страв.",
         "manageCategories": "Керувати категоріями"
     },
@@ -2809,7 +2815,7 @@
                 "title": "Швидке введення",
                 "vital": "Показник",
                 "activity": "Активність",
-                "meds": "Ліки"
+                "meds": "Прийом"
             },
             "reminders": {
                 "title": "Наступні нагадування",

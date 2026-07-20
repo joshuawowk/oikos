@@ -362,7 +362,13 @@
         "importMeals": "Z planu posiłków",
         "importMealsTitle": "Importuj z planu posiłków",
         "importMealsAction": "Importuj",
-        "importMealsPreview": "Zostanie dodanych {{count}} składników z {{meals}} posiłków.",
+        "importMealsPreview": "Zostanie dodanych {{count}} składników z {{mealsText}}.",
+        "importMealsPreview_one": "Zostanie dodany {{count}} składnik z {{mealsText}}.",
+        "importMealsPreview_few": "Zostaną dodane {{count}} składniki z {{mealsText}}.",
+        "importMealsPreview_other": "Zostanie dodanych {{count}} składników z {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} posiłków",
+        "importMealsPreviewMeals_one": "{{count}} posiłku",
+        "importMealsPreviewMeals_other": "{{count}} posiłków",
         "importMealsEmpty": "Nie znaleziono składników posiłków w wybranym zakresie dat.",
         "manageCategories": "Zarządzaj kategoriami"
     },
@@ -2809,7 +2815,7 @@
                 "title": "Szybki zapis",
                 "vital": "Parametr życiowy",
                 "activity": "Aktywność",
-                "meds": "Leki"
+                "meds": "Dawka"
             },
             "reminders": {
                 "title": "Kolejne przypomnienia",

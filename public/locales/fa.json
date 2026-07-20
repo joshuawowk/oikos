@@ -362,7 +362,8 @@
         "importMeals": "از برنامه غذایی",
         "importMealsTitle": "درون‌ریزی از برنامه غذایی",
         "importMealsAction": "درون‌ریزی",
-        "importMealsPreview": "{{count}} ماده از {{meals}} وعده افزوده می‌شود.",
+        "importMealsPreview": "{{count}} ماده از {{mealsText}} افزوده می‌شود.",
+        "importMealsPreviewMeals": "{{count}} وعده",
         "importMealsEmpty": "هیچ ماده غذایی از برنامه غذایی در بازه انتخاب‌شده پیدا نشد.",
         "manageCategories": "مدیریت دسته‌ها"
     },
@@ -2809,7 +2810,7 @@
                 "title": "ثبت سریع",
                 "vital": "علامت حیاتی",
                 "activity": "فعالیت",
-                "meds": "داروها"
+                "meds": "دوز"
             },
             "reminders": {
                 "title": "یادآورهای بعدی",

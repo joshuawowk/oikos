@@ -354,7 +354,13 @@
         "importMeals": "Из плана питания",
         "importMealsTitle": "Импорт из плана питания",
         "importMealsAction": "Импортировать",
-        "importMealsPreview": "Будет добавлено {{count}} ингредиентов из {{meals}} приёмов пищи.",
+        "importMealsPreview": "Будет добавлено {{count}} ингредиентов из {{mealsText}}.",
+        "importMealsPreview_one": "Будет добавлен {{count}} ингредиент из {{mealsText}}.",
+        "importMealsPreview_few": "Будет добавлено {{count}} ингредиента из {{mealsText}}.",
+        "importMealsPreview_other": "Будет добавлено {{count}} ингредиентов из {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} приёмов пищи",
+        "importMealsPreviewMeals_one": "{{count}} приёма пищи",
+        "importMealsPreviewMeals_other": "{{count}} приёмов пищи",
         "importMealsEmpty": "В выбранном диапазоне не найдено ингредиентов блюд.",
         "manageCategories": "Управление категориями"
     },
@@ -2809,7 +2815,7 @@
                 "title": "Быстрый ввод",
                 "vital": "Показатель",
                 "activity": "Активность",
-                "meds": "Лекарства"
+                "meds": "Приём"
             },
             "reminders": {
                 "title": "Следующие напоминания",

@@ -354,7 +354,13 @@
         "importMeals": "Z jídelníčku",
         "importMealsTitle": "Import z jídelníčku",
         "importMealsAction": "Importovat",
-        "importMealsPreview": "Bude přidáno {{count}} surovin z {{meals}} jídel.",
+        "importMealsPreview": "Bude přidáno {{count}} surovin z {{mealsText}}.",
+        "importMealsPreview_one": "Bude přidána {{count}} surovina z {{mealsText}}.",
+        "importMealsPreview_few": "Budou přidány {{count}} suroviny z {{mealsText}}.",
+        "importMealsPreview_other": "Bude přidáno {{count}} surovin z {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} jídel",
+        "importMealsPreviewMeals_one": "{{count}} jídla",
+        "importMealsPreviewMeals_other": "{{count}} jídel",
         "importMealsEmpty": "Ve vybraném rozsahu nebyly nalezeny žádné ingredience jídel.",
         "manageCategories": "Spravovat kategorie"
     },
@@ -2809,7 +2815,7 @@
                 "title": "Rychlé zadání",
                 "vital": "Vitální hodnota",
                 "activity": "Aktivita",
-                "meds": "Léky"
+                "meds": "Dávka"
             },
             "reminders": {
                 "title": "Další připomenutí",

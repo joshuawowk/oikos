@@ -354,7 +354,8 @@
         "importMeals": "Yemek planından",
         "importMealsTitle": "Yemek planından içe aktar",
         "importMealsAction": "İçe aktar",
-        "importMealsPreview": "{{meals}} öğünden {{count}} malzeme eklenecek.",
+        "importMealsPreview": "{{mealsText}} {{count}} malzeme eklenecek.",
+        "importMealsPreviewMeals": "{{count}} öğünden",
         "importMealsEmpty": "Seçilen aralıkta yemek malzemesi bulunamadı.",
         "manageCategories": "Kategorileri yönet"
     },
@@ -2809,7 +2810,7 @@
                 "title": "Hızlı kayıt",
                 "vital": "Yaşamsal değer",
                 "activity": "Aktivite",
-                "meds": "İlaçlar"
+                "meds": "Doz"
             },
             "reminders": {
                 "title": "Sonraki hatırlatmalar",

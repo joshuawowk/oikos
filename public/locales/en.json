@@ -354,7 +354,12 @@
         "importMeals": "From meal plan",
         "importMealsTitle": "Import from meal plan",
         "importMealsAction": "Import",
-        "importMealsPreview": "{{count}} ingredients from {{meals}} meals will be added.",
+        "importMealsPreview": "{{count}} ingredients from {{mealsText}} will be added.",
+        "importMealsPreview_one": "{{count}} ingredient from {{mealsText}} will be added.",
+        "importMealsPreview_other": "{{count}} ingredients from {{mealsText}} will be added.",
+        "importMealsPreviewMeals": "{{count}} meals",
+        "importMealsPreviewMeals_one": "{{count}} meal",
+        "importMealsPreviewMeals_other": "{{count}} meals",
         "importMealsEmpty": "No meal ingredients were found in the selected range.",
         "manageCategories": "Manage categories"
     },
@@ -2809,7 +2814,7 @@
                 "title": "Quick add",
                 "vital": "Vital",
                 "activity": "Activity",
-                "meds": "Medications"
+                "meds": "Dose"
             },
             "reminders": {
                 "title": "Upcoming reminders",

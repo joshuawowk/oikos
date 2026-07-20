@@ -354,7 +354,8 @@
         "importMeals": "Étkezési tervből",
         "importMealsTitle": "Importálás az étkezési tervből",
         "importMealsAction": "Importálás",
-        "importMealsPreview": "{{count}} hozzávaló kerül át {{meals}} étkezésből.",
+        "importMealsPreview": "{{count}} hozzávaló kerül át {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} étkezésből",
         "importMealsEmpty": "A kiválasztott időszakban nem találhatók étkezési hozzávalók.",
         "manageCategories": "Kategóriák kezelése"
     },
@@ -2809,7 +2810,7 @@
                 "title": "Gyors rögzítés",
                 "vital": "Vitális érték",
                 "activity": "Tevékenység",
-                "meds": "Gyógyszerek"
+                "meds": "Bevétel"
             },
             "reminders": {
                 "title": "Következő emlékeztetők",

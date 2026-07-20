@@ -354,7 +354,12 @@
         "importMeals": "Dal piano pasti",
         "importMealsTitle": "Importa dal piano pasti",
         "importMealsAction": "Importa",
-        "importMealsPreview": "Verranno aggiunti {{count}} ingredienti da {{meals}} pasti.",
+        "importMealsPreview": "Verranno aggiunti {{count}} ingredienti da {{mealsText}}.",
+        "importMealsPreview_one": "Verrà aggiunto {{count}} ingrediente da {{mealsText}}.",
+        "importMealsPreview_other": "Verranno aggiunti {{count}} ingredienti da {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} pasti",
+        "importMealsPreviewMeals_one": "{{count}} pasto",
+        "importMealsPreviewMeals_other": "{{count}} pasti",
         "importMealsEmpty": "Nell'intervallo selezionato non sono stati trovati ingredienti dei pasti.",
         "manageCategories": "Gestisci categorie"
     },
@@ -2809,7 +2814,7 @@
                 "title": "Registrazione rapida",
                 "vital": "Parametro vitale",
                 "activity": "Attività",
-                "meds": "Farmaci"
+                "meds": "Assunzione"
             },
             "reminders": {
                 "title": "Prossimi promemoria",

@@ -362,7 +362,12 @@
         "importMeals": "Aus Essensplan",
         "importMealsTitle": "Essensplan importieren",
         "importMealsAction": "Importieren",
-        "importMealsPreview": "{{count}} Zutaten aus {{meals}} Mahlzeiten werden übernommen.",
+        "importMealsPreview": "{{count}} Zutaten aus {{mealsText}} werden übernommen.",
+        "importMealsPreview_one": "{{count}} Zutat aus {{mealsText}} wird übernommen.",
+        "importMealsPreview_other": "{{count}} Zutaten aus {{mealsText}} werden übernommen.",
+        "importMealsPreviewMeals": "{{count}} Mahlzeiten",
+        "importMealsPreviewMeals_one": "{{count}} Mahlzeit",
+        "importMealsPreviewMeals_other": "{{count}} Mahlzeiten",
         "importMealsEmpty": "Im gewählten Zeitraum wurden keine Essensplan-Zutaten gefunden.",
         "manageCategories": "Kategorien verwalten"
     },
@@ -2809,7 +2814,7 @@
                 "title": "Schnell erfassen",
                 "vital": "Vitalwert",
                 "activity": "Aktivität",
-                "meds": "Medikamente"
+                "meds": "Einnahme"
             },
             "reminders": {
                 "title": "Nächste Erinnerungen",

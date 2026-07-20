@@ -362,7 +362,8 @@
         "importMeals": "식단에서",
         "importMealsTitle": "식단에서 가져오기",
         "importMealsAction": "가져오기",
-        "importMealsPreview": "{{meals}}개 식사에서 {{count}}개 재료를 추가합니다.",
+        "importMealsPreview": "{{mealsText}}에서 {{count}}개 재료를 추가합니다.",
+        "importMealsPreviewMeals": "{{count}}개 식사",
         "importMealsEmpty": "선택한 기간에 식단 재료가 없습니다.",
         "manageCategories": "카테고리 관리"
     },
@@ -2809,7 +2810,7 @@
                 "title": "빠른 기록",
                 "vital": "생체 신호",
                 "activity": "활동",
-                "meds": "약"
+                "meds": "복용"
             },
             "reminders": {
                 "title": "다음 알림",

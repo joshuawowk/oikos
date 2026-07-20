@@ -354,7 +354,12 @@
         "importMeals": "Από το πλάνο γευμάτων",
         "importMealsTitle": "Εισαγωγή από το πλάνο γευμάτων",
         "importMealsAction": "Εισαγωγή",
-        "importMealsPreview": "Θα προστεθούν {{count}} υλικά από {{meals}} γεύματα.",
+        "importMealsPreview": "Θα προστεθούν {{count}} υλικά από {{mealsText}}.",
+        "importMealsPreview_one": "Θα προστεθεί {{count}} υλικό από {{mealsText}}.",
+        "importMealsPreview_other": "Θα προστεθούν {{count}} υλικά από {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} γεύματα",
+        "importMealsPreviewMeals_one": "{{count}} γεύμα",
+        "importMealsPreviewMeals_other": "{{count}} γεύματα",
         "importMealsEmpty": "Δεν βρέθηκαν υλικά γευμάτων στο επιλεγμένο εύρος.",
         "manageCategories": "Διαχείριση κατηγοριών"
     },
@@ -2809,7 +2814,7 @@
                 "title": "Γρήγορη καταχώριση",
                 "vital": "Ζωτικό σημείο",
                 "activity": "Δραστηριότητα",
-                "meds": "Φάρμακα"
+                "meds": "Δόση"
             },
             "reminders": {
                 "title": "Επόμενες υπενθυμίσεις",

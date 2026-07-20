@@ -819,8 +819,14 @@ function openMealPlanImport(container) {
           const data = await api.post(`/shopping/${state.activeListId}/import-meal-plan`, { from, to, preview: true });
           const transferred = Number(data.data?.transferred) || 0;
           const meals = Number(data.data?.meals) || 0;
+          // Zwei Zahlachsen, eine Pluralmechanik: t() dekliniert nur über
+          // `count`. Die Mahlzeiten-Angabe kommt deshalb als eigener, selbst
+          // pluralisierter Teilstring herein (Audit A2-21: "aus 1 Mahlzeiten").
           previewEl.textContent = transferred
-            ? t('shopping.importMealsPreview', { count: transferred, meals })
+            ? t('shopping.importMealsPreview', {
+              count: transferred,
+              mealsText: t('shopping.importMealsPreviewMeals', { count: meals }),
+            })
             : t('shopping.importMealsEmpty');
         } catch {
           previewEl.textContent = '';

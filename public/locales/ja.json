@@ -354,7 +354,8 @@
         "importMeals": "献立から",
         "importMealsTitle": "献立からインポート",
         "importMealsAction": "インポート",
-        "importMealsPreview": "{{meals}}件の食事から{{count}}件の材料を追加します。",
+        "importMealsPreview": "{{mealsText}}から{{count}}件の材料を追加します。",
+        "importMealsPreviewMeals": "{{count}}件の食事",
         "importMealsEmpty": "選択した期間内に献立の材料が見つかりませんでした。",
         "manageCategories": "カテゴリを管理"
     },
@@ -2809,7 +2810,7 @@
                 "title": "クイック記録",
                 "vital": "バイタル",
                 "activity": "アクティビティ",
-                "meds": "薬"
+                "meds": "服薬"
             },
             "reminders": {
                 "title": "次のリマインダー",

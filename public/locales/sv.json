@@ -354,7 +354,12 @@
         "importMeals": "Från matplanen",
         "importMealsTitle": "Importera från matplanen",
         "importMealsAction": "Importera",
-        "importMealsPreview": "{{count}} ingredienser från {{meals}} måltider läggs till.",
+        "importMealsPreview": "{{count}} ingredienser från {{mealsText}} läggs till.",
+        "importMealsPreview_one": "{{count}} ingrediens från {{mealsText}} läggs till.",
+        "importMealsPreview_other": "{{count}} ingredienser från {{mealsText}} läggs till.",
+        "importMealsPreviewMeals": "{{count}} måltider",
+        "importMealsPreviewMeals_one": "{{count}} måltid",
+        "importMealsPreviewMeals_other": "{{count}} måltider",
         "importMealsEmpty": "Inga måltidsingredienser hittades i det valda intervallet.",
         "manageCategories": "Hantera kategorier"
     },
@@ -2809,7 +2814,7 @@
                 "title": "Snabbregistrering",
                 "vital": "Vitalvärde",
                 "activity": "Aktivitet",
-                "meds": "Mediciner"
+                "meds": "Dos"
             },
             "reminders": {
                 "title": "Nästa påminnelser",

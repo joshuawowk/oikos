@@ -362,7 +362,8 @@
         "importMeals": "Dari rencana makan",
         "importMealsTitle": "Impor dari rencana makan",
         "importMealsAction": "Impor",
-        "importMealsPreview": "{{count}} bahan dari {{meals}} hidangan akan ditambahkan.",
+        "importMealsPreview": "{{count}} bahan dari {{mealsText}} akan ditambahkan.",
+        "importMealsPreviewMeals": "{{count}} hidangan",
         "importMealsEmpty": "Tidak ada bahan makanan yang ditemukan dalam rentang yang dipilih.",
         "manageCategories": "Kelola kategori"
     },
@@ -2809,7 +2810,7 @@
                 "title": "Catat cepat",
                 "vital": "Tanda vital",
                 "activity": "Aktivitas",
-                "meds": "Obat"
+                "meds": "Dosis"
             },
             "reminders": {
                 "title": "Pengingat berikutnya",

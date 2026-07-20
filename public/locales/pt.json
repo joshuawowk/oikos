@@ -354,7 +354,12 @@
         "importMeals": "Do plano de refeições",
         "importMealsTitle": "Importar do plano de refeições",
         "importMealsAction": "Importar",
-        "importMealsPreview": "Serão adicionados {{count}} ingredientes de {{meals}} refeições.",
+        "importMealsPreview": "Serão adicionados {{count}} ingredientes de {{mealsText}}.",
+        "importMealsPreview_one": "Será adicionado {{count}} ingrediente de {{mealsText}}.",
+        "importMealsPreview_other": "Serão adicionados {{count}} ingredientes de {{mealsText}}.",
+        "importMealsPreviewMeals": "{{count}} refeições",
+        "importMealsPreviewMeals_one": "{{count}} refeição",
+        "importMealsPreviewMeals_other": "{{count}} refeições",
         "importMealsEmpty": "Não foram encontrados ingredientes de refeições no intervalo selecionado.",
         "manageCategories": "Gerir categorias"
     },
@@ -2809,7 +2814,7 @@
                 "title": "Registo rápido",
                 "vital": "Sinal vital",
                 "activity": "Atividade",
-                "meds": "Medicamentos"
+                "meds": "Toma"
             },
             "reminders": {
                 "title": "Próximos lembretes",

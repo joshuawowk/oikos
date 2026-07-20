@@ -354,7 +354,10 @@
         "importMeals": "भोजन योजना से",
         "importMealsTitle": "भोजन योजना से आयात करें",
         "importMealsAction": "आयात करें",
-        "importMealsPreview": "{{meals}} भोजन से {{count}} सामग्री जोड़ी जाएँगी।",
+        "importMealsPreview": "{{mealsText}} से {{count}} सामग्री जोड़ी जाएँगी।",
+        "importMealsPreview_one": "{{mealsText}} से {{count}} सामग्री जोड़ी जाएगी।",
+        "importMealsPreview_other": "{{mealsText}} से {{count}} सामग्री जोड़ी जाएँगी।",
+        "importMealsPreviewMeals": "{{count}} भोजन",
         "importMealsEmpty": "चयनित अवधि में भोजन योजना की कोई सामग्री नहीं मिली।",
         "manageCategories": "श्रेणियाँ प्रबंधित करें"
     },
@@ -2809,7 +2812,7 @@
                 "title": "त्वरित प्रविष्टि",
                 "vital": "महत्वपूर्ण मान",
                 "activity": "गतिविधि",
-                "meds": "दवाइयाँ"
+                "meds": "ख़ुराक"
             },
             "reminders": {
                 "title": "अगली याद-दिलावनी",
