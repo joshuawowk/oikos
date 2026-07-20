@@ -4,7 +4,7 @@
  */
 
 import { api } from '/api.js';
-import { closeModal, confirmModal, openModal, advancedSection } from '/components/modal.js';
+import { closeModal, confirmModal, openModal, advancedSection, reportFieldError } from '/components/modal.js';
 import {
   formatDate,
   getLocale,
@@ -915,13 +915,14 @@ async function saveSubscription(panel, existing, searchedLogoData = null) {
   const dateInput = panel.querySelector('#subscription-next-date');
   const currencyInput = panel.querySelector('#subscription-currency');
   if (!isDateInputValid(dateInput.value)) {
-    window.yuvomi?.showToast(t('subscriptions.invalidDate'), 'danger');
-    dateInput.focus();
+    // Fehler am Feld statt als ortloser Toast (geteiltes Muster, Critique P1).
+    reportFieldError(dateInput, t('subscriptions.invalidDate'));
     return;
   }
   if (!currencyInput.value) {
-    window.yuvomi?.showToast(t('subscriptions.currencyRequired'), 'danger');
-    panel.querySelector('#subscription-currency-search').focus();
+    // Die Meldung klebt am sichtbaren Suchfeld der Combobox, nicht am
+    // versteckten Wert-Input.
+    reportFieldError(panel.querySelector('#subscription-currency-search'), t('subscriptions.currencyRequired'));
     return;
   }
   const submit = panel.querySelector('[type="submit"]');
@@ -1106,8 +1107,7 @@ async function openSettingsModal() {
         event.preventDefault();
         const baseCurrency = panel.querySelector('#subscriptions-base-currency').value;
         if (!baseCurrency) {
-          window.yuvomi?.showToast(t('subscriptions.currencyRequired'), 'danger');
-          panel.querySelector('#subscriptions-base-currency-search').focus();
+          reportFieldError(panel.querySelector('#subscriptions-base-currency-search'), t('subscriptions.currencyRequired'));
           return;
         }
         try {

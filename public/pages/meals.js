@@ -5,7 +5,7 @@
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal as closeSharedModal, selectModal, confirmModal, advancedSection } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal as closeSharedModal, selectModal, confirmModal, advancedSection, wireBlurValidation, reportFieldError } from '/components/modal.js';
 import { stagger, scheduleUndoableDelete } from '/utils/ux.js';
 import { t, formatDate, formatDayMonth, formatDateInput, parseDateInput, isDateInputValid } from '/i18n.js';
 import { esc } from '/utils/html.js';
@@ -284,21 +284,36 @@ function renderWeekGrid() {
   const dayNames = DAY_NAMES();
   // Default-Typ für den mobilen Per-Tag-Add-Button (Modal lässt den Typ ändern).
   const firstType = state.visibleMealTypes[0] ?? 'lunch';
+  const visibleTypes = MEAL_TYPES().filter((type) => state.visibleMealTypes.includes(type.key));
+
+  // Desktop-Board: Typ-Label EINMAL pro Zeile in der linken Gutter-Spalte statt
+  // in jedem der bis zu 28 Slots (Critique P1: 21 redundante, silbengetrennte
+  // Labels pro Woche). Mobil unsichtbar (display:none); die Slot-eigenen Labels
+  // bleiben dort sichtbar und am Desktop als Screenreader-Text erhalten —
+  // darum ist die Gutter-Spalte fürs Accessibility-Tree ein reines Duplikat
+  // und wird mit aria-hidden ausgeblendet.
+  const gutterHTML = visibleTypes.map((type, ti) => `
+    <div class="week-gutter-label" data-type="${type.key}" style="--type-row: ${ti + 2}" aria-hidden="true">
+      <span class="week-gutter-label__text">${type.label}</span>
+    </div>
+  `).join('');
 
   grid.replaceChildren();
-  grid.insertAdjacentHTML('beforeend', weekDays.map((date) => {
+  grid.insertAdjacentHTML('beforeend', gutterHTML + weekDays.map((date, dayIndex) => {
     const mealsForDay = state.meals.filter((m) => m.date === date);
     const todayClass  = isToday(date) ? 'day-header--today' : '';
     const dayNameIndex = (new Date(`${date}T00:00:00`).getDay() + 6) % 7;
+    // Spalte 1 ist die Gutter-Spalte, Zeile 1 die Kopfzeile — Inhalte ab 2.
+    const dayCol = dayIndex + 2;
 
     return `
       <div class="day-column">
-        <div class="day-header ${todayClass}">
+        <div class="day-header ${todayClass}" style="--day-col: ${dayCol}">
           <span class="day-header__name">${dayNames[dayNameIndex]}</span>
           <span class="day-header__date">${formatDayDate(date)}</span>
         </div>
         <div class="day-slots">
-          ${MEAL_TYPES().filter((type) => state.visibleMealTypes.includes(type.key)).map((type) => renderSlot(date, type, mealsForDay)).join('')}
+          ${visibleTypes.map((type, ti) => renderSlot(date, type, mealsForDay, dayCol, ti + 2)).join('')}
         </div>
         <button class="day-add" data-action="add-meal" data-date="${date}" data-type="${firstType}" aria-label="${t('meals.addMealTitle')}">
           <i data-lucide="plus" class="icon-sm" aria-hidden="true"></i>
@@ -317,6 +332,11 @@ function renderWeekGrid() {
   if (window.matchMedia?.('(max-width: 640px)').matches) {
     grid.querySelector('.day-header--today')?.closest('.day-column')
       ?.scrollIntoView({ block: 'start' });
+  } else if (grid.scrollWidth > grid.clientWidth + 1) {
+    // Desktop-Board mit horizontalem Scroll-Fenster (1024–1439px): heutigen
+    // Tag zentrieren, damit die Woche nicht stumpf bei Montag startet.
+    grid.querySelector('.day-header--today')
+      ?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }
 }
 
@@ -375,12 +395,15 @@ function renderRecipeSidebar() {
   sidebar.appendChild(list);
 }
 
-function renderSlot(date, type, mealsForDay) {
+function renderSlot(date, type, mealsForDay, dayCol, typeRow) {
   const meals = mealsForDay.filter((m) => m.meal_type === type.key);
+  // Explizite Grid-Platzierung fürs Desktop-Board (day-column/day-slots werden
+  // dort zu display:contents); mobil ohne Wirkung, da die Slots im Fluss liegen.
+  const gridPos = `--day-col: ${dayCol}; --type-row: ${typeRow}`;
 
   if (!meals.length) {
     return `
-      <div class="meal-slot meal-slot--empty" data-date="${date}" data-type="${type.key}">
+      <div class="meal-slot meal-slot--empty" data-date="${date}" data-type="${type.key}" style="${gridPos}">
         <div class="meal-slot__type-label"><span class="meal-slot__type-text">${type.label}</span></div>
         <button
           class="meal-slot__add-btn"
@@ -438,7 +461,7 @@ function renderSlot(date, type, mealsForDay) {
   }).join('');
 
   return `
-    <div class="meal-slot meal-slot--has-meal" data-date="${date}" data-type="${type.key}">
+    <div class="meal-slot meal-slot--has-meal" data-date="${date}" data-type="${type.key}" style="${gridPos}">
       <div class="meal-slot__type-label"><span class="meal-slot__type-text">${type.label}</span></div>
       ${cardsHTML}
       <button
@@ -943,7 +966,7 @@ function openMealModal(opts) {
       saveAsRecipeBtn?.addEventListener('click', async () => {
         const title = panel.querySelector('#modal-title').value.trim();
         if (!title) {
-          window.yuvomi?.showToast(t('meals.titleRequired'), 'danger');
+          reportFieldError(panel.querySelector('#modal-title'), t('meals.titleRequired'));
           return;
         }
 
@@ -1022,6 +1045,8 @@ function openMealModal(opts) {
 
       panel.querySelector('#modal-cancel').addEventListener('click', closeModal);
       panel.querySelector('#modal-save').addEventListener('click', () => saveModal(panel));
+      // Pflichtfelder melden sich beim Verlassen inline (geteiltes Muster).
+      wireBlurValidation(panel);
     },
   });
 }
@@ -1121,7 +1146,7 @@ function buildModalContent({ mode, date, mealType, meal, presetRecipeId = null }
 
     <div class="form-group" style="position:relative;">
       <label class="form-label" for="modal-title">${t('meals.titleLabel')}</label>
-      <input type="text" class="form-input" id="modal-title"
+      <input type="text" class="form-input" id="modal-title" required
              placeholder="${t('meals.titlePlaceholder')}"
              value="${esc(isEdit ? meal.title : '')}"
              autocomplete="off">
@@ -1176,12 +1201,12 @@ async function saveModal(overlay) {
     : false;
 
   if (!date || !isDateInputValid(dateRaw)) {
-    window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
+    reportFieldError(overlay.querySelector('#modal-date'), t('calendar.invalidDate'));
     return;
   }
 
   if (!title) {
-    window.yuvomi?.showToast(t('meals.titleRequired'), 'danger');
+    reportFieldError(overlay.querySelector('#modal-title'), t('meals.titleRequired'));
     return;
   }
 

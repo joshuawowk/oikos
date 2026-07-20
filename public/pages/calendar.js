@@ -6,7 +6,7 @@
 
 import { api } from '/api.js';
 import { renderRRuleFields, bindRRuleEvents, getRRuleValues } from '/rrule-ui.js';
-import { openModal as openSharedModal, closeModal, advancedSection } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, advancedSection, wireBlurValidation, reportFieldError } from '/components/modal.js';
 import { stagger, wireScrollFade, scheduleUndoableDelete } from '/utils/ux.js';
 import { t, formatDate as formatPreferredDate, formatDayMonth, formatTime, timeSuffix, formatDateInput, parseDateInput, isDateInputValid, formatTimeInput, parseTimeInput } from '/i18n.js';
 import { esc, fmtLocation } from '/utils/html.js';
@@ -2716,6 +2716,9 @@ function openEventModal({ mode, event = null, date = null, reminder = null, time
       });
 
       panel.querySelector('#modal-save').addEventListener('click', () => saveEvent(panel, mode, event, reminder, attachmentState));
+      // Pflichtfelder melden sich beim Verlassen inline statt erst beim
+      // Speichern als ortloser Toast (Critique P1).
+      wireBlurValidation(panel);
       if (window.lucide) lucide.createIcons({ el: panel });
     },
   });
@@ -2884,7 +2887,7 @@ function buildEventModalContent({ mode, event, date, reminder = null, time = nul
       </div>
       <div class="form-group event-title-picker__title">
         <label class="form-label" for="modal-title">${t('calendar.titleLabel')}<span class="required-marker" aria-hidden="true"> *</span></label>
-        <input type="text" class="form-input" id="modal-title"
+        <input type="text" class="form-input" id="modal-title" required
                placeholder="${t('calendar.titlePlaceholder')}" value="${esc(isEdit ? event.title : '')}">
       </div>
     </div>
@@ -2979,7 +2982,9 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
   const title   = overlay.querySelector('#modal-title').value.trim();
 
   if (!title) {
-    window.yuvomi?.showToast(t('calendar.titleRequired'), 'danger');
+    // Fehler am Ort des Geschehens statt als Toast unten links (Critique P1):
+    // Meldung unterm Feld, Fehler-Rahmen, Fokus + Scroll aufs Feld.
+    reportFieldError(overlay.querySelector('#modal-title'), t('calendar.titleRequired'));
     return;
   }
 
@@ -3006,7 +3011,10 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
     const etRaw = overlay.querySelector('#modal-end-time').value;
     const et = parseTimeInput(etRaw);
     if ((stRaw && !st) || (etRaw && !et)) {
-      window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
+      reportFieldError(
+        overlay.querySelector(stRaw && !st ? '#modal-start-time' : '#modal-end-time'),
+        t('calendar.invalidDate')
+      );
       return;
     }
     start_datetime = st ? `${sd}T${st}` : sd;
@@ -3016,13 +3024,24 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
   const visibleDateFields = allday
     ? ['#modal-allday-start', '#modal-allday-end']
     : ['#modal-start-date', '#modal-end-date'];
-  const hasInvalidDate = visibleDateFields.some((selector) => !isDateInputValid(overlay.querySelector(selector)?.value));
-  if (!start_datetime || hasInvalidDate) {
-    window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
+  const invalidDateField = visibleDateFields.find((selector) => !isDateInputValid(overlay.querySelector(selector)?.value));
+  if (!start_datetime || invalidDateField) {
+    reportFieldError(
+      overlay.querySelector(invalidDateField ?? visibleDateFields[0]),
+      t('calendar.invalidDate')
+    );
     return;
   }
   if (isEndBeforeStart(start_datetime, end_datetime)) {
-    window.yuvomi?.showToast(t('calendar.endBeforeStart'), 'danger');
+    // Der Fehler klebt am Feld, das ihn verursacht: liegt schon das Enddatum
+    // vor dem Startdatum, am Datums-Feld; sonst (gleicher Tag, Zeit davor)
+    // an der Endzeit.
+    const endsOnEarlierDay = String(end_datetime).slice(0, 10) < String(start_datetime).slice(0, 10);
+    const endField = (allday ? overlay.querySelector('#modal-allday-end') : null)
+      ?? (endsOnEarlierDay ? overlay.querySelector('#modal-end-date') : null)
+      ?? (overlay.querySelector('#modal-end-time')?.value ? overlay.querySelector('#modal-end-time') : null)
+      ?? overlay.querySelector('#modal-end-date');
+    reportFieldError(endField, t('calendar.endBeforeStart'));
     return;
   }
 
@@ -3032,7 +3051,7 @@ async function saveEvent(overlay, mode, event, existingReminder = null, attachme
   try {
     const rrule = getRRuleValues(overlay, 'event');
     if (!rrule.valid_until) {
-      window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger');
+      reportFieldError(overlay.querySelector('#event-rrule-until'), t('calendar.invalidDate'));
       saveBtn.disabled    = false;
       saveBtn.textContent = mode === 'edit' ? t('common.save') : t('common.create');
       return;

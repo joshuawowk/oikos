@@ -60,6 +60,8 @@ const STUBS = {
     export const confirmModal = async () => true;
     export const selectModal = async () => null;
     export const advancedSection = (inner = '') => String(inner);
+    export const wireBlurValidation = () => {};
+    export const reportFieldError = () => false;
   `,
   '/utils/ux.js': `
     export const stagger = () => {};

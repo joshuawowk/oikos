@@ -6,7 +6,7 @@
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal, confirmModal, advancedSection } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, confirmModal, advancedSection, wireBlurValidation, reportFieldError } from '/components/modal.js';
 import { stagger, vibrate, scheduleUndoableDelete } from '/utils/ux.js';
 import { wireTablist } from '/utils/tablist.js';
 import { t, formatDate, getLocale, getNumberFormat } from '/i18n.js';
@@ -966,8 +966,14 @@ function openAccountModal(account = null) {
         const rawBal  = panel.querySelector('#am-balance').value;
         const startingBalance = rawBal === '' ? 0 : parseFloat(rawBal);
 
-        if (!name) { window.yuvomi?.showToast(t('common.titleRequired'), 'danger'); return; }
-        if (isNaN(startingBalance)) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger'); return; }
+        if (!name) {
+          reportFieldError(panel.querySelector('#am-name'), t('common.titleRequired'));
+          return;
+        }
+        if (isNaN(startingBalance)) {
+          reportFieldError(panel.querySelector('#am-balance'), t('budget.validAmountRequired'));
+          return;
+        }
 
         saveBtn.disabled = true;
         saveBtn.textContent = '…';
@@ -1673,9 +1679,18 @@ function openBudgetModal({ mode, entry = null, initialType = '' }) {
         // Zuordnung beim Bearbeiten unverändert (account_id nicht mitsenden).
         const accountId  = accountSel ? (accountSel.value === '' ? null : parseInt(accountSel.value, 10)) : undefined;
 
-        if (!title)           { window.yuvomi?.showToast(t('common.titleRequired'), 'danger'); return; }
-        if (isNaN(absVal) || absVal <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger'); return; }
-        if (!date) { window.yuvomi?.showToast(t('calendar.invalidDate'), 'danger'); return; }
+        if (!title) {
+          reportFieldError(panel.querySelector('#bm-title'), t('common.titleRequired'));
+          return;
+        }
+        if (isNaN(absVal) || absVal <= 0) {
+          reportFieldError(panel.querySelector('#bm-amount'), t('budget.validAmountRequired'));
+          return;
+        }
+        if (!date) {
+          reportFieldError(panel.querySelector('#bm-date'), t('calendar.invalidDate'));
+          return;
+        }
 
         const amount = currentType === 'expense' ? -absVal : absVal;
 
@@ -1807,10 +1822,22 @@ async function saveLoanFromPanel(panel, saveBtn, { loan = null, closeAfterSave =
   const start_month = panel.querySelector('#lm-start').value;
   const notes = panel.querySelector('#lm-notes').value.trim();
 
-  if (!borrower) { window.yuvomi?.showToast(t('budget.loanBorrowerRequired'), 'danger'); return; }
-  if (isNaN(total_amount) || total_amount <= 0) { window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger'); return; }
-  if (!Number.isInteger(installment_count) || installment_count < 1) { window.yuvomi?.showToast(t('budget.loanInstallmentsRequired'), 'danger'); return; }
-  if (!/^\d{4}-\d{2}$/.test(start_month)) { window.yuvomi?.showToast(t('budget.loanStartMonthRequired'), 'danger'); return; }
+  if (!borrower) {
+    reportFieldError(panel.querySelector('#lm-borrower'), t('budget.loanBorrowerRequired'));
+    return;
+  }
+  if (isNaN(total_amount) || total_amount <= 0) {
+    reportFieldError(panel.querySelector('#lm-amount'), t('budget.validAmountRequired'));
+    return;
+  }
+  if (!Number.isInteger(installment_count) || installment_count < 1) {
+    reportFieldError(panel.querySelector('#lm-installments'), t('budget.loanInstallmentsRequired'));
+    return;
+  }
+  if (!/^\d{4}-\d{2}$/.test(start_month)) {
+    reportFieldError(panel.querySelector('#lm-start'), t('budget.loanStartMonthRequired'));
+    return;
+  }
 
   saveBtn.disabled = true;
   saveBtn.textContent = '…';

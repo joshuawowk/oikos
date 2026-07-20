@@ -16,7 +16,7 @@ import { t, formatDate, formatTime, getLocale, getNumberFormat } from '/i18n.js'
 import { esc } from '/utils/html.js';
 import { wireScrollFade, scheduleUndoableDelete } from '/utils/ux.js';
 import { toLocalDateKey, parseLocalDateKey, addLocalDays } from '/utils/date.js';
-import { openModal, closeModal, confirmModal } from '/components/modal.js';
+import { openModal, closeModal, confirmModal, reportFieldError } from '/components/modal.js';
 import { createPageFab, setPageFabAction } from '/utils/fab.js';
 import { computeVitalSeries, VITAL_METRICS, vitalMetric } from '/utils/health-vitals.js';
 import {
@@ -928,7 +928,9 @@ function openVitalModal(opts = {}) {
         const body = collectVitalBody(panel, typeSelect.value);
         if (!body) {
           submitBtn.disabled = false;
-          window.yuvomi?.showToast(t('health.vitals.invalidValue'), 'danger');
+          // Fehler am Wertefeld statt als ortloser Toast (geteiltes Muster,
+          // Critique P1): erstes Eingabefeld der Metrik markieren.
+          reportFieldError(panel.querySelector('#vital-value-fields input'), t('health.vitals.invalidValue'));
           return;
         }
         submitBtn.disabled = true;
@@ -1465,7 +1467,7 @@ function openMedModal(med) {
         const submitBtn = panel.querySelector('[type="submit"]');
         const body = collectMedBody(panel);
         if (!body) {
-          window.yuvomi?.showToast(t('health.meds.nameRequired'), 'danger');
+          reportFieldError(panel.querySelector('#med-name'), t('health.meds.nameRequired'));
           return;
         }
         submitBtn.disabled = true;
@@ -1596,7 +1598,10 @@ function wireSchedEditor(panel, med) {
   host.querySelector('[data-action="sched-add"]')?.addEventListener('click', async (e) => {
     const addBtn = e.currentTarget;
     const time = host.querySelector('#sched-time')?.value;
-    if (!time) { window.yuvomi?.showToast(t('health.meds.schedule.timeRequired'), 'danger'); return; }
+    if (!time) {
+      reportFieldError(host.querySelector('#sched-time'), t('health.meds.schedule.timeRequired'));
+      return;
+    }
     const doseRaw = host.querySelector('#sched-dose')?.value;
     const indices = [...host.querySelectorAll('.health-weekday.is-active')].map((b) => Number(b.dataset.day));
 
@@ -2115,7 +2120,7 @@ function openLabModal(report) {
         const submitBtn = panel.querySelector('[type="submit"]');
         const body = collectLabHead(panel);
         if (!body) {
-          window.yuvomi?.showToast(t('health.labs.dateRequired'), 'danger');
+          reportFieldError(panel.querySelector('#lab-date'), t('health.labs.dateRequired'));
           return;
         }
         submitBtn.disabled = true;
@@ -2259,9 +2264,13 @@ function wireResultEditor(panel, report) {
     const addBtn = e.currentTarget;
     const analyte = host.querySelector('#res-analyte')?.value.trim();
     const valueRaw = valueEl?.value;
-    if (!analyte) { window.yuvomi?.showToast(t('health.labs.results.analyteRequired'), 'danger'); return; }
+    if (!analyte) {
+      reportFieldError(host.querySelector('#res-analyte'), t('health.labs.results.analyteRequired'));
+      return;
+    }
     if (valueRaw === '' || valueRaw == null || !Number.isFinite(Number(valueRaw))) {
-      window.yuvomi?.showToast(t('health.labs.results.valueRequired'), 'danger'); return;
+      reportFieldError(valueEl, t('health.labs.results.valueRequired'));
+      return;
     }
 
     const body = { analyte, value_num: Number(valueRaw) };

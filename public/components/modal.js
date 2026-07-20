@@ -604,7 +604,7 @@ let _fieldErrorSeq = 0;
  * bekommen Screenreader die Meldung nie zu hören - ein Sammelbanner am
  * Formularende erfüllt WCAG 3.3.1 nicht.
  */
-function _ensureFieldError(group, input) {
+function _ensureFieldError(group, input, message) {
   // Defensiv: die Klassen-Umschaltung funktioniert auch auf schlanken
   // Containern, das Anlegen einer Meldung braucht einen echten DOM-Knoten.
   if (typeof group.querySelector !== 'function' || typeof group.appendChild !== 'function') return;
@@ -623,11 +623,41 @@ function _ensureFieldError(group, input) {
       group.appendChild(el);
     }
   }
+  if (message && el.textContent !== message) {
+    // Eigene Meldung (z. B. „Enddatum vor Startdatum") anzeigen; den bisherigen
+    // Text zum Wiederherstellen merken, damit eine spätere Pflichtfeld-
+    // Validierung nicht die veraltete Spezialmeldung zeigt.
+    if (el.dataset && el.dataset.defaultText === undefined) el.dataset.defaultText = el.textContent;
+    el.textContent = message;
+  } else if (!message && el.dataset && el.dataset.defaultText !== undefined) {
+    el.textContent = el.dataset.defaultText;
+    delete el.dataset.defaultText;
+  }
   if (!el.id) el.id = `${input.id || `modal-field-${++_fieldErrorSeq}`}-error`;
   const describedBy = (input.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
   if (!describedBy.includes(el.id)) {
     describedBy.push(el.id);
     input.setAttribute('aria-describedby', describedBy.join(' '));
+  }
+}
+
+/* Erstes Fehlerfeld in den Blick holen: Fokus ohne Doppel-Scroll, dann das
+ * Feld mittig in den scrollbaren Modal-Body scrollen. Ohne das verortete nur
+ * ein Toast unten links den Fehler - bei langen Formularen blieb das Feld
+ * unsichtbar (Critique P1). */
+function _focusField(input) {
+  // Custom Elements (z. B. yuvomi-datepicker) sind selbst nicht fokussierbar:
+  // stattdessen ihren inneren Formular-Knoten fokussieren.
+  const isNative = typeof input.matches === 'function' && input.matches('input, select, textarea, button');
+  const focusTarget = (!isNative && typeof input.querySelector === 'function'
+    ? input.querySelector('input, select, textarea')
+    : null) ?? input;
+  if (typeof focusTarget.focus === 'function') focusTarget.focus({ preventScroll: true });
+  if (typeof input.scrollIntoView === 'function') {
+    // Bewusst instant statt smooth: Chrome bricht einen laufenden Smooth-
+    // Scroll bei der gleichzeitigen Fehlertext-Einfügung ab (live gemessen),
+    // und ein Fehler soll das Feld ohnehin SOFORT verorten.
+    input.scrollIntoView({ block: 'center' });
   }
 }
 
@@ -658,6 +688,11 @@ function _validateField(input) {
 export function wireBlurValidation(formContainer) {
   formContainer.querySelectorAll('input[required], select[required], textarea[required]').forEach((input) => {
     input.addEventListener('blur', () => _validateField(input));
+    // Sofortige Entwarnung: ist das Feld bereits als fehlerhaft markiert,
+    // räumt die nächste Eingabe den Fehler ohne erneuten Blur auf.
+    input.addEventListener('input', () => {
+      if (input.getAttribute('aria-invalid') === 'true') _validateField(input);
+    });
   });
 }
 
@@ -671,8 +706,45 @@ export function validateAll(formContainer) {
     if (!valid) allValid = false;
   });
 
-  if (firstInvalid) firstInvalid.focus();
+  if (firstInvalid) _focusField(firstInvalid);
   return allValid;
+}
+
+/**
+ * Meldet einen feldbezogenen Fehler mit eigener Meldung am Ort des Geschehens:
+ * Meldung unter dem Feld (aria-describedby), Fehler-Rahmen über die
+ * form-field--error-Tokens, Fokus + Scroll aufs Feld. Ersetzt die ortlosen
+ * Fehler-Toasts der Modal-Speicherpfade (Critique P1); der Fehler räumt sich
+ * bei der nächsten Eingabe im Feld selbst auf. Gibt immer false zurück, damit
+ * Speicherpfade kompakt `return reportFieldError(...)` abbrechen können.
+ */
+export function reportFieldError(input, message) {
+  if (!input) return false;
+  const group = (typeof input.closest === 'function' ? input.closest('.form-field') : null) ?? input.parentElement;
+  if (!group) return false;
+
+  _ensureFieldError(group, input, message);
+  group.classList?.add('form-field--error');
+  group.classList?.remove('form-field--valid');
+  input.setAttribute?.('aria-invalid', 'true');
+  _focusField(input);
+
+  if (typeof input.addEventListener === 'function' && typeof input.removeEventListener === 'function') {
+    const clear = () => {
+      input.removeEventListener('input', clear);
+      input.removeEventListener('change', clear);
+      group.classList?.remove('form-field--error');
+      input.setAttribute?.('aria-invalid', 'false');
+      const el = typeof group.querySelector === 'function' ? group.querySelector('.form-field__error') : null;
+      if (el?.dataset?.defaultText !== undefined) {
+        el.textContent = el.dataset.defaultText;
+        delete el.dataset.defaultText;
+      }
+    };
+    input.addEventListener('input', clear);
+    input.addEventListener('change', clear);
+  }
+  return false;
 }
 
 export function btnSuccess(btn, originalLabel) {

@@ -170,10 +170,12 @@
   margin-inline-start: auto;
 }
 
-/* Karten-Grid je Metrik */
+/* Karten-Grid je Metrik. Mindestbreite 160px: die schmalste Karte muss den
+ * längsten Metrik-Namen („Sauerstoffsättigung") einzeilig tragen können,
+ * seit Labels nicht mehr silbengetrennt werden (Critique P1). */
 .health-vitals__cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: var(--space-3);
 }
 
@@ -199,24 +201,34 @@
   box-shadow: 0 0 0 1px var(--module-accent);
 }
 
+/* Flex mit Umbruch: passt der Metrik-Name nicht mehr NEBEN das Icon, wrappt
+ * er als ganzes Flex-Item auf eine eigene, volle Kartenzeile — erst dort darf
+ * der break-word-Backstop überhaupt greifen. (Ein Float-Ansatz scheitert:
+ * break-word füllt sonst die neben dem Icon verkürzte Zeile und chopt
+ * „Sauerstoffsättigu|ng" wortmittig.) */
 .health-metric-card__head {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   color: var(--color-text-secondary);
   min-width: 0;
 }
 
-/* Lange Metrik-Namen („Sauerstoffsättigung") brechen mit Silbentrennung in
- * die zweite Zeile statt aus der Kachel zu laufen (Audit F-11). */
+/* Metrik-Namen werden nicht mehr silbengetrennt: hyphens:auto (F-11) zerhackte
+ * „Sauerstoffsättigung" mitten im Wort (Critique P1). Die 160px-Mindestspalte
+ * des Karten-Grids trägt den längsten Namen auf der vollen Zeile; break-word
+ * bleibt reiner Backstop für Extremfälle jenseits der Kartenbreite. */
 .health-metric-card__label {
+  flex: 1 1 auto;
   min-width: 0;
   overflow-wrap: break-word;
-  hyphens: auto;
+  hyphens: manual;
   text-align: left;
 }
 
 .health-metric-card__icon {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
   color: var(--module-accent);

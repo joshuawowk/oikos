@@ -6,7 +6,7 @@
  */
 import { api } from '/api.js';
 import { t } from '/i18n.js';
-import { openModal, closeModal } from '/components/modal.js';
+import { openModal, closeModal, reportFieldError } from '/components/modal.js';
 import { vibrate } from '/utils/ux.js';
 import { renderSkeletonList } from '/utils/skeleton.js';
 
@@ -275,7 +275,8 @@ async function savePlan(panel, category) {
   const raw = panel.querySelector('#plan-amount').value;
   const amount = parseFloat(raw);
   if (isNaN(amount) || amount <= 0) {
-    window.yuvomi?.showToast(t('budget.validAmountRequired'), 'danger');
+    // Fehler am Feld statt als ortloser Toast (geteiltes Muster, Critique P1).
+    reportFieldError(panel.querySelector('#plan-amount'), t('budget.validAmountRequired'));
     return;
   }
   const btn = panel.querySelector('#plan-save');

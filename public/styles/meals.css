@@ -269,21 +269,34 @@
   flex-shrink: 0;
 }
 
-/* Schmale Board-Spalten: Silbentrennung statt Ellipse. Die frühere
- * Ellipsen-Lösung (F-04) kappte bei 1280 mit Rezept-Rail 14 von 21 Labels
- * auf "MITTAGESS…" (Audit A1-09) - ein zweizeiliges "MITTAG-ESSEN" bleibt
- * dagegen vollständig lesbar. Eigener Span, weil die Umbruch-Regeln nicht
+/* Labels werden nie silbengetrennt: die früheren Notlösungen (Ellipse in F-04,
+ * hyphens:auto in A1-09) kurierten nur Symptome der 7-Spalten-Quetsche und
+ * zerhackten „MITTAG-ESSEN" in jeder Karte (Critique P1). Das Desktop-Board
+ * gibt den Spalten jetzt eine Mindestbreite (Scroll-Fenster unter 1440px) und
+ * trägt die Typ-Labels in einer Gutter-Spalte — hier bleibt nur der Backstop
+ * für unhyphenierbare Langwörter. Eigener Span, weil die Umbruch-Regeln nicht
  * auf anonyme Flex-Textknoten wirken. */
 .meal-slot__type-text {
   min-width: 0;
-  hyphens: auto;
-  overflow-wrap: anywhere;
+  hyphens: manual;
+  overflow-wrap: break-word;
 }
 
 .meal-slot[data-type="breakfast"] .meal-slot__type-label { --meal-type-dot: var(--meal-breakfast); }
 .meal-slot[data-type="lunch"]     .meal-slot__type-label { --meal-type-dot: var(--meal-lunch); }
 .meal-slot[data-type="dinner"]    .meal-slot__type-label { --meal-type-dot: var(--meal-dinner); }
 .meal-slot[data-type="snack"]     .meal-slot__type-label { --meal-type-dot: var(--meal-snack); }
+
+/* Gutter-Zeilenlabels des Desktop-Boards (≥1024px, siehe unten): mobil und auf
+ * Tablets existiert keine Gutter-Spalte — die Slots tragen ihre Labels selbst. */
+.week-gutter-label {
+  display: none;
+}
+
+.week-gutter-label[data-type="breakfast"] { --meal-type-dot: var(--meal-breakfast); }
+.week-gutter-label[data-type="lunch"]     { --meal-type-dot: var(--meal-lunch); }
+.week-gutter-label[data-type="dinner"]    { --meal-type-dot: var(--meal-dinner); }
+.week-gutter-label[data-type="snack"]     { --meal-type-dot: var(--meal-snack); }
 
 .meal-slot__add-btn {
   flex: 1;
@@ -650,13 +663,39 @@
     padding: 0 var(--space-4) var(--space-8);
   }
 
+  /* Board als EIN Grid statt sieben unabhängiger Spalten-Stapel: Spalte 1 ist
+   * die Gutter-Spalte, die jedes Mahlzeit-Typ-Label EINMAL pro Zeile trägt
+   * (statt in jedem der bis zu 28 Slots); Zeile 1 sind die Tagesköpfe.
+   * day-column/day-slots lösen sich via display:contents auf, Köpfe und Slots
+   * platzieren sich über --day-col/--type-row aus dem Renderer — so liegen
+   * alle Frühstücke/Abendessen der Woche auf einer Höhe. Die Mindest-
+   * Spaltenbreite erzwingt ein horizontales Scroll-Fenster mit Scroll-Snap
+   * (≈5 Tage sichtbar) statt der 7-Spalten-Quetsche, die Labels und
+   * Gerichtenamen silbenweise zerhackte (Critique P1). Kein Breakpoint-
+   * Sonderfall für „alle 7 Tage": die Seite ist auf --content-max-width
+   * (1280px) gedeckelt, lesbare 7 Spalten passen dort strukturell nie —
+   * das Fenster löst sich von selbst auf, sobald der Platz reicht. */
   .week-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    align-items: start;
-    gap: 0;
-    padding: 0;
+    /* Breit genug für das längste deutsche Typ-Label („Mittagessen" ≈ 84px
+     * bei text-sm/medium) plus Punkt, Lücke und Innenabstand — sonst chopt
+     * der break-word-Backstop das Label wortmittig. */
+    --meal-gutter-width: 116px;
+    grid-template-columns: var(--meal-gutter-width) repeat(7, minmax(148px, 1fr));
+    column-gap: var(--space-2);
+    row-gap: var(--space-2);
+    align-items: stretch;
+    padding: 0 0 var(--space-3);
     min-width: 0;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scroll-padding-left: calc(var(--meal-gutter-width) + var(--space-2));
+    overscroll-behavior-x: contain;
+  }
+
+  .day-column,
+  .day-slots {
+    display: contents;
   }
 
   .recipe-sidebar {
@@ -716,26 +755,76 @@
     padding: var(--space-3) 0;
   }
 
-  .day-column {
-    border-bottom: none;
-  }
-
-  .day-column:not(:last-child) {
-    border-right: 1px solid var(--color-border-subtle);
-  }
-
-  /* Mahlzeit-Typen je Tag vertikal stapeln (Spalte ist schmal). */
-  .day-slots {
-    grid-template-columns: 1fr;
-    padding: 0 var(--space-2) var(--space-3);
-  }
-
   .day-header {
-    /* Schmale Board-Spalten (Audit F-04): enges Padding, Name+Datum dürfen
-     * nicht kollidieren — Name ellipsiert, Kompakt-Datum (ohne Jahr) bleibt. */
+    grid-row: 1;
+    grid-column: var(--day-col);
+    /* Snap-Anker des Scroll-Fensters: je Tagesspalte ein Rastpunkt, der hinter
+     * der sticky Gutter-Spalte beginnt (scroll-padding-left oben). */
+    scroll-snap-align: start;
+    /* Kompakter Kopf (Audit F-04): Name+Datum dürfen nicht kollidieren —
+     * Name ellipsiert, Kompakt-Datum (ohne Jahr) bleibt. */
     padding: var(--space-3) var(--space-1) var(--space-2);
     gap: var(--space-1);
     min-width: 0;
+  }
+
+  /* Slots in Grid-Zellen heben: Zeile = Mahlzeit-Typ, Spalte = Wochentag. */
+  .meal-slot {
+    grid-column: var(--day-col);
+    grid-row: var(--type-row);
+  }
+
+  /* Slot-eigene Typ-Labels: visuell übernimmt sie die Gutter-Spalte, im
+   * Accessibility-Tree bleiben sie erhalten, damit jeder Slot für
+   * Screenreader benannt bleibt (sr-only-Muster). */
+  .meal-slot__type-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .week-gutter-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    grid-column: 1;
+    grid-row: var(--type-row);
+    align-self: stretch;
+    /* Bleibt beim horizontalen Scrollen stehen; der Hintergrund deckt die
+     * darunter durchlaufenden Tagesspalten ab. */
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: var(--color-bg);
+    color: var(--color-text-secondary);
+    /* Typo-Rolle (Overline-Mikro-Label) kommt aus typography.css — dieselbe
+     * wie beim mobilen .meal-slot__type-label, damit beide Flächen eine
+     * Sprache sprechen. */
+    padding: var(--space-2) var(--space-2) 0 0;
+    align-items: flex-start;
+  }
+
+  .week-gutter-label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--meal-type-dot, var(--color-text-disabled));
+    flex-shrink: 0;
+    /* Punkt optisch auf die erste Textzeile setzen (Label ist top-aligned). */
+    margin-top: var(--space-1);
+  }
+
+  .week-gutter-label__text {
+    min-width: 0;
+    hyphens: manual;
+    overflow-wrap: break-word;
   }
 
   .day-header__name {
@@ -750,16 +839,19 @@
     white-space: nowrap;
   }
 
-  /* Karten-Titel in schmalen Board-Spalten: zwei Zeilen statt Einzeiler-
-   * Ellipse nach ~5 Zeichen ("Tomat…") — Wiedererkennung vor Kompaktheit. */
+  /* Karten-Titel im Board: zwei Zeilen statt Einzeiler-Ellipse nach ~5
+   * Zeichen ("Tomat…") — Wiedererkennung vor Kompaktheit. Keine
+   * Auto-Silbentrennung mehr: die Mindest-Spaltenbreite (148px) lässt
+   * Gerichtenamen an Wortgrenzen umbrechen; break-word bleibt Backstop
+   * für Einzelwörter jenseits der Spaltenbreite (Critique P1). */
   .meal-card__title-text {
     white-space: normal;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    hyphens: auto;
-    overflow-wrap: anywhere;
+    hyphens: manual;
+    overflow-wrap: break-word;
   }
 }
 

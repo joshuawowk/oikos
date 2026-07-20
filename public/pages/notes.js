@@ -5,7 +5,7 @@
  */
 
 import { api } from '/api.js';
-import { openModal as openSharedModal, closeModal, btnError, advancedSection } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal, btnError, advancedSection, reportFieldError } from '/components/modal.js';
 import { stagger, vibrate, scheduleUndoableDelete } from '/utils/ux.js';
 import { t } from '/i18n.js';
 import { esc, renderMarkdownLight } from '/utils/html.js';
@@ -696,7 +696,11 @@ function openNoteModal({ mode, note = null }) {
         const color   = panel.querySelector('.note-color-swatch--active')?.dataset.color || NOTE_COLORS[0];
         const pinned  = panel.querySelector('#note-pinned').checked ? 1 : 0;
 
-        if (!cnt) { window.yuvomi?.showToast(t('common.contentRequired'), 'danger'); return; }
+        if (!cnt) {
+          // Fehler am Feld statt als ortloser Toast (geteiltes Muster, Critique P1).
+          reportFieldError(panel.querySelector('#note-content'), t('common.contentRequired'));
+          return;
+        }
 
         saveBtn.disabled    = true;
         saveBtn.textContent = '…';

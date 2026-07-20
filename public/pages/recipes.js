@@ -6,7 +6,7 @@
 import { api } from '/api.js';
 import { t } from '/i18n.js';
 import { esc } from '/utils/html.js';
-import { openModal as openSharedModal, closeModal as closeSharedModal, advancedSection } from '/components/modal.js';
+import { openModal as openSharedModal, closeModal as closeSharedModal, advancedSection, wireBlurValidation, reportFieldError } from '/components/modal.js';
 import { DEFAULT_CATEGORY_NAME } from '/utils/shopping-categories.js';
 import { renderKitchenTabsBar } from '/utils/kitchen-tabs.js';
 import { ingredientRowHTML } from '/utils/ingredient-row.js';
@@ -392,7 +392,7 @@ function openRecipeModal(mode, recipe = null) {
     content: `
       <div class="form-group">
         <label class="form-label" for="recipe-title">${t('recipes.titleLabel')}</label>
-        <input id="recipe-title" class="form-input" type="text" placeholder="${t('recipes.titlePlaceholder')}">
+        <input id="recipe-title" class="form-input" type="text" required placeholder="${t('recipes.titlePlaceholder')}">
       </div>
       <div class="form-group">
         <label class="form-label">${t('meals.mealTypeLabel')}</label>
@@ -457,6 +457,8 @@ function openRecipeModal(mode, recipe = null) {
 
       panel.querySelector('#recipe-cancel')?.addEventListener('click', closeModal);
       panel.querySelector('#recipe-save')?.addEventListener('click', () => saveRecipe(panel, mode, recipe));
+      // Pflichtfelder melden sich beim Verlassen inline (geteiltes Muster).
+      wireBlurValidation(panel);
 
       if (window.lucide) window.lucide.createIcons({ el: panel });
     },
@@ -475,7 +477,8 @@ async function saveRecipe(panel, mode, recipe) {
   const meal_types = [...panel.querySelectorAll('#recipe-meal-types input[type="checkbox"]:checked')].map((input) => input.value);
 
   if (!title) {
-    window.yuvomi?.showToast(t('recipes.titleRequired'), 'danger');
+    // Fehler am Feld statt als ortloser Toast (geteiltes Muster, Critique P1).
+    reportFieldError(panel.querySelector('#recipe-title'), t('recipes.titleRequired'));
     return;
   }
 

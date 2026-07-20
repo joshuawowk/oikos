@@ -258,10 +258,13 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
 }
 
 /* App-Launcher-Raster: farbige Modul-Icons als Helden, kein Kasten drumherum.
- * Dicht (4 Spalten) statt aufgeblähter 3er-Karten. */
+ * 3 Spalten: bei 4 Spalten war die Zelle (~80px auf 375px-Viewports) schmaler
+ * als „Haushaltshilfe" — jede Silbentrennung („Haushaltshil-fe") oder Ellipse
+ * zerhackt dort den Modulnamen (Critique P1). Mit 3 Spalten (~109px) passt
+ * jeder deutsche Modulname ungebrochen auf eine Zeile. */
 .more-sheet__grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   column-gap: var(--space-2);
   row-gap: var(--space-3);
   margin-block: var(--space-1);
@@ -402,11 +405,12 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
   font-weight: var(--font-weight-medium);
   text-align: center;
   line-height: 1.2;
-  /* Lange Modulnamen brechen mit echter Silbentrennung um (lang-Attribut setzt
-   * lang-init.js) statt an beliebiger Stelle: overflow-wrap:anywhere erzeugte
-   * Brüche wie „Haushaltshil-fe" (Audit F-09). break-word bleibt als Backstop
-   * für unhyphenierbare Langwörter — es bricht erst, wenn nichts anderes geht. */
-  hyphens: auto;
+  /* Modulnamen werden nie silbengetrennt: hyphens:auto (F-09) zerhackte
+   * „Haushaltshil-fe" in der Primärnavigation (Critique P1) — die 3-Spalten-
+   * Zelle oben gibt jedem Namen jetzt genug Breite. Mehrwort-Namen brechen an
+   * der Wortgrenze; break-word bleibt reiner Backstop für Langwörter jenseits
+   * der Zellbreite und bricht erst, wenn nichts anderes geht. */
+  hyphens: manual;
   overflow-wrap: break-word;
 }
 
@@ -477,9 +481,10 @@ html:has(.search-overlay--visible) yuvomi-install-prompt {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
   line-height: 1.2;
-  /* Wie .more-item__label: Silbentrennung statt Bruch an beliebiger Stelle
-   * („Einstellung-en", Audit F-09). */
-  hyphens: auto;
+  /* Wie .more-item__label: keine Silbentrennung in Nav-Labels (Critique P1).
+   * Die System-Zeile bleibt 4-spaltig — ihr längstes Label („Einstellungen")
+   * passt dort einzeilig; break-word nur als Backstop. */
+  hyphens: manual;
   overflow-wrap: break-word;
 }
 
