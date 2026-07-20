@@ -35,6 +35,8 @@ Second app-wide UX/UI audit round (51 findings across all modules, desktop/mobil
 - The budget statistics chart draws three gridlines with a labeled midpoint and starts its readout on the newest day that has data; the blood-pressure axis uses integer ticks; an empty activity week shows a single message instead of two stacked empty states.
 - Active filter chips tell screen readers how to remove them, and the task status chip announces its action.
 
+## [1.39.0] - 2026-07-19
+
 App-wide UX/UI audit (all modules, light/dark, desktop/mobile). The findings, the priorities and what was deliberately left alone are documented in `docs/ux-audit/`.
 
 ### Added
