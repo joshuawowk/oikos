@@ -1,7 +1,6 @@
 /**
  * Tests: SortableJS-Integration (Drag-and-Drop-Sortierung)
  * Läuft im Node-Kontext - kein echtes DOM/Drag verfügbar, daher:
- *   - reorder() ist eine reine Funktion → real importiert und verhaltensgeprüft.
  *   - makeSortable() nur in den Guard-Pfaden geprüft (der lazy Vendor-Import
  *     löst einen absoluten Browser-Pfad auf, den es unter Node nicht gibt).
  *   - Komponente/CSS/Vendor/i18n strukturell geprüft, analog test-category-manager.js.
@@ -22,39 +21,7 @@ Object.defineProperty(global, 'navigator', {
   configurable: true,
 });
 
-const { makeSortable, reorder } = await import('../public/utils/sortable.js');
-
-// --------------------------------------------------------
-// reorder() - reine Reihenfolge-Berechnung
-// --------------------------------------------------------
-
-test('reorder: verschiebt ein Element nach hinten', () => {
-  assert.deepEqual(reorder(['a', 'b', 'c', 'd'], 0, 2), ['b', 'c', 'a', 'd']);
-});
-
-test('reorder: verschiebt ein Element nach vorne', () => {
-  assert.deepEqual(reorder(['a', 'b', 'c', 'd'], 3, 0), ['d', 'a', 'b', 'c']);
-});
-
-test('reorder: Nachbar-Swap (typischer Drag-Fall)', () => {
-  assert.deepEqual(reorder(['a', 'b', 'c'], 1, 2), ['a', 'c', 'b']);
-});
-
-test('reorder: gleiche Position ändert nichts', () => {
-  assert.deepEqual(reorder(['a', 'b', 'c'], 1, 1), ['a', 'b', 'c']);
-});
-
-test('reorder: mutiert das Eingabe-Array nicht', () => {
-  const input = ['a', 'b', 'c'];
-  reorder(input, 0, 2);
-  assert.deepEqual(input, ['a', 'b', 'c']);
-});
-
-test('reorder: funktioniert mit Objekten (Kategorie-artige Einträge)', () => {
-  const items = [{ key: 'x' }, { key: 'y' }, { key: 'z' }];
-  const next = reorder(items, 2, 0);
-  assert.deepEqual(next.map((i) => i.key), ['z', 'x', 'y']);
-});
+const { makeSortable } = await import('../public/utils/sortable.js');
 
 // --------------------------------------------------------
 // makeSortable() - Guard-Pfade (kein Vendor-Import ohne DOM/listEl)
@@ -129,7 +96,7 @@ test('vendor: LICENSE und README dokumentieren Version/Quelle', () => {
 const comp = read('../public/components/category-manager.js');
 
 test('category-manager: importiert den Sortable-Wrapper', () => {
-  assert.match(comp, /import \{ makeSortable \} from '\/utils\/sortable\.js'/);
+  assert.match(comp, /import \{[^}]*\bmakeSortable\b[^}]*\} from '\/utils\/sortable\.js'/);
 });
 
 test('category-manager: Drag-Handle ist kein Button (kein Tab-Stop, keine Fake-Aktion)', () => {
@@ -159,15 +126,82 @@ test('category-manager: Auf/Ab-Buttons UND Drag-Ende rufen denselben Persistenz-
   assert.ok(persistSubOrderCalls.length >= 2, '_persistSubOrder muss von _subMove UND vom Sub-Drag-onEnd aufgerufen werden');
 });
 
-test('category-manager: Reorder-Fehler lösen ein Rollback aus (Neu-Render aus unverändertem State)', () => {
-  assert.match(comp, /async _persistOrder\([\s\S]*?catch \(err\) \{[\s\S]*?this\._render\(\);/);
-  assert.match(comp, /async _persistSubOrder\([\s\S]*?catch \(err\) \{[\s\S]*?this\._render\(\);/);
+test('category-manager: Reorder-Fehler lösen ein Rollback aus (Teil-Render aus unverändertem State)', () => {
+  // Der Rollback zeichnet nur den betroffenen Ausschnitt neu (Gruppe bzw.
+  // Sublist), nicht die ganze Komponente - stellt die servergültige Reihenfolge
+  // wieder her und verwirft die optimistische Drag-Vorschau.
+  assert.match(comp, /async _persistOrder\([\s\S]*?catch \(err\) \{[\s\S]*?this\._renderGroup\(/);
+  assert.match(comp, /async _persistSubOrder\([\s\S]*?catch \(err\) \{[\s\S]*?this\._renderSublist\(/);
+});
+
+// --------------------------------------------------------
+// Partielles Re-Rendering: Mutationen zeichnen nur den betroffenen Ausschnitt
+// neu (Finding 8), statt bei jeder Aktion alle SortableJS-Instanzen zu ersetzen.
+// --------------------------------------------------------
+
+test('category-manager: bietet scope-fähige Teil-Renderer neben dem Voll-Render', () => {
+  assert.match(comp, /_render\(\)\s*\{/, 'Voll-Render bleibt für Erstbefüllung/Fallback');
+  assert.match(comp, /_renderGroup\(groupKey\)\s*\{/, 'Gruppen-Teil-Render muss existieren');
+  assert.match(comp, /_renderSublist\(parentKey\)\s*\{/, 'Sublist-Teil-Render muss existieren');
+});
+
+test('category-manager: Teil-Render verdrahtet nur den neu gebauten Ausschnitt (_wireSortableIn(root))', () => {
+  assert.match(comp, /_wireSortableIn\(root\)\s*\{/, 'scope-fähiges Wiring muss existieren');
+  // Der Voll-Render verdrahtet den ganzen Container, die Teil-Render nur Sektion/Zeile.
+  assert.match(comp, /_wireSortableIn\(this\._groupsEl\)/);
+  assert.match(comp, /_wireSortableIn\(newSection\)/);
+  assert.match(comp, /_wireSortableIn\(row\)/);
+});
+
+test('category-manager: Teil-Render zerstört nur die Sortable-Instanzen des Ausschnitts (_destroySortablesIn)', () => {
+  assert.match(comp, /_destroySortablesIn\(container\)\s*\{/);
+  assert.match(comp, /container\.contains\(s\.el\)/, 'Selektion über die Listen-Element-Zugehörigkeit');
+  // Voll-Render/disconnected nutzen weiterhin den kompletten Abbau.
+  assert.match(comp, /_destroySortables\(\)\s*\{/);
+});
+
+test('category-manager: top-level-Mutationen zeichnen nur ihre Gruppe neu', () => {
+  // Add/Rename/Delete/Reorder rufen _renderGroup statt des Voll-_render() auf.
+  const groupRenders = comp.match(/this\._renderGroup\(/g) || [];
+  assert.ok(groupRenders.length >= 4, `mindestens Add/Rename/Delete/Reorder-Erfolg, gefunden: ${groupRenders.length}`);
+});
+
+test('category-manager: subcategory-Mutationen zeichnen nur ihre Sublist neu', () => {
+  const subRenders = comp.match(/this\._renderSublist\(/g) || [];
+  assert.ok(subRenders.length >= 4, `mindestens Add/Rename/Delete/Reorder-Erfolg, gefunden: ${subRenders.length}`);
+});
+
+test('category-manager: Refresh ohne Render (_fetch) trennt Datenladen vom Zeichnen', () => {
+  assert.match(comp, /async _fetch\(\)\s*\{[\s\S]*?api\.get\(this\._basePath\)/);
+  // _load bleibt der Voll-Load-Pfad (Erstbefüllung), gebaut auf _fetch.
+  assert.match(comp, /async _load\(\)\s*\{[\s\S]*?await this\._fetch\(\);[\s\S]*?this\._render\(\);/);
 });
 
 test('category-manager: aria-live-Region sagt Umsortierungen an', () => {
   assert.match(comp, /role="status" aria-live="polite" id="cat-manager-announce"/);
   assert.match(comp, /_announce\(message\)/);
   assert.match(comp, /t\('category\.reorderAnnounce'/);
+});
+
+test('category-manager: hält den Fokus nach erfolgreichem Button-Reorder auf der bewegten Zeile', () => {
+  assert.match(comp, /_restoreReorderFocus\(rowSelector, dir/, 'Fokus-Restore-Helper muss existieren');
+  // Nur der Button-Pfad übergibt Fokus-Absicht (Zeile + gedrückte Richtung); der
+  // Drag-Pfad (rollbackRender:true) übergibt bewusst keine.
+  assert.match(comp, /focusKey:\s*key/);
+  assert.match(comp, /focusSubKey:\s*subKey/);
+  assert.match(comp, /focusDir:\s*delta > 0 \? 'down' : 'up'/);
+  // Beide Erfolgspfade stellen den Fokus wieder her.
+  assert.match(comp, /async _persistOrder\([\s\S]*?this\._restoreReorderFocus\(/);
+  assert.match(comp, /async _persistSubOrder\([\s\S]*?this\._restoreReorderFocus\(/);
+  // Fallback-Kette endet auf einem fokussierbaren Element (Umbenennen), nie <body>.
+  assert.match(comp, /data-action="\$\{prefix\}rename"/);
+});
+
+test('category-manager: Drag-Import-Fehler warnt einmalig statt still zu schlucken', () => {
+  assert.match(comp, /_warnDragUnavailable\(/, 'Warn-Helfer muss existieren');
+  assert.match(comp, /if \(this\._dragWarned\) return;/, 'nur einmal warnen');
+  assert.match(comp, /console\.warn\(/);
+  assert.doesNotMatch(comp, /\.catch\(\(\) => \{\}\)/, 'kein stiller Catch mehr');
 });
 
 test('category-manager: Sublist-Reorder schließt die Add-Zeile von Drag/Index aus', () => {

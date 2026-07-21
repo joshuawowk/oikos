@@ -14,7 +14,7 @@
 import { api } from '/api.js';
 import { t } from '/i18n.js';
 import { esc } from '/utils/html.js';
-import { makeSortable } from '/utils/sortable.js';
+import { makeSortable, isDragActive } from '/utils/sortable.js';
 
 class CategoryManagerElement extends HTMLElement {
   constructor() {
@@ -67,10 +67,19 @@ class CategoryManagerElement extends HTMLElement {
     this._root.addEventListener('submit', this._onSubmit);
   }
 
+  // GET ohne Render: setzt this._cats aus der Server-Antwort. Wirft weiter,
+  // damit der aufrufende Mutations-Handler (mit eigenem try/catch) selbst
+  // entscheidet, welchen Ausschnitt er danach neu zeichnet.
+  async _fetch() {
+    const res = await api.get(this._basePath);
+    this._cats = res.data ?? [];
+  }
+
+  // Voll-Load: Erstbefüllung (configure) und generischer Refresh — lädt und
+  // baut die gesamte Komponente neu auf.
   async _load() {
     try {
-      const res = await api.get(this._basePath);
-      this._cats = res.data ?? [];
+      await this._fetch();
       this._render();
     } catch (err) {
       window.yuvomi?.showToast(this._errMsg(err), 'danger');
@@ -88,49 +97,125 @@ class CategoryManagerElement extends HTMLElement {
     return String(item.key ?? item.id);
   }
 
+  // Markup einer Gruppen-Sektion (cat-list + Add-Form; Sublists stecken in den
+  // Zeilen via _rowHtml→_subListHtml). Geteilt von Voll- und Teil-Render.
+  _groupSectionHtml(g) {
+    const items = this._inGroup(g.key);
+    return `
+      <section class="cat-group" data-group="${esc(g.key)}">
+        ${g.labelKey ? `<h4 class="cat-group__title">${esc(t(g.labelKey))}</h4>` : ''}
+        <ul class="cat-list">
+          ${items.map((c, i) => this._rowHtml(c, g, i === 0, i === items.length - 1)).join('')}
+        </ul>
+        <form class="cat-add-form" data-group="${esc(g.key)}" novalidate autocomplete="off">
+          <input class="form-input" type="text" maxlength="60"
+                 placeholder="${esc(t('category.addPlaceholder'))}"
+                 aria-label="${esc(t('category.addPlaceholder'))}" />
+          <button type="submit" class="btn btn--primary">${esc(t(g.addLabelKey || 'common.add'))}</button>
+        </form>
+      </section>`;
+  }
+
+  // Läuft irgendwo ein Drag (z. B. eine zweite Zeile, die gezogen wird, während
+  // der vorige Drag noch auf _persistOrder wartet)? Dann den Render bis zum
+  // nächsten Frame verschieben, statt die aktive Sortable-Instanz mitten im Zug
+  // zu zerstören und den laufenden Drag kommentarlos abzubrechen. Teil-Renderer
+  // fallen in diesem seltenen Fall bewusst auf den (deferten) Voll-Render zurück.
+  _deferForDrag() {
+    if (!isDragActive()) return false;
+    if (!this._renderDeferred) {
+      this._renderDeferred = true;
+      requestAnimationFrame(() => { this._renderDeferred = false; this._render(); });
+    }
+    return true;
+  }
+
+  // Voll-Render: baut alle Gruppen neu auf. Erstbefüllung + Fallback, wenn ein
+  // Teil-Render sein Ziel nicht findet.
   _render() {
     if (!this._groupsEl) return;
+    if (this._deferForDrag()) return;
     this._destroySortables();
     this._groupsEl.replaceChildren();
     this._groups.forEach((g) => {
-      const items = this._inGroup(g.key);
       const tmp = document.createElement('div');
-      tmp.insertAdjacentHTML('beforeend', `
-        <section class="cat-group" data-group="${esc(g.key)}">
-          ${g.labelKey ? `<h4 class="cat-group__title">${esc(t(g.labelKey))}</h4>` : ''}
-          <ul class="cat-list">
-            ${items.map((c, i) => this._rowHtml(c, g, i === 0, i === items.length - 1)).join('')}
-          </ul>
-          <form class="cat-add-form" data-group="${esc(g.key)}" novalidate autocomplete="off">
-            <input class="form-input" type="text" maxlength="60"
-                   placeholder="${esc(t('category.addPlaceholder'))}"
-                   aria-label="${esc(t('category.addPlaceholder'))}" />
-            <button type="submit" class="btn btn--primary">${esc(t(g.addLabelKey || 'common.add'))}</button>
-          </form>
-        </section>`);
+      tmp.insertAdjacentHTML('beforeend', this._groupSectionHtml(g));
       this._groupsEl.appendChild(tmp.firstElementChild);
     });
     if (window.lucide) window.lucide.createIcons({ el: this._groupsEl });
-    this._wireSortable();
+    this._wireSortableIn(this._groupsEl);
+  }
+
+  // Teil-Render einer einzelnen Gruppe: baut nur deren Sektion (cat-list +
+  // Add-Form + eigene Sublists) neu und verdrahtet ausschließlich deren
+  // Sortable-Instanzen neu — andere Gruppen (samt Instanzen) bleiben unberührt.
+  // Fällt bei laufendem Drag oder fehlender Sektion auf den Voll-Render zurück.
+  _renderGroup(groupKey) {
+    if (!this._groupsEl) return;
+    if (this._deferForDrag()) return;
+    const g = this._groups.find((gr) => gr.key === groupKey);
+    const oldSection = this._groupsEl.querySelector(`.cat-group[data-group="${CSS.escape(groupKey ?? '')}"]`);
+    if (!g || !oldSection) { this._render(); return; }
+    this._destroySortablesIn(oldSection);
+    const tmp = document.createElement('div');
+    tmp.insertAdjacentHTML('beforeend', this._groupSectionHtml(g));
+    const newSection = tmp.firstElementChild;
+    oldSection.replaceWith(newSection);
+    if (window.lucide) window.lucide.createIcons({ el: newSection });
+    this._wireSortableIn(newSection);
+  }
+
+  // Teil-Render einer einzelnen Sublist: ersetzt nur die cat-sublist eines
+  // Parents und verdrahtet deren Sub-Sortable neu; die cat-list-Instanz des
+  // Parents bleibt bestehen (die Sublist ist Enkel der Liste, kein direktes
+  // Listen-Kind). Fällt bei Drag oder fehlendem Ziel auf den Voll-Render zurück.
+  _renderSublist(parentKey) {
+    if (!this._groupsEl || !this._supportsSub) return;
+    if (this._deferForDrag()) return;
+    const cat = this._cats.find((c) => this._keyOf(c) === parentKey);
+    const groupKey = cat ? (cat.type ?? cat.group ?? '') : '';
+    const g = this._groups.find((gr) => gr.key === groupKey);
+    const row = this._groupsEl.querySelector(`.cat-row[data-key="${CSS.escape(parentKey ?? '')}"]`);
+    if (!cat || !g || !row) { this._render(); return; }
+    const oldSub = row.querySelector(`:scope > .cat-sublist[data-parent="${CSS.escape(parentKey ?? '')}"]`);
+    const tmp = document.createElement('div');
+    tmp.insertAdjacentHTML('beforeend', this._subListHtml(cat, g));
+    const newSub = tmp.firstElementChild; // null, wenn die Gruppe keine Sublists führt
+    if (oldSub) this._destroySortablesIn(oldSub);
+    if (oldSub && newSub) oldSub.replaceWith(newSub);
+    else if (oldSub) oldSub.remove();
+    else if (newSub) row.appendChild(newSub);
+    else return;
+    if (newSub) {
+      if (window.lucide) window.lucide.createIcons({ el: newSub });
+      this._wireSortableIn(row);
+    }
   }
 
   /* Drag ist nie der einzige Weg: die Auf/Ab-Buttons in _rowHtml/_subListHtml
    * bleiben der tastaturbedienbare Reorder-Pfad und rufen denselben
-   * _persistOrder/_persistSubOrder-Handler wie das Drag-Ende auf. */
-  _wireSortable() {
-    this._groupsEl.querySelectorAll('.cat-list').forEach((listEl) => {
+   * _persistOrder/_persistSubOrder-Handler wie das Drag-Ende auf.
+   *
+   * Scope-fähig: `root` ist beim Voll-Render der Groups-Container, beim
+   * Teil-Render nur die neu gebaute Gruppen-Sektion bzw. Parent-Zeile — so
+   * werden ausschließlich die Listen des neu gezeichneten Ausschnitts verdrahtet. */
+  _wireSortableIn(root) {
+    root.querySelectorAll('.cat-list').forEach((listEl) => {
       const groupKey = listEl.closest('.cat-group')?.dataset.group ?? '';
       makeSortable(listEl, {
         handle: '.cat-row__handle',
         onEnd: (evt) => {
           const movedKey = evt.item?.dataset.key;
           const orderedKeys = Array.from(listEl.children).map((el) => el.dataset.key);
-          this._persistOrder(groupKey, orderedKeys, movedKey);
+          // Nur der Drag-Pfad hat das DOM schon optimistisch umgestellt (SortableJS
+          // verschiebt vor dem PATCH); ein Fehler braucht daher hier einen
+          // Rollback-Render. Der Button-Pfad (_move) mutiert das DOM nie vorab.
+          this._persistOrder(groupKey, orderedKeys, movedKey, { rollbackRender: true });
         },
-      }).then((instance) => this._trackSortable(instance, listEl));
+      }).then((instance) => this._trackSortable(instance, listEl)).catch((err) => this._warnDragUnavailable(err));
     });
     if (!this._supportsSub) return;
-    this._groupsEl.querySelectorAll('.cat-sublist').forEach((subListEl) => {
+    root.querySelectorAll('.cat-sublist').forEach((subListEl) => {
       const parentKey = subListEl.dataset.parent;
       makeSortable(subListEl, {
         handle: '.cat-subrow__handle',
@@ -140,9 +225,9 @@ class CategoryManagerElement extends HTMLElement {
           const orderedSubKeys = Array.from(subListEl.children)
             .filter((el) => el.matches('.cat-subrow'))
             .map((el) => el.dataset.subkey);
-          this._persistSubOrder(parentKey, orderedSubKeys, movedSubKey);
+          this._persistSubOrder(parentKey, orderedSubKeys, movedSubKey, { rollbackRender: true });
         },
-      }).then((instance) => this._trackSortable(instance, subListEl));
+      }).then((instance) => this._trackSortable(instance, subListEl)).catch((err) => this._warnDragUnavailable(err));
     });
   }
 
@@ -160,8 +245,78 @@ class CategoryManagerElement extends HTMLElement {
     this._sortables = [];
   }
 
+  // Nur die Sortable-Instanzen freigeben, deren Liste (s.el) innerhalb von
+  // `container` liegt — für Teil-Render, der andere Listen unangetastet lässt.
+  // Vor dem DOM-Austausch aufrufen, solange s.el noch Nachfahre von container ist.
+  _destroySortablesIn(container) {
+    this._sortables = this._sortables.filter((s) => {
+      if (s?.el && container.contains(s.el)) { s.destroy?.(); return false; }
+      return true;
+    });
+  }
+
+  // Nach einem erfolgreichen Button-Reorder den Fokus auf der bewegten Zeile
+  // halten: der Teil-Render hat den geklickten Auf/Ab-Button neu gebaut, sonst
+  // fiele der Fokus auf <body>. Bevorzugt die gedrückte Richtung; ist dieser
+  // Button am Listenrand nun deaktiviert, auf die Gegenrichtung ausweichen,
+  // sonst auf den Umbenennen-Button (letzter Rückfall, nie <body>). Nur der
+  // Button-Pfad ruft das auf — der Drag-Pfad übergibt bewusst keine Fokus-Absicht.
+  _restoreReorderFocus(rowSelector, dir, prefix = '') {
+    const row = this._groupsEl?.querySelector(rowSelector);
+    if (!row) return;
+    const pick = (action) => {
+      const el = row.querySelector(`[data-action="${action}"]`);
+      return el && !el.disabled ? el : null;
+    };
+    const opposite = dir === 'down' ? 'up' : 'down';
+    const target = pick(`${prefix}${dir}`)
+      || pick(`${prefix}${opposite}`)
+      || row.querySelector(`[data-action="${prefix}rename"]`);
+    target?.focus();
+  }
+
+  // Einmalig warnen, wenn der lazy SortableJS-Import scheitert (statt bei jedem
+  // Render still zu schlucken): Drag bleibt unverfügbar, die Auf/Ab-Buttons
+  // funktionieren unbeeinflusst weiter. Diagnose-Log, kein Nutzer-Toast.
+  _warnDragUnavailable(err) {
+    if (this._dragWarned) return;
+    this._dragWarned = true;
+    console.warn('[yuvomi-category-manager] Drag-and-Drop nicht verfügbar (SortableJS-Import fehlgeschlagen); Auf/Ab-Buttons bleiben nutzbar.', err);
+  }
+
   _announce(message) {
     if (this._announceEl) this._announceEl.textContent = message;
+  }
+
+  // Ungespeicherten Text in offenen „Kategorie hinzufügen"-Feldern über einen
+  // (Rollback-)Rebuild retten: der Teil-Render verwirft die Formulare des neu
+  // gebauten Ausschnitts, also die Werte vorher pro Gruppe/Elternschlüssel
+  // einsammeln und danach zurückschreiben (nicht neu gebaute Felder bleiben
+  // unberührt, das Zurückschreiben ist für sie ein No-op).
+  _snapshotAddInputs() {
+    const snapshot = [];
+    this._groupsEl?.querySelectorAll('.cat-add-form, .cat-subadd-form').forEach((form) => {
+      const input = form.querySelector('input');
+      if (input?.value) {
+        snapshot.push({
+          isSub: form.classList.contains('cat-subadd-form'),
+          match: form.dataset.parent ?? form.dataset.group ?? '',
+          value: input.value,
+        });
+      }
+    });
+    return snapshot;
+  }
+
+  _restoreAddInputs(snapshot) {
+    if (!snapshot?.length) return;
+    snapshot.forEach(({ isSub, match, value }) => {
+      const sel = isSub
+        ? `.cat-subadd-form[data-parent="${CSS.escape(match)}"]`
+        : `.cat-add-form[data-group="${CSS.escape(match)}"]`;
+      const input = this._groupsEl?.querySelector(sel)?.querySelector('input');
+      if (input) input.value = value;
+    });
   }
 
   _rowHtml(cat, group, isFirst, isLast) {
@@ -266,7 +421,7 @@ class CategoryManagerElement extends HTMLElement {
       if (group) body.type = group;
       const res = await api.post(this._basePath, body);
       this._cats.push(res.data);
-      this._render();
+      this._renderGroup(group ?? '');
       window.yuvomi?.showToast(t('category.added'), 'success');
       this._notifyChanged();
     } catch (err) {
@@ -309,7 +464,7 @@ class CategoryManagerElement extends HTMLElement {
       const res = await api.put(`${this._basePath}/${encodeURIComponent(key)}`, { name: newName });
       const idx = this._cats.findIndex((c) => this._keyOf(c) === key);
       if (idx >= 0) this._cats[idx] = res.data;
-      this._render();
+      this._renderGroup(cat.type ?? cat.group ?? '');
       window.yuvomi?.showToast(t('category.renamed'), 'success');
       this._notifyChanged();
     } catch (err) {
@@ -321,44 +476,78 @@ class CategoryManagerElement extends HTMLElement {
     const cat = this._cats.find((c) => this._keyOf(c) === key);
     if (!cat) return;
     const groupKey = cat.type ?? cat.group ?? '';
-    const group = this._inGroup(groupKey);
+    // Auf einer Kopie arbeiten: _inGroup('') liefert bei gruppenlosen Modulen
+    // (z. B. Kontakte) die LIVE-this._cats-Referenz zurück. Ein In-place-Swap
+    // würde den State schon vor der Persistenz optimistisch umstellen — bei einem
+    // fehlgeschlagenen Reorder (Button-Pfad rendert dann bewusst nicht) bliebe
+    // this._cats in der ungespeicherten Reihenfolge zurück und der nächste
+    // _render() zeigte sie an. Nur die berechnete Schlüsselliste zählt hier.
+    const group = this._inGroup(groupKey).slice();
     const idx = group.findIndex((c) => this._keyOf(c) === key);
     const nextIdx = idx + delta;
     if (idx < 0 || nextIdx < 0 || nextIdx >= group.length) return;
     [group[idx], group[nextIdx]] = [group[nextIdx], group[idx]];
-    await this._persistOrder(groupKey, group.map((c) => this._keyOf(c)), key);
+    // Fokus-Absicht mitgeben: nur der Button-Pfad (nicht Drag) soll den Fokus
+    // nach dem Teil-Render auf der bewegten Zeile halten.
+    await this._persistOrder(groupKey, group.map((c) => this._keyOf(c)), key, {
+      focusKey: key,
+      focusDir: delta > 0 ? 'down' : 'up',
+    });
   }
 
-  // Gemeinsamer Persistenz-Pfad für Auf/Ab-Buttons UND Drag-Ende (_wireSortable):
+  // Gemeinsamer Persistenz-Pfad für Auf/Ab-Buttons UND Drag-Ende (_wireSortableIn):
   // beide berechnen nur die neue Reihenfolge, dieser Handler übernimmt PATCH +
-  // Reload + Ansage. Bei Fehlern greift kein manuelles Rollback nötig - _cats
-  // wurde nie mutiert, _render() (aus dem Catch-Zweig aufgerufen) zeichnet die
-  // noch unveränderte, servergültige Reihenfolge einfach neu (verwirft damit
-  // auch die Drag-Vorschau, die SortableJS bereits optimistisch ins DOM gehängt hat).
-  async _persistOrder(groupKey, orderedKeys, movedKey) {
+  // Refresh + Ansage. Bei Erfolg ersetzt die volle Server-Liste (contacts/tasks/
+  // shopping liefern sie im PATCH bereits mit) den State direkt; nur Antworten
+  // ohne Liste (budget: {data:true}) holen den Stand per zusätzlichem GET nach.
+  // Bei Fehlern rollt NUR der Drag-Pfad zurück (rollbackRender): SortableJS hat
+  // das DOM schon optimistisch umgestellt, ein Rebuild aus dem unveränderten
+  // State stellt die servergültige Reihenfolge wieder her. Der Button-Pfad
+  // rendert bewusst NICHT (sonst Fokusverlust auf dem gerade geklickten Auf/Ab-
+  // Button und Verlust ungespeicherten Texts in offenen Add-Feldern).
+  async _persistOrder(groupKey, orderedKeys, movedKey, { rollbackRender = false, focusKey = null, focusDir = null } = {}) {
     try {
       const body = { order: orderedKeys };
       if (groupKey) body.type = groupKey;
-      await api.patch(`${this._basePath}/reorder`, body);
-      await this._load();
-      if (movedKey) this._announceMove(movedKey, orderedKeys);
+      const res = await api.patch(`${this._basePath}/reorder`, body);
+      if (Array.isArray(res?.data)) this._cats = res.data;
+      else await this._fetch();
+      this._renderGroup(groupKey);
+      if (focusKey) this._restoreReorderFocus(`.cat-row[data-key="${CSS.escape(focusKey)}"]`, focusDir);
+      if (movedKey) this._announceMove(movedKey, { groupKey });
       this._notifyChanged();
     } catch (err) {
       window.yuvomi?.showToast(this._errMsg(err), 'danger');
-      this._render();
+      if (rollbackRender) {
+        const inputs = this._snapshotAddInputs();
+        this._renderGroup(groupKey);
+        this._restoreAddInputs(inputs);
+      }
     }
   }
 
-  _announceMove(key, orderedKeys, parentKey) {
-    const idx = orderedKeys.indexOf(key);
+  // Position/Gesamtzahl NACH dem Refresh aus dem frischen State neu bestimmen
+  // (nicht aus dem vor dem await berechneten orderedKeys-Array): bei einer
+  // nebenläufigen Änderung könnte die lokal berechnete Liste sonst von der
+  // tatsächlich gerenderten abweichen.
+  _announceMove(key, { groupKey = null, parentKey = null } = {}) {
+    let list;
+    let cat;
+    if (parentKey != null) {
+      const found = this._findSub(parentKey, key);
+      if (!found) return;
+      cat = found.sub;
+      list = found.cat.subcategories || [];
+    } else {
+      list = this._inGroup(groupKey);
+      cat = list.find((c) => this._keyOf(c) === key);
+    }
+    const idx = list.findIndex((c) => this._keyOf(c) === key);
     if (idx < 0) return;
-    const cat = parentKey
-      ? this._findSub(parentKey, key)?.sub
-      : this._cats.find((c) => this._keyOf(c) === key);
     this._announce(t('category.reorderAnnounce', {
       name: cat ? this._labelResolver(cat) : '',
       position: idx + 1,
-      total: orderedKeys.length,
+      total: list.length,
     }));
   }
 
@@ -374,7 +563,7 @@ class CategoryManagerElement extends HTMLElement {
     try {
       await api.delete(`${this._basePath}/${encodeURIComponent(key)}`);
       this._cats = this._cats.filter((c) => this._keyOf(c) !== key);
-      this._render();
+      this._renderGroup(cat.type ?? cat.group ?? '');
       window.yuvomi?.showToast(t('category.deleted'), 'default');
       this._notifyChanged();
     } catch (err) {
@@ -395,7 +584,8 @@ class CategoryManagerElement extends HTMLElement {
         `${this._basePath}/${encodeURIComponent(parent)}/subcategories`,
         { name }
       );
-      await this._load();
+      await this._fetch();
+      this._renderSublist(parent);
       window.yuvomi?.showToast(t('category.added'), 'success');
       this._notifyChanged();
       return res;
@@ -416,7 +606,8 @@ class CategoryManagerElement extends HTMLElement {
         `${this._basePath}/${encodeURIComponent(parent)}/subcategories/${encodeURIComponent(subKey)}`,
         { name: newName }
       );
-      await this._load();
+      await this._fetch();
+      this._renderSublist(parent);
       window.yuvomi?.showToast(t('category.renamed'), 'success');
       this._notifyChanged();
     } catch (err) {
@@ -432,23 +623,34 @@ class CategoryManagerElement extends HTMLElement {
     const nextIdx = idx + delta;
     if (idx < 0 || nextIdx < 0 || nextIdx >= subs.length) return;
     [subs[idx], subs[nextIdx]] = [subs[nextIdx], subs[idx]];
-    await this._persistSubOrder(parent, subs.map((s) => this._keyOf(s)), subKey);
+    await this._persistSubOrder(parent, subs.map((s) => this._keyOf(s)), subKey, {
+      focusSubKey: subKey,
+      focusDir: delta > 0 ? 'down' : 'up',
+    });
   }
 
   // Sub-Pendant zu _persistOrder, gleicher Vertrag (Auf/Ab-Buttons + Drag-Ende
-  // in _wireSortable rufen beide diesen Handler mit der neuen Reihenfolge auf).
-  async _persistSubOrder(parent, orderedSubKeys, movedSubKey) {
+  // in _wireSortableIn rufen beide diesen Handler mit der neuen Reihenfolge auf;
+  // nur der Drag-Pfad rollt bei Fehlern per rollbackRender zurück).
+  async _persistSubOrder(parent, orderedSubKeys, movedSubKey, { rollbackRender = false, focusSubKey = null, focusDir = null } = {}) {
     try {
-      await api.patch(
+      const res = await api.patch(
         `${this._basePath}/${encodeURIComponent(parent)}/subcategories/reorder`,
         { order: orderedSubKeys }
       );
-      await this._load();
-      if (movedSubKey) this._announceMove(movedSubKey, orderedSubKeys, parent);
+      if (Array.isArray(res?.data)) this._cats = res.data;
+      else await this._fetch();
+      this._renderSublist(parent);
+      if (focusSubKey) this._restoreReorderFocus(`.cat-subrow[data-subkey="${CSS.escape(focusSubKey)}"]`, focusDir, 'sub-');
+      if (movedSubKey) this._announceMove(movedSubKey, { parentKey: parent });
       this._notifyChanged();
     } catch (err) {
       window.yuvomi?.showToast(this._errMsg(err), 'danger');
-      this._render();
+      if (rollbackRender) {
+        const inputs = this._snapshotAddInputs();
+        this._renderSublist(parent);
+        this._restoreAddInputs(inputs);
+      }
     }
   }
 
@@ -465,7 +667,8 @@ class CategoryManagerElement extends HTMLElement {
       await api.delete(
         `${this._basePath}/${encodeURIComponent(parent)}/subcategories/${encodeURIComponent(subKey)}`
       );
-      await this._load();
+      await this._fetch();
+      this._renderSublist(parent);
       window.yuvomi?.showToast(t('category.deleted'), 'default');
       this._notifyChanged();
     } catch (err) {

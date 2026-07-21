@@ -11,11 +11,31 @@
 import { vibrate } from './ux.js';
 
 let sortablePromise = null;
+let SortableCtor = null;
 function loadSortable() {
   if (!sortablePromise) {
-    sortablePromise = import('/vendor/sortablejs/sortable.esm.min.js').then((mod) => mod.default);
+    sortablePromise = import('/vendor/sortablejs/sortable.esm.min.js')
+      .then((mod) => { SortableCtor = mod.default; return mod.default; })
+      .catch((err) => {
+        // Fehlgeschlagenen Import nicht dauerhaft cachen: sonst liefert jeder
+        // spätere Aufruf dieselbe abgelehnte Promise und der globale
+        // unhandledrejection-Handler (router.js) zeigt bei jedem Render einen
+        // Fehler-Toast. Zurücksetzen erlaubt einen erneuten Versuch.
+        sortablePromise = null;
+        throw err;
+      });
   }
   return sortablePromise;
+}
+
+/**
+ * Ob gerade irgendeine Sortable-Instanz aktiv gezogen wird. Liest das statische
+ * SortableJS-Flag der (falls schon geladenen) Bibliothek — synchron, ohne den
+ * lazy Import zu erzwingen (vor dem ersten makeSortable() gibt es keinen Drag).
+ * @returns {boolean}
+ */
+export function isDragActive() {
+  return !!(SortableCtor && SortableCtor.active);
 }
 
 function prefersReducedMotion() {
@@ -62,12 +82,4 @@ export async function makeSortable(listEl, { handle, draggable, onEnd } = {}) {
       onEnd(evt);
     },
   });
-}
-
-/** Liefert eine neue Liste mit dem Element von `oldIndex` an Position `newIndex`. */
-export function reorder(items, oldIndex, newIndex) {
-  const next = items.slice();
-  const [moved] = next.splice(oldIndex, 1);
-  next.splice(newIndex, 0, moved);
-  return next;
 }

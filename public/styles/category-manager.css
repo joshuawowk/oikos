@@ -152,8 +152,15 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  padding: var(--space-1);
-  margin: calc(var(--space-1) * -1);
+  /* Greifzone auf ein komfortables Touch-Ziel vergrößern: die Zeile ist durch die
+     48px-Icon-Buttons ohnehin hoch, align-self:stretch nutzt sie als volle
+     vertikale Greifhöhe (die Zieh-Achse) ohne Layout-Änderung; min-height sichert
+     ein 40px-Ziel auch in kürzeren Zeilen. Breiteres Inline-Padding gibt horizontal
+     Fläche, das negative Inline-Margin hält das Icon in Flucht mit dem Zeilenrand. */
+  align-self: stretch;
+  min-height: var(--target-md);
+  padding-inline: var(--space-2);
+  margin-inline: calc(var(--space-1) * -1);
   border-radius: var(--radius-xs);
   color: var(--color-text-quaternary);
   cursor: grab;
