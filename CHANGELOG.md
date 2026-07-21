@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.4] - 2026-07-21
+
+Follow-up pass on the accessibility and interaction findings surfaced by the design critique.
+
+### Fixed
+- On phones the month calendar is no longer a dead end: every day cell is now a button (keyboard-operable with a visible focus ring and a screen-reader label such as "23 July, 4 entries"), and tapping a day - including one of its event dots - opens that day instead of only showing a popup. Desktop keeps opening an event popover from an event chip.
+- The "Latest vitals" cards on the Health overview no longer break a long metric name in the middle of the word (for example "Sauerstoffsättigung") in the narrow two-column layout; long names now break at a syllable. The vitals tab is unchanged.
+- The budget statistics trend chart now tells income and expenses apart by line style (solid vs dashed) in addition to color, so the two series stay separable for viewers with red-green color-vision deficiency; the legend mirrors the same pattern.
+- The "High" and "Urgent" priority dots (dashboard task widget and mobile calendar) are now clearly distinguishable: "High" is a brighter orange with a real lightness gap from urgent red, which reads even with color-vision deficiency, and each dot now has a tooltip naming its priority.
+- The Kanban board now shows a single "No results" state naming the search term, with a reset action, when a search matches nothing, instead of a board of empty "No tasks" columns.
+
+### Changed
+- The delete button in the calendar event popover is now visually lighter than "Edit", so the destructive action no longer carries equal weight.
+- Truncated budget category names in the mobile statistics bars now reveal the full name on hover or long-press.
+
 ## [1.40.3] - 2026-07-21
 
 Bug-fix pass on three reported issues: modal saves, finance account colors, and silent reminder-delivery failures.
