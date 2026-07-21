@@ -1231,7 +1231,7 @@ function openDocumentModal(doc = null) {
       visibility.addEventListener('change', syncVisibility);
       syncVisibility();
       bindDropzone(panel);
-      form.addEventListener('submit', (event) => saveDocument(event, doc));
+      form.addEventListener('submit', (event) => saveDocument(event, doc, panel));
     },
   });
 }
@@ -1280,11 +1280,16 @@ function bindDropzone(panel) {
   });
 }
 
-async function saveDocument(event, doc) {
+async function saveDocument(event, doc, panel) {
   event.preventDefault();
   const form = event.target;
   const error = form.querySelector('#document-error');
-  const submit = form.querySelector('#document-submit');
+  // Die Fußzeile mit dem Submit-Button wird beim Öffnen ans Panel gehoben
+  // (#543), liegt also außerhalb des Formular-DOM - deshalb über das Panel
+  // referenzieren. form.querySelector fände hier null, und submit.disabled
+  // würfe einen unbehandelten TypeError (→ generischer Fehler-Toast statt
+  // Speichern).
+  const submit = panel.querySelector('#document-submit');
   error.hidden = true;
   submit.disabled = true;
   try {

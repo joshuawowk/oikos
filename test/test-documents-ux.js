@@ -276,3 +276,16 @@ test('das Rückgängig-Löschen stellt die Server-Sortierung wieder her', () => 
   // Kein Nachladen auf einen abgehängten Container nach Seitenwechsel.
   assert.match(del, /if \(_container !== owner\) return/);
 });
+
+test('das Speichern referenziert den Submit-Button am Panel, nicht am Formular (#543)', () => {
+  // Der Modal-Footer mit dem Submit-Button wird beim Öffnen ans Panel gehoben und
+  // liegt außerhalb des Formular-DOM. form.querySelector('#document-submit') fände
+  // dann null, und submit.disabled würfe einen unbehandelten TypeError, der als
+  // generischer Fehler-Toast erscheint, statt das Dokument zu speichern.
+  assert.match(page, /async function saveDocument\(event, doc, panel\)/);
+  const save = page.slice(page.indexOf('async function saveDocument'), page.indexOf('async function saveDocument') + 900);
+  assert.match(save, /panel\.querySelector\('#document-submit'\)/);
+  assert.doesNotMatch(save, /form\.querySelector\('#document-submit'\)/);
+  // Der Submit-Handler reicht das Panel an saveDocument durch.
+  assert.match(page, /saveDocument\(event, doc, panel\)/);
+});

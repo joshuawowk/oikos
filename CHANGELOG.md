@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.40.5] - 2026-07-21
+## [1.40.6] - 2026-07-21
+
+Follow-up to the #543 modal-save fix: the document settings dialog still failed to save.
+
+### Fixed
+- Editing a document's settings and clicking "Save" now applies the change instead of showing "An unexpected error occurred". The v1.40.3 fix that lifts the modal footer out of its form (to keep the primary action above the fold) moved the submit button out of the form element, but the document dialog still looked it up inside the form and got nothing; the resulting error was thrown before the save handler's try/catch and surfaced as a generic error toast with the dialog stuck open. The button is now resolved from the modal panel, matching every other modal, and saving works on both desktop and mobile. (#543)
 
 Fix for contact-card import corrupting names that use non-ASCII letters.
 
