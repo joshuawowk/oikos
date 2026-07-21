@@ -21,18 +21,25 @@ services:
     image: ghcr.io/ulsklyc/yuvomi:latest
     container_name: oikos
     restart: unless-stopped
+    networks:
+      - npm_net
     ports:
-      - "3000:3000"
+      - "3080:3000"
     volumes:
-      - oikos_data:/data
+      - ${DATA_DIR}:/data
+      - ${BACKUP_DIR}:/backups
+      # Drop Yuvomi modules into ./modules, or set MODULES_DIR=/path/to/modules.
+      - ${MODULES_DIR}:/app/modules
+      # Optional local documents folder: mount a host directory to /documents inside the container
+      - ${DOCUMENT_STORAGE_LOCAL_DIR}:/documents
       # Optional: mount a host folder for storing uploaded documents locally
       # - ./documents:/documents
     environment:
       - NODE_ENV=production
       - PORT=3000
       - DB_PATH=/data/yuvomi.db
-      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env}
-      - DB_ENCRYPTION_KEY=${DB_ENCRYPTION_KEY:?Set DB_ENCRYPTION_KEY in .env}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - DB_ENCRYPTION_KEY=${DB_ENCRYPTION_KEY}
       # Set to true when behind a reverse proxy with HTTPS (Caddy, nginx, Traefik)
       - SESSION_SECURE=${SESSION_SECURE:-false}
       # Trust proxy hops (default: 1 for Docker+reverse-proxy setups)
@@ -45,9 +52,9 @@ services:
       - WEATHER_UNITS=${WEATHER_UNITS:-metric}
       # Weather (optional) — OpenWeatherMap (legacy; only if you already use it)
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
-      - OPENWEATHER_CITY=${OPENWEATHER_CITY:-Berlin}
-      - OPENWEATHER_UNITS=${OPENWEATHER_UNITS:-metric}
-      - OPENWEATHER_LANG=${OPENWEATHER_LANG:-de}
+      - OPENWEATHER_CITY=${OPENWEATHER_CITY:-Boston}
+      - OPENWEATHER_UNITS=${OPENWEATHER_UNITS:-imperial}
+      - OPENWEATHER_LANG=${OPENWEATHER_LANG:-en}
       # Google Calendar (optional)
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
@@ -78,6 +85,7 @@ services:
       retries: 3
       start_period: 10s
 
-volumes:
-  oikos_data:
-    driver: local
+networks:
+  npm_net:
+    external: true
+    name: npm_net
