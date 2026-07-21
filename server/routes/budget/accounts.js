@@ -43,7 +43,7 @@ router.post('/accounts', (req, res) => {
     const vName    = str(req.body.name, 'Name', { max: MAX_SHORT });
     const vType    = oneOf(req.body.type || 'checking', ACCOUNT_TYPE_KEYS, 'Kontotyp');
     const vBalance = num(req.body.starting_balance ?? 0, 'Startsaldo', { required: false });
-    const vColor   = validateColor(req.body.color, 'Farbe');
+    const vColor   = validateColor(req.body.color, 'Farbe', { allowTokens: true });
     const errors   = collectErrors([vName, vType, vBalance, vColor]);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
 
@@ -82,7 +82,7 @@ router.put('/accounts/:id', (req, res) => {
     if (req.body.name !== undefined) checks.push(str(req.body.name, 'Name', { max: MAX_SHORT }));
     if (req.body.type !== undefined) checks.push(oneOf(req.body.type, ACCOUNT_TYPE_KEYS, 'Kontotyp'));
     if (req.body.starting_balance !== undefined) checks.push(num(req.body.starting_balance, 'Startsaldo'));
-    if (req.body.color !== undefined) checks.push(validateColor(req.body.color, 'Farbe'));
+    if (req.body.color !== undefined) checks.push(validateColor(req.body.color, 'Farbe', { allowTokens: true }));
     const errors = collectErrors(checks);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), code: 400 });
 
@@ -90,7 +90,7 @@ router.put('/accounts/:id', (req, res) => {
       ? (req.body.currency ? str(req.body.currency, 'Währung', { max: 8 }).value : null)
       : existing.currency;
     const color = req.body.color !== undefined
-      ? validateColor(req.body.color, 'Farbe').value
+      ? validateColor(req.body.color, 'Farbe', { allowTokens: true }).value
       : existing.color;
     const archived = req.body.archived !== undefined ? (req.body.archived ? 1 : 0) : existing.archived;
 

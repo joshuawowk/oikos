@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.40.2] - 2026-07-21
+## [1.40.3] - 2026-07-21
+
+Bug-fix pass on three reported issues: modal saves, finance account colors, and silent reminder-delivery failures.
+
+### Fixed
+- Editing a task or document and clicking "Save"/"Apply" now applies the change. The modal footer is lifted out of its form to stay pinned above the fold, which detached the submit button from the form so the click silently did nothing. The button now keeps its form association and submits as before. (#543)
+- Creating or editing a finance account with a color no longer fails with "Color must be a valid HEX color". The account color picker stores theme-aware accent tokens (so the swatch also lightens in dark mode), and the server now accepts those tokens alongside plain hex colors, while still rejecting arbitrary CSS. (#542)
+- Reminder and notification delivery (Web Push, Gotify, ntfy) no longer breaks silently when the `reminders.pushed_at` column is missing after inconsistent migration history (e.g. a backup restored mid-migration). The database now self-heals the known critical column on startup and logs the repair, instead of the scheduler failing every 60 seconds on "no such column". (#538)
 
 Polish pass clearing the remaining P2/P3 findings from the design critique (design health 33 to 34), plus a Kanban board fix uncovered along the way.
 

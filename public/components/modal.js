@@ -19,6 +19,7 @@ let previouslyFocused = null;
 let focusTrapHandler = null;
 let _initialFormSnapshot = null;
 let _initialFormTimeout = null;
+let _modalFormSeq = 0;
 
 // Modal-Lebenszyklus als explizite Zustandsmaschine (Audit 1.5). Ersetzt die
 // frühere ad-hoc-Jonglage aus einem Boolean-Schließ-Flag plus temporär
@@ -309,6 +310,19 @@ export function openModal({ title, content, onSave, onDelete, onClose, size = 'm
   const bodyFooter = [...panel.querySelectorAll('.modal-panel__body .modal-panel__footer')].pop();
   if (bodyFooter) {
     bodyFooter.removeAttribute('style');
+    // Liegt die Fußzeile in einem <form>, löst das Anheben ans Panel ihre
+    // Bedienelemente aus dem Formular - ein „Speichern"/„Übernehmen"-Button mit
+    // type="submit" löst dann kein submit-Event mehr aus, und der Klick tut
+    // scheinbar nichts (#543). Vor dem Verschieben die Formular-Zugehörigkeit
+    // per form-Attribut festzurren; so submittet der Button das Formular auch
+    // außerhalb des Formular-DOM (Standard-HTML-Assoziation).
+    const ownerForm = bodyFooter.closest('form');
+    if (ownerForm) {
+      if (!ownerForm.id) ownerForm.id = `modal-form-${++_modalFormSeq}`;
+      bodyFooter.querySelectorAll('button, input, select, textarea').forEach((el) => {
+        if (!el.hasAttribute('form')) el.setAttribute('form', ownerForm.id);
+      });
+    }
     panel.appendChild(bodyFooter);
   }
 

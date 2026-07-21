@@ -170,6 +170,7 @@ function init() {
   db.pragma('temp_store = MEMORY');
 
   migrate();
+  reconcileCriticalSchema();
 
   log.info(`Connected: ${DB_PATH} | Schema v${currentVersion()}`);
   return db;
@@ -3397,6 +3398,52 @@ function migrate() {
 }
 
 /**
+ * Kritische additive Spalten, die real vorhanden sein MÜSSEN, sobald ihre
+ * Migration als angewendet gilt. Jede Spalte ist eine gefahrlos wiederholbare
+ * `ADD COLUMN` (NULL-Default) - die einzige idempotente Reparaturform.
+ */
+const CRITICAL_COLUMNS = [
+  // #538: v54 trägt reminders.pushed_at nach; ohne die Spalte scheitert der
+  // Notification-/Push-Scheduler bei jedem Lauf still auf `no such column`.
+  { table: 'reminders', column: 'pushed_at', type: 'TEXT' },
+];
+
+/**
+ * Selbstheilung gegen Migrations-Drift (#538).
+ *
+ * In seltenen Fällen ist eine Migration in `schema_migrations` als angewendet
+ * vermerkt, ihr additiver Effekt fehlt real aber - etwa nach Restore aus einem
+ * zu einem inkonsistenten Zeitpunkt gezogenen Backup oder einem abgebrochenen
+ * Migrationslauf. Eine so fehlende Spalte lässt einen ganzen Hintergrund-Loop
+ * still auf `no such column` scheitern (der Push-/Notification-Scheduler auf
+ * `reminders.pushed_at`), ohne dass es in der UI sichtbar wird.
+ *
+ * Diese Funktion stellt die bekannten kritischen Spalten idempotent sicher und
+ * protokolliert jede Nachbesserung sichtbar. Sie ersetzt Migrationen NICHT -
+ * die bleiben die einzige Quelle für Schemaänderungen; dies ist nur ein
+ * Sicherheitsnetz für additive Drift.
+ */
+function reconcileCriticalSchema(database = db) {
+  if (!database) return;
+  for (const { table, column, type } of CRITICAL_COLUMNS) {
+    let columns;
+    try {
+      columns = database.prepare(`PRAGMA table_info(${table})`).all();
+    } catch {
+      continue; // Tabelle nicht lesbar - keine additive Reparatur möglich.
+    }
+    if (!columns.length) continue;                          // Tabelle existiert nicht
+    if (columns.some((c) => c.name === column)) continue;   // Spalte bereits vorhanden
+    try {
+      database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+      log.warn(`Schema-Drift behoben: ${table}.${column} fehlte trotz vermerkter Migration und wurde nachgetragen (#538).`);
+    } catch (err) {
+      log.error(`Schema-Reconciliation ${table}.${column} fehlgeschlagen:`, err?.message || err);
+    }
+  }
+}
+
+/**
  * Aktuelle Schema-Version zurückgeben.
  * @returns {number}
  */
@@ -3553,4 +3600,4 @@ function _resetTestDatabase() {
 
 init();   // auto-initialise when module is first imported
 
-export { init, get, transaction, currentVersion, getPath, backupToFile, restoreFromFile, MIGRATIONS, _setTestDatabase, _resetTestDatabase };
+export { init, get, transaction, currentVersion, getPath, backupToFile, restoreFromFile, MIGRATIONS, reconcileCriticalSchema, _setTestDatabase, _resetTestDatabase };
