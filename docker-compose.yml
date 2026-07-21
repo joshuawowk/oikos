@@ -18,8 +18,8 @@ services:
       - ${MODULES_DIR:-./modules}:/app/modules
       # Optional local documents folder: mount a host directory to /documents inside the container
       - ${DOCUMENT_STORAGE_LOCAL_DIR:-./documents}:/documents
-    env_file:
-      - .env
+    # env_file:
+    #   - .env
     environment:
       - NODE_ENV=production
       - DB_PATH=${DB_PATH:-/data/yuvomi.db}
