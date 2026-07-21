@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "Επαναφορά",
         "recurring": "Επαναλαμβανόμενο",
         "listView": "Προβολή λίστας",
+        "kanbanColEmpty": "Καμία εργασία",
+        "kanbanDropHint": "Σύρετε εδώ",
         "kanbanView": "Προβολή Kanban",
         "filterBtn": "Φίλτρο",
         "filterClearAll": "Εκκαθάριση όλων των φίλτρων",

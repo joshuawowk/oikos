@@ -1247,9 +1247,85 @@ function updateOfflineNotice() {
   if (window.lucide) lucide.createIcons({ el: page.querySelector('#cal-offline-notice') });
 }
 
+// --------------------------------------------------------
+// Monatszellen-Kapazität (Audit P2)
+// --------------------------------------------------------
+
+// Render-Puffer je Zelle; wie viele Chips sichtbar bleiben, entscheidet
+// fitMonthDayCells aus der realen Zellhöhe. Der Deckel begrenzt nur das DOM an
+// extrem vollen Tagen (>14 Items) - "+N" zählt via data-total trotzdem korrekt.
+const MONTH_DAY_MAX_CHIPS = 14;
+
+let _monthGridResizeObserver = null;
+let _monthFitRaf = 0;
+
+// Sichtbare Chip-Zahl je Monatszelle aus der REALEN Zellhöhe ableiten. Weil
+// grid-auto-rows:1fr die Zellhöhe inhaltsunabhängig macht (per Grid verteilt,
+// variiert mit dem Viewport), ist die Messung stabil: Chips zu verstecken ändert
+// die Zellhöhe nicht. Der letzte Platz bleibt immer für die "+N"-Zeile reserviert,
+// damit nie ein Chip mittig abschneidet (vorher: festes Budget=3 clippte still).
+function fitMonthDayCells(grid) {
+  if (!grid) return;
+  grid.querySelectorAll('.month-day').forEach((cell) => {
+    const chips   = [...cell.querySelectorAll('.month-day__holiday, .month-day__event, .cal-task-chip')];
+    const moreRow = cell.querySelector('.month-day__more');
+    if (!moreRow) return;
+    const total = Number(cell.dataset.total) || chips.length;
+
+    // Reset auf vollständig sichtbar für eine stabile Messung.
+    chips.forEach((c) => c.classList.remove('is-clipped'));
+    moreRow.hidden = true;
+    moreRow.textContent = '';
+    if (!chips.length) return;
+
+    const cs         = getComputedStyle(cell);
+    const cellBottom = cell.getBoundingClientRect().bottom - parseFloat(cs.paddingBottom);
+
+    // Passt alles rein (inkl. evtl. nicht gerenderter Überzähliger)? Dann fertig.
+    const fitsAll = total <= chips.length
+      && chips[chips.length - 1].getBoundingClientRect().bottom <= cellBottom;
+    if (fitsAll) return;
+
+    // Platz für die "+N"-Zeile freihalten (einzeilig, Höhe unabhängig von N).
+    moreRow.hidden = false;
+    moreRow.textContent = t('calendar.moreEvents', { count: total });
+    const reserved = cellBottom - moreRow.getBoundingClientRect().height;
+
+    let visible = 0;
+    for (const chip of chips) {
+      if (chip.getBoundingClientRect().bottom <= reserved) visible += 1;
+      else break;
+    }
+    visible = Math.max(1, visible); // nie ganz leer wirken lassen
+
+    chips.forEach((chip, i) => chip.classList.toggle('is-clipped', i >= visible));
+    const hiddenCount = total - visible;
+    if (hiddenCount > 0) {
+      moreRow.textContent = t('calendar.moreEvents', { count: hiddenCount });
+    } else {
+      moreRow.hidden = true;
+      moreRow.textContent = '';
+    }
+  });
+}
+
+// Neurechnung per rAF drosseln: der ResizeObserver kann beim Fensterziehen
+// mehrfach pro Frame feuern; ein fit pro Frame reicht.
+function scheduleMonthFit(grid) {
+  if (_monthFitRaf) return;
+  _monthFitRaf = requestAnimationFrame(() => {
+    _monthFitRaf = 0;
+    fitMonthDayCells(grid);
+  });
+}
+
 function renderView() {
   const body = _container.querySelector('#cal-body');
   if (!body) return;
+  // Monats-Resize-Observer lösen, bevor das alte #month-grid detached wird;
+  // nur die Monatsansicht setzt ihn danach wieder auf.
+  _monthGridResizeObserver?.disconnect();
+  _monthGridResizeObserver = null;
   body.replaceChildren();
 
   // Tages-Buckets einmal pro Render-Pass aufbauen; danach wieder deaktivieren,
@@ -1303,7 +1379,8 @@ function renderMonthView(container) {
     </div>
   `);
 
-  container.querySelector('#month-grid').addEventListener('click', (e) => {
+  const grid = container.querySelector('#month-grid');
+  grid.addEventListener('click', (e) => {
     const taskChip = e.target.closest('.cal-task-chip');
     if (taskChip) {
       e.stopPropagation();
@@ -1322,6 +1399,13 @@ function renderMonthView(container) {
       switchToDayView(dayEl.dataset.date);
     }
   });
+
+  // Sichtbare Kapazität je Zelle aus der realen Höhe ableiten und bei Viewport-
+  // Änderungen (Fenster-Resize, Sidebar-Toggle) neu rechnen (Audit P2). Der
+  // ResizeObserver feuert nach observe() initial einmal -> erster fit nach Paint.
+  _monthGridResizeObserver?.disconnect();
+  _monthGridResizeObserver = new ResizeObserver(() => scheduleMonthFit(grid));
+  _monthGridResizeObserver.observe(grid);
 }
 
 function renderMonthDay(date, inMonth) {
@@ -1335,19 +1419,25 @@ function renderMonthDay(date, inMonth) {
     isToday  ? 'month-day--today' : '',
   ].filter(Boolean).join(' ');
 
-  // Ein gemeinsames Slot-Budget für alles, was in der Zelle eine Zeile belegt
-  // (Feiertagsband, Termine, Aufgaben). Zuvor kappten Termine und Aufgaben
-  // getrennt (3+2) und die Zelle clippte still per overflow:hidden; die
-  // "+N"-Zeile zählte nur Termine (Audit A1-04). Feiertage belegen ihre
-  // Slots zuerst, dann Termine, dann Aufgaben; N zählt alle Überzähligen.
-  const SLOT_BUDGET = 3;
-  const evSlots     = Math.max(1, SLOT_BUDGET - dayHols.length);
-  const shown       = evs.slice(0, evSlots);
-  const taskSlots   = Math.max(0, evSlots - shown.length);
-  const shownTasks  = dayTasks.slice(0, taskSlots);
-  const extra       = (evs.length - shown.length) + (dayTasks.length - shownTasks.length);
+  // Alle Chips (Feiertagsband, Termine, Aufgaben) bis zu einem großzügigen Puffer
+  // ins DOM rendern; welche sichtbar bleiben, entscheidet fitMonthDayCells aus der
+  // REALEN Zellhöhe (grid-auto-rows:1fr -> variiert mit dem Viewport). Zuvor kappte
+  // ein festes Budget=3 blind: bei niedriger Zellhöhe schnitt die Zelle den letzten
+  // Chip mittig ab, ohne "+N" (Audit A1-04 / P2). data-total trägt die Gesamtzahl,
+  // damit "+N" auch die nicht gerenderten Überzähligen mitzählt. Reihenfolge
+  // Feiertag -> Termin -> Aufgabe.
+  const total     = dayHols.length + evs.length + dayTasks.length;
+  const holShown  = dayHols.slice(0, MONTH_DAY_MAX_CHIPS);
+  const evShown   = evs.slice(0, Math.max(0, MONTH_DAY_MAX_CHIPS - holShown.length));
+  const taskShown = dayTasks.slice(0, Math.max(0, MONTH_DAY_MAX_CHIPS - holShown.length - evShown.length));
 
-  const evHtml = shown.map((ev) => `
+  const holHtml = holShown.map((h) => `
+    <div class="month-day__holiday" style="--holi-color:${esc(h.color)};--holi-ink:${esc(getReadableTextColor(h.color))}" title="${esc(h.name)}">
+      <span>${esc(h.name)}</span>
+    </div>
+  `).join('');
+
+  const evHtml = evShown.map((ev) => `
     <div class="month-day__event"
          data-id="${ev.id}"
          style="${eventSurfaceStyle(ev)}"
@@ -1355,21 +1445,15 @@ function renderMonthDay(date, inMonth) {
     >${eventIconHtml(ev.icon, 'event-icon event-icon--compact')}<span>${esc(ev.title)}</span>${chipAssigneeStack(ev, { size: 15, maxVisible: 2 })}</div>
   `).join('');
 
-  const taskHtml = shownTasks.map(renderTaskChip).join('');
-
-  const holHtml = dayHols.map((h) => `
-    <div class="month-day__holiday" style="--holi-color:${esc(h.color)};--holi-ink:${esc(getReadableTextColor(h.color))}" title="${esc(h.name)}">
-      <span>${esc(h.name)}</span>
-    </div>
-  `).join('');
+  const taskHtml = taskShown.map(renderTaskChip).join('');
 
   return `
-    <div class="${classes}" data-date="${date}">
+    <div class="${classes}" data-date="${date}" data-total="${total}">
       <div class="month-day__number">${new Date(date + 'T00:00:00').getDate()}</div>
       ${holHtml}
       ${evHtml}
       ${taskHtml}
-      ${extra > 0 ? `<div class="month-day__more">${t('calendar.moreEvents', { count: extra })}</div>` : ''}
+      <div class="month-day__more" hidden></div>
     </div>
   `;
 }

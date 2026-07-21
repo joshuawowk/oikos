@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "Riapri",
         "recurring": "Ricorrente",
         "listView": "Vista elenco",
+        "kanbanColEmpty": "Nessuna attività",
+        "kanbanDropHint": "Trascina qui",
         "kanbanView": "Vista Kanban",
         "filterBtn": "Filtro",
         "filterClearAll": "Cancella tutti i filtri",

@@ -263,6 +263,8 @@
         "kanbanMoveToOpen": "Reabrir",
         "recurring": "Recorrente",
         "listView": "Visualização em lista",
+        "kanbanColEmpty": "Sem tarefas",
+        "kanbanDropHint": "Arraste aqui",
         "kanbanView": "Visualização Kanban",
         "filterBtn": "Filtrar",
         "filterClearAll": "Limpar todos os filtros",

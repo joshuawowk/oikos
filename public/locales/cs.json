@@ -274,6 +274,8 @@
         "kanbanMoveToOpen": "Znovu otevřít",
         "recurring": "Opakující se",
         "listView": "Zobrazení seznamu",
+        "kanbanColEmpty": "Žádné úkoly",
+        "kanbanDropHint": "Přetáhněte sem",
         "kanbanView": "Zobrazení Kanban",
         "filterBtn": "Filtr",
         "filterClearAll": "Vymazat všechny filtry",

@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "Öppna igen",
         "recurring": "Återkommande",
         "listView": "Listvy",
+        "kanbanColEmpty": "Inga uppgifter",
+        "kanbanDropHint": "Dra hit",
         "kanbanView": "Kanban-vy",
         "filterBtn": "Filtrera",
         "filterClearAll": "Rensa alla filter",

@@ -268,6 +268,8 @@
         "kanbanMoveToOpen": "다시 열기",
         "recurring": "반복",
         "listView": "목록 보기",
+        "kanbanColEmpty": "작업 없음",
+        "kanbanDropHint": "여기로 드래그",
         "kanbanView": "칸반 보기",
         "swipedDoneToast": "완료로 표시했습니다.",
         "swipedOpenToast": "미완료로 표시했습니다.",

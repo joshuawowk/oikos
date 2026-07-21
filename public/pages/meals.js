@@ -386,17 +386,24 @@ function renderRecipeSidebar() {
     titleEl.textContent = recipe.title;
     card.appendChild(titleEl);
 
-    const types = document.createElement('div');
-    types.className = 'recipe-sidebar__card-types';
-    recipeMealTypeOptions()
-      .filter((option) => normalizeRecipeMealTypes(recipe.meal_types).includes(option.key))
-      .forEach((option) => {
-        const badge = document.createElement('span');
-        badge.className = `meal-type-badge meal-type-badge--${option.key}`;
-        badge.textContent = option.label;
-        types.appendChild(badge);
-      });
-    card.appendChild(types);
+    // Mahlzeiten-Chips nur bei echter Teilmenge: ein Rezept, das zu allen (oder
+    // keinem) Typ passt, trägt mit "überall"-Chips null Information und ist dann
+    // das lauteste Element der Karte (Audit P2, Muster wie recipes.js showBadges).
+    const recipeTypes = normalizeRecipeMealTypes(recipe.meal_types);
+    const allTypeOptions = recipeMealTypeOptions();
+    if (recipeTypes.length && recipeTypes.length < allTypeOptions.length) {
+      const types = document.createElement('div');
+      types.className = 'recipe-sidebar__card-types';
+      allTypeOptions
+        .filter((option) => recipeTypes.includes(option.key))
+        .forEach((option) => {
+          const badge = document.createElement('span');
+          badge.className = `meal-type-badge meal-type-badge--${option.key}`;
+          badge.textContent = option.label;
+          types.appendChild(badge);
+        });
+      card.appendChild(types);
+    }
 
     list.appendChild(card);
   });

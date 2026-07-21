@@ -125,6 +125,9 @@
     animation: none;
     opacity: 1;
   }
+  #main-content {
+    transition: none;
+  }
 }
 
 /* --------------------------------------------------------
@@ -140,6 +143,9 @@
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   padding-top: var(--offline-banner-height, 0px);
+  /* Bewusste Layout-Transition (Detector layout-transition, geprüft): das Offline-
+   * Banner schiebt den Inhalt hinunter - echte Layout-Höhe, per transform nicht
+   * animierbar. Selten (nur bei Offline-Wechsel); reduced-motion schaltet sie ab. */
   transition: padding-top var(--duration-md) ease;
   background-color: var(--color-bg);
 }
@@ -953,6 +959,8 @@ p.field-hint--warn[hidden] {
     min-height: 0;
     padding-bottom: 0;
     margin-left: var(--sidebar-width);
+    /* Begleitet den Sidebar-Collapse (siehe .nav-sidebar width): der Inhalt rückt
+     * nach - bewusste Layout-Transition, reduced-motion schaltet sie ab. */
     transition: margin-left var(--transition-slow);
   }
 
@@ -1199,6 +1207,8 @@ p.field-hint--warn[hidden] {
     cursor: pointer;
     color: var(--color-text-tertiary);
     flex-shrink: 0;
+    /* padding begleitet den Sidebar-Collapse (Detector layout-transition, geprüft);
+     * reduced-motion schaltet sie im Block unten ab. */
     transition: color var(--transition-fast), padding var(--transition-slow);
   }
 
@@ -3509,7 +3519,7 @@ textarea.input { resize: vertical; }
   border-radius: var(--radius-sm);
   pointer-events: none;
   transition:
-    transform 450ms cubic-bezier(0.28, 1.25, 0.36, 1),
+    transform 450ms var(--ease-sidebar-glide),
     opacity var(--duration-lg) ease;
   will-change: transform;
   z-index: 0;
@@ -3529,7 +3539,7 @@ textarea.input { resize: vertical; }
   opacity: 0;
   pointer-events: none;
   transition:
-    transform 280ms cubic-bezier(0.28, 1.25, 0.36, 1),
+    transform 280ms var(--ease-sidebar-glide),
     opacity 180ms ease;
   will-change: transform, opacity;
   z-index: 0;

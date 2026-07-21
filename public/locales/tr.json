@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "Yeniden aç",
         "recurring": "Yinelenen",
         "listView": "Liste görünümü",
+        "kanbanColEmpty": "Görev yok",
+        "kanbanDropHint": "Buraya sürükleyin",
         "kanbanView": "Kanban görünümü",
         "filterBtn": "Filtrele",
         "filterClearAll": "Tüm filtreleri temizle",

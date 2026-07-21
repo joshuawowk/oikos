@@ -569,7 +569,11 @@ function filteredTasks() {
 async function loadTasks(container) {
   persistAssignedToMe();
   const params = new URLSearchParams();
-  if (state.filters.status)      params.set('status',      state.filters.status);
+  // Kanban-Spalten SIND der Status: den Statusfilter dort nicht an den Server
+  // senden, sonst blieben "In Bearbeitung"/"Erledigt" trotz vorhandener Aufgaben
+  // leer (Audit A1-07/P3). In der Liste wirkt er normal; state bleibt erhalten,
+  // sodass der Filter beim Zurückwechseln wieder greift.
+  if (state.filters.status && state.viewMode !== 'kanban') params.set('status', state.filters.status);
   if (state.filters.priority)    params.set('priority',    state.filters.priority);
   if (state.filters.assigned_to) params.set('assigned_to', state.filters.assigned_to);
   if (state.showFuture)          params.set('include_future', '1');
@@ -1059,7 +1063,12 @@ function renderKanban(container) {
             <span class="kanban-col__count">${grouped[col.status].length}</span>
           </div>
           <div class="kanban-col__body" data-drop-zone="${col.status}">
-            ${grouped[col.status].map((t) => renderKanbanCard(t)).join('')}
+            ${grouped[col.status].length
+              ? grouped[col.status].map((task) => renderKanbanCard(task)).join('')
+              : `<div class="kanban-col__empty">
+                   <span class="kanban-col__empty-idle">${t('tasks.kanbanColEmpty')}</span>
+                   <span class="kanban-col__empty-drop">${t('tasks.kanbanDropHint')}</span>
+                 </div>`}
             <div class="kanban-drop-placeholder" hidden></div>
           </div>
         </div>
@@ -1083,12 +1092,14 @@ function wireKanbanDrag(container) {
     if (!card) return;
     state.dragTaskId = card.dataset.taskId;
     card.classList.add('kanban-card--dragging');
+    board.classList.add('kanban-board--dragging');
     e.dataTransfer.effectAllowed = 'move';
   });
 
   board.addEventListener('dragend', (e) => {
     const card = e.target.closest('.kanban-card[data-task-id]');
     if (card) card.classList.remove('kanban-card--dragging');
+    board.classList.remove('kanban-board--dragging');
     board.querySelectorAll('.kanban-drop-placeholder').forEach((el) => el.hidden = true);
     board.querySelectorAll('.kanban-col__body--over').forEach((el) =>
       el.classList.remove('kanban-col__body--over')
@@ -1197,6 +1208,7 @@ function wireKanbanTouch(container) {
   function cleanup() {
     ghost?.remove();
     ghost = null;
+    board.classList.remove('kanban-board--dragging');
     if (dragging) {
       dragging.classList.remove('kanban-card--dragging');
       dragging = null;
@@ -1240,6 +1252,7 @@ function wireKanbanTouch(container) {
       ghost.style.top = originTop + 'px';
       document.body.appendChild(ghost);
       dragging.classList.add('kanban-card--dragging');
+      board.classList.add('kanban-board--dragging');
     }
 
     e.preventDefault();
@@ -1353,8 +1366,14 @@ function renderFilters(container) {
 
   const statusLabels   = STATUS_LABELS();
   const priorityLabels = PRIORITY_LABELS();
-  const activeCount    = [state.filters.status, state.filters.priority, state.filters.assigned_to]
-    .filter(Boolean).length;
+  // Im Kanban ist der Statusfilter unwirksam (die Spalten SIND der Status) und
+  // wird nicht als Chip gezeigt - daher auch nicht mitzählen, sonst behauptet
+  // "Filter N" einen unsichtbaren Filter (Audit P3).
+  const activeCount    = [
+    state.viewMode === 'kanban' ? '' : state.filters.status,
+    state.filters.priority,
+    state.filters.assigned_to,
+  ].filter(Boolean).length;
 
   // ---- Chip-Leiste: nur aktive Filter + Toggle-Button ----
   bar.replaceChildren();
@@ -1833,11 +1852,6 @@ function wireViewToggle(container) {
     btn.addEventListener('click', () => {
       state.viewMode = btn.dataset.view;
       localStorage.setItem('yuvomi-tasks-view', state.viewMode);
-      // Kanban-Spalten SIND der Status: ein aktiver Statusfilter würde nur
-      // Spalten leeren ("Offen 0" trotz offener Aufgaben, Audit A1-07).
-      if (state.viewMode === 'kanban' && state.filters.status) {
-        state.filters.status = '';
-      }
       renderFilters(container);
       toggle.querySelectorAll('[data-view]').forEach((b) => {
         const on = b.dataset.view === state.viewMode;
@@ -1862,10 +1876,14 @@ function wireViewToggle(container) {
       const listEl = container.querySelector('#task-list');
       if (listEl) listEl.style.opacity = '0.4';
       requestAnimationFrame(() => {
-        renderTaskList(container);
-        updateBulkActionsBar(container);
-        const el = container.querySelector('#task-list');
-        if (el) { el.style.transition = 'opacity 0.15s'; el.style.opacity = ''; }
+        // Task-Menge neu laden: der Kanban lädt alle Stati (kein status-Param),
+        // die Liste wendet den Statusfilter wieder an (Audit A1-07/P3). Fällt bei
+        // Netzfehler auf ein reines Re-Render der vorhandenen Aufgaben zurück.
+        loadTasks(container).catch(() => renderTaskList(container)).finally(() => {
+          updateBulkActionsBar(container);
+          const el = container.querySelector('#task-list');
+          if (el) { el.style.transition = 'opacity 0.15s'; el.style.opacity = ''; }
+        });
       });
     });
   });
@@ -2207,7 +2225,10 @@ export async function render(container, { user }) {
   // Daten laden (Filter-State aus vorheriger Session berücksichtigen)
   try {
     const params = new URLSearchParams();
-    if (state.filters.status)      params.set('status',      state.filters.status);
+    // Statusfilter im Kanban weglassen (Spalten SIND der Status), sonst startet die
+    // Ansicht mit leeren "In Bearbeitung"/"Erledigt"-Spalten (Audit A1-07/P3) -
+    // gleiche Regel wie loadTasks().
+    if (state.filters.status && state.viewMode !== 'kanban') params.set('status', state.filters.status);
     if (state.filters.priority)    params.set('priority',    state.filters.priority);
     if (state.filters.assigned_to) params.set('assigned_to', state.filters.assigned_to);
     if (state.showFuture)          params.set('include_future', '1');

@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "重新打开",
         "recurring": "重复",
         "listView": "列表视图",
+        "kanbanColEmpty": "无任务",
+        "kanbanDropHint": "拖到此处",
         "kanbanView": "看板视图",
         "filterBtn": "筛选",
         "filterClearAll": "清除所有筛选",

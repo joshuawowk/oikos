@@ -268,6 +268,8 @@
         "kanbanMoveToOpen": "Otwórz ponownie",
         "recurring": "Cykliczne",
         "listView": "Widok listy",
+        "kanbanColEmpty": "Brak zadań",
+        "kanbanDropHint": "Przeciągnij tutaj",
         "kanbanView": "Widok Kanban",
         "swipedDoneToast": "Oznaczono jako zrobione.",
         "swipedOpenToast": "Oznaczono jako otwarte.",

@@ -618,6 +618,10 @@
 
   /* g) Glass-Übergänge */
   --ease-glass:       cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Sidebar-Signature-Pille: bewusst sanftere Feder (geringerer Overshoot als
+   * --ease-glass), damit die gleitende Aktiv-Pille nicht über das Ziel-Item
+   * hinausschießt. Eigene benannte Kurve statt gestreuter cubic-bezier-Literale. */
+  --ease-sidebar-glide: cubic-bezier(0.28, 1.25, 0.36, 1);
   --transition-glass: 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* h) Liquid-Glass-Backdrop (Section 17) — driftende Blobs + Specular.

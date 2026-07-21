@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "إعادة الفتح",
         "recurring": "متكرر",
         "listView": "عرض القائمة",
+        "kanbanColEmpty": "لا مهام",
+        "kanbanDropHint": "اسحب هنا",
         "kanbanView": "عرض كانبان",
         "filterBtn": "تصفية",
         "filterClearAll": "مسح جميع الفلاتر",

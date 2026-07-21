@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "Rouvrir",
         "recurring": "Récurrent",
         "listView": "Vue liste",
+        "kanbanColEmpty": "Aucune tâche",
+        "kanbanDropHint": "Glissez ici",
         "kanbanView": "Vue Kanban",
         "filterBtn": "Filtrer",
         "filterClearAll": "Effacer tous les filtres",

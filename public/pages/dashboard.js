@@ -1572,7 +1572,7 @@ function renderFab() {
   return `
     <div class="fab-backdrop" id="fab-backdrop"></div>
     <div class="fab-container" id="fab-container">
-      <button class="fab-main" id="fab-main" aria-label="${t('nav.quickActions')}" aria-expanded="false">
+      <button class="fab-main" id="fab-main" aria-label="${t('nav.quickActions')}" title="${t('nav.quickActions')} (n)" aria-keyshortcuts="n" aria-expanded="false">
         <i data-lucide="plus" aria-hidden="true"></i>
       </button>
       <div class="fab-actions" id="fab-actions" aria-hidden="true">

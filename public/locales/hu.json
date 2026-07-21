@@ -274,6 +274,8 @@
         "kanbanMoveToOpen": "Jelölés nyitottnak",
         "recurring": "Ismétlődő",
         "listView": "Lista nézet",
+        "kanbanColEmpty": "Nincs feladat",
+        "kanbanDropHint": "Húzza ide",
         "kanbanView": "Kanban nézet",
         "filterBtn": "Szűrő",
         "filterClearAll": "Összes szűrő törlése",

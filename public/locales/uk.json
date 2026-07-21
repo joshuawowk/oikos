@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "Відкрити знову",
         "recurring": "Повторюване",
         "listView": "Список",
+        "kanbanColEmpty": "Немає завдань",
+        "kanbanDropHint": "Перетягніть сюди",
         "kanbanView": "Канбан",
         "filterBtn": "Фільтр",
         "filterClearAll": "Скинути всі фільтри",

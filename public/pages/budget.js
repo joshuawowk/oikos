@@ -676,7 +676,11 @@ function renderCategoryBars(byCategory) {
 
   return byCategory.map((c) => {
     const isExpense = c.total < 0;
-    const pct       = Math.round((Math.abs(c.total) / maxAbs) * 100);
+    // Nicht-null-Kategorien behalten einen sichtbaren Mindestbalken, statt bei
+    // winzigem Anteil (z. B. -25 € neben +5050 €) auf 0 zu runden und leer zu
+    // wirken (Audit P3).
+    const rawPct    = (Math.abs(c.total) / maxAbs) * 100;
+    const pct       = c.total !== 0 ? Math.max(3, Math.round(rawPct)) : 0;
     const cls       = isExpense ? 'budget-bar-row__fill--expenses' : 'budget-bar-row__fill--income';
 
     return `

@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "फिर से खोलें",
         "recurring": "आवर्ती",
         "listView": "सूची दृश्य",
+        "kanbanColEmpty": "कोई कार्य नहीं",
+        "kanbanDropHint": "यहाँ खींचें",
         "kanbanView": "कानबान दृश्य",
         "filterBtn": "फ़िल्टर",
         "filterClearAll": "सभी फ़िल्टर हटाएं",

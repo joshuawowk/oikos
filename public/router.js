@@ -985,7 +985,16 @@ async function renderPage(route, previousPath = null) {
     _renderedModuleName = route.module;
 
     // FAB Long Loop: Einstiegsanimation nach FAB_SEEN_MAX Views pro Modul deaktivieren
-    if (pageWrapper.querySelector('.page-fab')) {
+    const pageFab = pageWrapper.querySelector('.page-fab');
+    if (pageFab) {
+      // Shortcut-Discoverability (Audit P3): der 'n'-Chord öffnet den FAB — als
+      // Tooltip-Titel + aria-keyshortcuts sichtbar bzw. vorlesbar machen.
+      pageFab.setAttribute('aria-keyshortcuts', 'n');
+      const fabLabel = pageFab.getAttribute('aria-label');
+      if (fabLabel && !/\(n\)$/.test(pageFab.getAttribute('title') || '')) {
+        pageFab.setAttribute('title', `${fabLabel} (n)`);
+      }
+
       const fabKey = FAB_SEEN_KEY(route.module);
       let fabCount = parseInt(localStorage.getItem(fabKey) ?? '0', 10);
       if (fabCount < FAB_SEEN_MAX) {
@@ -2275,6 +2284,9 @@ function moreNavButtonEl() {
   moreBtn.style.setProperty('--item-module-accent', 'var(--color-accent)');
   moreBtn.setAttribute('aria-label', t('nav.more'));
   moreBtn.setAttribute('title', t('nav.more'));
+  // Öffnet das „Mehr"-Sheet (role=dialog): aria-haspopup kündigt das Popup an,
+  // aria-expanded/-controls spiegeln den Offen-Zustand (Audit P3, Sam-Persona).
+  moreBtn.setAttribute('aria-haspopup', 'dialog');
   moreBtn.setAttribute('aria-expanded', 'false');
   moreBtn.setAttribute('aria-controls', 'more-sheet');
 

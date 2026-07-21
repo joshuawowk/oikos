@@ -274,6 +274,8 @@
         "kanbanMoveToOpen": "Mở lại",
         "recurring": "Lặp lại",
         "listView": "Dạng xem danh sách",
+        "kanbanColEmpty": "Không có công việc",
+        "kanbanDropHint": "Kéo vào đây",
         "kanbanView": "Dạng xem Kanban",
         "filterBtn": "Bộ lọc",
         "filterClearAll": "Xóa tất cả các bộ lọc",

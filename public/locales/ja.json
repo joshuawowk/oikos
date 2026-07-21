@@ -259,6 +259,8 @@
         "kanbanMoveToOpen": "再度開く",
         "recurring": "繰り返し",
         "listView": "リスト表示",
+        "kanbanColEmpty": "タスクなし",
+        "kanbanDropHint": "ここにドラッグ",
         "kanbanView": "かんばん表示",
         "filterBtn": "フィルター",
         "filterClearAll": "すべてのフィルターをクリア",

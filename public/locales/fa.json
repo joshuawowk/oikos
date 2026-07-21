@@ -268,6 +268,8 @@
         "kanbanMoveToOpen": "باز کردن مجدد",
         "recurring": "تکرارشونده",
         "listView": "نمای فهرست",
+        "kanbanColEmpty": "بدون وظیفه",
+        "kanbanDropHint": "اینجا بکشید",
         "kanbanView": "نمای کانبان",
         "swipedDoneToast": "به عنوان انجام‌شده علامت‌گذاری شد.",
         "swipedOpenToast": "به عنوان باز علامت‌گذاری شد.",

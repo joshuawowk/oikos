@@ -841,6 +841,46 @@
   opacity: 0.5;
 }
 
+/* Leere Spalte: ruhiger Hinweis, dass hier (noch) nichts liegt - statt einer
+ * stummen Lücke (Audit P3). Beim Ziehen einer Karte wird die Spalte zur sichtbaren
+ * Ablagefläche ("Hierher ziehen"), damit auch leere Spalten als Ziel erkennbar
+ * sind - die icon-only-Statusbuttons bleiben die tastaturfreundliche Alternative. */
+.kanban-col__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 64px;
+  padding: var(--space-3);
+  border: var(--space-px) dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+              background-color var(--transition-fast);
+}
+
+.kanban-col__empty-drop {
+  display: none;
+}
+
+/* Während ein Karten-Drag läuft: leere Spalten laden aktiv zum Ablegen ein.
+ * Modul-Akzent (grün auf der Aufgaben-Seite), damit die Affordanz zur restlichen
+ * Modulfarbe passt statt zum globalen Akzent. */
+.kanban-board--dragging .kanban-col__empty {
+  border-color: var(--module-accent, var(--color-accent));
+  color: var(--module-accent, var(--color-accent));
+  background-color: color-mix(in srgb, var(--module-accent, var(--color-accent)) 8%, transparent);
+}
+
+.kanban-board--dragging .kanban-col__empty-idle {
+  display: none;
+}
+
+.kanban-board--dragging .kanban-col__empty-drop {
+  display: inline;
+}
+
 /* --------------------------------------------------------
    Bulk selection
    -------------------------------------------------------- */

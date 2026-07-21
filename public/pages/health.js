@@ -470,7 +470,13 @@ function wireTablistKeys(root) {
   // Personen-Chipzeile: Rand-Fade-Affordanz beim Überlaufen (geteilte
   // has-fade-*-Konvention, Audit F-06). Hier zentral, weil alle sechs Tabs
   // diesen Helfer nach jedem Panel-Render aufrufen.
-  wireScrollFade(root.querySelector('.health-persons'));
+  const persons = root.querySelector('.health-persons');
+  wireScrollFade(persons);
+  // Aktive Person ins Sichtfeld holen: mobil kann der ausgewählte Chip außerhalb
+  // des Viewports liegen (Audit P2 "Sichtbarkeit vor Scroll-Position", Muster wie
+  // tablist.js/sub-tabs.js). role="tab"+aria-selected trägt den Gedrückt-Zustand.
+  persons?.querySelector('.health-person-chip.is-active')
+    ?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   root.querySelectorAll('[role="tablist"]:not(.health-tabs-bar)').forEach((list) => {
     const tabs = () => [...list.querySelectorAll('[role="tab"]')];
     tabs().forEach((el) => { el.tabIndex = el.getAttribute('aria-selected') === 'true' ? 0 : -1; });

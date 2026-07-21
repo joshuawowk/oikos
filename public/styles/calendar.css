@@ -350,6 +350,16 @@
   cursor: pointer;
 }
 
+/* Von fitMonthDayCells (Audit P2) verborgene Überzählige. Eigene Klasse statt
+ * [hidden], weil die Chip-Basisregeln display:flex/inline-flex tragen und das
+ * UA-[hidden] überstimmen würden; die Dreifach-Klasse (0,3,0) schlägt auch die
+ * mobilen Punkt-Overrides (.month-day .month-day__event, 0,2,0). */
+.month-day .month-day__event.is-clipped,
+.month-day .cal-task-chip.is-clipped,
+.month-day .month-day__holiday.is-clipped {
+  display: none;
+}
+
 /* --------------------------------------------------------
  * Wochenansicht
  * -------------------------------------------------------- */

@@ -274,6 +274,8 @@
         "kanbanMoveToOpen": "Heropenen",
         "recurring": "Terugkerend",
         "listView": "Lijstweergave",
+        "kanbanColEmpty": "Geen taken",
+        "kanbanDropHint": "Sleep hierheen",
         "kanbanView": "Kanban-weergave",
         "filterBtn": "Filteren",
         "filterClearAll": "Alle filters wissen",
