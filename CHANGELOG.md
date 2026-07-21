@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.7] - 2026-07-21
+
+### Fixed
+- Contacts imported via vCard now sort alphabetically within their category instead of being appended at the end in import order. Every other way of adding a contact (single create, quick-add, undoing a delete) already re-sorted the in-memory list afterward; the vCard import path was the one exception, so imported contacts could appear out of order until the page was reloaded.
+
 ## [1.40.6] - 2026-07-21
 
 Follow-up to the #543 modal-save fix: the document settings dialog still failed to save.

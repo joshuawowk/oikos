@@ -1053,6 +1053,12 @@ async function importParsedContacts(list) {
       lastError = err;
     }
   }
+  // Ohne Neusortierung würden importierte Kontakte einfach ans Ende ihrer
+  // Kategorie-Gruppe angehängt statt alphabetisch einsortiert (renderList()
+  // verlässt sich auf bereits sortierte state.contacts, siehe Anlage/Edit oben).
+  state.contacts.sort((a, b) =>
+    catSortIndex(a.category) - catSortIndex(b.category) || byName(a, b)
+  );
   renderList();
   const failed = failedList.length;
 
